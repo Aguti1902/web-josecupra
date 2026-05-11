@@ -16,6 +16,23 @@ const ADMIN_MOCK = {
 };
 
 // ── Helpers ────────────────────────────────────────────────────
+function buildUser(authUser, profile) {
+  // Si hay fila en profiles la usamos; si no, construimos un usuario mínimo
+  if (profile) {
+    return { ...profile, email: authUser.email };
+  }
+  // Fallback: el email es jose@depro.es → rol admin
+  const meta = authUser.user_metadata ?? {};
+  return {
+    id: authUser.id,
+    email: authUser.email,
+    name: meta.name ?? authUser.email.split("@")[0],
+    avatar: (meta.name ?? authUser.email)[0].toUpperCase(),
+    role: meta.role ?? (authUser.email === "jose@depro.es" ? "admin" : "player"),
+    club: null,
+    team: null,
+  };
+}
 async function fetchProfile(userId) {
   const { data, error } = await supabase
     .from("profiles")
@@ -26,9 +43,12 @@ async function fetchProfile(userId) {
       team:teams(id, name)
     `)
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.warn("fetchProfile error:", error.message);
+    return null;
+  }
   return data;
 }
 
@@ -50,24 +70,16 @@ export function AuthProvider({ children }) {
     // Modo Supabase real
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        try {
-          const profile = await fetchProfile(session.user.id);
-          setUser({ ...profile, email: session.user.email });
-        } catch {
-          setUser(null);
-        }
+        const profile = await fetchProfile(session.user.id);
+        setUser(buildUser(session.user, profile));
       }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
-        try {
-          const profile = await fetchProfile(session.user.id);
-          setUser({ ...profile, email: session.user.email });
-        } catch {
-          setUser(null);
-        }
+        const profile = await fetchProfile(session.user.id);
+        setUser(buildUser(session.user, profile));
       } else if (event === "SIGNED_OUT") {
         setUser(null);
       }
@@ -95,8 +107,14 @@ export function AuthProvider({ children }) {
     }
 
     // Supabase real
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { success: false, error: error.message };
+    // onAuthStateChange se encargará de setUser, pero forzamos aquí también
+    // por si el evento llega tarde (ej. primera carga en Vercel)
+    if (data?.user) {
+      const profile = await fetchProfile(data.user.id);
+      setUser(buildUser(data.user, profile));
+    }
     return { success: true };
   };
 
