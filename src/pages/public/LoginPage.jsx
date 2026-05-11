@@ -26,11 +26,6 @@ export default function LoginPage() {
     }
   };
 
-  const demos = [
-    { label: "🛡️ Admin", email: "jose@admin.com", password: "admin123" },
-    { label: "Jugador", email: "marcus@demo.com", password: "demo123" },
-    { label: "Club", email: "club@demo.com", password: "demo123" },
-  ];
 
   return (
     <div className="min-h-screen bg-depro-gray-light flex">
@@ -66,20 +61,7 @@ export default function LoginPage() {
             <p className="text-depro-gray">Accede a tu panel de entrenamiento</p>
           </div>
 
-          {/* Demo shortcuts */}
           <div className="mb-6">
-            <p className="text-xs text-depro-gray font-medium mb-2">Accesos rápidos (demo):</p>
-            <div className="grid grid-cols-3 gap-2">
-              {demos.map((d) => (
-                <button
-                  key={d.email}
-                  onClick={() => { setEmail(d.email); setPassword(d.password); }}
-                  className="text-xs bg-white border border-depro-border hover:border-depro-blue hover:text-depro-blue rounded-lg py-2 px-2 text-depro-gray transition-all text-center font-medium"
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
