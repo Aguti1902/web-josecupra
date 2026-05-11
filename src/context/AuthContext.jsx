@@ -4,11 +4,8 @@ import { clients } from "../data/mockData";
 
 const AuthContext = createContext(null);
 
-// ── Fallback mock cuando Supabase no está configurado ──────────
-const SUPABASE_READY =
-  import.meta.env.VITE_SUPABASE_URL &&
-  import.meta.env.VITE_SUPABASE_URL !== "" &&
-  !import.meta.env.VITE_SUPABASE_URL.includes("placeholder");
+// Supabase siempre disponible (credenciales embebidas en supabase.js)
+const SUPABASE_READY = true;
 
 const ADMIN_MOCK = {
   id: 0, name: "Jose (Admin)", email: "jose@admin.com",
