@@ -1,0 +1,678 @@
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  ArrowLeft, ArrowRight, CheckCircle, Zap, Trophy, User, Mail, Calendar,
+  Target, Activity, Heart, Dumbbell, AlertCircle, CreditCard, Shield, Lock,
+  ChevronRight, BadgeCheck, MapPin, Clock,
+} from "lucide-react";
+
+/* ─────────────────────────────────────────────
+   CONFIG DE PLANES
+───────────────────────────────────────────── */
+const PLANS = {
+  basic: {
+    id: "basic",
+    name: "Plan Básico",
+    tagline: "Tu plan mensual al instante",
+    price: 49,
+    period: "/ mes",
+    description: "Plan mensual automatizado generado tras tu formulario.",
+    features: [
+      "Plan mensual completo al instante",
+      "Todos los entrenamientos del mes",
+      "Acceso al panel privado",
+      "Descarga en PDF",
+      "Iconografía condicional",
+    ],
+    color: "#0A36F7",
+    bg: "#EEF1FF",
+  },
+  premium: {
+    id: "premium",
+    name: "Plan Premium",
+    tagline: "Plan + seguimiento del preparador",
+    price: 119,
+    period: "/ mes",
+    description: "Plan personalizado revisado por el preparador con feedback continuo.",
+    features: [
+      "Todo el Plan Básico incluido",
+      "Plan revisado y ajustado por el preparador",
+      "Seguimiento continuo en el panel",
+      "Feedback mensual personalizado",
+      "Contacto directo por el panel",
+      "Renovación con progresión adaptada",
+    ],
+    color: "#F6CC12",
+    bg: "#FEFAE7",
+    highlight: true,
+  },
+};
+
+const POSITIONS  = ["Portero", "Defensa", "Lateral", "Pivote", "Centro", "Mediapunta", "Extremo", "Delantero"];
+const LEVELS     = ["Iniciación", "Amateur", "Semi-profesional", "Profesional"];
+const FREQUENCY  = ["2 días / sem", "3 días / sem", "4 días / sem", "5+ días / sem"];
+const MATERIALS  = ["Balón", "Conos", "Vallas", "Picas", "Bandas elásticas", "Mancuernas", "Gimnasio", "Campo"];
+const GOALS      = ["Mejorar técnica", "Subir nivel físico", "Prevenir lesiones", "Ganar minutos", "Llegar a profesional", "Volver tras lesión"];
+const STEPS      = ["Plan", "Tus datos", "Tu fútbol", "Pago"];
+
+/* ─────────────────────────────────────────────
+   COMPONENTES AUX
+───────────────────────────────────────────── */
+function StepHeader({ current }) {
+  return (
+    <div className="mb-10">
+      <div className="flex items-center justify-between mb-3">
+        {STEPS.map((label, i) => {
+          const stepNumber = i + 1;
+          const done = stepNumber < current;
+          const active = stepNumber === current;
+          return (
+            <div key={label} className="flex items-center flex-1 last:flex-none">
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all ${
+                    done
+                      ? "bg-depro-green text-white"
+                      : active
+                      ? "bg-depro-blue text-white shadow-depro"
+                      : "bg-depro-gray-light text-depro-gray"
+                  }`}
+                >
+                  {done ? <CheckCircle size={15} /> : stepNumber}
+                </div>
+                <span
+                  className={`text-xs font-bold hidden sm:inline ${
+                    active ? "text-depro-dark" : "text-depro-gray"
+                  }`}
+                >
+                  {label}
+                </span>
+              </div>
+              {stepNumber !== STEPS.length && (
+                <div className={`flex-1 h-0.5 mx-2 sm:mx-4 ${done ? "bg-depro-green" : "bg-depro-border"}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Toggle({ label, value, options, onChange, multi = false }) {
+  const handle = (opt) => {
+    if (multi) {
+      const next = value?.includes(opt) ? value.filter((v) => v !== opt) : [...(value || []), opt];
+      onChange(next);
+    } else {
+      onChange(opt);
+    }
+  };
+  return (
+    <div>
+      <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 block">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => {
+          const selected = multi ? value?.includes(opt) : value === opt;
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => handle(opt)}
+              className={`text-xs font-bold px-3.5 py-2 rounded-xl border transition-all ${
+                selected
+                  ? "bg-depro-blue border-depro-blue text-white"
+                  : "bg-white border-depro-border text-depro-gray hover:text-depro-dark hover:border-depro-blue/40"
+              }`}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   STEP 1 — Elegir plan
+───────────────────────────────────────────── */
+function StepPlan({ selected, onSelect, onNext }) {
+  return (
+    <div>
+      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Elige tu plan</h2>
+      <p className="text-depro-gray text-sm mb-8">Puedes cambiar de plan en cualquier momento desde tu panel.</p>
+
+      <div className="grid md:grid-cols-2 gap-5">
+        {Object.values(PLANS).map((plan) => {
+          const isSelected = selected === plan.id;
+          return (
+            <button
+              key={plan.id}
+              type="button"
+              onClick={() => onSelect(plan.id)}
+              className={`relative text-left rounded-2xl border-2 p-6 transition-all hover:shadow-card-hover hover:-translate-y-1 ${
+                isSelected ? "border-depro-blue bg-depro-blue/[0.03]" : "border-depro-border bg-white"
+              }`}
+            >
+              {plan.highlight && (
+                <span className="absolute -top-3 right-5 bg-depro-yellow text-depro-dark text-[10px] font-black px-3 py-1 rounded-full">
+                  RECOMENDADO
+                </span>
+              )}
+
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: plan.bg }}>
+                  {plan.id === "basic" ? <Zap size={20} style={{ color: plan.color }} /> : <Trophy size={20} style={{ color: plan.color }} />}
+                </div>
+                <div
+                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                    isSelected ? "border-depro-blue bg-depro-blue" : "border-depro-border"
+                  }`}
+                >
+                  {isSelected && <CheckCircle size={14} className="text-white" />}
+                </div>
+              </div>
+
+              <h3 className="text-xl font-black text-depro-dark">{plan.name}</h3>
+              <p className="text-xs text-depro-gray mt-0.5 mb-3">{plan.tagline}</p>
+
+              <div className="flex items-baseline gap-1 mb-5">
+                <span className="text-3xl font-black text-depro-dark">{plan.price}€</span>
+                <span className="text-xs text-depro-gray">{plan.period}</span>
+              </div>
+
+              <ul className="space-y-2 mb-2">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-depro-gray">
+                    <CheckCircle size={14} className="text-depro-blue mt-0.5 flex-shrink-0" />
+                    <span className="leading-relaxed">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-8 flex justify-end">
+        <button
+          onClick={onNext}
+          disabled={!selected}
+          className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Continuar <ArrowRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   STEP 2 — Datos personales
+───────────────────────────────────────────── */
+function StepDatos({ form, setForm, onNext, onBack }) {
+  const valid = form.nombre && form.email && form.edad && form.posicion;
+  return (
+    <div>
+      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Cuéntanos sobre ti</h2>
+      <p className="text-depro-gray text-sm mb-8">Necesitamos tus datos para crear tu cuenta y personalizar el plan.</p>
+
+      <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card space-y-5">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Nombre completo *</label>
+            <div className="relative">
+              <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text" value={form.nombre}
+                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                className="admin-input w-full pl-10"
+                placeholder="Tu nombre y apellidos"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Email *</label>
+            <div className="relative">
+              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="email" value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="admin-input w-full pl-10"
+                placeholder="tu@email.com"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Edad *</label>
+            <div className="relative">
+              <Calendar size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="number" min="10" max="60" value={form.edad}
+                onChange={(e) => setForm({ ...form, edad: e.target.value })}
+                className="admin-input w-full pl-10"
+                placeholder="18"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Club / equipo actual</label>
+            <div className="relative">
+              <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text" value={form.club}
+                onChange={(e) => setForm({ ...form, club: e.target.value })}
+                className="admin-input w-full pl-10"
+                placeholder="Opcional"
+              />
+            </div>
+          </div>
+        </div>
+
+        <Toggle
+          label="Posición principal *"
+          value={form.posicion}
+          options={POSITIONS}
+          onChange={(v) => setForm({ ...form, posicion: v })}
+        />
+
+        <div>
+          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
+            Código de club <span className="text-depro-gray font-normal normal-case">(opcional, para descuento)</span>
+          </label>
+          <input
+            type="text" value={form.clubCode}
+            onChange={(e) => setForm({ ...form, clubCode: e.target.value.toUpperCase() })}
+            className="admin-input w-full uppercase tracking-wider"
+            placeholder="EJ. DEPRO-FCB-2025"
+            maxLength={32}
+          />
+        </div>
+      </div>
+
+      <div className="mt-8 flex justify-between">
+        <button onClick={onBack} className="btn-ghost flex items-center gap-2">
+          <ArrowLeft size={16} /> Atrás
+        </button>
+        <button onClick={onNext} disabled={!valid} className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          Continuar <ArrowRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   STEP 3 — Datos de fútbol
+───────────────────────────────────────────── */
+function StepFutbol({ form, setForm, onNext, onBack }) {
+  const valid = form.nivel && form.frecuencia && (form.materiales?.length > 0) && (form.objetivos?.length > 0);
+
+  return (
+    <div>
+      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Cuéntanos tu fútbol</h2>
+      <p className="text-depro-gray text-sm mb-8">Con estos datos diseñamos un plan adaptado a ti.</p>
+
+      <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card space-y-6">
+        <Toggle label="Nivel actual *" value={form.nivel} options={LEVELS} onChange={(v) => setForm({ ...form, nivel: v })} />
+        <Toggle label="Frecuencia de entrenamiento *" value={form.frecuencia} options={FREQUENCY} onChange={(v) => setForm({ ...form, frecuencia: v })} />
+        <Toggle label="Material disponible *" value={form.materiales} options={MATERIALS} multi onChange={(v) => setForm({ ...form, materiales: v })} />
+        <Toggle label="Objetivos principales *" value={form.objetivos} options={GOALS} multi onChange={(v) => setForm({ ...form, objetivos: v })} />
+
+        <div>
+          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block flex items-center gap-1.5">
+            <AlertCircle size={11} className="text-depro-red" /> Lesiones o limitaciones
+          </label>
+          <textarea
+            rows={3} value={form.lesiones}
+            onChange={(e) => setForm({ ...form, lesiones: e.target.value })}
+            className="admin-input w-full resize-none"
+            placeholder="¿Tienes alguna lesión actual o reciente? ¿Dolores recurrentes? (Opcional)"
+          />
+        </div>
+      </div>
+
+      <div className="mt-8 flex justify-between">
+        <button onClick={onBack} className="btn-ghost flex items-center gap-2">
+          <ArrowLeft size={16} /> Atrás
+        </button>
+        <button onClick={onNext} disabled={!valid} className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          Ir al pago <ArrowRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   STEP 4 — Pago
+───────────────────────────────────────────── */
+function StepPago({ form, plan, onBack, onConfirm, processing }) {
+  const [method, setMethod] = useState("card");
+  const [card, setCard] = useState({ number: "", expiry: "", cvc: "", name: "" });
+  const hasDiscount = !!form.clubCode;
+  const discount = hasDiscount ? Math.round(plan.price * 0.15) : 0;
+  const total = plan.price - discount;
+
+  const validCard = method !== "card" || (card.number.length >= 15 && card.expiry.length >= 4 && card.cvc.length >= 3 && card.name);
+
+  return (
+    <div>
+      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu pago</h2>
+      <p className="text-depro-gray text-sm mb-8">Pago seguro mediante Stripe. No guardamos datos de tarjeta.</p>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Pago */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Métodos */}
+          <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card">
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-3 block">Método de pago</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setMethod("card")}
+                className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                  method === "card" ? "border-depro-blue bg-depro-blue/[0.03]" : "border-depro-border bg-white hover:border-depro-blue/40"
+                }`}
+              >
+                <CreditCard size={18} className="text-depro-blue" />
+                <span className="font-bold text-sm text-depro-dark">Tarjeta</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMethod("paypal")}
+                className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                  method === "paypal" ? "border-depro-blue bg-depro-blue/[0.03]" : "border-depro-border bg-white hover:border-depro-blue/40"
+                }`}
+              >
+                <div className="w-5 h-5 rounded-md flex items-center justify-center bg-[#003087] text-white text-[10px] font-black">P</div>
+                <span className="font-bold text-sm text-depro-dark">PayPal</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Datos tarjeta */}
+          {method === "card" && (
+            <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card space-y-4">
+              <div>
+                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Número de tarjeta</label>
+                <input
+                  type="text" value={card.number}
+                  onChange={(e) => setCard({ ...card, number: e.target.value.replace(/[^\d ]/g, "").slice(0, 19) })}
+                  className="admin-input w-full tracking-wider"
+                  placeholder="1234 1234 1234 1234"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Caducidad</label>
+                  <input
+                    type="text" value={card.expiry}
+                    onChange={(e) => setCard({ ...card, expiry: e.target.value.replace(/[^\d/]/g, "").slice(0, 5) })}
+                    className="admin-input w-full"
+                    placeholder="MM / AA"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">CVC</label>
+                  <input
+                    type="text" value={card.cvc}
+                    onChange={(e) => setCard({ ...card, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                    className="admin-input w-full"
+                    placeholder="123"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Nombre en la tarjeta</label>
+                <input
+                  type="text" value={card.name}
+                  onChange={(e) => setCard({ ...card, name: e.target.value })}
+                  className="admin-input w-full"
+                  placeholder="Como aparece en la tarjeta"
+                />
+              </div>
+            </div>
+          )}
+
+          {method === "paypal" && (
+            <div className="bg-white border border-depro-border rounded-2xl p-8 shadow-card text-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#003087] text-white text-lg font-black flex items-center justify-center mx-auto mb-4">P</div>
+              <p className="text-sm text-depro-gray max-w-md mx-auto">
+                Al confirmar, te redirigiremos a PayPal para completar el pago de forma segura.
+              </p>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 text-xs text-depro-gray">
+            <Lock size={12} className="text-depro-green" />
+            Pago cifrado y seguro · No guardamos los datos de tu tarjeta
+          </div>
+        </div>
+
+        {/* Resumen */}
+        <div className="lg:col-span-1">
+          <div className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden sticky top-4">
+            <div className="p-5 border-b border-depro-border">
+              <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2">Resumen</div>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: plan.bg }}>
+                  {plan.id === "basic" ? <Zap size={18} style={{ color: plan.color }} /> : <Trophy size={18} style={{ color: plan.color }} />}
+                </div>
+                <div>
+                  <div className="font-black text-depro-dark">{plan.name}</div>
+                  <div className="text-xs text-depro-gray">{plan.tagline}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-2 text-sm">
+              <div className="flex items-center justify-between text-depro-gray">
+                <span>Subtotal</span>
+                <span>{plan.price}€</span>
+              </div>
+              {hasDiscount && (
+                <div className="flex items-center justify-between text-depro-green">
+                  <span className="flex items-center gap-1.5">
+                    <BadgeCheck size={13} /> Código {form.clubCode}
+                  </span>
+                  <span>– {discount}€</span>
+                </div>
+              )}
+              <div className="border-t border-depro-border pt-3 mt-3 flex items-center justify-between">
+                <span className="font-bold text-depro-dark">Total hoy</span>
+                <span className="text-xl font-black text-depro-dark">{total}€</span>
+              </div>
+              <div className="text-[11px] text-depro-gray">Cobro recurrente mensual. Cancela cuando quieras.</div>
+            </div>
+
+            <div className="p-5 border-t border-depro-border">
+              <button
+                onClick={() => onConfirm({ method, card, total })}
+                disabled={!validCard || processing}
+                className="w-full bg-depro-blue hover:bg-depro-blue-dark text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {processing ? (
+                  <>
+                    <div className="spinner border-white/20 border-t-white" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    <Lock size={14} /> Pagar {total}€
+                  </>
+                )}
+              </button>
+
+                <div className="flex items-center justify-center gap-2 mt-3 text-[10px] text-depro-gray">
+                <Shield size={11} className="text-depro-blue" />
+                Pago seguro · Cancela cuando quieras
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 flex">
+        <button onClick={onBack} disabled={processing} className="btn-ghost flex items-center gap-2 disabled:opacity-50">
+          <ArrowLeft size={16} /> Volver
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   STEP 5 — Confirmación
+───────────────────────────────────────────── */
+function StepDone({ plan, form }) {
+  const navigate = useNavigate();
+  return (
+    <div className="max-w-2xl mx-auto text-center">
+      <div className="w-20 h-20 rounded-3xl bg-depro-green/15 flex items-center justify-center mx-auto mb-6">
+        <CheckCircle size={42} className="text-depro-green" />
+      </div>
+      <h2 className="text-3xl md:text-4xl font-black text-depro-dark mb-3">¡Bienvenido a DEPRO, {form.nombre.split(" ")[0]}!</h2>
+      <p className="text-depro-gray mb-8">
+        Tu <strong className="text-depro-dark">{plan.name}</strong> está activo. Hemos generado tu plan mensual con todos los entrenamientos
+        adaptados a tu perfil y objetivos.
+      </p>
+
+      <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card text-left mb-8">
+        <div className="font-bold text-depro-dark mb-3 text-sm">Resumen de tu cuenta</div>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center justify-between text-depro-gray">
+            <span>Email</span>
+            <span className="text-depro-dark font-semibold">{form.email}</span>
+          </div>
+          <div className="flex items-center justify-between text-depro-gray">
+            <span>Plan</span>
+            <span className="text-depro-dark font-semibold">{plan.name}</span>
+          </div>
+          <div className="flex items-center justify-between text-depro-gray">
+            <span>Posición</span>
+            <span className="text-depro-dark font-semibold">{form.posicion}</span>
+          </div>
+          <div className="flex items-center justify-between text-depro-gray">
+            <span>Frecuencia</span>
+            <span className="text-depro-dark font-semibold">{form.frecuencia}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-3">
+        <button
+          onClick={() => navigate("/login")}
+          className="btn-primary flex items-center justify-center gap-2"
+        >
+          Acceder al panel <ChevronRight size={16} />
+        </button>
+        <Link to="/" className="btn-ghost flex items-center justify-center gap-2">
+          Volver al inicio
+        </Link>
+      </div>
+
+      <p className="text-xs text-depro-gray mt-6">
+        Hemos enviado tus credenciales de acceso a <strong>{form.email}</strong>.
+      </p>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   PAGE
+───────────────────────────────────────────── */
+export default function OnboardingPage() {
+  const [params] = useSearchParams();
+  const initial = params.get("plan") === "premium" ? "premium" : params.get("plan") === "basic" ? "basic" : "";
+
+  const [step, setStep] = useState(initial ? 2 : 1);
+  const [planId, setPlanId] = useState(initial);
+  const [processing, setProcessing] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const [form, setForm] = useState({
+    nombre: "",
+    email: "",
+    edad: "",
+    club: "",
+    posicion: "",
+    clubCode: "",
+    nivel: "",
+    frecuencia: "",
+    materiales: [],
+    objetivos: [],
+    lesiones: "",
+  });
+
+  const plan = PLANS[planId] || PLANS.basic;
+
+  const confirmPayment = async () => {
+    setProcessing(true);
+    await new Promise((r) => setTimeout(r, 1400));
+    setProcessing(false);
+    setDone(true);
+  };
+
+  return (
+    <div className="min-h-screen bg-depro-gray-light pt-16 pb-24">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-10">
+          <Link to="/" className="flex items-center gap-2 text-depro-gray hover:text-depro-dark transition-colors">
+            <ArrowLeft size={16} />
+            <span className="text-sm font-bold">Volver al inicio</span>
+          </Link>
+          <Link to="/">
+            <img src="/logo.png" alt="DEPRO" className="h-7 w-auto" />
+          </Link>
+        </div>
+
+        {/* Wizard */}
+        {!done && <StepHeader current={step} />}
+
+        {done && <StepDone plan={plan} form={form} />}
+
+        {!done && step === 1 && (
+          <StepPlan
+            selected={planId}
+            onSelect={setPlanId}
+            onNext={() => planId && setStep(2)}
+          />
+        )}
+
+        {!done && step === 2 && (
+          <StepDatos
+            form={form}
+            setForm={setForm}
+            onNext={() => setStep(3)}
+            onBack={() => setStep(1)}
+          />
+        )}
+
+        {!done && step === 3 && (
+          <StepFutbol
+            form={form}
+            setForm={setForm}
+            onNext={() => setStep(4)}
+            onBack={() => setStep(2)}
+          />
+        )}
+
+        {!done && step === 4 && (
+          <StepPago
+            form={form}
+            plan={plan}
+            processing={processing}
+            onBack={() => setStep(3)}
+            onConfirm={confirmPayment}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

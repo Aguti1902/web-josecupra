@@ -1,125 +1,120 @@
 import { useState } from "react";
-import { Save, Shield, Bell, Globe, Check } from "lucide-react";
+import { Save, Building, Bell, Shield, Eye, EyeOff } from "lucide-react";
 
 export default function AdminSettingsPage() {
+  const [biz, setBiz] = useState({ name: "DEPRO", email: "contact@depro.com", phone: "+34 600 000 000", website: "https://depro.com" });
+  const [notifs, setNotifs] = useState({ newClients: true, weeklyReport: true, feedback: false });
+  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
+  const [showPw, setShowPw] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [form, setForm] = useState({
-    businessName: "Jose Football Training Systems",
-    email: "jose@admin.com",
-    phone: "+34 600 000 000",
-    website: "josefootball.com",
-    notifyNewApplication: true,
-    notifyPayment: true,
-    notifyWeeklyReport: false,
-    defaultPlan: "Premium",
-  });
 
-  const handle = () => {
+  const handleSave = (e) => {
+    e.preventDefault();
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-black text-white mb-1">Settings</h1>
-        <p className="text-gray-400 text-sm">General configuration of your admin panel</p>
+        <h1 className="text-2xl font-black text-depro-dark mb-1">Ajustes</h1>
+        <p className="text-depro-gray text-sm">Configuración de la cuenta DEPRO</p>
       </div>
 
-      <div className="space-y-6">
-        {/* Business info */}
-        <div className="rounded-2xl border border-white/10 bg-gray-900/50 p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <Globe size={18} className="text-purple-400" />
-            <h2 className="font-bold text-white">Business Information</h2>
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* Business */}
+        <div className="card">
+          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-depro-border">
+            <div className="w-9 h-9 bg-depro-blue-light rounded-xl flex items-center justify-center">
+              <Building size={18} className="text-depro-blue" />
+            </div>
+            <h2 className="font-bold text-depro-dark">Información del negocio</h2>
           </div>
-          <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             {[
-              { label: "Business Name", key: "businessName", placeholder: "Jose Football Training Systems" },
-              { label: "Contact Email", key: "email", placeholder: "jose@yourdomain.com" },
-              { label: "Phone", key: "phone", placeholder: "+34 600 000 000" },
-              { label: "Website", key: "website", placeholder: "yourwebsite.com" },
+              { label: "Nombre", key: "name", type: "text" },
+              { label: "Email de contacto", key: "email", type: "email" },
+              { label: "Teléfono", key: "phone", type: "text" },
+              { label: "Sitio web", key: "website", type: "url" },
             ].map((f) => (
               <div key={f.key}>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">{f.label}</label>
-                <input
-                  value={form[f.key]}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                  placeholder={f.placeholder}
-                  className="admin-input w-full"
-                />
+                <label className="block text-sm font-semibold text-depro-dark mb-1.5">{f.label}</label>
+                <input type={f.type} value={biz[f.key]} onChange={(e) => setBiz({ ...biz, [f.key]: e.target.value })}
+                  className="admin-input w-full" />
               </div>
             ))}
           </div>
         </div>
 
         {/* Notifications */}
-        <div className="rounded-2xl border border-white/10 bg-gray-900/50 p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <Bell size={18} className="text-brand-400" />
-            <h2 className="font-bold text-white">Notifications</h2>
+        <div className="card">
+          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-depro-border">
+            <div className="w-9 h-9 bg-depro-yellow-light rounded-xl flex items-center justify-center">
+              <Bell size={18} className="text-amber-600" />
+            </div>
+            <h2 className="font-bold text-depro-dark">Notificaciones</h2>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[
-              { key: "notifyNewApplication", label: "New application received", desc: "Get notified when someone applies from the website" },
-              { key: "notifyPayment", label: "Payment received", desc: "Notify when a client payment is processed" },
-              { key: "notifyWeeklyReport", label: "Weekly summary report", desc: "Receive a summary of all client activity each Monday" },
+              { key: "newClients", label: "Nuevos clientes", desc: "Alerta cuando se registra un cliente nuevo" },
+              { key: "weeklyReport", label: "Informe semanal", desc: "Resumen de actividad cada lunes" },
+              { key: "feedback", label: "Confirmación de feedback", desc: "Confirmación al enviar revisión" },
             ].map((n) => (
-              <div key={n.key} className="flex items-start gap-4 p-3 rounded-xl hover:bg-white/3 transition-colors">
-                <button
-                  onClick={() => setForm({ ...form, [n.key]: !form[n.key] })}
-                  className={`w-10 h-6 rounded-full transition-all flex-shrink-0 mt-0.5 relative ${
-                    form[n.key] ? "bg-purple-500" : "bg-gray-700"
-                  }`}
-                >
-                  <div
-                    className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${
-                      form[n.key] ? "left-5" : "left-1"
-                    }`}
-                  />
-                </button>
+              <div key={n.key} className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium text-white">{n.label}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{n.desc}</div>
+                  <div className="text-sm font-semibold text-depro-dark">{n.label}</div>
+                  <div className="text-xs text-depro-gray">{n.desc}</div>
                 </div>
+                <button type="button" onClick={() => setNotifs({ ...notifs, [n.key]: !notifs[n.key] })}
+                  className={`relative w-10 h-5.5 rounded-full transition-all ${notifs[n.key] ? "bg-depro-blue" : "bg-gray-200"}`}
+                  style={{ minWidth: "40px", height: "22px" }}
+                >
+                  <span className={`absolute top-0.5 w-4.5 h-4.5 bg-white rounded-full shadow transition-transform ${notifs[n.key] ? "translate-x-5" : "translate-x-0.5"}`}
+                    style={{ width: "18px", height: "18px", transition: "transform .2s" }} />
+                </button>
               </div>
             ))}
           </div>
         </div>
 
         {/* Security */}
-        <div className="rounded-2xl border border-white/10 bg-gray-900/50 p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <Shield size={18} className="text-pitch-400" />
-            <h2 className="font-bold text-white">Security</h2>
+        <div className="card">
+          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-depro-border">
+            <div className="w-9 h-9 bg-depro-green-light rounded-xl flex items-center justify-center">
+              <Shield size={18} className="text-green-700" />
+            </div>
+            <h2 className="font-bold text-depro-dark">Seguridad</h2>
           </div>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Current Password</label>
-              <input type="password" placeholder="••••••••" className="admin-input w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">New Password</label>
-              <input type="password" placeholder="••••••••" className="admin-input w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Confirm New Password</label>
-              <input type="password" placeholder="••••••••" className="admin-input w-full" />
-            </div>
+            {[
+              { label: "Contraseña actual", key: "current" },
+              { label: "Nueva contraseña", key: "next" },
+              { label: "Confirmar contraseña", key: "confirm" },
+            ].map((f) => (
+              <div key={f.key}>
+                <label className="block text-sm font-semibold text-depro-dark mb-1.5">{f.label}</label>
+                <div className="relative">
+                  <input type={showPw ? "text" : "password"} value={pw[f.key]}
+                    onChange={(e) => setPw({ ...pw, [f.key]: e.target.value })}
+                    className="admin-input w-full pr-10" placeholder="••••••••" />
+                  {f.key === "current" && (
+                    <button type="button" onClick={() => setShowPw(!showPw)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-depro-dark">
+                      {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <button
-          onClick={handle}
-          className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all ${
-            saved
-              ? "bg-pitch-500 text-white"
-              : "bg-purple-500 hover:bg-purple-400 text-white"
-          }`}
-        >
-          {saved ? <><Check size={18} /> Saved!</> : <><Save size={18} /> Save Settings</>}
+        <button type="submit"
+          className={`admin-btn-primary flex items-center gap-2 px-6 py-3 rounded-xl ${saved ? "bg-depro-green" : ""}`}>
+          <Save size={16} />
+          {saved ? "¡Guardado!" : "Guardar cambios"}
         </button>
-      </div>
+      </form>
     </div>
   );
 }

@@ -1,27 +1,29 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Calendar,
-  Library,
-  Zap,
-  Activity,
-  MessageSquare,
-  LogOut,
-  Menu,
-  X,
-  ChevronRight,
-  Bell,
+  LayoutDashboard, Calendar, Library, Zap, Activity,
+  MessageSquare, LogOut, Menu, X, ChevronRight, Trophy,
+  ClipboardList, Users as UsersIcon, BookOpen,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
-const navItems = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/dashboard/plan", icon: Calendar, label: "Weekly Plan" },
-  { to: "/dashboard/library", icon: Library, label: "Session Library" },
-  { to: "/dashboard/technique", icon: Zap, label: "Technique" },
-  { to: "/dashboard/physical", icon: Activity, label: "Physical" },
-  { to: "/dashboard/feedback", icon: MessageSquare, label: "Feedback" },
+const playerNav = [
+  { to: "/dashboard",          icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard/plan",     icon: Calendar,        label: "Plan semanal" },
+  { to: "/dashboard/library",  icon: Library,         label: "Biblioteca" },
+  { to: "/dashboard/technique",icon: Zap,             label: "Técnica" },
+  { to: "/dashboard/physical", icon: Activity,        label: "Física" },
+  { to: "/dashboard/feedback", icon: MessageSquare,   label: "Feedback" },
+  { to: "/dashboard/ranking",  icon: Trophy,          label: "Ranking" },
+];
+
+const clubNav = [
+  { to: "/dashboard",            icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard/plan",       icon: Calendar,        label: "Microciclos" },
+  { to: "/dashboard/squad",      icon: UsersIcon,       label: "Plantilla" },
+  { to: "/dashboard/tactics",    icon: BookOpen,        label: "Guía táctica" },
+  { to: "/dashboard/mesocycle",  icon: ClipboardList,   label: "Mesociclo" },
+  { to: "/dashboard/library",    icon: Library,         label: "Biblioteca" },
 ];
 
 export default function AppLayout({ children }) {
@@ -30,43 +32,48 @@ export default function AppLayout({ children }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
+  const handleLogout = () => { logout(); navigate("/"); };
 
   const club = user?.club;
-  const accentColor = club?.primaryColor || "#0ea5e9";
+  const accent = club?.primaryColor || "#0A36F7";
+  const navItems = user?.role === "club" ? clubNav : playerNav;
 
   return (
-    <div className="flex h-screen bg-gray-950 overflow-hidden">
+    <div className="flex h-screen bg-depro-gray-light overflow-hidden">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-950 border-r border-white/10 flex flex-col transition-transform duration-300 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-depro-border flex flex-col transition-transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:relative lg:translate-x-0 lg:flex`}
+        } lg:relative lg:translate-x-0`}
       >
-        {/* Club branding header */}
-        <div className="p-5 border-b border-white/10">
+        {/* Club branding */}
+        <div className="p-5 border-b border-depro-border">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold flex-shrink-0 shadow-lg"
-              style={{ backgroundColor: accentColor + "20", color: accentColor }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 shadow-sm"
+              style={{ backgroundColor: accent + "15", color: accent }}
             >
-              {club?.logo || "⚽"}
+              {club?.logo || "—"}
             </div>
             <div className="min-w-0">
-              <div className="text-white font-bold text-sm truncate">{club?.name || "My Club"}</div>
-              <div className="text-xs font-semibold" style={{ color: accentColor }}>
-                {user?.plan} Plan
-              </div>
+              <div className="text-depro-dark font-bold text-sm truncate">{club?.name || "Mi Club"}</div>
+              <div className="text-xs font-semibold" style={{ color: accent }}>{user?.plan}</div>
+              {user?.role === "club" && user?.team && (
+                <div className="text-xs text-depro-gray mt-0.5 truncate">
+                  {user.team.name} · <span className="capitalize">{user.teamRole}</span>
+                </div>
+              )}
+              {user?.role === "club" && user?.teamRole === "coordinador" && (
+                <div className="text-xs text-depro-blue font-semibold mt-0.5">Coordinador</div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 p-4 overflow-y-auto">
-          <div className="space-y-1">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">Navegación</p>
+          <div className="space-y-0.5">
             {navItems.map((item) => {
               const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
               return (
@@ -74,99 +81,71 @@ export default function AppLayout({ children }) {
                   key={item.to}
                   to={item.to}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                     active
-                      ? "text-white"
-                      : "text-gray-400 hover:text-white hover:bg-white/5"
+                      ? "text-white shadow-sm"
+                      : "text-depro-gray hover:text-depro-dark hover:bg-depro-gray-light"
                   }`}
-                  style={active ? { backgroundColor: accentColor + "20", color: accentColor } : {}}
+                  style={active ? { backgroundColor: accent } : {}}
                 >
                   <item.icon size={18} />
                   {item.label}
-                  {active && <ChevronRight size={14} className="ml-auto" style={{ color: accentColor }} />}
+                  {active && <ChevronRight size={14} className="ml-auto opacity-70" />}
                 </Link>
               );
             })}
           </div>
         </nav>
 
-        {/* User + logout */}
-        <div className="p-4 border-t border-white/10">
+        {/* User */}
+        <div className="p-4 border-t border-depro-border">
           <div className="flex items-center gap-3 mb-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold"
-              style={{ backgroundColor: accentColor + "20", color: accentColor }}
+              style={{ backgroundColor: accent + "15", color: accent }}
             >
               {user?.avatar || "?"}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-white text-sm font-medium truncate">{user?.name}</div>
-              <div className="text-gray-500 text-xs truncate">{user?.email}</div>
+              <div className="text-depro-dark text-sm font-semibold truncate">{user?.name}</div>
+              <div className="text-depro-gray text-xs truncate">{user?.email}</div>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-500 hover:text-red-400 text-sm transition-colors w-full py-2 px-3 rounded-xl hover:bg-red-400/5"
+            className="flex items-center gap-2 text-depro-gray hover:text-depro-red text-sm transition-colors w-full py-2 px-3 rounded-xl hover:bg-red-50"
           >
-            <LogOut size={16} />
-            Sign out
+            <LogOut size={16} /> Cerrar sesión
           </button>
         </div>
       </aside>
 
-      {/* Overlay (mobile) */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 z-40 bg-black/30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Top bar */}
-        <header className="h-16 border-b border-white/10 flex items-center px-4 md:px-6 gap-4 flex-shrink-0 bg-gray-950/80 backdrop-blur-sm">
+        <header className="h-16 border-b border-depro-border flex items-center px-4 md:px-6 gap-4 flex-shrink-0 bg-white">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 text-gray-400 hover:text-white transition-colors"
+            className="lg:hidden p-2 text-depro-gray hover:text-depro-dark rounded-lg hover:bg-depro-gray-light"
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-
           <div className="flex-1">
-            <h1 className="text-sm font-semibold text-white capitalize">
+            <h1 className="text-sm font-bold text-depro-dark">
               {navItems.find((n) => n.to === pathname)?.label ||
-                navItems.find((n) => pathname.startsWith(n.to) && n.to !== "/dashboard")?.label ||
-                "Dashboard"}
+               navItems.find((n) => pathname.startsWith(n.to) && n.to !== "/dashboard")?.label ||
+               "Dashboard"}
             </h1>
           </div>
-
-          <button className="relative p-2 text-gray-400 hover:text-white transition-colors">
-            <Bell size={18} />
-            <span
-              className="absolute top-1 right-1 w-2 h-2 rounded-full"
-              style={{ backgroundColor: accentColor }}
-            />
-          </button>
-
-          <div
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold"
-            style={{ backgroundColor: accentColor + "15", color: accentColor }}
-          >
-            <div
-              className="w-5 h-5 rounded-lg flex items-center justify-center text-xs"
-              style={{ backgroundColor: accentColor + "30" }}
-            >
-              {club?.logo || "⚽"}
-            </div>
-            {club?.name}
-          </div>
+          {/* DEPRO logo small */}
+          <img src="/logo.png" alt="DEPRO" className="h-5 w-auto" />
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-950">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );
