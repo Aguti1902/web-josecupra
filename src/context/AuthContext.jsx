@@ -72,12 +72,13 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === "SIGNED_IN" && session?.user) {
+        if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") && session?.user) {
           const profile = await fetchProfile(session.user.id);
           setUser(buildUser(session.user, profile));
           setLoading(false);
         } else if (event === "SIGNED_OUT") {
           setUser(null);
+          setLoading(false);
         }
       }
     );

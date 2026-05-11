@@ -53,11 +53,28 @@ export default function AdminSettingsPage() {
     const file = e.target.files[0];
     if (!file) return;
     setPhoto(file);
-    // Previsualización inmediata
     const reader = new FileReader();
     reader.onload = (ev) => setPhotoPreview(ev.target.result);
     reader.readAsDataURL(file);
   };
+
+  // Redimensiona y comprime la imagen a máx 200x200px, <50KB
+  const compressPhoto = (file) =>
+    new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX = 200;
+        const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.src = url;
+    });
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -65,16 +82,17 @@ export default function AdminSettingsPage() {
     setSaveError("");
 
     try {
-      // 1. Guardar foto como base64 en localStorage
+      // 1. Comprimir y guardar foto en localStorage (evita QuotaExceededError)
       if (photo) {
-        const reader = new FileReader();
-        await new Promise((resolve) => {
-          reader.onload = (ev) => {
-            localStorage.setItem("depro_admin_photo", ev.target.result);
-            resolve();
-          };
-          reader.readAsDataURL(photo);
-        });
+        const compressed = await compressPhoto(photo);
+        try {
+          localStorage.setItem("depro_admin_photo", compressed);
+          setPhotoPreview(compressed);
+        } catch {
+          setSaveError("La foto es demasiado grande. Usa una imagen más pequeña.");
+          setSaving(false);
+          return;
+        }
         setPhoto(null);
       }
 
