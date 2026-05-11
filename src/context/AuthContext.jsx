@@ -106,13 +106,13 @@ export function AuthProvider({ children }) {
     // Supabase real
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { success: false, error: error.message };
-    // onAuthStateChange se encargará de setUser, pero forzamos aquí también
-    // por si el evento llega tarde (ej. primera carga en Vercel)
     if (data?.user) {
       const profile = await fetchProfile(data.user.id);
-      setUser(buildUser(data.user, profile));
+      const u = buildUser(data.user, profile);
+      setUser(u);
+      return { success: true, role: u.role };
     }
-    return { success: true };
+    return { success: true, role: "player" };
   };
 
   // ── Logout ─────────────────────────────────────────────────

@@ -16,13 +16,12 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 500));
-    const result = login(email, password);
+    const result = await login(email, password);
     setLoading(false);
     if (result.success) {
-      navigate(email === "jose@admin.com" ? "/admin" : "/dashboard");
+      navigate(result.role === "admin" ? "/admin" : "/dashboard");
     } else {
-      setError(result.error);
+      setError(result.error ?? "Email o contraseña incorrectos");
     }
   };
 
