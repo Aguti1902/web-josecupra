@@ -35,8 +35,9 @@ import AdminClubDetailPage from "./pages/admin/AdminClubDetailPage";
 /* ── Guards ───────────────────────────────────────────────────────── */
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="spinner" />
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
+      <img src="/logo.png" alt="DEPRO" className="h-10 w-auto opacity-80" />
+      <div className="spinner border-depro-blue/20 border-t-depro-blue" />
     </div>
   );
 }

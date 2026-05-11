@@ -1,148 +1,150 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { clients } from "../data/mockData";
 
 const AuthContext = createContext(null);
 
-// Supabase siempre disponible (credenciales embebidas en supabase.js)
-const SUPABASE_READY = true;
-
-const ADMIN_MOCK = {
-  id: 0, name: "Jose (Admin)", email: "jose@admin.com",
-  password: "admin123", role: "admin", avatar: "JA",
-};
-
-// ── Helpers ────────────────────────────────────────────────────
+// ── Construye el objeto user desde datos de Supabase ──────────
 function buildUser(authUser, profile) {
-  // Si hay fila en profiles la usamos; si no, construimos un usuario mínimo
-  if (profile) {
-    return { ...profile, email: authUser.email };
-  }
-  // Fallback: el email es jose@depro.es → rol admin
+  if (profile) return { ...profile, email: authUser.email };
   const meta = authUser.user_metadata ?? {};
+  const email = authUser.email ?? "";
   return {
     id: authUser.id,
-    email: authUser.email,
-    name: meta.name ?? authUser.email.split("@")[0],
-    avatar: (meta.name ?? authUser.email)[0].toUpperCase(),
-    role: meta.role ?? (authUser.email === "jose@depro.es" ? "admin" : "player"),
+    email,
+    name: meta.name ?? email.split("@")[0],
+    avatar: (meta.name ?? email)[0]?.toUpperCase() ?? "U",
+    role: meta.role ?? (email === "jose@depro.es" ? "admin" : "player"),
     club: null,
     team: null,
   };
 }
-async function fetchProfile(userId) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select(`
-      id, name, avatar, role, team_role, plan,
-      position, level, training_days, objective, age,
-      club:clubs(id, name, abbreviation, login_code),
-      team:teams(id, name)
-    `)
-    .eq("id", userId)
-    .maybeSingle();
 
-  if (error) {
-    console.warn("fetchProfile error:", error.message);
+// ── Obtiene perfil extendido (puede ser null) ─────────────────
+async function fetchProfile(userId) {
+  try {
+    const { data } = await supabase
+      .from("profiles")
+      .select(`
+        id, name, avatar, role, team_role, plan,
+        position, level, training_days, objective, age,
+        club:clubs(id, name, abbreviation, login_code),
+        team:teams(id, name)
+      `)
+      .eq("id", userId)
+      .maybeSingle();
+    return data ?? null;
+  } catch {
     return null;
   }
-  return data;
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!SUPABASE_READY) {
-      // Modo mock: leer del localStorage
-      const stored = localStorage.getItem("footballapp_user");
-      if (stored) {
-        try { setUser(JSON.parse(stored)); } catch { localStorage.removeItem("footballapp_user"); }
-      }
-      setLoading(false);
-      return;
-    }
+    let cancelled = false;
 
-    // Modo Supabase real
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        setUser(buildUser(session.user, profile));
-      }
-      setLoading(false);
-    });
+    // Timeout de seguridad: si Supabase tarda más de 6s, desbloquea la app
+    const timeout = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 6000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        setUser(buildUser(session.user, profile));
-      } else if (event === "SIGNED_OUT") {
-        setUser(null);
+    const init = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id);
+          if (!cancelled) setUser(buildUser(session.user, profile));
+        }
+      } catch (e) {
+        console.error("Auth init error:", e);
+      } finally {
+        if (!cancelled) {
+          clearTimeout(timeout);
+          setLoading(false);
+        }
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_IN" && session?.user) {
+          const profile = await fetchProfile(session.user.id);
+          setUser(buildUser(session.user, profile));
+          setLoading(false);
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+        }
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // ── Login ──────────────────────────────────────────────────
   const login = async (email, password) => {
-    if (!SUPABASE_READY) {
-      // Fallback mock
-      if (email === ADMIN_MOCK.email && password === ADMIN_MOCK.password) {
-        const u = { ...ADMIN_MOCK }; delete u.password;
-        setUser(u); localStorage.setItem("footballapp_user", JSON.stringify(u));
-        return { success: true };
-      }
-      const found = clients.find((c) => c.email === email && c.password === password);
-      if (found) {
-        const u = { ...found }; delete u.password;
-        setUser(u); localStorage.setItem("footballapp_user", JSON.stringify(u));
-        return { success: true };
-      }
-      return { success: false, error: "Email o contraseña incorrectos" };
-    }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    // Supabase real
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { success: false, error: error.message };
-    if (data?.user) {
-      const profile = await fetchProfile(data.user.id);
-      const u = buildUser(data.user, profile);
-      setUser(u);
-      return { success: true, role: u.role };
+      if (error) {
+        // Mensajes de error más claros en español
+        const msg =
+          error.message.includes("Invalid login") ||
+          error.message.includes("invalid_credentials")
+            ? "Email o contraseña incorrectos"
+            : error.message.includes("Email not confirmed")
+            ? "Confirma tu email antes de entrar"
+            : error.message;
+        return { success: false, error: msg };
+      }
+
+      if (data?.user) {
+        const profile = await fetchProfile(data.user.id);
+        const u = buildUser(data.user, profile);
+        setUser(u);
+        return { success: true, role: u.role };
+      }
+
+      return { success: false, error: "No se pudo obtener el usuario" };
+    } catch (e) {
+      return { success: false, error: "Error de conexión. Inténtalo de nuevo." };
     }
-    return { success: true, role: "player" };
   };
 
   // ── Logout ─────────────────────────────────────────────────
   const logout = async () => {
-    if (!SUPABASE_READY) {
-      setUser(null);
-      localStorage.removeItem("footballapp_user");
-      return;
-    }
-    await supabase.auth.signOut();
+    try { await supabase.auth.signOut(); } catch {}
     setUser(null);
   };
 
-  // ── Register (jugador nuevo desde /comprar) ─────────────────
+  // ── Register ───────────────────────────────────────────────
   const register = async ({ email, password, name, role = "player", metadata = {} }) => {
-    if (!SUPABASE_READY) return { success: false, error: "Supabase no configurado" };
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name, role, ...metadata },
-      },
-    });
-    if (error) return { success: false, error: error.message };
-    return { success: true, user: data.user };
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name, role, ...metadata } },
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true, user: data.user };
+    } catch (e) {
+      return { success: false, error: "Error al registrar" };
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register, supabaseReady: SUPABASE_READY }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
       {children}
     </AuthContext.Provider>
   );
