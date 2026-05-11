@@ -3,7 +3,6 @@ import { supabase } from "../lib/supabase";
 
 const AuthContext = createContext(null);
 
-// ── Construye el objeto user desde datos de Supabase ──────────
 function buildUser(authUser, profile) {
   if (profile) return { ...profile, email: authUser.email };
   const meta = authUser.user_metadata ?? {};
@@ -19,7 +18,6 @@ function buildUser(authUser, profile) {
   };
 }
 
-// ── Obtiene perfil extendido (puede ser null) ─────────────────
 async function fetchProfile(userId) {
   try {
     const { data } = await supabase
@@ -43,50 +41,34 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
-
-    // Timeout de seguridad: si Supabase tarda más de 6s, desbloquea la app
-    const timeout = setTimeout(() => {
-      if (!cancelled) setLoading(false);
-    }, 6000);
-
-    const init = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (cancelled) return;
-        if (session?.user) {
-          const profile = await fetchProfile(session.user.id);
-          if (!cancelled) setUser(buildUser(session.user, profile));
-        }
-      } catch (e) {
-        console.error("Auth init error:", e);
-      } finally {
-        if (!cancelled) {
-          clearTimeout(timeout);
-          setLoading(false);
-        }
-      }
-    };
-
-    init();
-
+    // ── Patrón recomendado Supabase v2: onAuthStateChange maneja TODO,
+    //    incluido INITIAL_SESSION que restaura la sesión al recargar.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") && session?.user) {
-          const profile = await fetchProfile(session.user.id);
-          setUser(buildUser(session.user, profile));
+        if (session?.user) {
+          // No hacemos await de fetchProfile aquí para no bloquear el evento;
+          // primero ponemos el usuario básico y luego enriquecemos con el perfil.
+          const basic = buildUser(session.user, null);
+          setUser(basic);
           setLoading(false);
-        } else if (event === "SIGNED_OUT") {
+
+          // Enriquecer con datos de la tabla profiles (no bloquea la UI)
+          fetchProfile(session.user.id).then((profile) => {
+            if (profile) setUser(buildUser(session.user, profile));
+          });
+        } else {
           setUser(null);
           setLoading(false);
         }
       }
     );
 
+    // Safety net: si Supabase tarda más de 5s en emitir INITIAL_SESSION
+    const timeout = setTimeout(() => setLoading(false), 5000);
+
     return () => {
-      cancelled = true;
-      clearTimeout(timeout);
       subscription.unsubscribe();
+      clearTimeout(timeout);
     };
   }, []);
 
@@ -99,7 +81,6 @@ export function AuthProvider({ children }) {
       });
 
       if (error) {
-        // Mensajes de error más claros en español
         const msg =
           error.message.includes("Invalid login") ||
           error.message.includes("invalid_credentials")
@@ -110,15 +91,14 @@ export function AuthProvider({ children }) {
         return { success: false, error: msg };
       }
 
-      if (data?.user) {
-        const profile = await fetchProfile(data.user.id);
-        const u = buildUser(data.user, profile);
-        setUser(u);
-        return { success: true, role: u.role };
-      }
+      // onAuthStateChange → SIGNED_IN disparará setUser automáticamente
+      const role =
+        data?.user?.email === "jose@depro.es"
+          ? "admin"
+          : (data?.user?.user_metadata?.role ?? "player");
 
-      return { success: false, error: "No se pudo obtener el usuario" };
-    } catch (e) {
+      return { success: true, role };
+    } catch {
       return { success: false, error: "Error de conexión. Inténtalo de nuevo." };
     }
   };
@@ -139,7 +119,7 @@ export function AuthProvider({ children }) {
       });
       if (error) return { success: false, error: error.message };
       return { success: true, user: data.user };
-    } catch (e) {
+    } catch {
       return { success: false, error: "Error al registrar" };
     }
   };
