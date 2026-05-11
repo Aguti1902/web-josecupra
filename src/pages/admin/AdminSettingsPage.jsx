@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
-import { Save, Building, Bell, Shield, Eye, EyeOff, User, Camera, CheckCircle } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Save, Building, Bell, Shield, Eye, EyeOff, User, Camera, CheckCircle, AlertCircle } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../lib/supabase";
 
 function Toggle({ checked, onChange }) {
   return (
@@ -28,25 +29,87 @@ export default function AdminSettingsPage() {
   const { user } = useAuth();
   const fileRef = useRef();
 
-  const [photo, setPhoto] = useState(null);
+  const [photo, setPhoto]           = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
-  const [biz, setBiz] = useState({ name: "DEPRO", email: "contact@depro.com", phone: "+34 600 000 000", website: "https://depro.com" });
-  const [notifs, setNotifs] = useState({ newClients: true, weeklyReport: true, feedback: false });
-  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
-  const [showPw, setShowPw] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [biz, setBiz]               = useState({ name: "DEPRO", email: "contact@depro.com", phone: "+34 600 000 000", website: "https://depro.com" });
+  const [notifs, setNotifs]         = useState({ newClients: true, weeklyReport: true, feedback: false });
+  const [pw, setPw]                 = useState({ current: "", next: "", confirm: "" });
+  const [showPw, setShowPw]         = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [saved, setSaved]           = useState(false);
+  const [saveError, setSaveError]   = useState("");
+
+  // Cargar foto guardada en localStorage al iniciar
+  useEffect(() => {
+    const stored = localStorage.getItem("depro_admin_photo");
+    if (stored) setPhotoPreview(stored);
+    const storedBiz = localStorage.getItem("depro_admin_biz");
+    if (storedBiz) { try { setBiz(JSON.parse(storedBiz)); } catch {} }
+    const storedNotifs = localStorage.getItem("depro_admin_notifs");
+    if (storedNotifs) { try { setNotifs(JSON.parse(storedNotifs)); } catch {} }
+  }, []);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setPhoto(file);
-    setPhotoPreview(URL.createObjectURL(file));
+    // Previsualización inmediata
+    const reader = new FileReader();
+    reader.onload = (ev) => setPhotoPreview(ev.target.result);
+    reader.readAsDataURL(file);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setSaving(true);
+    setSaveError("");
+
+    try {
+      // 1. Guardar foto como base64 en localStorage
+      if (photo) {
+        const reader = new FileReader();
+        await new Promise((resolve) => {
+          reader.onload = (ev) => {
+            localStorage.setItem("depro_admin_photo", ev.target.result);
+            resolve();
+          };
+          reader.readAsDataURL(photo);
+        });
+        setPhoto(null);
+      }
+
+      // 2. Guardar datos del negocio y notificaciones
+      localStorage.setItem("depro_admin_biz", JSON.stringify(biz));
+      localStorage.setItem("depro_admin_notifs", JSON.stringify(notifs));
+
+      // 3. Cambio de contraseña (solo si se rellenó)
+      if (pw.next) {
+        if (pw.next !== pw.confirm) {
+          setSaveError("Las contraseñas nuevas no coinciden");
+          setSaving(false);
+          return;
+        }
+        if (pw.next.length < 6) {
+          setSaveError("La contraseña debe tener al menos 6 caracteres");
+          setSaving(false);
+          return;
+        }
+        const { error } = await supabase.auth.updateUser({ password: pw.next });
+        if (error) {
+          setSaveError("Error al cambiar contraseña: " + error.message);
+          setSaving(false);
+          return;
+        }
+        setPw({ current: "", next: "", confirm: "" });
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setSaveError("Error inesperado. Inténtalo de nuevo.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const initials = user?.name
@@ -211,16 +274,24 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
+        {saveError && (
+          <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            <AlertCircle size={15} className="shrink-0" /> {saveError}
+          </div>
+        )}
+
         <button
           type="submit"
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-colors ${
+          disabled={saving}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
             saved
               ? "bg-green-500 text-white"
               : "bg-depro-blue text-white hover:bg-depro-blue-dark"
           }`}
         >
-          {saved ? <CheckCircle size={16} /> : <Save size={16} />}
-          {saved ? "¡Guardado correctamente!" : "Guardar cambios"}
+          {saving ? <div className="spinner border-white/20 border-t-white w-4 h-4" /> :
+           saved  ? <CheckCircle size={16} /> : <Save size={16} />}
+          {saving ? "Guardando…" : saved ? "¡Guardado correctamente!" : "Guardar cambios"}
         </button>
       </form>
     </div>
