@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, LogOut, Menu, X, ChevronRight,
@@ -37,6 +37,16 @@ export default function AdminLayout({ children }) {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const [profilePhoto, setProfilePhoto] = useState(() => localStorage.getItem("depro_admin_photo"));
+
+  // Actualizar foto si cambia en otra pestaña o después de guardar ajustes
+  useEffect(() => {
+    const sync = () => setProfilePhoto(localStorage.getItem("depro_admin_photo"));
+    window.addEventListener("storage", sync);
+    // Polling ligero para detectar cambios en la misma pestaña
+    const interval = setInterval(sync, 2000);
+    return () => { window.removeEventListener("storage", sync); clearInterval(interval); };
+  }, []);
 
   const handleLogout = () => { logout(); navigate("/"); };
 
@@ -105,8 +115,11 @@ export default function AdminLayout({ children }) {
         {/* User */}
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-depro-blue flex items-center justify-center text-sm font-bold text-white">
-              {user?.avatar || "J"}
+            <div className="w-9 h-9 rounded-xl bg-depro-blue flex items-center justify-center text-sm font-bold text-white overflow-hidden shrink-0">
+              {profilePhoto
+                ? <img src={profilePhoto} alt="Perfil" className="w-full h-full object-cover" />
+                : (user?.avatar || "J")
+              }
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-white text-sm font-semibold truncate">{user?.name}</div>
