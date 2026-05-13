@@ -189,8 +189,8 @@ function StatCardSecondary({ label, value, sub, icon: Icon, accent, secondary })
 }
 
 // ── Training days pill strip ─────────────────────────────────
-function TrainingDaysPills({ days = [], accent, secondary }) {
-  const textOnAccent = contrastText(accent);
+function TrainingDaysPills({ days = [], safeAccent }) {
+  const textOnAccent = contrastText(safeAccent);
   return (
     <div className="flex gap-1.5 flex-wrap">
       {DAYS_FULL.map((day, i) => (
@@ -199,7 +199,7 @@ function TrainingDaysPills({ days = [], accent, secondary }) {
           className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold"
           style={
             days.includes(day)
-              ? { backgroundColor: accent, color: textOnAccent }
+              ? { backgroundColor: safeAccent, color: textOnAccent }
               : { backgroundColor: "#F3F4F6", color: "#9CA3AF" }
           }
         >
@@ -211,15 +211,15 @@ function TrainingDaysPills({ days = [], accent, secondary }) {
 }
 
 // ── Section heading with accent stripe ──────────────────────
-function SectionHeading({ title, accent, count }) {
+function SectionHeading({ title, safeAccent, count }) {
   return (
     <div className="flex items-center gap-3 mb-4">
-      <div className="w-1 h-6 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
+      <div className="w-1 h-6 rounded-full flex-shrink-0" style={{ backgroundColor: safeAccent }} />
       <h3 className="font-bold text-depro-dark text-lg flex-1">{title}</h3>
       {count !== undefined && (
         <span
           className="text-xs font-bold px-2.5 py-1 rounded-full"
-          style={{ backgroundColor: accent + "15", color: accent }}
+          style={{ backgroundColor: safeAccent + "18", color: safeAccent }}
         >
           {count}
         </span>
@@ -228,17 +228,51 @@ function SectionHeading({ title, accent, count }) {
   );
 }
 
+// ── Coach avatar mini ────────────────────────────────────────
+function CoachAvatar({ coach, safeAccent }) {
+  const [photo, setPhoto] = useState(null);
+  useEffect(() => {
+    if (!coach?.email) return;
+    // Buscar foto por email en localStorage (iterar keys)
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith("depro_club_profile_")) {
+          // La foto está asociada al userId no al email; lo mejor es mostrar iniciales por ahora
+        }
+      }
+    } catch {}
+  }, [coach?.email]);
+
+  const initials = (coach?.name || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+
+  return (
+    <div className="flex items-center gap-2">
+      <div
+        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden"
+        style={{ backgroundColor: safeAccent, color: contrastText(safeAccent) }}
+      >
+        {photo ? <img src={photo} alt={coach.name} className="w-full h-full object-cover" /> : initials}
+      </div>
+      <span className="font-medium text-depro-dark text-xs">{coach?.name}</span>
+    </div>
+  );
+}
+
 // ════════════════════════════════════════════════════════════
 // COORDINADOR DASHBOARD
 // ════════════════════════════════════════════════════════════
-function CoordinadorDashboard({ club, accent, secondColor }) {
+function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
   const teams = club?.teams || [];
   const totalPlayers = teams.reduce((sum, t) => sum + (t.players || 0), 0);
   const totalSessions = (club?.plans || []).reduce((sum, mc) => sum + (mc.sessions?.length || 0), 0);
 
+  // Color seguro para usar sobre fondo BLANCO (cards, textos, badges)
+  const sa = visibleOnWhite(accent, visibleOnWhite(secondColor, "#0A36F7"));
+
   return (
     <div className="space-y-6">
-      {/* Stats globales del club — alternando primary y secondary */}
+      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Equipos" value={teams.length} sub="en el club" icon={Shield} accent={accent} secondary={secondColor} />
         <StatCardSecondary label="Jugadores" value={totalPlayers} sub="en total" icon={Users} accent={accent} secondary={secondColor} />
@@ -248,13 +282,10 @@ function CoordinadorDashboard({ club, accent, secondColor }) {
 
       {/* Equipos */}
       <div>
-        <SectionHeading title="Equipos del club" accent={accent} count={teams.length} />
+        <SectionHeading title="Equipos del club" safeAccent={sa} count={teams.length} />
         {teams.length === 0 ? (
-          <div
-            className="text-center py-14 border-2 border-dashed rounded-2xl"
-            style={{ borderColor: accent + "30" }}
-          >
-            <Shield size={36} className="mx-auto mb-3" style={{ color: accent + "50" }} />
+          <div className="text-center py-14 border-2 border-dashed rounded-2xl" style={{ borderColor: sa + "40" }}>
+            <Shield size={36} className="mx-auto mb-3" style={{ color: sa + "60" }} />
             <p className="font-medium text-depro-dark">Sin equipos todavía</p>
             <p className="text-sm mt-1 text-depro-gray">El administrador aún no ha añadido equipos a este club.</p>
           </div>
@@ -265,52 +296,44 @@ function CoordinadorDashboard({ club, accent, secondColor }) {
               return (
                 <div
                   key={team.id}
-                  className="bg-white rounded-xl p-5 space-y-3 hover:shadow-md transition-all border"
-                  style={{ borderColor: accent + "25", borderTopWidth: "3px", borderTopColor: accent }}
+                  onClick={() => onViewTeam(team)}
+                  className="bg-white rounded-xl p-5 space-y-3 hover:shadow-lg transition-all border cursor-pointer group"
+                  style={{ borderColor: sa + "30", borderTopWidth: "3px", borderTopColor: sa }}
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="font-bold text-depro-dark">{team.name}</h4>
+                      <h4 className="font-bold text-depro-dark group-hover:underline">{team.name}</h4>
                       <p className="text-xs text-depro-gray mt-0.5">{team.category} · {team.season}</p>
                     </div>
                     <span
-                      className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: accent, color: contrastText(accent) }}
+                      className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: sa, color: contrastText(sa) }}
                     >
                       {team.players || 0} jug.
                     </span>
                   </div>
 
                   {team.trainingDays?.length > 0 && (
-                    <TrainingDaysPills days={team.trainingDays} accent={accent} secondary={secondColor} />
+                    <TrainingDaysPills days={team.trainingDays} safeAccent={sa} />
                   )}
 
                   {team.coach && (
-                    <div
-                      className="flex items-center gap-2 text-xs pt-2 border-t"
-                      style={{ borderColor: accent + "20" }}
-                    >
-                      <UserCheck size={12} style={{ color: accent }} />
-                      <span className="font-medium text-depro-dark">{team.coach.name}</span>
+                    <div className="flex items-center gap-2 pt-2 border-t" style={{ borderColor: sa + "20" }}>
+                      <CoachAvatar coach={team.coach} safeAccent={sa} />
                       <span
-                        className="ml-auto text-xs px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: accent + "10", color: accent }}
+                        className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: sa + "15", color: sa }}
                       >Entrenador</span>
                     </div>
                   )}
 
-                  <div
-                    className="flex items-center justify-between text-xs pt-2 border-t"
-                    style={{ borderColor: accent + "20" }}
-                  >
-                    <span className="flex items-center gap-1 text-depro-gray"><ClipboardList size={11} /> {teamPlans.length} microciclos</span>
-                    <Link
-                      to="/dashboard/plan"
-                      className="flex items-center gap-1 font-bold hover:underline"
-                      style={{ color: accent }}
-                    >
-                      Ver plan <ChevronRight size={11} />
-                    </Link>
+                  <div className="flex items-center justify-between text-xs pt-2 border-t" style={{ borderColor: sa + "20" }}>
+                    <span className="flex items-center gap-1 text-depro-gray">
+                      <ClipboardList size={11} style={{ color: sa }} /> {teamPlans.length} microciclos
+                    </span>
+                    <span className="flex items-center gap-1 font-bold" style={{ color: sa }}>
+                      Ver equipo <ChevronRight size={11} />
+                    </span>
                   </div>
                 </div>
               );
@@ -322,7 +345,7 @@ function CoordinadorDashboard({ club, accent, secondColor }) {
       {/* Planificación global */}
       {(club?.plans || []).length > 0 && (
         <div>
-          <SectionHeading title="Microciclos activos" accent={accent} count={(club.plans || []).length} />
+          <SectionHeading title="Microciclos activos" safeAccent={sa} count={(club.plans || []).length} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {(club.plans || []).slice(0, 4).map((mc) => {
               const teamName = teams.find((t) => t.id === mc.teamId)?.name || "Todos los equipos";
@@ -330,18 +353,18 @@ function CoordinadorDashboard({ club, accent, secondColor }) {
                 <div
                   key={mc.id}
                   className="bg-white border rounded-xl p-5"
-                  style={{ borderColor: accent + "25", borderLeftWidth: "3px", borderLeftColor: accent }}
+                  style={{ borderColor: sa + "25", borderLeftWidth: "3px", borderLeftColor: sa }}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sa }} />
                     <h4 className="font-semibold text-depro-dark">{mc.name}</h4>
                     <span
                       className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: accent + "15", color: accent }}
+                      style={{ backgroundColor: sa + "15", color: sa }}
                     >{teamName}</span>
                   </div>
                   <p className="text-sm text-depro-gray mb-2">{mc.objective || "Sin objetivo definido"}</p>
-                  <div className="text-xs flex items-center gap-1 font-medium" style={{ color: accent }}>
+                  <div className="text-xs flex items-center gap-1 font-medium" style={{ color: sa }}>
                     <Activity size={11} /> {(mc.sessions || []).length} sesiones
                   </div>
                 </div>
@@ -357,8 +380,10 @@ function CoordinadorDashboard({ club, accent, secondColor }) {
 // ════════════════════════════════════════════════════════════
 // ENTRENADOR / AYUDANTE DASHBOARD
 // ════════════════════════════════════════════════════════════
-function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
+function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack }) {
   const [players, setPlayers] = useState([]);
+  // Color seguro sobre fondo blanco
+  const sa = visibleOnWhite(accent, visibleOnWhite(secondColor, "#0A36F7"));
 
   useEffect(() => {
     if (!club?.id) return;
@@ -392,6 +417,16 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
 
   return (
     <div className="space-y-6">
+      {/* Botón volver (solo si es coordinador viendo equipo) */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-sm font-medium text-depro-gray hover:text-depro-dark transition-colors -mb-2"
+        >
+          <ChevronRight size={14} className="rotate-180" /> Volver a todos los equipos
+        </button>
+      )}
+
       {/* Stats del equipo — alternando primary y secondary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Jugadores" value={team?.players || "—"} sub={team?.name || "equipo"} icon={Users} accent={accent} secondary={secondColor} />
@@ -403,14 +438,14 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Próxima sesión */}
         <div className="lg:col-span-2 space-y-4">
-          <SectionHeading title="Próxima sesión" accent={accent} />
+          <SectionHeading title="Próxima sesión" safeAccent={sa} />
           {nextSession ? (
             <div className="bg-white border rounded-xl p-5" style={{ borderColor: accent + "25", borderTopWidth: "3px", borderTopColor: accent }}>
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <span
                     className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full mb-2"
-                    style={{ backgroundColor: accent, color: contrastText(accent) }}
+                    style={{ backgroundColor: sa, color: contrastText(sa) }}
                   >
                     {nextSession.type || "Sesión"}
                   </span>
@@ -418,7 +453,7 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
                   <p className="text-sm text-depro-gray mt-0.5">{nextSession.objective || nextSession.description}</p>
                 </div>
                 {nextSession.duration && (
-                  <div className="flex items-center gap-1 text-sm flex-shrink-0 font-medium" style={{ color: accent }}>
+                  <div className="flex items-center gap-1 text-sm flex-shrink-0 font-medium" style={{ color: sa }}>
                     <Clock size={13} /> {nextSession.duration}
                   </div>
                 )}
@@ -427,11 +462,11 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
                 <div
                   key={i}
                   className="flex items-center gap-3 py-2 px-3 rounded-xl mb-2"
-                  style={{ backgroundColor: accent + "08" }}
+                  style={{ backgroundColor: sa + "0D" }}
                 >
                   <div
                     className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: accent, color: contrastText(accent) }}
+                    style={{ backgroundColor: sa, color: contrastText(sa) }}
                   >
                     {i + 1}
                   </div>
@@ -441,17 +476,17 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
               ))}
               <Link
                 to="/dashboard/plan"
-                className="mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-90"
-                style={{ backgroundColor: accent }}
+                className="mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
+                style={{ backgroundColor: sa, color: contrastText(sa) }}
               >
                 <Flame size={14} /> Ver plan completo <ArrowRight size={13} />
               </Link>
             </div>
           ) : (
-            <div className="text-center py-14 border border-dashed border-depro-border rounded-2xl text-depro-gray">
-              <ClipboardList size={36} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Sin sesiones planificadas todavía</p>
-              <p className="text-sm mt-1">El administrador aún no ha creado sesiones para {team?.name || "tu equipo"}.</p>
+            <div className="text-center py-14 border-2 border-dashed rounded-2xl" style={{ borderColor: sa + "30" }}>
+              <ClipboardList size={36} className="mx-auto mb-3" style={{ color: sa + "50" }} />
+              <p className="font-medium text-depro-dark">Sin sesiones planificadas todavía</p>
+              <p className="text-sm mt-1 text-depro-gray">El administrador aún no ha creado sesiones para {team?.name || "tu equipo"}.</p>
             </div>
           )}
 
@@ -459,9 +494,9 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
           {team?.trainingDays?.length > 0 && (
             <div className="bg-white border border-depro-border rounded-xl p-5">
               <h4 className="font-semibold text-depro-dark mb-3 flex items-center gap-2">
-                <Calendar size={15} style={{ color: accent }} /> Días de entrenamiento
+                <Calendar size={15} style={{ color: sa }} /> Días de entrenamiento
               </h4>
-              <TrainingDaysPills days={team.trainingDays} accent={accent} />
+              <TrainingDaysPills days={team.trainingDays} safeAccent={sa} />
             </div>
           )}
         </div>
@@ -470,17 +505,17 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
         <div className="space-y-4">
           {/* Microciclos */}
           <div>
-            <h3 className="font-bold text-depro-dark mb-3">Planificación</h3>
+            <SectionHeading title="Planificación" safeAccent={sa} count={myPlans.length} />
             {myPlans.length === 0 ? (
-              <div className="text-center py-8 border border-dashed border-depro-border rounded-xl text-depro-gray">
-                <p className="text-sm">Sin microciclos</p>
+              <div className="text-center py-8 border-2 border-dashed rounded-xl" style={{ borderColor: sa + "30" }}>
+                <p className="text-sm text-depro-gray">Sin microciclos</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {myPlans.slice(0, 4).map((mc) => (
                   <div key={mc.id} className="bg-white border border-depro-border rounded-xl p-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sa }} />
                       <span className="text-sm font-medium text-depro-dark truncate">{mc.name}</span>
                       <span className="ml-auto text-xs text-depro-gray flex-shrink-0">{(mc.sessions || []).length} ses.</span>
                     </div>
@@ -492,14 +527,12 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
 
           {/* Jugadores del club */}
           <div>
-            <h3 className="font-bold text-depro-dark mb-3 flex items-center gap-2">
-              <Users size={15} style={{ color: accent }} /> Jugadores
-            </h3>
+            <SectionHeading title="Jugadores" safeAccent={sa} count={players.length || undefined} />
             {players.length === 0 ? (
-              <div className="text-center py-6 border border-dashed border-depro-border rounded-xl text-depro-gray text-xs">
-                <Users size={20} className="mx-auto mb-2 opacity-30" />
-                <p>Ningún jugador se ha unido todavía.</p>
-                <p className="mt-1 font-mono font-bold" style={{ color: accent }}>
+              <div className="text-center py-6 border-2 border-dashed rounded-xl text-xs" style={{ borderColor: sa + "30" }}>
+                <Users size={20} className="mx-auto mb-2" style={{ color: sa + "60" }} />
+                <p className="text-depro-gray">Ningún jugador se ha unido todavía.</p>
+                <p className="mt-1 font-mono font-bold" style={{ color: sa }}>
                   Código: {club?.loginCode || club?.login_code || "—"}
                 </p>
               </div>
@@ -509,7 +542,7 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
                   <div key={p.id} className="flex items-center gap-3 p-2.5 bg-white border border-depro-border rounded-xl">
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                      style={{ backgroundColor: accent + "15", color: accent }}
+                      style={{ backgroundColor: sa, color: contrastText(sa) }}
                     >
                       {p.avatar || p.name?.[0]?.toUpperCase()}
                     </div>
@@ -517,7 +550,7 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
                       <div className="text-sm font-medium text-depro-dark truncate">{p.name}</div>
                       {p.position && <div className="text-xs text-depro-gray">{p.position}</div>}
                     </div>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: accent + "10", color: accent }}>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: sa + "15", color: sa }}>
                       {p.plan || "—"}
                     </span>
                   </div>
@@ -536,7 +569,10 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
               {quickLinks.map((item) => (
                 <Link
                   key={item.to} to={item.to}
-                  className="flex items-center gap-3 p-3 bg-white border border-depro-border hover:border-depro-blue rounded-xl text-sm text-depro-gray hover:text-depro-blue transition-all group"
+                  className="flex items-center gap-3 p-3 bg-white border rounded-xl text-sm text-depro-gray transition-all group hover:shadow-sm"
+                  style={{ borderColor: sa + "30" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = sa; e.currentTarget.style.color = sa; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = sa + "30"; e.currentTarget.style.color = ""; }}
                 >
                   <item.icon size={15} />
                   {item.label}
@@ -730,6 +766,7 @@ function JugadorDashboard({ user, club }) {
 // ════════════════════════════════════════════════════════════
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [selectedTeam, setSelectedTeam] = useState(null); // coordinador viendo un equipo
   const club = user?.club;
   const team = user?.team;
   const teamRole = user?.team_role;
@@ -737,12 +774,34 @@ export default function DashboardPage() {
   const secondColor = club?.secondaryColor || "#FFFFFF";
 
   if (user?.role === "club") {
+    // Cuando el coordinador hace click en un equipo, muestra la vista del entrenador
+    const viewTeam = selectedTeam || team;
+    const viewRole = selectedTeam ? "entrenador" : teamRole;
+
     return (
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-        <ClubBanner club={club} team={team} teamRole={teamRole} accent={accent} secondColor={secondColor} />
-        {teamRole === "coordinador"
-          ? <CoordinadorDashboard club={club} accent={accent} secondColor={secondColor} />
-          : <EntrenadorDashboard club={club} team={team} teamRole={teamRole} accent={accent} secondColor={secondColor} />
+        <ClubBanner
+          club={club}
+          team={selectedTeam || team}
+          teamRole={viewRole}
+          accent={accent}
+          secondColor={secondColor}
+        />
+        {(teamRole === "coordinador" && !selectedTeam)
+          ? <CoordinadorDashboard
+              club={club}
+              accent={accent}
+              secondColor={secondColor}
+              onViewTeam={(t) => setSelectedTeam(t)}
+            />
+          : <EntrenadorDashboard
+              club={club}
+              team={viewTeam}
+              teamRole={viewRole}
+              accent={accent}
+              secondColor={secondColor}
+              onBack={selectedTeam ? () => setSelectedTeam(null) : null}
+            />
         }
       </div>
     );
