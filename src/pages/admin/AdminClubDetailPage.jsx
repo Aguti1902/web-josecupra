@@ -118,7 +118,7 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
         email: form.coachEmail,
         password: form.coachPassword,
         role: "entrenador",
-        userCreated,
+        userCreated: true,
       } : null,
       assistantCoach: null,
     });
@@ -1310,13 +1310,21 @@ export default function AdminClubDetailPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h1 className="text-2xl font-bold text-depro-dark">{club.name}</h1>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${
-                  club.status === "activo"
-                    ? "bg-green-50 text-green-700 border-green-200"
-                    : "bg-yellow-50 text-yellow-700 border-yellow-200"
-                }`}>
-                  {club.status}
-                </span>
+                <button
+                  title="Cambiar estado del club"
+                  onClick={() => {
+                    const next = club.status === "activo" ? "inactivo" : "activo";
+                    setClub((c) => ({ ...c, status: next }));
+                    import("../../lib/adminStorage").then(({ saveClub }) => saveClub({ ...club, status: next }));
+                  }}
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize cursor-pointer hover:opacity-80 transition-opacity ${
+                    club.status === "activo"
+                      ? "bg-green-50 text-green-700 border-green-200"
+                      : "bg-red-50 text-red-700 border-red-200"
+                  }`}
+                >
+                  {club.status === "activo" ? "Activo" : "Inactivo"}
+                </button>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                   club.plan === "Premium" ? "bg-depro-blue/10 text-depro-blue" : "bg-depro-gray-light text-depro-gray"
                 }`}>

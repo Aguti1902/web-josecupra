@@ -90,7 +90,7 @@ function NewClubModal({ onClose, onCreate }) {
       city: form.city,
       country: form.country,
       founded: new Date().getFullYear(),
-      status: "pendiente",
+      status: "activo",
       plan: "Personalizado",
       createdAt: new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }),
       coordinator: {
@@ -98,7 +98,7 @@ function NewClubModal({ onClose, onCreate }) {
         email: form.coordinatorEmail,
         phone: form.coordinatorPhone,
         password: form.coordinatorPassword,
-        userCreated,
+        userCreated: true,
       },
       loginCode: generatedCode,
       teams: [], users: [], mediaAssigned: [],
