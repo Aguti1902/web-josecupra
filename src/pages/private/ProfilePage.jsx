@@ -155,11 +155,18 @@ export default function ProfilePage() {
     // Guardar en localStorage
     localStorage.setItem(`depro_player_club_${user.id}`, JSON.stringify(assoc));
 
-    // Actualizar Supabase user_metadata
+    // Actualizar Supabase user_metadata Y tabla profiles (para que el entrenador pueda ver al jugador)
     try {
       await supabase.auth.updateUser({
         data: { clubId: foundClub.id, teamId: selectedTeam, teamRole: "jugador" },
       });
+      // Actualizar profiles.team_id y profiles.club_id para que sea consultable por el entrenador
+      await supabase.from("profiles").upsert({
+        id:        user.id,
+        team_id:   selectedTeam,
+        club_id:   foundClub.id,
+        team_role: "jugador",
+      }, { onConflict: "id" });
     } catch {}
 
     setCurrentClub(foundClub);
@@ -179,6 +186,7 @@ export default function ProfilePage() {
     localStorage.removeItem(`depro_player_club_${user.id}`);
     try {
       await supabase.auth.updateUser({ data: { clubId: null, teamId: null, teamRole: null } });
+      await supabase.from("profiles").upsert({ id: user.id, team_id: null, club_id: null, team_role: null }, { onConflict: "id" });
     } catch {}
     setCurrentClub(null);
     setCurrentTeam(null);

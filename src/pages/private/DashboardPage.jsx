@@ -7,6 +7,7 @@ import {
   Crown, UserCheck, Dumbbell,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../lib/supabase";
 import { weeklyPlan, coachFeedback } from "../../data/mockData";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
@@ -472,10 +473,29 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
   // Jugadores registrados con plan de pago que se han unido a este equipo
   useEffect(() => {
     if (!team?.id) return;
+
+    // Intentar API de Vercel primero; si falla, leer directamente de Supabase profiles
     fetch(`/api/team-players?teamId=${team.id}`)
-      .then((r) => r.ok ? r.json() : { players: [] })
-      .then(({ players: list }) => setRegPlayers(list || []))
-      .catch(() => setRegPlayers([]));
+      .then((r) => r.ok ? r.json() : Promise.reject("api_fail"))
+      .then(({ players: list }) => { if (list?.length >= 0) setRegPlayers(list); })
+      .catch(async () => {
+        // Fallback: consultar tabla profiles directamente (funciona en local y en Vercel)
+        try {
+          const { data } = await supabase
+            .from("profiles")
+            .select("id, name, plan, team_role")
+            .eq("team_id", team.id);
+          if (data && data.length > 0) {
+            setRegPlayers(data.map((p) => ({
+              id:       p.id,
+              name:     p.name || "Jugador",
+              plan:     p.plan || "—",
+              position: null,
+              teamId:   team.id,
+            })));
+          }
+        } catch { /* silencioso */ }
+      });
   }, [team?.id]);
 
   const allPlans = club?.plans || [];

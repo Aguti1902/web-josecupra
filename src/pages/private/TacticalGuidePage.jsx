@@ -12,9 +12,17 @@ const ICONS = {
   intensity: Flame,
 };
 
+function lum(hex) {
+  try {
+    const h = (hex || "#000").replace("#", "");
+    return (0.299 * parseInt(h.slice(0,2),16) + 0.587 * parseInt(h.slice(2,4),16) + 0.114 * parseInt(h.slice(4,6),16)) / 255;
+  } catch { return 0; }
+}
+
 export default function TacticalGuidePage() {
   const { user } = useAuth();
-  const accent = user?.club?.primaryColor || "#0A36F7";
+  const raw    = user?.club?.primaryColor || "#0A36F7";
+  const accent = lum(raw) > 0.75 ? "#0A36F7" : raw;
 
   const [selectedKey, setSelectedKey] = useState(tacticalGuides[0].key);
   const [open, setOpen] = useState(false);
