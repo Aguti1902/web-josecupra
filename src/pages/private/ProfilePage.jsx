@@ -157,6 +157,38 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm">
+          {(user?.objetivo || user?.objective) && (
+            <div className="bg-depro-gray-light rounded-xl p-3">
+              <div className="text-xs text-depro-gray mb-0.5">Objetivo</div>
+              <div className="font-semibold text-depro-dark">{user.objetivo || user.objective}</div>
+            </div>
+          )}
+          {user?.deporte && (
+            <div className="bg-depro-gray-light rounded-xl p-3">
+              <div className="text-xs text-depro-gray mb-0.5">Deporte</div>
+              <div className="font-semibold text-depro-dark">{user.deporte}</div>
+            </div>
+          )}
+          {(user?.frecuencia || user?.training_days || user?.trainingDays) && (
+            <div className="bg-depro-gray-light rounded-xl p-3">
+              <div className="text-xs text-depro-gray mb-0.5">Frecuencia</div>
+              <div className="font-semibold text-depro-dark">
+                {user.frecuencia || `${user.training_days || user.trainingDays} días / sem`}
+              </div>
+            </div>
+          )}
+          {user?.material && (
+            <div className="bg-depro-gray-light rounded-xl p-3">
+              <div className="text-xs text-depro-gray mb-0.5">Material</div>
+              <div className="font-semibold text-depro-dark">{user.material}</div>
+            </div>
+          )}
+          {(user?.lesion?.length > 0) && (
+            <div className="bg-depro-gray-light rounded-xl p-3 col-span-2">
+              <div className="text-xs text-depro-gray mb-0.5">Lesiones / molestias</div>
+              <div className="font-semibold text-depro-dark">{user.lesion.join(", ")}</div>
+            </div>
+          )}
           {user?.position && (
             <div className="bg-depro-gray-light rounded-xl p-3">
               <div className="text-xs text-depro-gray mb-0.5">Posición</div>
@@ -167,18 +199,6 @@ export default function ProfilePage() {
             <div className="bg-depro-gray-light rounded-xl p-3">
               <div className="text-xs text-depro-gray mb-0.5">Nivel</div>
               <div className="font-semibold text-depro-dark">{user.level}</div>
-            </div>
-          )}
-          {(user?.training_days || user?.trainingDays) && (
-            <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">Días de entreno</div>
-              <div className="font-semibold text-depro-dark">{user.training_days || user.trainingDays} días / semana</div>
-            </div>
-          )}
-          {user?.objective && (
-            <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">Objetivo</div>
-              <div className="font-semibold text-depro-dark">{user.objective}</div>
             </div>
           )}
         </div>

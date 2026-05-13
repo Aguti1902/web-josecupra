@@ -92,7 +92,20 @@ function buildUser(authUser, profile) {
       teamRole = stored.teamRole || teamRole;
     }
 
-    return { ...profile, email, club, team, team_role: teamRole };
+    return {
+      ...profile,
+      email,
+      club,
+      team,
+      team_role: teamRole,
+      // Campos del formulario de onboarding — leer del metadata si el perfil no los tiene
+      plan:      profile.plan      ?? meta.plan      ?? null,
+      objetivo:  profile.objetivo  ?? meta.objetivo  ?? null,
+      deporte:   profile.deporte   ?? meta.deporte   ?? null,
+      frecuencia: profile.frecuencia ?? meta.frecuencia ?? null,
+      material:  profile.material  ?? meta.material  ?? null,
+      lesion:    profile.lesion    ?? meta.lesion    ?? [],
+    };
   }
 
   // Usuario sin perfil en Supabase todavía — usar metadata
@@ -107,11 +120,19 @@ function buildUser(authUser, profile) {
   return {
     id: authUser.id,
     email,
-    name: meta.name ?? email.split("@")[0],
-    avatar: (meta.name ?? email)[0]?.toUpperCase() ?? "U",
-    role: detectedRole,
-    team_role: meta.teamRole ?? null,
-    club: club ?? playerClub,
+    name:      meta.name      ?? email.split("@")[0],
+    avatar:    (meta.name ?? email)[0]?.toUpperCase() ?? "U",
+    role:      detectedRole,
+    // Plan y datos del formulario de onboarding
+    plan:      meta.plan      ?? null,
+    objetivo:  meta.objetivo  ?? null,
+    deporte:   meta.deporte   ?? null,
+    frecuencia: meta.frecuencia ?? null,
+    material:  meta.material  ?? null,
+    lesion:    meta.lesion    ?? [],
+    // Club
+    team_role: meta.teamRole  ?? null,
+    club:      club ?? playerClub,
     team,
   };
 }

@@ -85,9 +85,11 @@ export default function AppLayout({ children }) {
   useEffect(() => {
     const load = () => {
       if (!user?.id) return;
-      const key = user.role === "club"
+      const key = user.role === "admin"
+        ? `depro_admin_photo`
+        : user.role === "club"
         ? `depro_club_profile_${user.id}`
-        : `depro_admin_photo`;
+        : `depro_player_photo_${user.id}`;
       const p = localStorage.getItem(key);
       setProfilePhoto(p || null);
     };
