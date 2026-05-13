@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 
 const AuthContext = createContext(null);
 
-// Carga los datos del club y equipo desde localStorage usando los IDs guardados en user_metadata
+// Carga los datos completos del club (incluyendo identity: logo, colores, slogan)
 function loadClubDataFromStorage(meta) {
   try {
     const clubId = meta?.clubId;
@@ -12,21 +12,56 @@ function loadClubDataFromStorage(meta) {
     if (!clubId) return { club: null, team: null, teamRole: null };
 
     const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
-    const club = clubs.find((c) => c.id === clubId) || null;
+    const baseClub = clubs.find((c) => c.id === clubId) || null;
 
-    // Buscar equipo dentro del club (en clubs_ext o en el propio club)
-    const ext = JSON.parse(localStorage.getItem("depro_clubs_ext") || "{}");
-    const clubExt = ext[clubId] || {};
-    const teams = club?.teams || clubExt.teams || [];
-    const team = teams.find((t) => t.id === teamId) || null;
-
-    // Cargar planificación del club
+    // Cargar detalles enriquecidos (logo, colores, equipos, planes)
     const clubDetail = JSON.parse(localStorage.getItem(`depro_club_${clubId}`) || "null");
-    const plans = clubDetail?.plans || [];
 
-    return { club: club ? { ...club, plans } : null, team, teamRole };
+    // Unir datos base + identity desde clubDetail
+    const club = baseClub
+      ? {
+          ...baseClub,
+          logo:           clubDetail?.logo          ?? baseClub.logo,
+          primaryColor:   clubDetail?.primaryColor  ?? baseClub.primaryColor,
+          secondaryColor: clubDetail?.secondaryColor ?? baseClub.secondaryColor,
+          slogan:         clubDetail?.slogan         ?? baseClub.slogan,
+          plans:          clubDetail?.plans          ?? [],
+          teams:          clubDetail?.teams          ?? baseClub.teams ?? [],
+        }
+      : null;
+
+    // Buscar el equipo dentro de los datos combinados
+    const ext = JSON.parse(localStorage.getItem("depro_clubs_ext") || "{}");
+    const allTeams = club?.teams || (ext[clubId] || {}).teams || [];
+    const team = allTeams.find((t) => t.id === teamId) || null;
+
+    return { club, team, teamRole };
   } catch {
     return { club: null, team: null, teamRole: null };
+  }
+}
+
+// Carga el club de un jugador si ha introducido un código de club
+function loadPlayerClubFromStorage(userId) {
+  try {
+    const clubId = localStorage.getItem(`depro_player_club_${userId}`);
+    if (!clubId) return null;
+
+    const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+    const baseClub = clubs.find((c) => c.id === clubId) || null;
+    if (!baseClub) return null;
+
+    const clubDetail = JSON.parse(localStorage.getItem(`depro_club_${clubId}`) || "null");
+
+    return {
+      ...baseClub,
+      logo:           clubDetail?.logo          ?? baseClub.logo,
+      primaryColor:   clubDetail?.primaryColor  ?? baseClub.primaryColor,
+      secondaryColor: clubDetail?.secondaryColor ?? baseClub.secondaryColor,
+      slogan:         clubDetail?.slogan         ?? baseClub.slogan,
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -51,15 +86,22 @@ function buildUser(authUser, profile) {
   }
 
   // Usuario sin perfil en Supabase todavía — usar metadata
+  const detectedRole = meta.role ?? (email === "jose@depro.es" ? "admin" : "player");
   const { club, team, teamRole } = loadClubDataFromStorage(meta);
+
+  // Para jugadores: cargar club asociado por código si lo tienen
+  const playerClub = (detectedRole === "player" && !club)
+    ? loadPlayerClubFromStorage(authUser.id)
+    : null;
+
   return {
     id: authUser.id,
     email,
     name: meta.name ?? email.split("@")[0],
     avatar: (meta.name ?? email)[0]?.toUpperCase() ?? "U",
-    role: meta.role ?? (email === "jose@depro.es" ? "admin" : "player"),
+    role: detectedRole,
     team_role: meta.teamRole ?? null,
-    club,
+    club: club ?? playerClub,
     team,
   };
 }
@@ -149,6 +191,20 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // ── Refresh user (recargar datos sin nuevo login) ──────────
+  const refreshUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const basic = buildUser(session.user, null);
+        setUser(basic);
+        fetchProfile(session.user.id).then((profile) => {
+          if (profile) setUser(buildUser(session.user, profile));
+        });
+      }
+    } catch {}
+  };
+
   // ── Logout ─────────────────────────────────────────────────
   const logout = async () => {
     try { await supabase.auth.signOut(); } catch {}
@@ -171,7 +227,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

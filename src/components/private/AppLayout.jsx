@@ -3,18 +3,19 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, Library, Zap, Activity,
   MessageSquare, LogOut, Menu, X, ChevronRight, Trophy,
-  ClipboardList, Users as UsersIcon, BookOpen,
+  ClipboardList, Users as UsersIcon, BookOpen, User,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const playerNav = [
-  { to: "/dashboard",          icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/dashboard/plan",     icon: Calendar,        label: "Plan semanal" },
-  { to: "/dashboard/library",  icon: Library,         label: "Biblioteca" },
-  { to: "/dashboard/technique",icon: Zap,             label: "Técnica" },
-  { to: "/dashboard/physical", icon: Activity,        label: "Física" },
-  { to: "/dashboard/feedback", icon: MessageSquare,   label: "Feedback" },
-  { to: "/dashboard/ranking",  icon: Trophy,          label: "Ranking" },
+  { to: "/dashboard",           icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard/plan",      icon: Calendar,        label: "Plan semanal" },
+  { to: "/dashboard/library",   icon: Library,         label: "Biblioteca" },
+  { to: "/dashboard/technique", icon: Zap,             label: "Técnica" },
+  { to: "/dashboard/physical",  icon: Activity,        label: "Física" },
+  { to: "/dashboard/feedback",  icon: MessageSquare,   label: "Feedback" },
+  { to: "/dashboard/ranking",   icon: Trophy,          label: "Ranking" },
+  { to: "/dashboard/profile",   icon: User,            label: "Mi perfil" },
 ];
 
 const clubNav = [
@@ -49,22 +50,34 @@ export default function AppLayout({ children }) {
         {/* Club branding */}
         <div className="p-5 border-b border-depro-border">
           <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 shadow-sm"
-              style={{ backgroundColor: accent + "15", color: accent }}
-            >
-              {club?.logo || "—"}
-            </div>
+            {club?.logo ? (
+              <img
+                src={club.logo}
+                alt={club.name}
+                className="w-10 h-10 rounded-xl object-contain flex-shrink-0 shadow-sm border border-depro-border bg-white p-0.5"
+              />
+            ) : (
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 shadow-sm"
+                style={{ backgroundColor: accent + "15", color: accent }}
+              >
+                {club?.abbreviation || club?.name?.[0] || "D"}
+              </div>
+            )}
             <div className="min-w-0">
-              <div className="text-depro-dark font-bold text-sm truncate">{club?.name || "Mi Club"}</div>
-              <div className="text-xs font-semibold" style={{ color: accent }}>{user?.plan}</div>
-              {user?.role === "club" && user?.team && (
-                <div className="text-xs text-depro-gray mt-0.5 truncate">
-                  {user.team.name} · <span className="capitalize">{user.teamRole}</span>
-                </div>
-              )}
-              {user?.role === "club" && user?.teamRole === "coordinador" && (
-                <div className="text-xs text-depro-blue font-semibold mt-0.5">Coordinador</div>
+              <div className="text-depro-dark font-bold text-sm truncate">{club?.name || "DEPRO"}</div>
+              {user?.role === "club" ? (
+                <>
+                  {user?.team_role === "coordinador" ? (
+                    <div className="text-xs font-semibold mt-0.5" style={{ color: accent }}>Coordinador</div>
+                  ) : user?.team ? (
+                    <div className="text-xs text-depro-gray mt-0.5 truncate">
+                      {user.team.name} · <span className="capitalize">{user.team_role}</span>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <div className="text-xs font-semibold mt-0.5" style={{ color: accent }}>{user?.plan || "Jugador"}</div>
               )}
             </div>
           </div>

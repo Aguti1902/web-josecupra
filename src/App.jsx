@@ -21,6 +21,7 @@ import RankingPage from "./pages/private/RankingPage";
 import TacticalGuidePage from "./pages/private/TacticalGuidePage";
 import SquadPage from "./pages/private/SquadPage";
 import MesocyclePage from "./pages/private/MesocyclePage";
+import ProfilePage from "./pages/private/ProfilePage";
 
 // Admin panel
 import AdminLayout from "./components/admin/AdminLayout";
@@ -104,6 +105,7 @@ function AppRoutes() {
       <Route path="/dashboard/tactics" element={<ClientRoute><AppLayout><TacticalGuidePage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/squad" element={<ClientRoute><AppLayout><SquadPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/mesocycle" element={<ClientRoute><AppLayout><MesocyclePage /></AppLayout></ClientRoute>} />
+      <Route path="/dashboard/profile"  element={<ClientRoute><AppLayout><ProfilePage /></AppLayout></ClientRoute>} />
 
       {/* ── Admin Panel ────────────────────────────────────────── */}
       <Route path="/admin" element={<AdminRoute><AdminLayout><AdminOverviewPage /></AdminLayout></AdminRoute>} />

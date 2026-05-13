@@ -131,6 +131,22 @@ export function loadClubDetail(clubId) {
 
 export function saveClubDetail(clubId, data) {
   lsSet(`depro_club_${clubId}`, data);
+
+  // Sincronizar identity (logo, colores, slogan) de vuelta a la lista principal de clubs
+  const clubs = lsGet("depro_clubs", []);
+  const idx = clubs.findIndex((c) => c.id === clubId);
+  if (idx >= 0) {
+    clubs[idx] = {
+      ...clubs[idx],
+      ...(data.logo !== undefined      && { logo: data.logo }),
+      ...(data.primaryColor !== undefined   && { primaryColor: data.primaryColor }),
+      ...(data.secondaryColor !== undefined && { secondaryColor: data.secondaryColor }),
+      ...(data.slogan !== undefined    && { slogan: data.slogan }),
+      ...(data.teams !== undefined     && { teams: data.teams }),
+    };
+    lsSet("depro_clubs", clubs);
+  }
+
   // Sincronizar en clubs_ext también
   const ext = lsGet("depro_clubs_ext", {});
   ext[clubId] = { ...(ext[clubId] || {}), teams: data.teams, users: data.users, mediaAssigned: data.mediaAssigned };

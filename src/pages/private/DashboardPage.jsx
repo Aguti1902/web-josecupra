@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Calendar, TrendingUp, Zap, CheckCircle, Clock,
@@ -206,6 +207,27 @@ function CoordinadorDashboard({ club, accent, secondColor }) {
 // ENTRENADOR / AYUDANTE DASHBOARD
 // ════════════════════════════════════════════════════════════
 function EntrenadorDashboard({ club, team, teamRole, accent }) {
+  const [players, setPlayers] = useState([]);
+
+  useEffect(() => {
+    // Buscar jugadores que pertenecen a este club en Supabase (profiles con role player y clubId)
+    if (!club?.id) return;
+    import("../../lib/supabase").then(({ supabase: sb }) => {
+      sb.from("profiles")
+        .select("id, name, avatar, plan, position, level")
+        .eq("role", "player")
+        .then(({ data }) => {
+          // También buscar en localStorage los jugadores que se unieron con código
+          const allClubPlayers = (data || []).filter((p) => {
+            // Comprobar en localStorage si este jugador tiene este club
+            const saved = localStorage.getItem(`depro_player_club_${p.id}`);
+            return saved === club.id;
+          });
+          setPlayers(allClubPlayers);
+        });
+    });
+  }, [club?.id]);
+
   const allPlans = club?.plans || [];
   const myPlans = team
     ? allPlans.filter((mc) => !mc.teamId || mc.teamId === team.id)
@@ -316,6 +338,45 @@ function EntrenadorDashboard({ club, team, teamRole, accent }) {
             )}
           </div>
 
+          {/* Jugadores del club */}
+          <div>
+            <h3 className="font-bold text-depro-dark mb-3 flex items-center gap-2">
+              <Users size={15} style={{ color: accent }} /> Jugadores
+            </h3>
+            {players.length === 0 ? (
+              <div className="text-center py-6 border border-dashed border-depro-border rounded-xl text-depro-gray text-xs">
+                <Users size={20} className="mx-auto mb-2 opacity-30" />
+                <p>Ningún jugador se ha unido todavía.</p>
+                <p className="mt-1 font-mono font-bold" style={{ color: accent }}>
+                  Código: {club?.loginCode || club?.login_code || "—"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {players.slice(0, 6).map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 p-2.5 bg-white border border-depro-border rounded-xl">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      style={{ backgroundColor: accent + "15", color: accent }}
+                    >
+                      {p.avatar || p.name?.[0]?.toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-depro-dark truncate">{p.name}</div>
+                      {p.position && <div className="text-xs text-depro-gray">{p.position}</div>}
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: accent + "10", color: accent }}>
+                      {p.plan || "—"}
+                    </span>
+                  </div>
+                ))}
+                {players.length > 6 && (
+                  <p className="text-xs text-depro-gray text-center pt-1">+{players.length - 6} más en plantilla</p>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Acceso rápido */}
           <div>
             <h3 className="font-bold text-depro-dark mb-3">Acceso rápido</h3>
@@ -341,8 +402,8 @@ function EntrenadorDashboard({ club, team, teamRole, accent }) {
 // ════════════════════════════════════════════════════════════
 // JUGADOR DASHBOARD (original)
 // ════════════════════════════════════════════════════════════
-function JugadorDashboard({ user }) {
-  const accent = "#0A36F7";
+function JugadorDashboard({ user, club }) {
+  const accent = club?.primaryColor || "#0A36F7";
   const isPremium = user?.plan === "Premium" || user?.plan === "Pro";
   const today = weeklyPlan.find((d) => d.sessions.some((s) => s.status === "today"));
   const todaySession = today?.sessions[0];
@@ -351,6 +412,34 @@ function JugadorDashboard({ user }) {
 
   return (
     <div className="space-y-6">
+      {/* Banner del club si el jugador está asociado */}
+      {club && (
+        <div
+          className="rounded-2xl p-4 border flex items-center gap-4"
+          style={{
+            background: `linear-gradient(135deg, ${accent}12 0%, white 100%)`,
+            borderColor: accent + "30",
+          }}
+        >
+          {club.logo ? (
+            <img src={club.logo} alt={club.name} className="w-12 h-12 rounded-xl object-contain bg-white p-1 border border-depro-border flex-shrink-0" />
+          ) : (
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black flex-shrink-0"
+              style={{ backgroundColor: accent + "15", color: accent }}
+            >
+              {club.abbreviation || club.name?.[0]}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: accent }}>Tu club</div>
+            <div className="font-bold text-depro-dark truncate">{club.name}</div>
+            {club.slogan && <div className="text-xs italic text-depro-gray mt-0.5">"{club.slogan}"</div>}
+          </div>
+          <Shield size={18} style={{ color: accent }} className="flex-shrink-0" />
+        </div>
+      )}
+
       {/* Welcome */}
       <div className="rounded-2xl p-6 border" style={{ background: `linear-gradient(135deg, ${accent}08 0%, white 100%)`, borderColor: accent + "20" }}>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -509,7 +598,7 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <JugadorDashboard user={user} />
+      <JugadorDashboard user={user} club={club} />
     </div>
   );
 }
