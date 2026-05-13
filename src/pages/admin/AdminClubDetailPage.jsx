@@ -1215,16 +1215,19 @@ export default function AdminClubDetailPage() {
       teamRole: "coordinador",
     });
     setRecreating(false);
-    if (result.ok) {
-      setRecreateMsg({ ok: true, msg: `✓ Acceso creado. El coordinador ya puede entrar con: ${club.coordinator.email}` });
+    const alreadyExists = result.error?.includes("already registered") || result.error?.includes("already been registered");
+    if (result.ok || alreadyExists) {
+      setRecreateMsg({ ok: true, msg: alreadyExists
+        ? `✓ El usuario ya existe. Acceso marcado como activo para: ${club.coordinator.email}`
+        : `✓ Acceso creado. El coordinador ya puede entrar con: ${club.coordinator.email}` });
       setClub((c) => ({ ...c, coordinator: { ...c.coordinator, userCreated: true } }));
-    } else {
-      setRecreateMsg({
-        ok: false,
-        msg: result.error?.includes("already registered")
-          ? "Este email ya existe en Supabase. El coordinador puede intentar entrar directamente o restablecer la contraseña."
-          : `Error: ${result.error}`,
+      // Persistir en localStorage
+      import("../../lib/adminStorage").then(({ saveClubDetail, loadClubDetail }) => {
+        const detail = loadClubDetail(club.id);
+        if (detail) saveClubDetail(club.id, { ...detail, coordinator: { ...detail.coordinator, userCreated: true } });
       });
+    } else {
+      setRecreateMsg({ ok: false, msg: `Error: ${result.error}` });
     }
   };
 
@@ -1272,7 +1275,12 @@ export default function AdminClubDetailPage() {
     { id: "identidad", label: "Identidad", icon: Palette },
     { id: "equipos", label: "Equipos", icon: Shield, count: (club.teams || []).length },
     { id: "planificacion", label: "Planificación", icon: ClipboardList, count: plans.length },
-    { id: "usuarios", label: "Usuarios", icon: Users, count: (club.users || []).length },
+    { id: "usuarios", label: "Usuarios", icon: Users, count: (() => {
+      let n = (club.users || []).length;
+      if (club.coordinator?.email) n++;
+      (club.teams || []).forEach((t) => { if (t.coach?.email) n++; });
+      return n;
+    })() },
     { id: "medios", label: "Medios asignados", icon: Video, count: assignedMedia.length },
   ];
 
@@ -1353,6 +1361,20 @@ export default function AdminClubDetailPage() {
                     {recreating ? <div className="spinner border-depro-blue/20 border-t-depro-blue w-3 h-3" /> : <RefreshCw size={11} />}
                     {recreating ? "Creando..." : "Recrear acceso"}
                   </button>
+                  {!club.coordinator?.userCreated && (
+                    <button
+                      onClick={() => {
+                        setClub((c) => ({ ...c, coordinator: { ...c.coordinator, userCreated: true } }));
+                        import("../../lib/adminStorage").then(({ saveClubDetail, loadClubDetail }) => {
+                          const detail = loadClubDetail(club.id);
+                          if (detail) saveClubDetail(club.id, { ...detail, coordinator: { ...detail.coordinator, userCreated: true } });
+                        });
+                      }}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-green-600 hover:text-green-700 border border-green-300 hover:border-green-500 px-3 py-1 rounded-full transition-colors"
+                    >
+                      <CheckCircle size={11} /> Marcar como activo
+                    </button>
+                  )}
                   {club.coordinator?.password && (
                     <button
                       onClick={() => navigator.clipboard.writeText(`${club.coordinator.email}\n${club.coordinator.password}`)}
@@ -1563,7 +1585,20 @@ export default function AdminClubDetailPage() {
             </button>
           </div>
 
-          {club.users.length === 0 ? (
+          {(() => {
+            // Construir lista completa: coordinador + entrenadores + usuarios manuales
+            const allUsers = [];
+            if (club.coordinator?.email) {
+              allUsers.push({ id: "coord", name: club.coordinator.name, email: club.coordinator.email, role: "Coordinador", team: "—", userCreated: club.coordinator.userCreated });
+            }
+            (club.teams || []).forEach((t) => {
+              if (t.coach?.email) {
+                allUsers.push({ id: `coach_${t.id}`, name: t.coach.name, email: t.coach.email, role: "Entrenador", team: t.name, userCreated: t.coach.userCreated });
+              }
+            });
+            (club.users || []).forEach((u) => allUsers.push({ ...u, team: "—" }));
+
+            return allUsers.length === 0 ? (
             <div className="text-center py-12 text-depro-gray border border-dashed border-depro-border rounded-2xl">
               <Users size={32} className="mx-auto mb-2 opacity-30" />
               <p className="text-sm">No hay usuarios registrados en este club</p>
@@ -1576,13 +1611,12 @@ export default function AdminClubDetailPage() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-depro-gray uppercase tracking-wide">Usuario</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-depro-gray uppercase tracking-wide hidden md:table-cell">Rol</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-depro-gray uppercase tracking-wide hidden lg:table-cell">Equipo</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-depro-gray uppercase tracking-wide hidden md:table-cell">Último acceso</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-depro-gray uppercase tracking-wide">Estado</th>
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-depro-border">
-                  {club.users.map((user) => (
+                  {allUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-depro-gray-light/50 transition-colors">
                       <td className="px-4 py-3">
                         <p className="font-medium text-depro-dark">{user.name || user.email}</p>
@@ -1594,35 +1628,32 @@ export default function AdminClubDetailPage() {
                       <td className="px-4 py-3 text-depro-gray text-xs hidden lg:table-cell">
                         {user.team ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-depro-gray text-xs hidden md:table-cell">
-                        {user.lastLogin}
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                          user.userCreated !== false
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                        }`}>
+                          {user.userCreated !== false ? "Activo" : "Pendiente"}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => toggleUserActive(user.id)}
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-medium border transition-colors ${
-                            user.active
-                              ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                              : "bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200"
-                          }`}
-                        >
-                          {user.active ? "Activo" : "Inactivo"}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => removeUser(user.id)}
-                          className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-red hover:text-depro-red transition-colors"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {user.id && !user.id.startsWith("coord") && !user.id.startsWith("coach_") && (
+                          <button
+                            onClick={() => removeUser(user.id)}
+                            className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-red hover:text-depro-red transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
+          );
+          })()}
         </div>
       )}
 
