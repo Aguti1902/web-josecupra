@@ -819,10 +819,10 @@ function JugadorDashboard({ user, club }) {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Sesiones esta semana" value={`${completedDays}/${freqNum}`} sub={`${progressPct}% completado`} icon={CheckCircle} color="#3BC21D" />
-        <StatCard label="Frecuencia semanal" value={freqNum} sub="días de entreno" icon={Calendar} color={accent} />
-        <StatCard label="Valoración coach" value={`${lastFeedback.rating}/10`} sub="última revisión" icon={Trophy} color="#F6CC12" />
-        <StatCard label="Plan actual" value={user?.plan || "—"} sub="activo" icon={Zap} color="#FB2C39" />
+        <StatCard label="Sesiones esta semana" value={`${completedDays}/${freqNum}`} sub={`${progressPct}% completado`} icon={CheckCircle} accent="#3BC21D" />
+        <StatCard label="Frecuencia semanal" value={freqNum} sub="días de entreno" icon={Calendar} accent={accent} />
+        <StatCard label="Valoración coach" value={`${lastFeedback.rating}/10`} sub="última revisión" icon={Trophy} accent="#F6CC12" />
+        <StatCard label="Plan actual" value={user?.plan || "—"} sub="activo" icon={Zap} accent="#0A36F7" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
