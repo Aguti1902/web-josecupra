@@ -59,7 +59,7 @@ function ExerciseModal({ exercise, onClose, accent }) {
           <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-all">
             <FileText size={15} /> Descargar PDF
           </button>
-          <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90" style={{ backgroundColor: accent }}>
+          <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90" style={{ backgroundColor: accent, color: contrastText(accent) }}>
             <CheckCircle size={15} /> Completar
           </button>
         </div>
@@ -381,8 +381,8 @@ function PlayerWeeklyPlan({ accent }) {
                 ) : (
                   <button
                     onClick={() => handleComplete(selectedDay, session.id)}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm text-white hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: accent }}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: accent, color: contrastText(accent) }}
                   >
                     <CheckCircle size={15} /> Marcar como completada
                   </button>
@@ -598,9 +598,26 @@ function ClubMicrocycles({ accent }) {
 /* ─────────────────────────────────────────────
    PAGE WRAPPER
 ───────────────────────────────────────────── */
+function lum(hex) {
+  try {
+    const h = (hex || "#000").replace("#", "");
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  } catch { return 0; }
+}
+function safeColor(hex, fallback = "#0A36F7") {
+  return lum(hex) > 0.75 ? fallback : (hex || fallback);
+}
+function contrastText(hex) {
+  return lum(hex) > 0.55 ? "#111827" : "#ffffff";
+}
+
 export default function WeeklyPlanPage() {
   const { user } = useAuth();
-  const accent = user?.club?.primaryColor || "#0A36F7";
+  const raw    = user?.club?.primaryColor || "#0A36F7";
+  const accent = safeColor(raw);
 
   if (user?.role === "club") return <ClubMicrocycles accent={accent} />;
   return <PlayerWeeklyPlan accent={accent} />;

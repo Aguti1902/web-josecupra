@@ -77,19 +77,27 @@ function PodiumStep({ player, rank, isCurrentUser }) {
   );
 }
 
+function lum(hex) {
+  try {
+    const h = (hex || "#000").replace("#", "");
+    return (0.299 * parseInt(h.slice(0,2),16) + 0.587 * parseInt(h.slice(2,4),16) + 0.114 * parseInt(h.slice(4,6),16)) / 255;
+  } catch { return 0; }
+}
+
 export default function RankingPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("Semanal");
 
-  const key = TAB_KEY[activeTab];
-  const sorted = [...rankingData.leaderboard].sort((a, b) => b.points[key] - a.points[key]);
-  const myEntry = sorted.find((p) => p.id === user?.id) ?? sorted[3];
-  const myRank  = sorted.indexOf(myEntry) + 1;
+  const key     = TAB_KEY[activeTab];
+  const sorted  = [...(rankingData.leaderboard || [])].sort((a, b) => b.points[key] - a.points[key]);
+  const myEntry = sorted.find((p) => p.id === user?.id) ?? null;
+  const myRank  = myEntry ? sorted.indexOf(myEntry) + 1 : null;
   const top3    = sorted.slice(0, 3).map((p) => ({ ...p, points: { ...p.points, _tab: p.points[key] } }));
-  const rest     = sorted.slice(3).map((p) => ({ ...p, points: { ...p.points, _tab: p.points[key] } }));
+  const rest    = sorted.slice(3).map((p) => ({ ...p, points: { ...p.points, _tab: p.points[key] } }));
   const topScore = sorted[0]?.points[key] || 1;
 
-  const accent = user?.club?.primaryColor || "#0A36F7";
+  const raw    = user?.club?.primaryColor || "#0A36F7";
+  const accent = lum(raw) > 0.75 ? "#0A36F7" : raw;
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
@@ -116,20 +124,22 @@ export default function RankingPage() {
             className="w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black flex-shrink-0"
             style={{ backgroundColor: accent + "20", color: accent }}
           >
-            {myEntry?.avatar}
+            {user?.avatar || user?.name?.[0]?.toUpperCase() || "👤"}
           </div>
           <div className="min-w-0">
             <p className="text-xs font-bold text-depro-gray uppercase tracking-wide">Mi posición</p>
-            <p className="font-black text-depro-dark text-lg leading-tight">#{myRank} de {sorted.length}</p>
-            <p className="text-xs text-depro-gray truncate">{myEntry?.club?.name}</p>
+            <p className="font-black text-depro-dark text-lg leading-tight">
+              {myRank ? `#${myRank} de ${sorted.length}` : "Sin datos aún"}
+            </p>
+            <p className="text-xs text-depro-gray truncate">{myEntry?.club?.name || user?.name || "—"}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-3 sm:gap-6">
           {[
-            { icon: Star,     label: "Puntos semana", value: myEntry?.points.weekly.toLocaleString() },
-            { icon: Flame,    label: "Racha",          value: `${myEntry?.streak}d` },
-            { icon: Activity, label: "Sesiones",       value: myEntry?.sessionsCompleted },
+            { icon: Star,     label: "Puntos semana", value: myEntry ? myEntry.points.weekly.toLocaleString() : "—" },
+            { icon: Flame,    label: "Racha",          value: myEntry?.streak != null ? `${myEntry.streak}d` : "—" },
+            { icon: Activity, label: "Sesiones",       value: myEntry?.sessionsCompleted ?? "—" },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="text-center">
               <div className="flex items-center justify-center gap-1 mb-0.5">
@@ -164,25 +174,35 @@ export default function RankingPage() {
             ))}
           </div>
 
-          {/* Podium */}
-          <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card">
-            <div className="flex items-end justify-center gap-4 mb-2">
-              {top3.map((p, i) => (
-                <PodiumStep
-                  key={p.id}
-                  player={p}
-                  rank={i + 1}
-                  isCurrentUser={p.id === (user?.id ?? myEntry?.id)}
-                />
-              ))}
+          {/* Podium / Empty state */}
+          {sorted.length === 0 ? (
+            <div className="bg-white border-2 border-dashed border-depro-border rounded-2xl p-10 text-center">
+              <Trophy size={40} className="mx-auto mb-3 text-depro-border" />
+              <p className="font-bold text-depro-dark mb-1">El ranking está vacío</p>
+              <p className="text-sm text-depro-gray max-w-xs mx-auto">
+                Completa sesiones de entrenamiento para aparecer aquí y competir con otros jugadores.
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card">
+              <div className="flex items-end justify-center gap-4 mb-2">
+                {top3.map((p, i) => (
+                  <PodiumStep
+                    key={p.id}
+                    player={p}
+                    rank={i + 1}
+                    isCurrentUser={p.id === user?.id}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Rest of the list */}
-          <div className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden">
+          {rest.length > 0 && <div className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden">
             {rest.map((player, i) => {
               const rank = i + 4;
-              const isMe = player.id === (user?.id ?? myEntry?.id);
+              const isMe = player.id === user?.id;
               const pct  = Math.round((player.points[key] / topScore) * 100);
               const badge = BADGE_STYLE[player.badge] ?? BADGE_STYLE.Base;
 
@@ -240,7 +260,7 @@ export default function RankingPage() {
                 </div>
               );
             })}
-          </div>
+          </div>}
         </div>
 
         {/* Right: Activity feed */}
@@ -250,10 +270,17 @@ export default function RankingPage() {
             Actividad reciente
           </h2>
 
+          {(rankingData.activityFeed || []).length === 0 ? (
+            <div className="bg-white border border-depro-border rounded-xl p-6 text-center text-sm text-depro-gray">
+              <Activity size={24} className="mx-auto mb-2 text-depro-border" />
+              Sin actividad reciente todavía.
+            </div>
+          ) : null}
+
           <div className="space-y-2">
-            {rankingData.activityFeed.map((item) => {
+            {(rankingData.activityFeed || []).map((item) => {
               const { Icon, color, bg } = FEED_ICON[item.type] ?? FEED_ICON.session;
-              const isMe = item.userId === (user?.id ?? myEntry?.id);
+              const isMe = item.userId === user?.id;
 
               return (
                 <div

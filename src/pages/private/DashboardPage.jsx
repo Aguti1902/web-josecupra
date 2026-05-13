@@ -683,7 +683,9 @@ function weekKey() {
 }
 
 function JugadorDashboard({ user, club }) {
-  const accent = club?.primaryColor || "#0A36F7";
+  const accent    = club?.primaryColor || "#0A36F7";
+  // Siempre un color visible sobre fondo blanco (si el club tiene color claro usamos el azul DEPRO)
+  const safeAccent = visibleOnWhite(accent, "#0A36F7");
   const isPremium = user?.plan === "Premium" || user?.plan === "Pro";
   const today = weeklyPlan.find((d) => d.sessions.some((s) => s.status === "today"));
   const todaySession = today?.sessions[0];
@@ -721,42 +723,42 @@ function JugadorDashboard({ user, club }) {
         <div
           className="rounded-2xl p-4 border flex items-center gap-4"
           style={{
-            background: `linear-gradient(135deg, ${accent}12 0%, white 100%)`,
-            borderColor: accent + "30",
+            background: `linear-gradient(135deg, ${safeAccent}12 0%, white 100%)`,
+            borderColor: safeAccent + "35",
           }}
         >
           {club.logo ? (
-            <img src={club.logo} alt={club.name} className="w-12 h-12 rounded-xl object-contain bg-white p-1 border border-depro-border flex-shrink-0" />
+            <img src={club.logo} alt={club.name} className="w-12 h-12 rounded-xl object-contain bg-white p-1 border border-depro-border flex-shrink-0 shadow-sm" />
           ) : (
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black flex-shrink-0"
-              style={{ backgroundColor: accent + "15", color: accent }}
+              style={{ backgroundColor: safeAccent + "15", color: safeAccent }}
             >
               {club.abbreviation || club.name?.[0]}
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: accent }}>Tu club</div>
+            <div className="text-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: safeAccent }}>Tu club</div>
             <div className="font-bold text-depro-dark truncate">{club.name}</div>
             {club.slogan && <div className="text-xs italic text-depro-gray mt-0.5">"{club.slogan}"</div>}
           </div>
-          <Shield size={18} style={{ color: accent }} className="flex-shrink-0" />
+          <Shield size={18} style={{ color: safeAccent }} className="flex-shrink-0" />
         </div>
       )}
 
       {/* Welcome */}
-      <div className="rounded-2xl p-6 border" style={{ background: `linear-gradient(135deg, ${accent}08 0%, white 100%)`, borderColor: accent + "20" }}>
+      <div className="rounded-2xl p-6 border" style={{ background: `linear-gradient(135deg, ${safeAccent}08 0%, white 100%)`, borderColor: safeAccent + "25" }}>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-black flex-shrink-0 shadow-sm" style={{ backgroundColor: accent + "15", color: accent }}>
-            {user?.avatar}
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-black flex-shrink-0 shadow-sm" style={{ backgroundColor: safeAccent + "15", color: safeAccent }}>
+            {user?.avatar || user?.name?.[0]?.toUpperCase() || "👤"}
           </div>
           <div className="flex-1">
-            <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: accent }}>
+            <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: safeAccent }}>
               {new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
             </p>
             <h2 className="text-2xl font-black text-depro-dark">Hola, {user?.name?.split(" ")[0]}.</h2>
             <p className="text-depro-gray text-sm mt-0.5">
-              {user?.training_days ?? user?.trainingDays ?? "—"} días de entreno · {user?.level || "—"}
+              {user?.frecuencia || user?.training_days || "—"} · {user?.objetivo || user?.level || "—"}
             </p>
           </div>
           {isPremium && (
@@ -765,7 +767,7 @@ function JugadorDashboard({ user, club }) {
             </div>
           )}
           {todaySession && (
-            <Link to="/dashboard/plan" className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm text-white hover:opacity-90" style={{ backgroundColor: accent }}>
+            <Link to="/dashboard/plan" className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm hover:opacity-90" style={{ backgroundColor: safeAccent, color: contrastText(safeAccent) }}>
               <Flame size={15} /> Sesión de hoy <ArrowRight size={14} />
             </Link>
           )}
@@ -785,13 +787,13 @@ function JugadorDashboard({ user, club }) {
 
       {/* CTA si lleva días sin entrenar */}
       {completedDays === 0 && (
-        <div className="rounded-2xl border-2 border-dashed p-5 flex items-center gap-4" style={{ borderColor: accent + "40", backgroundColor: accent + "04" }}>
+        <div className="rounded-2xl border-2 border-dashed p-5 flex items-center gap-4" style={{ borderColor: safeAccent + "40", backgroundColor: safeAccent + "04" }}>
           <div className="text-3xl">💪</div>
           <div className="flex-1">
             <div className="font-bold text-depro-dark text-sm">¡Empieza la semana con fuerza!</div>
             <div className="text-xs text-depro-gray mt-0.5">Aún no has completado ninguna sesión esta semana. Tu plan te está esperando.</div>
           </div>
-          <Link to="/dashboard/plan" className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: accent }}>
+          <Link to="/dashboard/plan" className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold" style={{ backgroundColor: safeAccent, color: contrastText(safeAccent) }}>
             Ir al plan
           </Link>
         </div>
@@ -820,7 +822,7 @@ function JugadorDashboard({ user, club }) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Sesiones esta semana" value={`${completedDays}/${freqNum}`} sub={`${progressPct}% completado`} icon={CheckCircle} accent="#3BC21D" />
-        <StatCard label="Frecuencia semanal" value={freqNum} sub="días de entreno" icon={Calendar} accent={accent} />
+        <StatCard label="Frecuencia semanal" value={freqNum} sub="días de entreno" icon={Calendar} accent={safeAccent} />
         <StatCard label="Valoración coach" value={`${lastFeedback.rating}/10`} sub="última revisión" icon={Trophy} accent="#F6CC12" />
         <StatCard label="Plan actual" value={user?.plan || "—"} sub="activo" icon={Zap} accent="#0A36F7" />
       </div>
@@ -844,7 +846,7 @@ function JugadorDashboard({ user, club }) {
               <div className="space-y-2">
                 {todaySession.exercises.slice(0, 3).map((ex, i) => (
                   <div key={i} className="flex items-center gap-3 py-2.5 px-3 bg-depro-gray-light rounded-xl">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: accent + "15", color: accent }}>{i + 1}</div>
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: safeAccent + "15", color: safeAccent }}>{i + 1}</div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-depro-dark">{ex.name}</div>
                       <div className="text-xs text-depro-gray">{ex.duration} · {ex.sets} sets · {ex.reps}</div>
@@ -853,7 +855,7 @@ function JugadorDashboard({ user, club }) {
                 ))}
                 {todaySession.exercises.length > 3 && <p className="text-xs text-depro-gray text-center pt-1">+ {todaySession.exercises.length - 3} ejercicios más</p>}
               </div>
-              <Link to="/dashboard/plan" className="mt-5 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white hover:opacity-90" style={{ backgroundColor: accent }}>
+              <Link to="/dashboard/plan" className="mt-5 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm hover:opacity-90" style={{ backgroundColor: safeAccent, color: contrastText(safeAccent) }}>
                 Iniciar sesión <ArrowRight size={14} />
               </Link>
             </div>
@@ -872,19 +874,24 @@ function JugadorDashboard({ user, club }) {
                 {days7.map((d, i) => {
                   const done    = completedIds.includes(d);
                   const isToday = i === todayIdx;
+                  // Colores siempre visibles:
+                  // Completado → verde; Hoy (sin completar) → azul DEPRO con borde; Resto → gris
+                  const bg    = done ? "#3BC21D" : isToday ? "#0A36F7" : "#F3F4F6";
+                  const fg    = done ? "#fff"    : isToday ? "#fff"    : "#9CA3AF";
+                  const label = done ? "✓"       : isToday ? "●"      : d;
                   return (
                     <button
                       key={d}
                       onClick={() => markDayDone(d)}
-                      title={done ? "Completado" : "Marcar como hecho"}
+                      title={done ? "Completado" : isToday ? "Hoy" : "Marcar como hecho"}
                       className="flex flex-col items-center gap-1 group"
                     >
-                      <div className="text-xs text-depro-gray font-medium">{d}</div>
+                      <div className={`text-xs font-bold ${isToday ? "text-depro-dark" : "text-depro-gray"}`}>{d}</div>
                       <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all group-hover:scale-110"
-                        style={done ? { backgroundColor: "#3BC21D", color: "#fff" } : isToday ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F3F4F6", color: "#9CA3AF" }}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all group-hover:scale-110 ${isToday && !done ? "ring-2 ring-offset-1 ring-depro-blue" : ""}`}
+                        style={{ backgroundColor: bg, color: fg }}
                       >
-                        {done ? "✓" : isToday ? "▶" : "○"}
+                        {label}
                       </div>
                     </button>
                   );
@@ -896,7 +903,11 @@ function JugadorDashboard({ user, club }) {
                 </div>
                 <span className="text-xs text-depro-gray font-medium">{completedDays}/{freqNum}</span>
               </div>
-              <p className="text-[10px] text-depro-gray mt-2">Pulsa un día para marcarlo como completado.</p>
+              <div className="flex items-center gap-3 mt-2">
+                <span className="flex items-center gap-1 text-[10px] text-depro-gray"><span className="w-2.5 h-2.5 rounded-sm bg-green-400 inline-block" /> Completado</span>
+                <span className="flex items-center gap-1 text-[10px] text-depro-gray"><span className="w-2.5 h-2.5 rounded-sm bg-depro-blue inline-block" /> Hoy</span>
+                <span className="flex items-center gap-1 text-[10px] text-depro-gray"><span className="w-2.5 h-2.5 rounded-sm bg-gray-200 inline-block" /> Pendiente</span>
+              </div>
             </div>
           </div>
           <div>
