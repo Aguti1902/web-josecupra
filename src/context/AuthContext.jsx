@@ -28,6 +28,7 @@ function loadClubDataFromStorage(meta) {
           slogan:         clubDetail?.slogan          ?? baseClub.slogan,
           plans:          clubDetail?.plans           ?? [],
           teams:          clubDetail?.teams           ?? baseClub.teams ?? [],
+          status:         clubDetail?.status          ?? baseClub.status ?? "activo",
         }
       : null;
 

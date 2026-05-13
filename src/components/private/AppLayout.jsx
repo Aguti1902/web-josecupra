@@ -96,6 +96,36 @@ export default function AppLayout({ children }) {
     return () => clearInterval(iv);
   }, [user?.id, user?.role]);
 
+  // Club suspendido: mostrar pantalla de acceso bloqueado
+  if (user?.role === "club" && club?.status === "inactivo") {
+    return (
+      <div className="min-h-screen bg-depro-gray-light flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-depro max-w-md w-full p-8 text-center">
+          {club?.logo ? (
+            <img src={club.logo} alt={club.name} className="w-16 h-16 object-contain mx-auto mb-4 rounded-xl border border-depro-border p-1" />
+          ) : (
+            <div className="w-16 h-16 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0-6v2m0-6V5m-4 7a4 4 0 108 0 4 4 0 00-8 0z" /></svg>
+            </div>
+          )}
+          <h1 className="text-xl font-bold text-depro-dark mb-2">Acceso suspendido</h1>
+          <p className="text-sm text-depro-gray mb-1">
+            El acceso al panel de <strong>{club?.name || "tu club"}</strong> ha sido suspendido.
+          </p>
+          <p className="text-xs text-depro-gray mb-6">
+            Si crees que es un error, contacta con el administrador de DEPRO.
+          </p>
+          <button
+            onClick={() => { logout(); navigate("/"); }}
+            className="w-full py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-depro-gray-light overflow-hidden">
       {/* Sidebar */}

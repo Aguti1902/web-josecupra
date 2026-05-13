@@ -1155,6 +1155,7 @@ export default function AdminClubDetailPage() {
   const [copied, setCopied]         = useState(false);
   const [recreating, setRecreating] = useState(false);
   const [recreateMsg, setRecreateMsg] = useState(null);
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false);
 
   useEffect(() => {
     Promise.all([loadClubs(), loadMedia()]).then(([clubs, meds]) => {
@@ -1284,7 +1285,57 @@ export default function AdminClubDetailPage() {
     { id: "medios", label: "Medios asignados", icon: Video, count: assignedMedia.length },
   ];
 
+  const handleStatusToggle = async () => {
+    const next = club.status === "activo" ? "inactivo" : "activo";
+    const updated = { ...club, status: next };
+    setClub(updated);
+    setShowStatusConfirm(false);
+    // Guardar en localStorage y Supabase
+    saveClubDetail(id, { ...updated, plans });
+    const { saveClub: sc } = await import("../../lib/adminStorage");
+    sc(updated);
+  };
+
   return (
+    <>
+    {/* Modal confirmación cambio de estado */}
+    {showStatusConfirm && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="bg-white rounded-2xl shadow-depro w-full max-w-sm p-6">
+          {club.status === "activo" ? (
+            <>
+              <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+              </div>
+              <h2 className="text-lg font-bold text-depro-dark text-center mb-2">¿Desactivar el club?</h2>
+              <p className="text-sm text-depro-gray text-center mb-6">
+                Todos los perfiles del club (coordinador, entrenadores) perderán el acceso al dashboard inmediatamente.
+                Podrás reactivarlo en cualquier momento.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowStatusConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm text-depro-gray hover:bg-depro-gray-light transition-colors">Cancelar</button>
+                <button onClick={handleStatusToggle} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">Sí, desactivar</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <h2 className="text-lg font-bold text-depro-dark text-center mb-2">¿Reactivar el club?</h2>
+              <p className="text-sm text-depro-gray text-center mb-6">
+                Todos los perfiles del club recuperarán el acceso al dashboard.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowStatusConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm text-depro-gray hover:bg-depro-gray-light transition-colors">Cancelar</button>
+                <button onClick={handleStatusToggle} className="flex-1 py-2.5 rounded-xl bg-green-500 text-white text-sm font-bold hover:bg-green-600 transition-colors">Sí, reactivar</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )}
+
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
@@ -1312,11 +1363,7 @@ export default function AdminClubDetailPage() {
                 <h1 className="text-2xl font-bold text-depro-dark">{club.name}</h1>
                 <button
                   title="Cambiar estado del club"
-                  onClick={() => {
-                    const next = club.status === "activo" ? "inactivo" : "activo";
-                    setClub((c) => ({ ...c, status: next }));
-                    import("../../lib/adminStorage").then(({ saveClub }) => saveClub({ ...club, status: next }));
-                  }}
+                  onClick={() => setShowStatusConfirm(true)}
                   className={`px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize cursor-pointer hover:opacity-80 transition-opacity ${
                     club.status === "activo"
                       ? "bg-green-50 text-green-700 border-green-200"
@@ -1709,5 +1756,6 @@ export default function AdminClubDetailPage() {
       {showNewTeam && <NewTeamModal onClose={() => setShowNewTeam(false)} onCreate={addTeam} clubId={club.id} />}
       {showNewUser && <NewUserModal teams={club.teams} onClose={() => setShowNewUser(false)} onCreate={addUser} />}
     </div>
+    </>
   );
 }
