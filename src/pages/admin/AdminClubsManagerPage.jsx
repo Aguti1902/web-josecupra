@@ -42,20 +42,15 @@ function StatusBadge({ status }) {
 
 function PlanBadge({ plan }) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-      plan === "Premium"
-        ? "bg-depro-blue/10 text-depro-blue"
-        : "bg-depro-gray-light text-depro-gray"
-    }`}>
-      {plan === "Premium" && <Crown size={10} />}
-      {plan}
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-depro-blue/10 text-depro-blue">
+      {plan || "Personalizado"}
     </span>
   );
 }
 
 function NewClubModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
-    name: "", abbreviation: "", city: "", country: "España", plan: "Premium",
+    name: "", abbreviation: "", city: "", country: "España",
     coordinatorName: "", coordinatorEmail: "", coordinatorPhone: "",
     coordinatorPassword: generatePassword(),
   });
@@ -94,7 +89,7 @@ function NewClubModal({ onClose, onCreate }) {
       country: form.country,
       founded: new Date().getFullYear(),
       status: "pendiente",
-      plan: form.plan,
+      plan: "Personalizado",
       createdAt: new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }),
       coordinator: {
         name: form.coordinatorName,
@@ -189,16 +184,6 @@ function NewClubModal({ onClose, onCreate }) {
                 value={form.abbreviation}
                 onChange={(e) => setForm((f) => ({ ...f, abbreviation: e.target.value }))}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-depro-dark mb-1">Plan</label>
-              <select
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                value={form.plan}
-                onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value }))}
-              >
-                {PLANS.map((p) => <option key={p}>{p}</option>)}
-              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-depro-dark mb-1">Ciudad</label>
