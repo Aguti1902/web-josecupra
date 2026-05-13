@@ -248,7 +248,9 @@ export default function AdminClubsManagerPage() {
   };
 
   const handleCreate = async (clubData) => {
-    const saved = await saveClub(clubData);
+    // Forzar ID nuevo generado en adminStorage (quitar el temporal del modal)
+    const { id: _ignore, ...rest } = clubData;
+    const saved = await saveClub(rest);
     setClubs((prev) => [saved, ...prev]);
   };
 

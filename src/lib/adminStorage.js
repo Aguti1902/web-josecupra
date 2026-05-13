@@ -2,13 +2,13 @@
  * adminStorage — capa de persistencia para el panel admin
  *
  * Estrategia:
- *  1. Intenta leer/escribir en Supabase
- *  2. Siempre sincroniza localStorage como caché local
- *  3. Si Supabase falla, usa localStorage como fuente de verdad
+ *  1. localStorage es la fuente de verdad (siempre disponible)
+ *  2. Supabase se usa como sincronización en segundo plano
+ *  3. Si localStorage está vacío se intenta Supabase como seed inicial
  */
 import { supabase } from "./supabase";
 
-// ── Utilidades localStorage ─────────────────────────────────
+// ── Utilidades ──────────────────────────────────────────────
 function lsGet(key, fallback = []) {
   try {
     const v = localStorage.getItem(key);
@@ -18,25 +18,33 @@ function lsGet(key, fallback = []) {
 function lsSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
+function genId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return `id_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
 
 // ════════════════════════════════════════════════════════════
 // CLUBS
 // ════════════════════════════════════════════════════════════
 export async function loadClubs() {
+  // localStorage es la fuente de verdad primaria
+  const local = lsGet("depro_clubs", []);
+  if (local.length > 0) return local;
+
+  // Solo si localStorage está vacío, intentamos Supabase
   try {
     const { data, error } = await supabase
       .from("clubs")
       .select("*")
       .order("created_at", { ascending: false });
-    if (!error && data) {
-      // Enriquecer con datos extendidos guardados en localStorage (equipos, usuarios)
+    if (!error && data && data.length > 0) {
       const extended = lsGet("depro_clubs_ext", {});
       const merged = data.map((c) => ({ ...c, ...extended[c.id] }));
       lsSet("depro_clubs", merged);
       return merged;
     }
   } catch {}
-  return lsGet("depro_clubs", []);
+  return local;
 }
 
 export async function saveClub(clubData) {
@@ -48,7 +56,7 @@ export async function saveClub(clubData) {
     const idx = clubs.findIndex((c) => c.id === id);
     if (idx >= 0) clubs[idx] = clubData; else clubs.unshift(clubData);
   } else {
-    const newClub = { ...clubData, id: crypto.randomUUID(), created_at: new Date().toISOString() };
+    const newClub = { ...clubData, id: genId(), created_at: new Date().toISOString() };
     clubs.unshift(newClub);
     clubData = newClub;
   }
@@ -99,21 +107,24 @@ export function saveClubDetail(clubId, data) {
 // MEDIA LIBRARY
 // ════════════════════════════════════════════════════════════
 export async function loadMedia() {
+  const local = lsGet("depro_media", []);
+  if (local.length > 0) return local;
+
   try {
     const { data, error } = await supabase
       .from("media")
       .select("*")
       .order("created_at", { ascending: false });
-    if (!error && data) {
+    if (!error && data && data.length > 0) {
       lsSet("depro_media", data);
       return data;
     }
   } catch {}
-  return lsGet("depro_media", []);
+  return local;
 }
 
 export async function uploadMedia({ file, title, type, tags, duration, pages }) {
-  const id = crypto.randomUUID();
+  const id = genId();
   let url = null;
   let storagePath = null;
 
@@ -184,13 +195,15 @@ export async function deleteMedia(id) {
 // PLAN BLOCKS
 // ════════════════════════════════════════════════════════════
 export async function loadPlanBlocks() {
+  const local = lsGet("depro_plan_blocks", []);
+  if (local.length > 0) return local;
+
   try {
     const { data, error } = await supabase
       .from("plan_blocks")
       .select("*, plan_block_exercises(id,name,sets,reps,rest,sort_order)")
       .order("priority", { ascending: true });
-    if (!error && data) {
-      // Mapear al formato del frontend
+    if (!error && data && data.length > 0) {
       const blocks = data.map((b) => ({
         ...b,
         exercises: (b.plan_block_exercises || []).map((e) => ({ name: e.name, sets: e.sets, reps: e.reps, rest: e.rest })),
@@ -200,7 +213,7 @@ export async function loadPlanBlocks() {
       return blocks;
     }
   } catch {}
-  return lsGet("depro_plan_blocks", []);
+  return local;
 }
 
 export async function savePlanBlock(blockData) {
@@ -214,7 +227,7 @@ export async function savePlanBlock(blockData) {
       await supabase.from("plan_blocks").update(row).eq("id", id);
       await supabase.from("plan_block_exercises").delete().eq("block_id", id);
     } else {
-      savedId = crypto.randomUUID();
+      savedId = genId();
       await supabase.from("plan_blocks").insert([{ id: savedId, ...row }]);
     }
     if (exercises.length > 0) {
