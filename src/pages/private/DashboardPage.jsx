@@ -264,8 +264,24 @@ function CoachAvatar({ coach, safeAccent }) {
 // ════════════════════════════════════════════════════════════
 function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
   const teams = club?.teams || [];
-  const totalPlayers = teams.reduce((sum, t) => sum + (t.players || 0), 0);
   const totalSessions = (club?.plans || []).reduce((sum, mc) => sum + (mc.sessions?.length || 0), 0);
+
+  // Contar jugadores reales desde localStorage (depro_squad_{clubId}_{teamId})
+  const [squadCounts, setSquadCounts] = useState({});
+  useEffect(() => {
+    if (!club?.id) return;
+    const counts = {};
+    teams.forEach((t) => {
+      try {
+        const raw = localStorage.getItem(`depro_squad_${club.id}_${t.id}`);
+        counts[t.id] = (JSON.parse(raw || "[]")).length;
+      } catch { counts[t.id] = 0; }
+    });
+    setSquadCounts(counts);
+  }, [club?.id, teams]);
+
+  const playerCount = (teamId) => squadCounts[teamId] ?? 0;
+  const totalPlayers = Object.values(squadCounts).reduce((a, b) => a + b, 0);
 
   // Color seguro para usar sobre fondo BLANCO (cards, textos, badges)
   const sa = visibleOnWhite(accent, visibleOnWhite(secondColor, "#0A36F7"));
@@ -309,7 +325,7 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
                       className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: sa, color: contrastText(sa) }}
                     >
-                      {team.players || 0} jug.
+                      {playerCount(team.id)} jug.
                     </span>
                   </div>
 
@@ -384,7 +400,7 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
                     <span
                       className="inline-block text-sm font-black px-2.5 py-0.5 rounded-full"
                       style={{ backgroundColor: sa + "12", color: sa }}
-                    >{team.players || 0}</span>
+                    >{playerCount(team.id)}</span>
                   </div>
                   <div className="text-center">
                     <span className="text-sm font-bold text-depro-dark">{teamPlans.length}</span>
@@ -477,7 +493,7 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
 
       {/* Stats del equipo — alternando primary y secondary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Jugadores" value={team?.players || "—"} sub={team?.name || "equipo"} icon={Users} accent={accent} secondary={secondColor} />
+        <StatCard label="Jugadores" value={players.length || "—"} sub={team?.name || "equipo"} icon={Users} accent={accent} secondary={secondColor} />
         <StatCardSecondary label="Microciclos" value={myPlans.length} sub="asignados" icon={ClipboardList} accent={accent} secondary={secondColor} />
         <StatCard label="Sesiones" value={myPlans.reduce((s, mc) => s + (mc.sessions?.length || 0), 0)} sub="en total" icon={Calendar} accent={accent} secondary={secondColor} />
         <StatCardSecondary label="Categoría" value={team?.category || "—"} sub={team?.season} icon={Shield} accent={accent} secondary={secondColor} />
