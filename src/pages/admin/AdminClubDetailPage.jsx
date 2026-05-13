@@ -91,6 +91,7 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
 
     // Crear usuario en Supabase Auth si se proporcionó email
     let userCreated = false;
+    let userError = null;
     if (form.coachEmail && form.coachPassword) {
       const result = await createClubUser({
         email: form.coachEmail,
@@ -102,6 +103,7 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
         teamRole: "entrenador",
       });
       userCreated = result.ok;
+      userError = result.ok ? null : result.error;
     }
 
     onCreate({
@@ -121,9 +123,8 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
       assistantCoach: null,
     });
 
-    // Mostrar credenciales si se creó el usuario
     if (form.coachEmail) {
-      setCreatedUser({ name: form.coachName, email: form.coachEmail, password: form.coachPassword });
+      setCreatedUser({ name: form.coachName, email: form.coachEmail, password: form.coachPassword, userCreated, userError });
     } else {
       onClose();
     }
@@ -136,13 +137,27 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
         <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
           <div className="p-6 text-center">
-            <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle size={28} className="text-green-500" />
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${createdUser.userCreated ? "bg-green-50" : "bg-yellow-50"}`}>
+              {createdUser.userCreated
+                ? <CheckCircle size={28} className="text-green-500" />
+                : <Clock size={28} className="text-yellow-500" />
+              }
             </div>
-            <h2 className="font-bold text-depro-dark text-lg mb-1">Equipo y usuario creados</h2>
-            <p className="text-sm text-depro-gray mb-5">
-              Guarda estas credenciales y compártelas con el entrenador. No podrás volver a ver la contraseña.
-            </p>
+            <h2 className="font-bold text-depro-dark text-lg mb-1">
+              {createdUser.userCreated ? "Equipo y usuario creados" : "Equipo creado"}
+            </h2>
+            {createdUser.userCreated ? (
+              <p className="text-sm text-depro-gray mb-5">
+                Guarda estas credenciales y compártelas con el entrenador. No podrás volver a ver la contraseña.
+              </p>
+            ) : (
+              <div className="mb-5 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-left">
+                <p className="text-sm font-semibold text-yellow-700 mb-1">⚠️ El acceso no se pudo crear automáticamente</p>
+                <p className="text-xs text-yellow-600">
+                  Crea el usuario manualmente en Supabase → Authentication → Add user con estos datos:
+                </p>
+              </div>
+            )}
             <div className="bg-depro-gray-light rounded-xl p-4 text-left space-y-3 mb-5">
               {createdUser.name && (
                 <div>
@@ -159,8 +174,9 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-depro-dark font-mono text-lg tracking-wider">{createdUser.password}</p>
                   <button
-                    onClick={() => navigator.clipboard.writeText(createdUser.password)}
+                    onClick={() => navigator.clipboard.writeText(`${createdUser.email}\n${createdUser.password}`)}
                     className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors"
+                    title="Copiar email y contraseña"
                   >
                     <Copy size={13} />
                   </button>

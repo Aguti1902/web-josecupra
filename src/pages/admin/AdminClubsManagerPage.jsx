@@ -69,6 +69,7 @@ function NewClubModal({ onClose, onCreate }) {
 
     // Crear usuario del coordinador en Supabase Auth
     let userCreated = false;
+    let userError = null;
     if (form.coordinatorEmail && form.coordinatorPassword) {
       const result = await createClubUser({
         email: form.coordinatorEmail,
@@ -79,6 +80,7 @@ function NewClubModal({ onClose, onCreate }) {
         teamRole: "coordinador",
       });
       userCreated = result.ok;
+      userError = result.ok ? null : result.error;
     }
 
     onCreate({
@@ -103,7 +105,13 @@ function NewClubModal({ onClose, onCreate }) {
     });
 
     setLoading(false);
-    setCreatedCreds({ name: form.coordinatorName, email: form.coordinatorEmail, password: form.coordinatorPassword });
+    setCreatedCreds({
+      name: form.coordinatorName,
+      email: form.coordinatorEmail,
+      password: form.coordinatorPassword,
+      userCreated,
+      userError,
+    });
   };
 
   // Pantalla de confirmación de credenciales
@@ -112,13 +120,26 @@ function NewClubModal({ onClose, onCreate }) {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
         <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
           <div className="p-6 text-center">
-            <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle size={28} className="text-green-500" />
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${createdCreds.userCreated ? "bg-green-50" : "bg-yellow-50"}`}>
+              {createdCreds.userCreated
+                ? <CheckCircle size={28} className="text-green-500" />
+                : <Clock size={28} className="text-yellow-500" />
+              }
             </div>
             <h2 className="font-bold text-depro-dark text-lg mb-1">Club creado</h2>
-            <p className="text-sm text-depro-gray mb-5">
-              Credenciales del coordinador. Guárdalas y compártelas — no podrás volver a ver la contraseña.
-            </p>
+            {createdCreds.userCreated ? (
+              <p className="text-sm text-depro-gray mb-5">
+                Cuenta creada correctamente. Guarda estas credenciales — no podrás volver a ver la contraseña.
+              </p>
+            ) : (
+              <div className="mb-5 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-left">
+                <p className="text-sm font-semibold text-yellow-700 mb-1">⚠️ La cuenta no se pudo crear automáticamente</p>
+                <p className="text-xs text-yellow-600">
+                  El club se ha guardado, pero el acceso del coordinador requiere configuración adicional en Vercel (<code className="bg-yellow-100 px-1 rounded">SUPABASE_SERVICE_ROLE_KEY</code>).
+                  Guarda las credenciales y crea el usuario manualmente en Supabase → Authentication → Add user.
+                </p>
+              </div>
+            )}
             <div className="bg-depro-gray-light rounded-xl p-4 text-left space-y-3 mb-5">
               {createdCreds.name && (
                 <div>
@@ -135,8 +156,9 @@ function NewClubModal({ onClose, onCreate }) {
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-depro-dark font-mono text-lg tracking-wider">{createdCreds.password}</p>
                   <button
-                    onClick={() => navigator.clipboard.writeText(createdCreds.password)}
+                    onClick={() => navigator.clipboard.writeText(`${createdCreds.email}\n${createdCreds.password}`)}
                     className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors"
+                    title="Copiar email y contraseña"
                   >
                     <Copy size={13} />
                   </button>

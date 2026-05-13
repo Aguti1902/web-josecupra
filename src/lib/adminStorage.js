@@ -15,14 +15,28 @@ import { supabase } from "./supabase";
  * Returns { ok: true } o { ok: false, error }
  */
 export async function createClubUser({ email, password, name, role = "club", clubId, teamId, teamRole }) {
+  // 1. Intentar con el endpoint serverless (no envía email de confirmación)
   try {
     const res = await fetch("/api/create-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, name, role, clubId, teamId, teamRole }),
     });
-    const data = await res.json();
-    return data;
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok) return data;
+    }
+  } catch {}
+
+  // 2. Fallback: signUp directo (funciona si "Confirm email" está desactivado en Supabase)
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name, role, clubId, teamId, teamRole } },
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, userId: data.user?.id, via: "signUp" };
   } catch (e) {
     return { ok: false, error: e.message };
   }
