@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -31,6 +31,9 @@ import {
   ChevronUp,
   Save,
   Play,
+  Palette,
+  ImagePlus,
+  MapPin,
 } from "lucide-react";
 import { loadClubs, saveClubDetail, loadClubDetail, loadMedia } from "../../lib/adminStorage";
 
@@ -59,17 +62,33 @@ function generatePassword() {
   return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
+const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
+
 function NewTeamModal({ onClose, onCreate }) {
-  const [form, setForm] = useState({ name: "", category: "Juvenil", season: "2024/25", coachName: "", coachEmail: "" });
+  const [form, setForm] = useState({
+    name: "", category: "Juvenil", season: "2024/25",
+    coachName: "", coachEmail: "",
+    trainingDays: [], trainingTime: "18:00", trainingLocation: "",
+  });
+
+  const toggleDay = (day) => {
+    setForm((f) => ({
+      ...f,
+      trainingDays: f.trainingDays.includes(day)
+        ? f.trainingDays.filter((d) => d !== day)
+        : [...f.trainingDays, day],
+    }));
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-depro w-full max-w-md my-auto">
         <div className="flex items-center justify-between p-6 border-b border-depro-border">
           <h2 className="font-bold text-depro-dark text-lg">Añadir equipo</h2>
           <button onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
             <label className="block text-sm font-medium text-depro-dark mb-1">Nombre del equipo *</label>
             <input
@@ -96,6 +115,48 @@ function NewTeamModal({ onClose, onCreate }) {
                 className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
                 value={form.season}
                 onChange={(e) => setForm((f) => ({ ...f, season: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          {/* Días de entrenamiento */}
+          <div>
+            <label className="block text-sm font-medium text-depro-dark mb-2">Días de entrenamiento</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {DAYS.map((day, i) => (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleDay(day)}
+                  className={`w-9 h-9 rounded-lg text-xs font-semibold border transition-colors ${
+                    form.trainingDays.includes(day)
+                      ? "bg-depro-blue border-depro-blue text-white"
+                      : "border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue"
+                  }`}
+                >
+                  {DAY_SHORT[i]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-depro-dark mb-1">Hora de entreno</label>
+              <input
+                type="time"
+                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                value={form.trainingTime}
+                onChange={(e) => setForm((f) => ({ ...f, trainingTime: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-depro-dark mb-1">Campo / Instalación</label>
+              <input
+                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                placeholder="Campo Municipal"
+                value={form.trainingLocation}
+                onChange={(e) => setForm((f) => ({ ...f, trainingLocation: e.target.value }))}
               />
             </div>
           </div>
@@ -129,6 +190,9 @@ function NewTeamModal({ onClose, onCreate }) {
                 category: form.category,
                 season: form.season,
                 players: 0,
+                trainingDays: form.trainingDays,
+                trainingTime: form.trainingTime,
+                trainingLocation: form.trainingLocation,
                 coach: form.coachName ? { name: form.coachName, email: form.coachEmail, role: "entrenador" } : null,
                 assistantCoach: null,
               });
@@ -729,6 +793,173 @@ function MicrocycleCard({ mc, teams, onAddSession, onDeleteSession, onDelete }) 
   );
 }
 
+/* ── Identidad Tab ───────────────────────────────────────────── */
+const PRESET_COLORS = [
+  "#1E3A8A","#2563EB","#0EA5E9","#0891B2","#059669","#16A34A",
+  "#CA8A04","#D97706","#DC2626","#BE185D","#7C3AED","#374151",
+  "#111827","#FFFFFF","#F9FAFB","#E5E7EB",
+];
+
+function ColorPicker({ label, value, onChange }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-depro-dark mb-2">{label}</label>
+      <div className="flex items-center gap-3 mb-2">
+        <div
+          className="w-10 h-10 rounded-xl border-2 border-depro-border shadow-sm shrink-0"
+          style={{ backgroundColor: value || "#CCCCCC" }}
+        />
+        <input
+          type="color"
+          value={value || "#000000"}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-10 h-10 rounded-lg border border-depro-border cursor-pointer"
+        />
+        <input
+          type="text"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="#000000"
+          className="flex-1 border border-depro-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+        />
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {PRESET_COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => onChange(c)}
+            title={c}
+            className={`w-6 h-6 rounded-md border-2 transition-transform hover:scale-110 ${
+              value === c ? "border-depro-dark scale-110" : "border-transparent"
+            }`}
+            style={{ backgroundColor: c }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function IdentidadTab({ club, onSave }) {
+  const [logo, setLogo]             = useState(club.logo || null);
+  const [primaryColor, setPrimary]  = useState(club.primaryColor || "#1E3A8A");
+  const [secondaryColor, setSecond] = useState(club.secondaryColor || "#FFFFFF");
+  const [slogan, setSlogan]         = useState(club.slogan || "");
+  const [saved, setSaved]           = useState(false);
+  const logoRef = useRef();
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setLogo(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = () => {
+    onSave({ logo, primaryColor, secondaryColor, slogan });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Vista previa */}
+      <div className="bg-white border border-depro-border rounded-2xl p-6">
+        <h3 className="font-semibold text-depro-dark mb-4 flex items-center gap-2">
+          <Palette size={16} className="text-depro-blue" />
+          Vista previa de la interfaz del club
+        </h3>
+        <div
+          className="rounded-xl p-5 flex items-center gap-4"
+          style={{ backgroundColor: primaryColor }}
+        >
+          {logo ? (
+            <img src={logo} alt="logo" className="w-14 h-14 rounded-xl object-contain bg-white p-1 shadow" />
+          ) : (
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center font-bold text-xl shadow"
+              style={{ backgroundColor: secondaryColor, color: primaryColor }}>
+              {club.abbreviation || "CLB"}
+            </div>
+          )}
+          <div>
+            <p className="font-bold text-lg leading-tight" style={{ color: secondaryColor }}>{club.name}</p>
+            {slogan && <p className="text-sm opacity-80 mt-0.5" style={{ color: secondaryColor }}>{slogan}</p>}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Logo */}
+        <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
+          <h3 className="font-semibold text-depro-dark flex items-center gap-2">
+            <ImagePlus size={16} className="text-depro-blue" />
+            Logo del club
+          </h3>
+          <div
+            onClick={() => logoRef.current?.click()}
+            className="border-2 border-dashed border-depro-border rounded-xl p-6 text-center cursor-pointer hover:border-depro-blue transition-colors group"
+          >
+            {logo ? (
+              <img src={logo} alt="logo" className="h-20 mx-auto object-contain rounded-lg" />
+            ) : (
+              <>
+                <ImagePlus size={28} className="mx-auto text-depro-gray/50 mb-2 group-hover:text-depro-blue transition-colors" />
+                <p className="text-sm text-depro-gray">Haz clic para subir el logo</p>
+                <p className="text-xs text-depro-gray/60 mt-1">PNG, JPG o SVG · Máx. 2 MB</p>
+              </>
+            )}
+          </div>
+          <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+          {logo && (
+            <button
+              onClick={() => setLogo(null)}
+              className="text-xs text-depro-gray hover:text-red-500 flex items-center gap-1 transition-colors"
+            >
+              <X size={12} /> Eliminar logo
+            </button>
+          )}
+
+          {/* Eslogan */}
+          <div>
+            <label className="block text-sm font-medium text-depro-dark mb-1">Eslogan / descripción corta</label>
+            <input
+              className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+              placeholder="Ej. Formando campeones desde 1985"
+              value={slogan}
+              onChange={(e) => setSlogan(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Colores */}
+        <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-5">
+          <h3 className="font-semibold text-depro-dark flex items-center gap-2">
+            <Palette size={16} className="text-depro-blue" />
+            Colores corporativos
+          </h3>
+          <ColorPicker label="Color principal" value={primaryColor} onChange={setPrimary} />
+          <ColorPicker label="Color secundario / texto" value={secondaryColor} onChange={setSecond} />
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+            saved
+              ? "bg-green-500 text-white"
+              : "bg-depro-blue text-white hover:bg-depro-blue-dark"
+          }`}
+        >
+          {saved ? <><CheckCircle size={15} /> Guardado</> : <><Save size={15} /> Guardar identidad</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Component ──────────────────────────────────────────── */
 export default function AdminClubDetailPage() {
   const { id } = useParams();
@@ -828,8 +1059,9 @@ export default function AdminClubDetailPage() {
     );
 
   const TABS = [
-    { id: "planificacion", label: "Planificación", icon: ClipboardList, count: plans.length },
+    { id: "identidad", label: "Identidad", icon: Palette },
     { id: "equipos", label: "Equipos", icon: Shield, count: (club.teams || []).length },
+    { id: "planificacion", label: "Planificación", icon: ClipboardList, count: plans.length },
     { id: "usuarios", label: "Usuarios", icon: Users, count: (club.users || []).length },
     { id: "medios", label: "Medios asignados", icon: Video, count: assignedMedia.length },
   ];
@@ -848,8 +1080,14 @@ export default function AdminClubDetailPage() {
 
         <div className="bg-white border border-depro-border rounded-2xl p-6">
           <div className="flex items-start gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-depro-gray-light flex items-center justify-center font-bold text-depro-dark text-lg shrink-0">
-              {club.abbreviation}
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden border border-depro-border"
+              style={{ backgroundColor: club.primaryColor || undefined }}
+            >
+              {club.logo
+                ? <img src={club.logo} alt={club.name} className="w-full h-full object-contain p-1" />
+                : <span style={{ color: club.secondaryColor || undefined }} className={!club.primaryColor ? "text-depro-dark bg-depro-gray-light w-full h-full flex items-center justify-center rounded-2xl" : ""}>{club.abbreviation || "?"}</span>
+              }
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -928,6 +1166,11 @@ export default function AdminClubDetailPage() {
         ))}
       </div>
 
+      {/* IDENTIDAD */}
+      {activeTab === "identidad" && (
+        <IdentidadTab club={club} onSave={(patch) => { updateClub((c) => ({ ...c, ...patch })); }} />
+      )}
+
       {/* PLANIFICACIÓN */}
       {activeTab === "planificacion" && (
         <div className="space-y-4">
@@ -1002,7 +1245,7 @@ export default function AdminClubDetailPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {club.teams.map((team) => (
-                <div key={team.id} className="bg-white border border-depro-border rounded-xl p-5">
+                <div key={team.id} className="bg-white border border-depro-border rounded-xl p-5 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-semibold text-depro-dark">{team.name}</h3>
@@ -1012,14 +1255,42 @@ export default function AdminClubDetailPage() {
                     </div>
                     <button
                       onClick={() => removeTeam(team.id)}
-                      className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-red hover:text-depro-red transition-colors"
+                      className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-red-400 hover:text-red-500 transition-colors"
                     >
                       <Trash2 size={14} />
                     </button>
                   </div>
 
+                  {/* Días de entrenamiento */}
+                  {team.trainingDays?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      {DAYS.map((day, i) => (
+                        <span
+                          key={day}
+                          className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-semibold ${
+                            team.trainingDays.includes(day)
+                              ? "bg-depro-blue text-white"
+                              : "bg-depro-gray-light text-depro-gray/40"
+                          }`}
+                        >
+                          {DAY_SHORT[i]}
+                        </span>
+                      ))}
+                      {team.trainingTime && (
+                        <span className="ml-1 text-xs text-depro-gray flex items-center gap-1">
+                          <Clock size={11} /> {team.trainingTime}
+                        </span>
+                      )}
+                      {team.trainingLocation && (
+                        <span className="text-xs text-depro-gray flex items-center gap-1">
+                          <MapPin size={11} /> {team.trainingLocation}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {team.coach && (
-                    <div className="mt-3 pt-3 border-t border-depro-border space-y-1.5">
+                    <div className="pt-2 border-t border-depro-border space-y-1.5">
                       <div className="flex items-center gap-2 text-xs">
                         <RoleBadge role="entrenador" />
                         <span className="text-depro-dark font-medium">{team.coach.name}</span>
