@@ -6,29 +6,23 @@
  *  2. Supabase se usa como sincronización en segundo plano
  *  3. Si localStorage está vacío se intenta Supabase como seed inicial
  */
-import { createClient } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 
-// Cliente Supabase sin sesión persistente para crear usuarios sin afectar al admin logado
-const supabaseNoSession = createClient(
-  "https://lkbyybhtdeimktpaqgil.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrYnl5Ymh0ZGVpbWt0cGFxZ2lsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Mjg1MTksImV4cCI6MjA5NDEwNDUxOX0.QTzwNQpQx4SD66OTtG0CY_N-_cpw2KRTOIsKigGU0AQ",
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
 
 /**
- * Crea un usuario en Supabase Auth sin afectar la sesión del admin.
+ * Crea un usuario en Supabase Auth ya confirmado (sin email de verificación).
+ * Llama al endpoint serverless /api/create-user que usa la service role key.
  * Returns { ok: true } o { ok: false, error }
  */
 export async function createClubUser({ email, password, name, role = "club" }) {
   try {
-    const { data, error } = await supabaseNoSession.auth.signUp({
-      email,
-      password,
-      options: { data: { name, role } },
+    const res = await fetch("/api/create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, name, role }),
     });
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, userId: data.user?.id };
+    const data = await res.json();
+    return data;
   } catch (e) {
     return { ok: false, error: e.message };
   }
