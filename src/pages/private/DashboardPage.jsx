@@ -342,28 +342,84 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
         )}
       </div>
 
-      {/* Planificación global */}
+      {/* Estadísticas por equipo */}
+      {teams.length > 0 && (
+        <div>
+          <SectionHeading title="Estadísticas por equipo" safeAccent={sa} />
+          <div className="bg-white border rounded-2xl overflow-hidden" style={{ borderColor: sa + "25" }}>
+            {/* Header */}
+            <div
+              className="grid grid-cols-4 gap-2 px-5 py-3 text-xs font-bold uppercase tracking-wider"
+              style={{ backgroundColor: sa + "10", color: sa }}
+            >
+              <span>Equipo</span>
+              <span className="text-center">Jugadores</span>
+              <span className="text-center">Microciclos</span>
+              <span className="text-center">Sesiones</span>
+            </div>
+            {teams.map((team, idx) => {
+              const teamPlans = (club?.plans || []).filter((mc) => !mc.teamId || mc.teamId === team.id);
+              const teamSessions = teamPlans.reduce((s, mc) => s + (mc.sessions?.length || 0), 0);
+              return (
+                <div
+                  key={team.id}
+                  onClick={() => onViewTeam(team)}
+                  className={`grid grid-cols-4 gap-2 px-5 py-3.5 items-center cursor-pointer hover:bg-depro-gray-light transition-colors group ${
+                    idx < teams.length - 1 ? "border-b border-depro-border" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
+                      style={{ backgroundColor: sa, color: contrastText(sa) }}
+                    >
+                      {(team.name || "?")[0].toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-depro-dark text-sm truncate group-hover:underline">{team.name}</div>
+                      <div className="text-xs text-depro-gray">{team.category}</div>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <span
+                      className="inline-block text-sm font-black px-2.5 py-0.5 rounded-full"
+                      style={{ backgroundColor: sa + "12", color: sa }}
+                    >{team.players || 0}</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-sm font-bold text-depro-dark">{teamPlans.length}</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-sm font-bold text-depro-dark">{teamSessions}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Microciclos recientes (si hay) */}
       {(club?.plans || []).length > 0 && (
         <div>
-          <SectionHeading title="Microciclos activos" safeAccent={sa} count={(club.plans || []).length} />
+          <SectionHeading title="Microciclos recientes" safeAccent={sa} count={(club.plans || []).length} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {(club.plans || []).slice(0, 4).map((mc) => {
-              const teamName = teams.find((t) => t.id === mc.teamId)?.name || "Todos los equipos";
+              const teamName = teams.find((t) => t.id === mc.teamId)?.name || "Global";
               return (
                 <div
                   key={mc.id}
-                  className="bg-white border rounded-xl p-5"
+                  className="bg-white border rounded-xl p-4"
                   style={{ borderColor: sa + "25", borderLeftWidth: "3px", borderLeftColor: sa }}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sa }} />
-                    <h4 className="font-semibold text-depro-dark">{mc.name}</h4>
+                    <h4 className="font-semibold text-depro-dark flex-1 truncate">{mc.name}</h4>
                     <span
-                      className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
+                      className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: sa + "15", color: sa }}
                     >{teamName}</span>
                   </div>
-                  <p className="text-sm text-depro-gray mb-2">{mc.objective || "Sin objetivo definido"}</p>
+                  <p className="text-xs text-depro-gray mb-1.5">{mc.objective || "Sin objetivo definido"}</p>
                   <div className="text-xs flex items-center gap-1 font-medium" style={{ color: sa }}>
                     <Activity size={11} /> {(mc.sessions || []).length} sesiones
                   </div>

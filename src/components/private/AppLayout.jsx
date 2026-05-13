@@ -40,14 +40,22 @@ function visibleOnWhite(color, fallback = "#0A36F7") {
   return luminance(color) > 0.75 ? fallback : color;
 }
 
-const clubNav = [
-  { to: "/dashboard",             icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/dashboard/plan",        icon: Calendar,        label: "Microciclos" },
-  { to: "/dashboard/squad",       icon: UsersIcon,       label: "Plantilla" },
-  { to: "/dashboard/tactics",     icon: BookOpen,        label: "Guía táctica" },
-  { to: "/dashboard/mesocycle",   icon: ClipboardList,   label: "Mesociclo" },
-  { to: "/dashboard/library",     icon: Library,         label: "Biblioteca" },
-  { to: "/dashboard/club-profile",icon: User,            label: "Mi perfil" },
+// Coordinador: visión global del club, sin herramientas de planificación de sesiones
+const coordinadorNav = [
+  { to: "/dashboard",              icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard/squad",        icon: UsersIcon,       label: "Plantilla" },
+  { to: "/dashboard/club-profile", icon: User,            label: "Mi perfil" },
+];
+
+// Entrenador / Ayudante: herramientas de trabajo diario con el equipo
+const entrenadorNav = [
+  { to: "/dashboard",              icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard/plan",         icon: Calendar,        label: "Plan semanal" },
+  { to: "/dashboard/squad",        icon: UsersIcon,       label: "Plantilla" },
+  { to: "/dashboard/tactics",      icon: BookOpen,        label: "Guía táctica" },
+  { to: "/dashboard/mesocycle",    icon: ClipboardList,   label: "Mesociclo" },
+  { to: "/dashboard/library",      icon: Library,         label: "Biblioteca" },
+  { to: "/dashboard/club-profile", icon: User,            label: "Mi perfil" },
 ];
 
 export default function AppLayout({ children }) {
@@ -69,7 +77,9 @@ export default function AppLayout({ children }) {
   const accent        = rawAccent;
   const secondary     = rawSecondary;
   const activeTextColor = contrastText(sidebarAccent);
-  const navItems = user?.role === "club" ? clubNav : playerNav;
+  const navItems = user?.role === "club"
+    ? (user?.team_role === "coordinador" ? coordinadorNav : entrenadorNav)
+    : playerNav;
 
   // Cargar foto de perfil desde localStorage
   useEffect(() => {
