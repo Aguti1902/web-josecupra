@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, Zap, Trophy, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+
+const DEMO_ACCOUNTS = [
+  { label: "Plan Básico",   icon: Zap,         email: "basico@depro.es",   password: "Depro2026!", color: "#0A36F7", bg: "#EEF1FF"  },
+  { label: "Plan Premium",  icon: Trophy,      email: "premium@depro.es",  password: "Depro2026!", color: "#D97706", bg: "#FEFAE7"  },
+  { label: "Admin",         icon: ShieldCheck, email: "jose@depro.es",     password: null,          color: "#374151", bg: "#F3F4F6", adminOnly: true },
+];
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -60,7 +66,32 @@ export default function LoginPage() {
             <p className="text-depro-gray">Accede a tu panel de entrenamiento</p>
           </div>
 
-          <div className="mb-6">
+          {/* Accesos rápidos demo */}
+          <div className="mb-6 p-4 bg-depro-gray-light rounded-2xl border border-depro-border">
+            <p className="text-[11px] font-bold text-depro-gray uppercase tracking-wide mb-3">Acceso rápido</p>
+            <div className="grid grid-cols-2 gap-2">
+              {DEMO_ACCOUNTS.filter((a) => !a.adminOnly).map((acc) => {
+                const Icon = acc.icon;
+                return (
+                  <button
+                    key={acc.email}
+                    type="button"
+                    onClick={() => { setEmail(acc.email); setPassword(acc.password); }}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all hover:shadow-sm hover:-translate-y-0.5"
+                    style={{ borderColor: acc.color + "30", backgroundColor: acc.bg }}
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: acc.color + "20" }}>
+                      <Icon size={14} style={{ color: acc.color }} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold truncate" style={{ color: acc.color }}>{acc.label}</div>
+                      <div className="text-[10px] text-depro-gray truncate">{acc.email}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-depro-gray mt-2 text-center">Pulsa para rellenar el formulario automáticamente</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
