@@ -21,12 +21,13 @@ function loadClubDataFromStorage(meta) {
     const club = baseClub
       ? {
           ...baseClub,
-          logo:           clubDetail?.logo          ?? baseClub.logo,
-          primaryColor:   clubDetail?.primaryColor  ?? baseClub.primaryColor,
+          logo:           clubDetail?.logo           ?? baseClub.logo,
+          banner:         clubDetail?.banner         ?? baseClub.banner,
+          primaryColor:   clubDetail?.primaryColor   ?? baseClub.primaryColor,
           secondaryColor: clubDetail?.secondaryColor ?? baseClub.secondaryColor,
-          slogan:         clubDetail?.slogan         ?? baseClub.slogan,
-          plans:          clubDetail?.plans          ?? [],
-          teams:          clubDetail?.teams          ?? baseClub.teams ?? [],
+          slogan:         clubDetail?.slogan          ?? baseClub.slogan,
+          plans:          clubDetail?.plans           ?? [],
+          teams:          clubDetail?.teams           ?? baseClub.teams ?? [],
         }
       : null;
 

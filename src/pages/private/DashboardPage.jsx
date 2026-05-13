@@ -12,41 +12,71 @@ import { weeklyPlan, coachFeedback } from "../../data/mockData";
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
+// Contraste automático de texto
+function contrastText(hex) {
+  try {
+    const h = (hex || "#0A36F7").replace("#", "");
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55 ? "#111827" : "#ffffff";
+  } catch { return "#ffffff"; }
+}
+
 // ── Shared header banner ─────────────────────────────────────
 function ClubBanner({ club, team, teamRole, accent, secondColor }) {
   const roleLabel = { coordinador: "Coordinador", entrenador: "Entrenador", ayudante: "Ayudante técnico" };
   const RoleIcon = { coordinador: Crown, entrenador: UserCheck, ayudante: Dumbbell }[teamRole] || UserCheck;
+  const hasBanner = !!club?.banner;
+  // Si hay banner, texto siempre blanco (sobre imagen oscurecida). Si no, usar secondColor o contraste.
+  const textColor = hasBanner ? "#ffffff" : (secondColor || contrastText(accent));
+  const mutedColor = hasBanner ? "rgba(255,255,255,0.75)" : (textColor + "AA");
 
   return (
     <div
-      className="rounded-2xl p-6 border overflow-hidden"
-      style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}DD 100%)`, borderColor: accent }}
+      className="rounded-2xl overflow-hidden relative"
+      style={{
+        background: hasBanner
+          ? `url(${club.banner}) center/cover no-repeat`
+          : `linear-gradient(135deg, ${accent} 0%, ${accent}DD 100%)`,
+        minHeight: "120px",
+      }}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+      {/* Overlay oscuro sobre el banner para legibilidad */}
+      {hasBanner && <div className="absolute inset-0 bg-black/45" />}
+
+      <div className="relative z-10 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
         {club?.logo ? (
           <img src={club.logo} alt={club.name} className="w-16 h-16 rounded-xl object-contain bg-white p-1.5 flex-shrink-0 shadow-lg" />
         ) : (
           <div
             className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-black flex-shrink-0 shadow-lg"
-            style={{ backgroundColor: "rgba(255,255,255,0.2)", color: secondColor }}
+            style={{ backgroundColor: "rgba(255,255,255,0.2)", color: textColor }}
           >
             {club?.abbreviation || "C"}
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>
+          <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: mutedColor }}>
             {new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
           </p>
-          <h2 className="text-2xl font-black truncate" style={{ color: secondColor }}>{club?.name || "Mi Club"}</h2>
-          <div className="flex items-center gap-2 mt-1">
+          <h2 className="text-2xl font-black truncate drop-shadow-sm" style={{ color: textColor }}>
+            {club?.name || "Mi Club"}
+          </h2>
+          {club?.slogan && (
+            <p className="text-sm mt-0.5 drop-shadow-sm" style={{ color: mutedColor }}>
+              {club.slogan}
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-1.5">
             <span
               className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold"
-              style={{ backgroundColor: "rgba(255,255,255,0.2)", color: secondColor }}
+              style={{ backgroundColor: "rgba(255,255,255,0.2)", color: textColor }}
             >
               <RoleIcon size={11} /> {roleLabel[teamRole] || teamRole}
             </span>
             {team && (
-              <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.8)" }}>
+              <span className="text-sm font-medium drop-shadow-sm" style={{ color: mutedColor }}>
                 · {team.name}
               </span>
             )}
@@ -54,7 +84,7 @@ function ClubBanner({ club, team, teamRole, accent, secondColor }) {
         </div>
         <div
           className="px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0"
-          style={{ backgroundColor: "rgba(255,255,255,0.15)", color: secondColor }}
+          style={{ backgroundColor: "rgba(255,255,255,0.15)", color: textColor }}
         >
           {club?.plan || "Activo"}
         </div>

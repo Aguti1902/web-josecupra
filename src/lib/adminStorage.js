@@ -138,11 +138,12 @@ export function saveClubDetail(clubId, data) {
   if (idx >= 0) {
     clubs[idx] = {
       ...clubs[idx],
-      ...(data.logo !== undefined      && { logo: data.logo }),
+      ...(data.logo !== undefined           && { logo: data.logo }),
+      ...(data.banner !== undefined         && { banner: data.banner }),
       ...(data.primaryColor !== undefined   && { primaryColor: data.primaryColor }),
       ...(data.secondaryColor !== undefined && { secondaryColor: data.secondaryColor }),
-      ...(data.slogan !== undefined    && { slogan: data.slogan }),
-      ...(data.teams !== undefined     && { teams: data.teams }),
+      ...(data.slogan !== undefined         && { slogan: data.slogan }),
+      ...(data.teams !== undefined          && { teams: data.teams }),
     };
     lsSet("depro_clubs", clubs);
   }

@@ -942,57 +942,125 @@ function ColorPicker({ label, value, onChange }) {
   );
 }
 
+// Comprime imagen a un ancho máximo dado
+function compressImage(file, maxWidth = 1400, quality = 0.75) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width  = img.width  * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function IdentidadTab({ club, onSave }) {
   const [logo, setLogo]             = useState(club.logo || null);
+  const [banner, setBanner]         = useState(club.banner || null);
   const [primaryColor, setPrimary]  = useState(club.primaryColor || "#1E3A8A");
   const [secondaryColor, setSecond] = useState(club.secondaryColor || "#FFFFFF");
   const [slogan, setSlogan]         = useState(club.slogan || "");
   const [saved, setSaved]           = useState(false);
-  const logoRef = useRef();
+  const logoRef   = useRef();
+  const bannerRef = useRef();
 
-  const handleLogoUpload = (e) => {
+  const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setLogo(ev.target.result);
-    reader.readAsDataURL(file);
+    const compressed = await compressImage(file, 400, 0.85);
+    setLogo(compressed);
   };
 
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const compressed = await compressImage(file, 1400, 0.75);
+    setBanner(compressed);
+  };
+
+  // Calcula texto contrastante para la vista previa
+  const previewText = (() => {
+    try {
+      const h = primaryColor.replace("#", "");
+      const r = parseInt(h.slice(0, 2), 16);
+      const g = parseInt(h.slice(2, 4), 16);
+      const b = parseInt(h.slice(4, 6), 16);
+      return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55 ? "#111827" : "#fff";
+    } catch { return "#fff"; }
+  })();
+
   const handleSave = () => {
-    onSave({ logo, primaryColor, secondaryColor, slogan });
+    onSave({ logo, banner, primaryColor, secondaryColor, slogan });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   return (
     <div className="space-y-6">
-      {/* Vista previa */}
-      <div className="bg-white border border-depro-border rounded-2xl p-6">
-        <h3 className="font-semibold text-depro-dark mb-4 flex items-center gap-2">
-          <Palette size={16} className="text-depro-blue" />
-          Vista previa de la interfaz del club
-        </h3>
+      {/* Vista previa con banner */}
+      <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
         <div
-          className="rounded-xl p-5 flex items-center gap-4"
-          style={{ backgroundColor: primaryColor }}
+          className="relative h-36 flex items-end"
+          style={{
+            background: banner
+              ? `url(${banner}) center/cover no-repeat`
+              : `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}CC 100%)`,
+          }}
         >
-          {logo ? (
-            <img src={logo} alt="logo" className="w-14 h-14 rounded-xl object-contain bg-white p-1 shadow" />
-          ) : (
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center font-bold text-xl shadow"
-              style={{ backgroundColor: secondaryColor, color: primaryColor }}>
-              {club.abbreviation || "CLB"}
+          {/* Overlay sutil */}
+          {banner && <div className="absolute inset-0 bg-black/30 rounded-t-2xl" />}
+          <div className="relative z-10 flex items-center gap-3 p-5 w-full">
+            {logo ? (
+              <img src={logo} alt="logo" className="w-14 h-14 rounded-xl object-contain bg-white p-1 shadow-lg flex-shrink-0" />
+            ) : (
+              <div
+                className="w-14 h-14 rounded-xl flex items-center justify-center font-bold text-xl shadow-lg flex-shrink-0"
+                style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+              >
+                <span style={{ color: banner ? "#fff" : secondaryColor }}>{club.abbreviation || "CLB"}</span>
+              </div>
+            )}
+            <div>
+              <p className="font-black text-xl leading-tight drop-shadow-sm" style={{ color: banner ? "#fff" : secondaryColor }}>
+                {club.name}
+              </p>
+              {slogan && (
+                <p className="text-sm opacity-80 mt-0.5 drop-shadow-sm" style={{ color: banner ? "#ffffffCC" : secondaryColor }}>
+                  {slogan}
+                </p>
+              )}
             </div>
-          )}
-          <div>
-            <p className="font-bold text-lg leading-tight" style={{ color: secondaryColor }}>{club.name}</p>
-            {slogan && <p className="text-sm opacity-80 mt-0.5" style={{ color: secondaryColor }}>{slogan}</p>}
           </div>
+          {/* Botón editar banner encima */}
+          <button
+            onClick={() => bannerRef.current?.click()}
+            className="absolute top-3 right-3 z-20 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-black/40 text-white hover:bg-black/60 transition-colors backdrop-blur-sm"
+          >
+            <ImagePlus size={12} /> {banner ? "Cambiar banner" : "Añadir banner"}
+          </button>
+          {banner && (
+            <button
+              onClick={() => setBanner(null)}
+              className="absolute top-3 right-36 z-20 flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-black/40 text-white hover:bg-red-500/80 transition-colors"
+            >
+              <X size={11} /> Quitar
+            </button>
+          )}
         </div>
+        <p className="text-xs text-depro-gray text-center py-2 border-t border-depro-border">Vista previa del banner</p>
       </div>
+      <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Logo */}
+        {/* Logo + Eslogan */}
         <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
           <h3 className="font-semibold text-depro-dark flex items-center gap-2">
             <ImagePlus size={16} className="text-depro-blue" />
@@ -1045,6 +1113,13 @@ function IdentidadTab({ club, onSave }) {
           </div>
           <ColorPicker label="Color 1 — Principal" value={primaryColor} onChange={setPrimary} />
           <ColorPicker label="Color 2 — Secundario" value={secondaryColor} onChange={setSecond} />
+
+          {/* Advertencia si los dos colores son iguales o muy similares */}
+          {primaryColor.toLowerCase() === secondaryColor.toLowerCase() && (
+            <p className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+              ⚠️ Los dos colores son idénticos. El texto puede no verse bien.
+            </p>
+          )}
         </div>
       </div>
 

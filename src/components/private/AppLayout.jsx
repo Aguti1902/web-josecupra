@@ -18,13 +18,28 @@ const playerNav = [
   { to: "/dashboard/profile",   icon: User,            label: "Mi perfil" },
 ];
 
+// Calcula si un color hex es claro u oscuro y devuelve el color de texto contrastante
+function contrastText(hex) {
+  try {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.55 ? "#111827" : "#ffffff";
+  } catch {
+    return "#ffffff";
+  }
+}
+
 const clubNav = [
-  { to: "/dashboard",            icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/dashboard/plan",       icon: Calendar,        label: "Microciclos" },
-  { to: "/dashboard/squad",      icon: UsersIcon,       label: "Plantilla" },
-  { to: "/dashboard/tactics",    icon: BookOpen,        label: "Guía táctica" },
-  { to: "/dashboard/mesocycle",  icon: ClipboardList,   label: "Mesociclo" },
-  { to: "/dashboard/library",    icon: Library,         label: "Biblioteca" },
+  { to: "/dashboard",             icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard/plan",        icon: Calendar,        label: "Microciclos" },
+  { to: "/dashboard/squad",       icon: UsersIcon,       label: "Plantilla" },
+  { to: "/dashboard/tactics",     icon: BookOpen,        label: "Guía táctica" },
+  { to: "/dashboard/mesocycle",   icon: ClipboardList,   label: "Mesociclo" },
+  { to: "/dashboard/library",     icon: Library,         label: "Biblioteca" },
+  { to: "/dashboard/club-profile",icon: User,            label: "Mi perfil" },
 ];
 
 export default function AppLayout({ children }) {
@@ -37,6 +52,7 @@ export default function AppLayout({ children }) {
 
   const club = user?.club;
   const accent = club?.primaryColor || "#0A36F7";
+  const activeTextColor = contrastText(accent);
   const navItems = user?.role === "club" ? clubNav : playerNav;
 
   return (
@@ -96,10 +112,10 @@ export default function AppLayout({ children }) {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                     active
-                      ? "text-white shadow-sm"
+                      ? "shadow-sm"
                       : "text-depro-gray hover:text-depro-dark hover:bg-depro-gray-light"
                   }`}
-                  style={active ? { backgroundColor: accent } : {}}
+                  style={active ? { backgroundColor: accent, color: activeTextColor } : {}}
                 >
                   <item.icon size={18} />
                   {item.label}
