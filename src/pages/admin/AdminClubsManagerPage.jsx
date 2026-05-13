@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -15,8 +15,14 @@ import {
   Crown,
   Star,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
-import { loadClubs, saveClub, deleteClub } from "../../lib/adminStorage";
+import { loadClubs, saveClub, deleteClub, createClubUser } from "../../lib/adminStorage";
+
+function generatePassword() {
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
 
 const PLANS = ["Básico", "Premium"];
 const STATUS_STYLES = {
@@ -49,24 +55,39 @@ function PlanBadge({ plan }) {
 
 function NewClubModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
-    name: "",
-    abbreviation: "",
-    city: "",
-    country: "España",
-    plan: "Premium",
-    coordinatorName: "",
-    coordinatorEmail: "",
-    coordinatorPhone: "",
+    name: "", abbreviation: "", city: "", country: "España", plan: "Premium",
+    coordinatorName: "", coordinatorEmail: "", coordinatorPhone: "",
+    coordinatorPassword: generatePassword(),
   });
+  const [loading, setLoading] = useState(false);
+  const [createdCreds, setCreatedCreds] = useState(null);
 
   const generatedCode = form.abbreviation
     ? `${form.abbreviation.toUpperCase().slice(0, 3)}${new Date().getFullYear()}`
     : "";
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name || !form.coordinatorEmail) return;
+    setLoading(true);
+
+    const clubId = `club${Date.now()}`;
+
+    // Crear usuario del coordinador en Supabase Auth
+    let userCreated = false;
+    if (form.coordinatorEmail && form.coordinatorPassword) {
+      const result = await createClubUser({
+        email: form.coordinatorEmail,
+        password: form.coordinatorPassword,
+        name: form.coordinatorName,
+        role: "club",
+        clubId,
+        teamRole: "coordinador",
+      });
+      userCreated = result.ok;
+    }
+
     onCreate({
-      id: `club${Date.now()}`,
+      id: clubId,
       name: form.name,
       abbreviation: form.abbreviation.toUpperCase().slice(0, 3),
       city: form.city,
@@ -79,14 +100,65 @@ function NewClubModal({ onClose, onCreate }) {
         name: form.coordinatorName,
         email: form.coordinatorEmail,
         phone: form.coordinatorPhone,
+        password: form.coordinatorPassword,
+        userCreated,
       },
       loginCode: generatedCode,
-      teams: [],
-      users: [],
-      mediaAssigned: [],
+      teams: [], users: [], mediaAssigned: [],
     });
-    onClose();
+
+    setLoading(false);
+    setCreatedCreds({ name: form.coordinatorName, email: form.coordinatorEmail, password: form.coordinatorPassword });
   };
+
+  // Pantalla de confirmación de credenciales
+  if (createdCreds) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
+          <div className="p-6 text-center">
+            <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle size={28} className="text-green-500" />
+            </div>
+            <h2 className="font-bold text-depro-dark text-lg mb-1">Club creado</h2>
+            <p className="text-sm text-depro-gray mb-5">
+              Credenciales del coordinador. Guárdalas y compártelas — no podrás volver a ver la contraseña.
+            </p>
+            <div className="bg-depro-gray-light rounded-xl p-4 text-left space-y-3 mb-5">
+              {createdCreds.name && (
+                <div>
+                  <p className="text-xs text-depro-gray mb-0.5">Nombre</p>
+                  <p className="font-semibold text-depro-dark">{createdCreds.name}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-depro-gray mb-0.5">Email (usuario)</p>
+                <p className="font-semibold text-depro-dark font-mono">{createdCreds.email}</p>
+              </div>
+              <div>
+                <p className="text-xs text-depro-gray mb-0.5">Contraseña</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-depro-dark font-mono text-lg tracking-wider">{createdCreds.password}</p>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(createdCreds.password)}
+                    className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors"
+                  >
+                    <Copy size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-full py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors"
+            >
+              Entendido, cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overflow-y-auto p-4">
@@ -113,8 +185,7 @@ function NewClubModal({ onClose, onCreate }) {
               <label className="block text-sm font-medium text-depro-dark mb-1">Abreviatura (3 letras)</label>
               <input
                 className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                placeholder="FCB"
-                maxLength={3}
+                placeholder="FCB" maxLength={3}
                 value={form.abbreviation}
                 onChange={(e) => setForm((f) => ({ ...f, abbreviation: e.target.value }))}
               />
@@ -149,36 +220,46 @@ function NewClubModal({ onClose, onCreate }) {
           </div>
 
           <div className="pt-2 border-t border-depro-border">
-            <p className="text-sm font-semibold text-depro-dark mb-3">Coordinador principal</p>
+            <p className="text-sm font-semibold text-depro-dark mb-1">Coordinador principal</p>
+            <p className="text-xs text-depro-gray mb-3">Se creará su cuenta de acceso automáticamente.</p>
             <div className="space-y-3">
+              <input
+                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                placeholder="Nombre completo"
+                value={form.coordinatorName}
+                onChange={(e) => setForm((f) => ({ ...f, coordinatorName: e.target.value }))}
+              />
+              <input
+                type="email"
+                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                placeholder="Email de acceso *"
+                value={form.coordinatorEmail}
+                onChange={(e) => setForm((f) => ({ ...f, coordinatorEmail: e.target.value }))}
+              />
               <div>
-                <label className="block text-xs font-medium text-depro-gray mb-1">Nombre completo</label>
-                <input
-                  className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                  placeholder="Nombre del coordinador"
-                  value={form.coordinatorName}
-                  onChange={(e) => setForm((f) => ({ ...f, coordinatorName: e.target.value }))}
-                />
+                <label className="block text-xs text-depro-gray mb-1">Contraseña de acceso</label>
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 border border-depro-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    value={form.coordinatorPassword}
+                    onChange={(e) => setForm((f) => ({ ...f, coordinatorPassword: e.target.value }))}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, coordinatorPassword: generatePassword() }))}
+                    className="px-3 py-2 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
+                    title="Generar nueva contraseña"
+                  >
+                    <RefreshCw size={14} />
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-depro-gray mb-1">Email de acceso *</label>
-                <input
-                  type="email"
-                  className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                  placeholder="coordinador@club.es"
-                  value={form.coordinatorEmail}
-                  onChange={(e) => setForm((f) => ({ ...f, coordinatorEmail: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-depro-gray mb-1">Teléfono</label>
-                <input
-                  className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                  placeholder="+34 600 000 000"
-                  value={form.coordinatorPhone}
-                  onChange={(e) => setForm((f) => ({ ...f, coordinatorPhone: e.target.value }))}
-                />
-              </div>
+              <input
+                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                placeholder="Teléfono (opcional)"
+                value={form.coordinatorPhone}
+                onChange={(e) => setForm((f) => ({ ...f, coordinatorPhone: e.target.value }))}
+              />
             </div>
           </div>
 
@@ -186,13 +267,12 @@ function NewClubModal({ onClose, onCreate }) {
             <div className="flex items-center gap-3 bg-depro-blue/5 border border-depro-blue/20 rounded-xl p-3">
               <Shield size={16} className="text-depro-blue shrink-0" />
               <div>
-                <p className="text-xs text-depro-gray">Código de acceso generado</p>
+                <p className="text-xs text-depro-gray">Código de acceso del club</p>
                 <p className="font-bold text-depro-blue font-mono">{generatedCode}</p>
               </div>
               <button
                 onClick={() => navigator.clipboard.writeText(generatedCode)}
                 className="ml-auto p-1.5 rounded-lg hover:bg-depro-blue/10 text-depro-blue"
-                title="Copiar"
               >
                 <Copy size={14} />
               </button>
@@ -203,16 +283,19 @@ function NewClubModal({ onClose, onCreate }) {
         <div className="flex gap-3 p-6 border-t border-depro-border">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark hover:text-depro-dark transition-colors"
+            className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!form.name || !form.coordinatorEmail}
-            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40"
+            disabled={!form.name || !form.coordinatorEmail || loading}
+            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
           >
-            Crear club
+            {loading
+              ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creando…</>
+              : "Crear club"
+            }
           </button>
         </div>
       </div>
