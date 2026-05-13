@@ -442,20 +442,12 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
   const sa = visibleOnWhite(accent, visibleOnWhite(secondColor, "#0A36F7"));
 
   useEffect(() => {
-    if (!club?.id) return;
-    import("../../lib/supabase").then(({ supabase: sb }) => {
-      sb.from("profiles")
-        .select("id, name, avatar, plan, position, level")
-        .eq("role", "player")
-        .then(({ data }) => {
-          const allClubPlayers = (data || []).filter((p) => {
-            const saved = localStorage.getItem(`depro_player_club_${p.id}`);
-            return saved === club.id;
-          });
-          setPlayers(allClubPlayers);
-        });
-    });
-  }, [club?.id]);
+    if (!club?.id || !team?.id) return;
+    try {
+      const raw = localStorage.getItem(`depro_squad_${club.id}_${team.id}`);
+      setPlayers(JSON.parse(raw || "[]"));
+    } catch { setPlayers([]); }
+  }, [club?.id, team?.id]);
 
   const allPlans = club?.plans || [];
   const myPlans = team
@@ -587,9 +579,9 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
             {players.length === 0 ? (
               <div className="text-center py-6 border-2 border-dashed rounded-xl text-xs" style={{ borderColor: sa + "30" }}>
                 <Users size={20} className="mx-auto mb-2" style={{ color: sa + "60" }} />
-                <p className="text-depro-gray">Ningún jugador se ha unido todavía.</p>
-                <p className="mt-1 font-mono font-bold" style={{ color: sa }}>
-                  Código: {club?.loginCode || club?.login_code || "—"}
+                <p className="text-depro-gray">Aún no hay jugadores en la plantilla.</p>
+                <p className="mt-1 text-xs" style={{ color: sa }}>
+                  Añádelos desde la sección <strong>Plantilla</strong>.
                 </p>
               </div>
             ) : (
@@ -607,7 +599,7 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
                       {p.position && <div className="text-xs text-depro-gray">{p.position}</div>}
                     </div>
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: sa + "15", color: sa }}>
-                      {p.plan || "—"}
+                      {p.number ? `#${p.number}` : p.position || "—"}
                     </span>
                   </div>
                 ))}
