@@ -49,11 +49,13 @@ const PLANS = {
 };
 
 const POSITIONS  = ["Portero", "Defensa", "Lateral", "Pivote", "Centro", "Mediapunta", "Extremo", "Delantero"];
-const LEVELS     = ["Iniciación", "Amateur", "Semi-profesional", "Profesional"];
-const FREQUENCY  = ["2 días / sem", "3 días / sem", "4 días / sem", "5+ días / sem"];
-const MATERIALS  = ["Balón", "Conos", "Vallas", "Picas", "Bandas elásticas", "Mancuernas", "Gimnasio", "Campo"];
-const GOALS      = ["Mejorar técnica", "Subir nivel físico", "Prevenir lesiones", "Ganar minutos", "Llegar a profesional", "Volver tras lesión"];
-const STEPS      = ["Plan", "Tus datos", "Tu fútbol", "Pago"];
+// Preguntas del motor de planes (doc técnico)
+const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Estética", "Prevención", "Movilidad"];
+const SPORTS     = ["Fútbol", "Basket", "Natación", "Tenis", "Fitness", "Otro"];
+const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem"];
+const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio"];
+const INJURIES   = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda"];
+const STEPS      = ["Plan", "Tus datos", "Tu entrenamiento", "Pago"];
 
 /* ─────────────────────────────────────────────
    COMPONENTES AUX
@@ -310,29 +312,93 @@ function StepDatos({ form, setForm, onNext, onBack }) {
    STEP 3 — Datos de fútbol
 ───────────────────────────────────────────── */
 function StepFutbol({ form, setForm, onNext, onBack }) {
-  const valid = form.nivel && form.frecuencia && (form.materiales?.length > 0) && (form.objetivos?.length > 0);
+  const valid = form.objetivo && form.deporte && form.frecuencia && form.material;
 
   return (
     <div>
-      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Cuéntanos tu fútbol</h2>
-      <p className="text-depro-gray text-sm mb-8">Con estos datos diseñamos un plan adaptado a ti.</p>
+      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Tu entrenamiento</h2>
+      <p className="text-depro-gray text-sm mb-8">Con estos datos el sistema genera automáticamente tu plan personalizado.</p>
 
       <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card space-y-6">
-        <Toggle label="Nivel actual *" value={form.nivel} options={LEVELS} onChange={(v) => setForm({ ...form, nivel: v })} />
-        <Toggle label="Frecuencia de entrenamiento *" value={form.frecuencia} options={FREQUENCY} onChange={(v) => setForm({ ...form, frecuencia: v })} />
-        <Toggle label="Material disponible *" value={form.materiales} options={MATERIALS} multi onChange={(v) => setForm({ ...form, materiales: v })} />
-        <Toggle label="Objetivos principales *" value={form.objetivos} options={GOALS} multi onChange={(v) => setForm({ ...form, objetivos: v })} />
 
+        {/* Objetivo principal */}
         <div>
-          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block flex items-center gap-1.5">
-            <AlertCircle size={11} className="text-depro-red" /> Lesiones o limitaciones
+          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <Target size={12} className="text-depro-blue" /> Objetivo principal *
           </label>
-          <textarea
-            rows={3} value={form.lesiones}
-            onChange={(e) => setForm({ ...form, lesiones: e.target.value })}
-            className="admin-input w-full resize-none"
-            placeholder="¿Tienes alguna lesión actual o reciente? ¿Dolores recurrentes? (Opcional)"
-          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {OBJECTIVES.map((obj) => (
+              <button
+                key={obj} type="button"
+                onClick={() => setForm({ ...form, objetivo: obj })}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all text-left ${
+                  form.objetivo === obj
+                    ? "bg-depro-blue border-depro-blue text-white"
+                    : "bg-white border-depro-border text-depro-gray hover:border-depro-blue/40"
+                }`}
+              >
+                <span className="text-lg">
+                  {obj === "Fuerza" ? "💪" : obj === "Velocidad" ? "⚡" : obj === "Resistencia" ? "🫀" : obj === "Estética" ? "✨" : obj === "Prevención" ? "🛡️" : "🧘"}
+                </span>
+                {obj}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Deporte principal */}
+        <Toggle
+          label="Deporte principal *"
+          value={form.deporte}
+          options={SPORTS}
+          onChange={(v) => setForm({ ...form, deporte: v })}
+        />
+
+        {/* Frecuencia semanal */}
+        <Toggle
+          label="Días de entrenamiento disponibles por semana *"
+          value={form.frecuencia}
+          options={FREQUENCY}
+          onChange={(v) => setForm({ ...form, frecuencia: v })}
+        />
+
+        {/* Material */}
+        <Toggle
+          label="Material disponible *"
+          value={form.material}
+          options={MATERIALS}
+          onChange={(v) => setForm({ ...form, material: v })}
+        />
+
+        {/* Lesiones */}
+        <div>
+          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <AlertCircle size={12} className="text-amber-500" /> Lesiones o molestias
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {INJURIES.map((inj) => {
+              const sel = (form.lesion || []).includes(inj) || (inj === "Ninguna" && (!form.lesion || form.lesion.length === 0));
+              return (
+                <button
+                  key={inj} type="button"
+                  onClick={() => {
+                    if (inj === "Ninguna") { setForm({ ...form, lesion: [] }); return; }
+                    const current = (form.lesion || []).filter((x) => x !== "Ninguna");
+                    const next = current.includes(inj) ? current.filter((x) => x !== inj) : [...current, inj];
+                    setForm({ ...form, lesion: next });
+                  }}
+                  className={`text-xs font-bold px-3.5 py-2 rounded-xl border transition-all ${
+                    sel
+                      ? inj === "Ninguna" ? "bg-green-500 border-green-500 text-white" : "bg-amber-500 border-amber-500 text-white"
+                      : "bg-white border-depro-border text-depro-gray hover:border-amber-300"
+                  }`}
+                >
+                  {inj}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-depro-gray mt-2">El plan excluirá ejercicios contraindicados para tus lesiones.</p>
         </div>
       </div>
 
@@ -406,11 +472,13 @@ function StepPago({ form, plan, onBack }) {
             <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-4">Tus datos</div>
             <div className="grid grid-cols-2 gap-y-2 text-sm">
               {[
-                ["Nombre",    form.name],
+                ["Nombre",    form.nombre],
                 ["Email",     form.email],
-                ["Posición",  form.posicion],
-                ["Nivel",     form.nivel],
+                ["Objetivo",  form.objetivo],
+                ["Deporte",   form.deporte],
                 ["Frecuencia",form.frecuencia],
+                ["Material",  form.material],
+                ["Lesiones",  (form.lesion?.length > 0 ? form.lesion.join(", ") : "Ninguna")],
               ].filter(([, v]) => v).map(([label, val]) => (
                 <div key={label}>
                   <span className="text-depro-gray">{label}: </span>
@@ -567,11 +635,12 @@ export default function OnboardingPage() {
     club: "",
     posicion: "",
     clubCode: "",
-    nivel: "",
-    frecuencia: "",
-    materiales: [],
-    objetivos: [],
-    lesiones: "",
+    // Campos del motor de planes (doc técnico)
+    objetivo:  "",   // fuerza | velocidad | resistencia | estética | prevención | movilidad
+    deporte:   "",   // fútbol | basket | natación | tenis | fitness | otro
+    frecuencia: "",  // 1 | 2 | 3 | 4 días/sem
+    material:  "",   // sin material | gomas | mancuernas | barra/gimnasio
+    lesion:    [],   // ninguna | rodilla | tobillo | hombro | espalda
   });
 
   const plan = PLANS[planId] || PLANS.basic;

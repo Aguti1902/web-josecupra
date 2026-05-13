@@ -673,13 +673,46 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
 // ════════════════════════════════════════════════════════════
 // JUGADOR DASHBOARD (original)
 // ════════════════════════════════════════════════════════════
+// Helper: semana actual (lunes → domingo) como clave
+function weekKey() {
+  const d = new Date();
+  const day = d.getDay() || 7;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - day + 1);
+  return monday.toISOString().slice(0, 10);
+}
+
 function JugadorDashboard({ user, club }) {
   const accent = club?.primaryColor || "#0A36F7";
   const isPremium = user?.plan === "Premium" || user?.plan === "Pro";
   const today = weeklyPlan.find((d) => d.sessions.some((s) => s.status === "today"));
   const todaySession = today?.sessions[0];
-  const completedDays = weeklyPlan.filter((d) => d.sessions.some((s) => s.status === "completed")).length;
   const lastFeedback = coachFeedback[0];
+
+  // ── Progreso real (localStorage) ───────────────────────────
+  const freqNum = parseInt(
+    String(user?.frecuencia || user?.training_days || 3).replace(/\D/g, "")
+  ) || 3;
+
+  const [completedIds, setCompletedIds] = useState(() => {
+    try {
+      const raw = localStorage.getItem(`depro_progress_${user?.id}_${weekKey()}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
+
+  const completedDays = completedIds.length;
+  const progressPct   = Math.min(100, Math.round((completedDays / freqNum) * 100));
+
+  const markDayDone = (label) => {
+    if (completedIds.includes(label)) return;
+    const updated = [...completedIds, label];
+    setCompletedIds(updated);
+    localStorage.setItem(`depro_progress_${user?.id}_${weekKey()}`, JSON.stringify(updated));
+  };
+
+  const days7 = ["L", "M", "X", "J", "V", "S", "D"];
+  const todayIdx = (new Date().getDay() + 6) % 7; // 0=lunes
 
   return (
     <div className="space-y-6">
@@ -750,9 +783,44 @@ function JugadorDashboard({ user, club }) {
         </div>
       )}
 
+      {/* CTA si lleva días sin entrenar */}
+      {completedDays === 0 && (
+        <div className="rounded-2xl border-2 border-dashed p-5 flex items-center gap-4" style={{ borderColor: accent + "40", backgroundColor: accent + "04" }}>
+          <div className="text-3xl">💪</div>
+          <div className="flex-1">
+            <div className="font-bold text-depro-dark text-sm">¡Empieza la semana con fuerza!</div>
+            <div className="text-xs text-depro-gray mt-0.5">Aún no has completado ninguna sesión esta semana. Tu plan te está esperando.</div>
+          </div>
+          <Link to="/dashboard/plan" className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: accent }}>
+            Ir al plan
+          </Link>
+        </div>
+      )}
+      {completedDays > 0 && completedDays < freqNum && (
+        <div className="rounded-2xl border p-4 flex items-center gap-3" style={{ borderColor: "#3BC21D30", backgroundColor: "#3BC21D06" }}>
+          <div className="text-2xl">🔥</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-depro-dark text-sm">{completedDays} de {freqNum} sesiones completadas esta semana</div>
+            <div className="mt-1.5 h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-green-400 transition-all" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
+          <span className="text-lg font-black text-green-500 flex-shrink-0">{progressPct}%</span>
+        </div>
+      )}
+      {completedDays >= freqNum && (
+        <div className="rounded-2xl border p-4 flex items-center gap-3 bg-green-50 border-green-200">
+          <div className="text-2xl">🏆</div>
+          <div className="flex-1">
+            <div className="font-bold text-green-700 text-sm">¡Semana completada! {freqNum}/{freqNum} sesiones.</div>
+            <div className="text-xs text-green-600 mt-0.5">Eres constante. Eso es lo que marca la diferencia.</div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Sesiones completadas" value={completedDays} sub="esta semana" icon={CheckCircle} color="#3BC21D" />
-        <StatCard label="Días de entreno" value={user?.training_days || user?.trainingDays || 5} sub="por semana" icon={Calendar} color={accent} />
+        <StatCard label="Sesiones esta semana" value={`${completedDays}/${freqNum}`} sub={`${progressPct}% completado`} icon={CheckCircle} color="#3BC21D" />
+        <StatCard label="Frecuencia semanal" value={freqNum} sub="días de entreno" icon={Calendar} color={accent} />
         <StatCard label="Valoración coach" value={`${lastFeedback.rating}/10`} sub="última revisión" icon={Trophy} color="#F6CC12" />
         <StatCard label="Plan actual" value={user?.plan || "—"} sub="activo" icon={Zap} color="#FB2C39" />
       </div>
@@ -801,24 +869,34 @@ function JugadorDashboard({ user, club }) {
             <h3 className="font-bold text-depro-dark mb-3">Progreso semanal</h3>
             <div className="bg-white border border-depro-border rounded-xl p-4">
               <div className="grid grid-cols-7 gap-1 mb-4">
-                {weeklyPlan.map((day) => {
-                  const s = day.sessions[0]; const status = s?.status;
+                {days7.map((d, i) => {
+                  const done    = completedIds.includes(d);
+                  const isToday = i === todayIdx;
                   return (
-                    <div key={day.shortDay} className="flex flex-col items-center gap-1">
-                      <div className="text-xs text-depro-gray font-medium">{day.shortDay[0]}</div>
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={status === "completed" ? { backgroundColor: "#3BC21D", color: "#fff" } : status === "today" ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F3F4F6", color: "#9CA3AF" }}>
-                        {status === "completed" ? "✓" : status === "today" ? "▶" : day.sessions.length === 0 ? "–" : "○"}
+                    <button
+                      key={d}
+                      onClick={() => markDayDone(d)}
+                      title={done ? "Completado" : "Marcar como hecho"}
+                      className="flex flex-col items-center gap-1 group"
+                    >
+                      <div className="text-xs text-depro-gray font-medium">{d}</div>
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all group-hover:scale-110"
+                        style={done ? { backgroundColor: "#3BC21D", color: "#fff" } : isToday ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F3F4F6", color: "#9CA3AF" }}
+                      >
+                        {done ? "✓" : isToday ? "▶" : "○"}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-1.5 bg-depro-gray-light rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${(completedDays / 5) * 100}%`, backgroundColor: "#3BC21D" }} />
+                  <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, backgroundColor: "#3BC21D" }} />
                 </div>
-                <span className="text-xs text-depro-gray font-medium">{completedDays}/5</span>
+                <span className="text-xs text-depro-gray font-medium">{completedDays}/{freqNum}</span>
               </div>
+              <p className="text-[10px] text-depro-gray mt-2">Pulsa un día para marcarlo como completado.</p>
             </div>
           </div>
           <div>

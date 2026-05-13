@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
-  Target, X, Moon, Maximize2, Users, Gauge, Pause,
+  Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { weeklyPlan, clubWeeklyPlan } from "../../data/mockData";
+import { clubWeeklyPlan } from "../../data/mockData";
+import { getDayObjectives, filterExercises } from "../../data/exercises";
 
 const intensityColor = { Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
 const typeColor      = { Technical: "#0A36F7", Physical: "#F6CC12", Recovery: "#3BC21D", Tactical: "#a855f7", Match: "#FB2C39" };
@@ -173,67 +174,232 @@ function SessionCard({ session, accentColor }) {
 /* ─────────────────────────────────────────────
    VISTA JUGADOR
 ───────────────────────────────────────────── */
+// ── Generador local de plan semanal (motor de reglas) ───────
+function buildLocalPlan(user) {
+  const objetivo   = user?.objetivo  || "fuerza";
+  const frecuencia = user?.frecuencia || "3";
+  const material   = (user?.material || "sin_material").toLowerCase().replace(/\s|\//g,"_").replace("barra_gimnasio","barra");
+  const lesiones   = (user?.lesion   || []).map((l) => l.toLowerCase());
+
+  const dayObjectives = getDayObjectives(objetivo, frecuencia);
+  const diasSemana = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+  const shorts     = ["L","M","X","J","V","S","D"];
+  const n = dayObjectives.length;
+
+  return diasSemana.map((nombre, i) => {
+    if (i >= n) return { day: nombre, shortDay: shorts[i], date: `${nombre} ${i+1}`, sessions: [] };
+
+    const dayObj = dayObjectives[i];
+    const pool   = filterExercises({ etiquetas: dayObj.etiquetas, material, lesiones });
+
+    // Selección pseudoaleatoria pero determinista basada en índice
+    const picked = pool.filter((_, idx) => idx % 2 === 0).slice(0, 7);
+
+    const session = {
+      id:         `gen_${i}`,
+      type:       dayObj.tipo,
+      title:      `${dayObj.tipo} · Sesión ${i+1}`,
+      objective:  `Trabaja ${dayObj.etiquetas.slice(0,2).join(", ")} según tu objetivo de ${objetivo}.`,
+      duration:   "60 min",
+      intensity:  "Medium",
+      status:     "pending",
+      exercises:  picked.map((ex, ei) => ({
+        id:          `${ex.id}_${ei}`,
+        name:        ex.nombre,
+        duration:    "40\"",
+        sets:        3,
+        reps:        ex.etiquetas.includes("isometrico") ? "20-30\"" : "10-12",
+        description: `Ejecuta correctamente. Material: ${ex.material.replace(/_/g," ")}.`,
+        tips:        ex.contraindicado.length > 0 ? `Cuidado si tienes problemas en: ${ex.contraindicado.join(", ")}.` : "Mantén la técnica durante toda la serie.",
+      })),
+    };
+
+    return { day: nombre, shortDay: shorts[i], date: `${nombre} ${i+1}`, sessions: [session] };
+  });
+}
+
 function PlayerWeeklyPlan({ accent }) {
-  const [selectedDay, setSelectedDay] = useState(
-    Math.max(0, weeklyPlan.findIndex((d) => d.sessions.some((s) => s.status === "today")))
-  );
-  const day = weeklyPlan[selectedDay];
+  const { user } = useAuth();
+  const planKey = `depro_plan_${user?.id}`;
+
+  const [plan, setPlan]       = useState(null);
+  const [generating, setGen]  = useState(false);
+  const [selectedDay, setDay] = useState(0);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(planKey);
+      if (saved) setPlan(JSON.parse(saved));
+    } catch { /* ignore */ }
+  }, [planKey]);
+
+  const handleGenerate = () => {
+    setGen(true);
+    setTimeout(() => {
+      const generated = buildLocalPlan(user);
+      setPlan(generated);
+      localStorage.setItem(planKey, JSON.stringify(generated));
+      setGen(false);
+    }, 1400);
+  };
+
+  const handleReset = () => {
+    if (!confirm("¿Regenerar el plan? Se perderán los cambios actuales.")) return;
+    localStorage.removeItem(planKey);
+    setPlan(null);
+  };
+
+  // Marcar sesión como completada
+  const handleComplete = (dayIdx, sessionId) => {
+    if (!plan) return;
+    const updated = plan.map((d, di) =>
+      di === dayIdx
+        ? { ...d, sessions: d.sessions.map((s) => s.id === sessionId ? { ...s, status: "completed" } : s) }
+        : d
+    );
+    setPlan(updated);
+    localStorage.setItem(planKey, JSON.stringify(updated));
+  };
+
+  // ── Sin plan generado ──────────────────────────────────────
+  if (!plan) {
+    const hasProfile = !!(user?.objetivo || user?.frecuencia);
+    return (
+      <div className="p-4 md:p-8 max-w-3xl mx-auto">
+        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Plan semanal</h1>
+        <p className="text-depro-gray text-sm mb-8">Tu plan personalizado generado según tu perfil.</p>
+
+        <div className="bg-white border border-depro-border rounded-2xl p-8 text-center shadow-card">
+          <div className="w-16 h-16 rounded-2xl bg-depro-blue/10 flex items-center justify-center mx-auto mb-5">
+            <Sparkles size={30} className="text-depro-blue" />
+          </div>
+          <h2 className="text-xl font-bold text-depro-dark mb-2">
+            {hasProfile ? "Tu plan está listo para generarse" : "Completa tu perfil primero"}
+          </h2>
+          {hasProfile ? (
+            <>
+              <p className="text-depro-gray text-sm mb-2">Se generará un plan de <strong>{user?.frecuencia}</strong> días / semana con objetivo <strong>{user?.objetivo}</strong>.</p>
+              {user?.lesion?.length > 0 && (
+                <p className="text-xs text-amber-600 mb-4">Lesiones excluidas: {user.lesion.join(", ")}</p>
+              )}
+              <button
+                onClick={handleGenerate}
+                disabled={generating}
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-depro-blue text-white font-bold rounded-xl hover:bg-depro-blue-dark transition-colors mt-4 disabled:opacity-60"
+              >
+                {generating ? <><RefreshCw size={16} className="animate-spin" /> Generando…</> : <><Zap size={16} /> Generar mi plan</>}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-depro-gray text-sm mb-5">Necesitamos conocer tu objetivo, frecuencia y material disponible.</p>
+              <a href="/comprar" className="inline-flex items-center gap-2 px-6 py-3 bg-depro-blue text-white font-bold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm">
+                Completar perfil
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const day = plan[selectedDay];
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Plan semanal</h1>
-        <p className="text-depro-gray text-sm">Semana del 21 al 27 de abril, 2025</p>
+      <div className="flex items-start justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Plan semanal</h1>
+          <p className="text-depro-gray text-sm">Objetivo: <strong>{user?.objetivo}</strong> · {user?.frecuencia}</p>
+        </div>
+        <button
+          onClick={handleReset}
+          className="flex-shrink-0 flex items-center gap-1.5 text-xs text-depro-gray border border-depro-border px-3 py-2 rounded-xl hover:border-red-300 hover:text-red-500 transition-colors"
+        >
+          <RefreshCw size={13} /> Regenerar
+        </button>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 mb-8">
-        {weeklyPlan.map((d, i) => {
-          const s = d.sessions[0];
-          const isToday = s?.status === "today";
-          const isDone = s?.status === "completed";
-          const isRest = d.sessions.length === 0;
-          const isSelected = selectedDay === i;
+        {plan.map((d, i) => {
+          const s       = d.sessions[0];
+          const isDone  = s?.status === "completed";
+          const isRest  = d.sessions.length === 0;
+          const isSel   = selectedDay === i;
           return (
-            <button key={d.shortDay} onClick={() => setSelectedDay(i)}
+            <button key={d.shortDay} onClick={() => setDay(i)}
               className={`flex-shrink-0 flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl border transition-all ${
-                isSelected ? "border-depro-blue text-depro-blue bg-depro-blue-light" :
+                isSel ? "border-depro-blue text-depro-blue bg-depro-blue-light" :
                 "border-depro-border text-depro-gray hover:text-depro-dark hover:border-depro-blue/30 bg-white"
               }`}
             >
               <span className="text-xs font-bold">{d.shortDay}</span>
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
-                isDone ? "bg-depro-green text-white" : isRest ? "bg-depro-gray-light text-gray-400" : ""
-              }`} style={isToday ? { backgroundColor: accent, color: "white" } : {}}>
-                {isDone ? "✓" : isToday ? "▶" : isRest ? "–" : d.date.split(" ")[1]}
+              <div
+                className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${isRest ? "bg-depro-gray-light text-gray-400" : ""}`}
+                style={isDone ? { backgroundColor: "#3BC21D", color: "#fff" } : !isRest ? { backgroundColor: accent + "20", color: accent } : {}}
+              >
+                {isDone ? "✓" : isRest ? "–" : s?.sessions?.length || "▶"}
               </div>
-              <span className="text-xs">{d.date.split(" ")[1]}</span>
+              {d.sessions[0]?.type && <span className="text-[10px] text-depro-gray text-center leading-tight max-w-[52px] truncate">{d.sessions[0].type}</span>}
             </button>
           );
         })}
       </div>
 
-      <div>
-        <div className="flex items-center gap-3 mb-5">
-          <h2 className="text-lg font-bold text-depro-dark">{day.day}</h2>
-          <span className="text-sm text-depro-gray">{day.date}</span>
-          {day.sessions.length === 0 && <span className="tag-gray">Descanso</span>}
-        </div>
-        {day.sessions.length > 0 ? (
-          <div className="space-y-4">
-            {day.sessions.map((session) => (
-              <SessionCard key={session.id} session={session} accentColor={accent} />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white border border-depro-border rounded-2xl text-center py-16 shadow-card">
-            <div className="w-14 h-14 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
-              <Moon size={26} className="text-depro-gray" />
+      {day.sessions.length > 0 ? (
+        <div className="space-y-4">
+          {day.sessions.map((session) => (
+            <div key={session.id} className="bg-white border border-depro-border rounded-2xl overflow-hidden shadow-card">
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div>
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: accent + "15", color: accent }}>{session.type}</span>
+                    <h3 className="text-lg font-bold text-depro-dark">{session.title}</h3>
+                    <p className="text-sm text-depro-gray mt-0.5">{session.objective}</p>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-depro-gray flex-shrink-0">
+                    <Clock size={12} /> {session.duration}
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-5">
+                  {session.exercises.map((ex, ei) => (
+                    <div key={ex.id} className="flex items-center gap-3 py-2.5 px-3 bg-depro-gray-light rounded-xl">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: accent + "15", color: accent }}>{ei + 1}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-depro-dark">{ex.name}</div>
+                        <div className="text-xs text-depro-gray">{ex.duration} · {ex.sets} series · {ex.reps}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {session.status === "completed" ? (
+                  <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 font-bold text-sm">
+                    <CheckCircle size={16} /> Sesión completada ✓
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleComplete(selectedDay, session.id)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm text-white hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: accent }}
+                  >
+                    <CheckCircle size={15} /> Marcar como completada
+                  </button>
+                )}
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-depro-dark mb-2">Día de descanso</h3>
-            <p className="text-depro-gray text-sm max-w-xs mx-auto">El descanso es parte del plan. Deja que tu cuerpo se adapte y crezca.</p>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white border border-depro-border rounded-2xl text-center py-16 shadow-card">
+          <div className="w-14 h-14 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
+            <Moon size={26} className="text-depro-gray" />
           </div>
-        )}
-      </div>
+          <h3 className="text-lg font-bold text-depro-dark mb-2">Día de descanso</h3>
+          <p className="text-depro-gray text-sm max-w-xs mx-auto">El descanso es parte del plan. Deja que tu cuerpo se adapte y crezca.</p>
+        </div>
+      )}
     </div>
   );
 }

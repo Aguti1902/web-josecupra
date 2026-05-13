@@ -25,6 +25,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { loadPlanBlocks, savePlanBlock, deletePlanBlock, togglePlanBlock, loadMedia } from "../../lib/adminStorage";
+import { EXERCISES, TAGS } from "../../data/exercises";
+import { Search, List, BookOpen } from "lucide-react";
 
 const CATEGORIES = [
   { id: "físico", label: "Físico", icon: Flame, color: "text-orange-500 bg-orange-50" },
@@ -647,8 +649,95 @@ function BlockModal({ block, onClose, onSave }) {
   );
 }
 
+/* ── Catálogo de ejercicios (120) ────────────────────────────── */
+const TAG_LABEL = {
+  fuerza:"Fuerza", fuerza_maxima:"F. Máxima", fuerza_explosiva:"F. Explosiva",
+  resistencia:"Resistencia", velocidad:"Velocidad", pliometria:"Pliometría",
+  core:"Core", prevencion:"Prevención", movilidad:"Movilidad", estetica:"Estética",
+  isometrico:"Isométrico", tren_inferior:"T. Inferior", tren_superior:"T. Superior",
+  gluteo:"Glúteo", rodilla:"Rodilla", tobillo:"Tobillo", hombro:"Hombro",
+  empuje:"Empuje", traccion:"Tracción", sin_material:"Sin material",
+  gomas:"Gomas", mancuernas:"Mancuernas", barra:"Barra", maquina:"Máquina",
+  casa:"Casa", campo:"Campo", gimnasio:"Gimnasio",
+};
+
+function CatalogTab() {
+  const [q,     setQ]     = useState("");
+  const [tagF,  setTagF]  = useState("");
+  const [matF,  setMatF]  = useState("");
+
+  const shown = EXERCISES.filter((ex) => {
+    const matchQ  = !q   || ex.nombre.toLowerCase().includes(q.toLowerCase());
+    const matchT  = !tagF || ex.etiquetas.includes(tagF);
+    const matchM  = !matF || ex.material === matF;
+    return matchQ && matchT && matchM;
+  });
+
+  const matOptions = [...new Set(EXERCISES.map((e) => e.material))];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar ejercicio…" className="admin-input w-full pl-9 text-sm" />
+        </div>
+        <select value={tagF} onChange={(e) => setTagF(e.target.value)} className="admin-input text-sm">
+          <option value="">Todas las etiquetas</option>
+          {TAGS.objetivo.map((t) => <option key={t} value={t}>{TAG_LABEL[t] || t}</option>)}
+        </select>
+        <select value={matF} onChange={(e) => setMatF(e.target.value)} className="admin-input text-sm">
+          <option value="">Todo el material</option>
+          {matOptions.map((m) => <option key={m} value={m}>{TAG_LABEL[m] || m}</option>)}
+        </select>
+        <span className="text-xs text-depro-gray font-medium">{shown.length} ejercicios</span>
+      </div>
+
+      <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-[auto_1fr_auto_auto] gap-0 text-xs font-bold text-depro-gray uppercase tracking-wide border-b border-depro-border px-4 py-2.5">
+          <span className="w-10">#</span>
+          <span>Ejercicio</span>
+          <span className="w-28 text-center">Material</span>
+          <span className="w-24 text-right">Etiquetas</span>
+        </div>
+        <div className="divide-y divide-depro-border max-h-[600px] overflow-y-auto">
+          {shown.map((ex, i) => (
+            <div key={ex.id} className="grid grid-cols-[auto_1fr_auto_auto] gap-0 items-start px-4 py-3 hover:bg-depro-gray-light/50 transition-colors">
+              <span className="w-10 text-xs text-depro-gray font-mono pt-0.5">{i + 1}</span>
+              <div>
+                <div className="text-sm font-semibold text-depro-dark leading-snug">{ex.nombre}</div>
+                {ex.contraindicado.length > 0 && (
+                  <div className="flex gap-1 flex-wrap mt-1">
+                    {ex.contraindicado.map((c) => (
+                      <span key={c} className="text-[10px] px-1.5 py-0.5 rounded-md bg-red-50 text-red-500 border border-red-100">⚠ {c}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="w-28 text-center">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-depro-gray-light text-depro-gray font-medium">
+                  {TAG_LABEL[ex.material] || ex.material}
+                </span>
+              </div>
+              <div className="w-24 flex flex-wrap gap-1 justify-end">
+                {ex.etiquetas.slice(0, 2).map((t) => (
+                  <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-md bg-depro-blue/8 text-depro-blue border border-depro-blue/15">
+                    {TAG_LABEL[t] || t}
+                  </span>
+                ))}
+                {ex.etiquetas.length > 2 && <span className="text-[10px] text-depro-gray">+{ex.etiquetas.length - 2}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Page ───────────────────────────────────────────────── */
 export default function AdminPlanBuilderPage() {
+  const [activeTab, setActiveTab]   = useState("bloques");
   const [blocks, setBlocks]         = useState([]);
   const [mediaLibrary, setMediaLibrary] = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -699,19 +788,42 @@ export default function AdminPlanBuilderPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-depro-dark">Planes automáticos de jugadores</h1>
+          <h1 className="text-2xl font-bold text-depro-dark">Motor de planes</h1>
           <p className="text-depro-gray text-sm mt-0.5">
-            Configura los bloques de entrenamiento que el sistema usa para generar planes personalizados automáticamente
+            Catálogo de ejercicios, bloques de entrenamiento y simulador para planes automáticos de jugadores
           </p>
         </div>
-        <button
-          onClick={handleNew}
-          className="flex items-center gap-2 px-5 py-2.5 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm"
-        >
-          <Plus size={16} />
-          Nuevo bloque
-        </button>
+        {activeTab === "bloques" && (
+          <button
+            onClick={handleNew}
+            className="flex items-center gap-2 px-5 py-2.5 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm"
+          >
+            <Plus size={16} />
+            Nuevo bloque
+          </button>
+        )}
       </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 bg-depro-gray-light rounded-xl w-fit">
+        {[
+          { id: "bloques",  label: "Bloques", icon: List },
+          { id: "catalogo", label: `Catálogo (${EXERCISES.length})`, icon: BookOpen },
+        ].map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === id ? "bg-white text-depro-dark shadow-sm" : "text-depro-gray hover:text-depro-dark"
+            }`}
+          >
+            <Icon size={14} /> {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "catalogo" && <CatalogTab />}
+      {activeTab !== "catalogo" && (<>
 
       {/* How it works */}
       <div className="bg-depro-dark rounded-2xl p-5 text-white">
@@ -829,6 +941,7 @@ export default function AdminPlanBuilderPage() {
           onSave={handleSave}
         />
       )}
+      </>)}
     </div>
   );
 }
