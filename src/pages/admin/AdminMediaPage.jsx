@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Video,
   FileText,
@@ -17,7 +17,7 @@ import {
   X,
   Plus,
 } from "lucide-react";
-import { mediaLibrary as initialMedia } from "../../data/mockData";
+import { loadMedia, uploadMedia, deleteMedia } from "../../lib/adminStorage";
 
 const CATEGORIES = ["todos", "video", "pdf"];
 const TAG_OPTIONS = [
@@ -134,8 +134,11 @@ function UploadModal({ onClose, onUpload }) {
     type: "video",
     tags: [],
     file: null,
+    duration: "",
+    pages: "",
   });
   const [tagInput, setTagInput] = useState("");
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
 
   const addTag = (t) => {
@@ -146,21 +149,19 @@ function UploadModal({ onClose, onUpload }) {
     setTagInput("");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.title) return;
-    onUpload({
-      id: `m${Date.now()}`,
-      type: form.type,
+    setUploading(true);
+    const item = await uploadMedia({
+      file: form.file,
       title: form.title,
+      type: form.type,
       tags: form.tags,
-      duration: form.type === "video" ? "—" : undefined,
-      pages: form.type === "pdf" ? "—" : undefined,
-      size: form.file ? `${(form.file.size / 1048576).toFixed(1)} MB` : "—",
-      uploadedAt: new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }),
-      uploadedBy: "Admin",
-      url: "#",
-      assignedTo: [],
+      duration: form.type === "video" ? form.duration || null : null,
+      pages: form.type === "pdf" ? parseInt(form.pages) || null : null,
     });
+    setUploading(false);
+    onUpload(item);
     onClose();
   };
 
@@ -268,10 +269,10 @@ function UploadModal({ onClose, onUpload }) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!form.title}
-            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40"
+            disabled={!form.title || uploading}
+            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
           >
-            Subir archivo
+            {uploading ? <><div className="spinner border-white/20 border-t-white w-4 h-4" />Subiendo…</> : "Subir archivo"}
           </button>
         </div>
       </div>
@@ -280,21 +281,28 @@ function UploadModal({ onClose, onUpload }) {
 }
 
 export default function AdminMediaPage() {
-  const [media, setMedia] = useState(initialMedia);
-  const [filter, setFilter] = useState("todos");
-  const [search, setSearch] = useState("");
+  const [media, setMedia]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [filter, setFilter]     = useState("todos");
+  const [search, setSearch]     = useState("");
   const [showUpload, setShowUpload] = useState(false);
+
+  useEffect(() => {
+    loadMedia().then((data) => { setMedia(data); setLoading(false); });
+  }, []);
 
   const filtered = media.filter((m) => {
     const matchType = filter === "todos" || m.type === filter;
     const matchSearch =
       !search ||
-      m.title.toLowerCase().includes(search.toLowerCase()) ||
-      m.tags.some((t) => t.includes(search.toLowerCase()));
+      m.title?.toLowerCase().includes(search.toLowerCase()) ||
+      (m.tags || []).some((t) => t.toLowerCase().includes(search.toLowerCase()));
     return matchType && matchSearch;
   });
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
+    if (!confirm("¿Eliminar este archivo?")) return;
+    await deleteMedia(id);
     setMedia((prev) => prev.filter((m) => m.id !== id));
   };
 
@@ -303,7 +311,7 @@ export default function AdminMediaPage() {
   };
 
   const totalSize = media.reduce((acc, m) => {
-    const mb = parseFloat(m.size);
+    const mb = parseFloat(m.size_mb ?? m.size ?? 0);
     return acc + (isNaN(mb) ? 0 : mb);
   }, 0);
 

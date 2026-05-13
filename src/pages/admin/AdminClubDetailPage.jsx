@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -32,7 +32,7 @@ import {
   Save,
   Play,
 } from "lucide-react";
-import { adminClubs, mediaLibrary, adminClubPlans } from "../../data/mockData";
+import { loadClubs, saveClubDetail, loadClubDetail, loadMedia } from "../../lib/adminStorage";
 
 const ROLES = [
   { id: "coordinador", label: "Coordinador", icon: Crown, color: "text-depro-blue bg-depro-blue/10" },
@@ -733,15 +733,41 @@ function MicrocycleCard({ mc, teams, onAddSession, onDeleteSession, onDelete }) 
 export default function AdminClubDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const baseClub = adminClubs.find((c) => c.id === id);
 
-  const [club, setClub] = useState(baseClub);
-  const [activeTab, setActiveTab] = useState("planificacion");
+  const [club, setClub]             = useState(null);
+  const [mediaLibrary, setMediaLibrary] = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [activeTab, setActiveTab]   = useState("planificacion");
   const [showNewTeam, setShowNewTeam] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
-  const [showNewMc, setShowNewMc] = useState(false);
-  const [plans, setPlans] = useState(adminClubPlans[id] ?? []);
-  const [copied, setCopied] = useState(false);
+  const [showNewMc, setShowNewMc]   = useState(false);
+  const [plans, setPlans]           = useState([]);
+  const [copied, setCopied]         = useState(false);
+
+  useEffect(() => {
+    Promise.all([loadClubs(), loadMedia()]).then(([clubs, meds]) => {
+      const found = clubs.find((c) => c.id === id);
+      if (found) {
+        // Intentar cargar detalles guardados
+        const detail = loadClubDetail(id);
+        setClub({ teams: [], users: [], mediaAssigned: [], ...found, ...(detail || {}) });
+        setPlans(detail?.plans || []);
+      } else {
+        setClub(null);
+      }
+      setMediaLibrary(meds);
+      setLoading(false);
+    });
+  }, [id]);
+
+  // Persistir cambios del club cuando cambia
+  const persistClub = useCallback((updatedClub, updatedPlans) => {
+    saveClubDetail(id, { ...updatedClub, plans: updatedPlans });
+  }, [id]);
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><div className="spinner border-depro-blue/20 border-t-depro-blue" /></div>;
+  }
 
   if (!club) {
     return (
@@ -756,39 +782,55 @@ export default function AdminClubDetailPage() {
   }
 
   const copyCode = () => {
-    navigator.clipboard.writeText(club.loginCode);
+    navigator.clipboard.writeText(club.login_code || club.loginCode || "");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const addTeam = (team) => setClub((c) => ({ ...c, teams: [...c.teams, team] }));
-  const removeTeam = (tid) => setClub((c) => ({ ...c, teams: c.teams.filter((t) => t.id !== tid) }));
-  const addUser = (user) => setClub((c) => ({ ...c, users: [...c.users, user] }));
-  const removeUser = (uid) => setClub((c) => ({ ...c, users: c.users.filter((u) => u.id !== uid) }));
+  const updateClub = (updater) => {
+    setClub((c) => {
+      const updated = typeof updater === "function" ? updater(c) : { ...c, ...updater };
+      persistClub(updated, plans);
+      return updated;
+    });
+  };
+
+  const addTeam = (team) => updateClub((c) => ({ ...c, teams: [...(c.teams || []), team] }));
+  const removeTeam = (tid) => updateClub((c) => ({ ...c, teams: (c.teams || []).filter((t) => t.id !== tid) }));
+  const addUser = (user) => updateClub((c) => ({ ...c, users: [...(c.users || []), user] }));
+  const removeUser = (uid) => updateClub((c) => ({ ...c, users: (c.users || []).filter((u) => u.id !== uid) }));
   const toggleUserActive = (uid) =>
-    setClub((c) => ({ ...c, users: c.users.map((u) => (u.id === uid ? { ...u, active: !u.active } : u)) }));
+    updateClub((c) => ({ ...c, users: (c.users || []).map((u) => (u.id === uid ? { ...u, active: !u.active } : u)) }));
 
-  const assignedMedia = mediaLibrary.filter((m) => club.mediaAssigned?.includes(m.id));
+  const assignedMedia = mediaLibrary.filter((m) => (club.mediaAssigned || []).includes(m.id));
 
-  const addMicrocycle = (mc) => setPlans((prev) => [...prev, mc]);
-  const deleteMicrocycle = (mcId) => setPlans((prev) => prev.filter((m) => m.id !== mcId));
+  const updatePlans = (updater) => {
+    setPlans((prev) => {
+      const updated = typeof updater === "function" ? updater(prev) : updater;
+      persistClub(club, updated);
+      return updated;
+    });
+  };
+
+  const addMicrocycle = (mc) => updatePlans((prev) => [...prev, mc]);
+  const deleteMicrocycle = (mcId) => updatePlans((prev) => prev.filter((m) => m.id !== mcId));
   const addSession = (mcId, session) =>
-    setPlans((prev) =>
-      prev.map((mc) => mc.id === mcId ? { ...mc, sessions: [...mc.sessions, session] } : mc)
+    updatePlans((prev) =>
+      prev.map((mc) => mc.id === mcId ? { ...mc, sessions: [...(mc.sessions || []), session] } : mc)
     );
   const deleteSession = (mcId, sessionId) =>
-    setPlans((prev) =>
+    updatePlans((prev) =>
       prev.map((mc) =>
         mc.id === mcId
-          ? { ...mc, sessions: mc.sessions.filter((s) => s.id !== sessionId) }
+          ? { ...mc, sessions: (mc.sessions || []).filter((s) => s.id !== sessionId) }
           : mc
       )
     );
 
   const TABS = [
     { id: "planificacion", label: "Planificación", icon: ClipboardList, count: plans.length },
-    { id: "equipos", label: "Equipos", icon: Shield, count: club.teams.length },
-    { id: "usuarios", label: "Usuarios", icon: Users, count: club.users.length },
+    { id: "equipos", label: "Equipos", icon: Shield, count: (club.teams || []).length },
+    { id: "usuarios", label: "Usuarios", icon: Users, count: (club.users || []).length },
     { id: "medios", label: "Medios asignados", icon: Video, count: assignedMedia.length },
   ];
 

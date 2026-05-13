@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Brain,
   Plus,
@@ -24,7 +24,7 @@ import {
   AlertCircle,
   ChevronRight,
 } from "lucide-react";
-import { planBlocks as initialBlocks, mediaLibrary } from "../../data/mockData";
+import { loadPlanBlocks, savePlanBlock, deletePlanBlock, togglePlanBlock, loadMedia } from "../../lib/adminStorage";
 
 const CATEGORIES = [
   { id: "físico", label: "Físico", icon: Flame, color: "text-orange-500 bg-orange-50" },
@@ -649,30 +649,47 @@ function BlockModal({ block, onClose, onSave }) {
 
 /* ── Main Page ───────────────────────────────────────────────── */
 export default function AdminPlanBuilderPage() {
-  const [blocks, setBlocks] = useState(initialBlocks);
-  const [filterCat, setFilterCat] = useState("todos");
+  const [blocks, setBlocks]         = useState([]);
+  const [mediaLibrary, setMediaLibrary] = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [filterCat, setFilterCat]   = useState("todos");
   const [editingBlock, setEditingBlock] = useState(undefined);
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal]   = useState(false);
+
+  useEffect(() => {
+    Promise.all([loadPlanBlocks(), loadMedia()]).then(([blks, meds]) => {
+      setBlocks(blks);
+      setMediaLibrary(meds);
+      setLoading(false);
+    });
+  }, []);
 
   const filtered = blocks.filter(
     (b) => filterCat === "todos" || b.category === filterCat
   );
 
-  const handleToggle = (id) =>
-    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, active: !b.active } : b)));
+  const handleToggle = async (id) => {
+    const block = blocks.find((b) => b.id === id);
+    const updated = await togglePlanBlock(id, !block.active);
+    setBlocks(updated);
+  };
 
-  const handleDelete = (id) =>
+  const handleDelete = async (id) => {
+    if (!confirm("¿Eliminar este bloque?")) return;
+    await deletePlanBlock(id);
     setBlocks((prev) => prev.filter((b) => b.id !== id));
+  };
 
   const handleEdit = (block) => { setEditingBlock(block); setShowModal(true); };
   const handleNew = () => { setEditingBlock(null); setShowModal(true); };
 
-  const handleSave = (data) => {
-    if (data.id) {
-      setBlocks((prev) => prev.map((b) => (b.id === data.id ? data : b)));
-    } else {
-      setBlocks((prev) => [...prev, { ...data, id: `b${Date.now()}`, priority: prev.length + 1 }]);
-    }
+  const handleSave = async (data) => {
+    const saved = await savePlanBlock({ ...data, priority: data.id ? data.priority : blocks.length + 1 });
+    setBlocks((prev) => {
+      const idx = prev.findIndex((b) => b.id === saved.id);
+      if (idx >= 0) { const n = [...prev]; n[idx] = saved; return n; }
+      return [...prev, saved];
+    });
   };
 
   const activeCount = blocks.filter((b) => b.active).length;

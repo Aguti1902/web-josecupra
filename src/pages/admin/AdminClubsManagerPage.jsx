@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -15,7 +15,7 @@ import {
   Crown,
   Star,
 } from "lucide-react";
-import { adminClubs as initialClubs } from "../../data/mockData";
+import { loadClubs, saveClub, deleteClub } from "../../lib/adminStorage";
 
 const PLANS = ["Básico", "Premium"];
 const STATUS_STYLES = {
@@ -221,16 +221,21 @@ function NewClubModal({ onClose, onCreate }) {
 
 export default function AdminClubsManagerPage() {
   const navigate = useNavigate();
-  const [clubs, setClubs] = useState(initialClubs);
-  const [search, setSearch] = useState("");
+  const [clubs, setClubs]           = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
-  const [showModal, setShowModal] = useState(false);
-  const [copied, setCopied] = useState(null);
+  const [showModal, setShowModal]   = useState(false);
+  const [copied, setCopied]         = useState(null);
+
+  useEffect(() => {
+    loadClubs().then((data) => { setClubs(data); setLoading(false); });
+  }, []);
 
   const filtered = clubs.filter((c) => {
     const matchSearch =
       !search ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.name?.toLowerCase().includes(search.toLowerCase()) ||
       c.city?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "todos" || c.status === filterStatus;
     return matchSearch && matchStatus;
@@ -242,8 +247,15 @@ export default function AdminClubsManagerPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const handleCreate = (club) => {
-    setClubs((prev) => [club, ...prev]);
+  const handleCreate = async (clubData) => {
+    const saved = await saveClub(clubData);
+    setClubs((prev) => [saved, ...prev]);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("¿Eliminar este club?")) return;
+    await deleteClub(id);
+    setClubs((prev) => prev.filter((c) => c.id !== id));
   };
 
   return (
