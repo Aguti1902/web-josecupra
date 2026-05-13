@@ -35,7 +35,7 @@ import {
   ImagePlus,
   MapPin,
 } from "lucide-react";
-import { loadClubs, saveClubDetail, loadClubDetail, loadMedia } from "../../lib/adminStorage";
+import { loadClubs, saveClubDetail, loadClubDetail, loadMedia, createClubUser } from "../../lib/adminStorage";
 
 const ROLES = [
   { id: "coordinador", label: "Coordinador", icon: Crown, color: "text-depro-blue bg-depro-blue/10" },
@@ -68,9 +68,11 @@ const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 function NewTeamModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
     name: "", category: "Juvenil", season: "2024/25",
-    coachName: "", coachEmail: "",
+    coachName: "", coachEmail: "", coachPassword: generatePassword(),
     trainingDays: [],
   });
+  const [loading, setLoading] = useState(false);
+  const [createdUser, setCreatedUser] = useState(null); // credenciales creadas para mostrar al admin
 
   const toggleDay = (day) => {
     setForm((f) => ({
@@ -81,6 +83,97 @@ function NewTeamModal({ onClose, onCreate }) {
     }));
   };
 
+  const handleCreate = async () => {
+    if (!form.name) return;
+    setLoading(true);
+
+    // Crear usuario en Supabase Auth si se proporcionó email
+    let userCreated = false;
+    if (form.coachEmail && form.coachPassword) {
+      const result = await createClubUser({
+        email: form.coachEmail,
+        password: form.coachPassword,
+        name: form.coachName,
+        role: "club",
+      });
+      userCreated = result.ok;
+    }
+
+    onCreate({
+      id: `t${Date.now()}`,
+      name: form.name,
+      category: form.category,
+      season: form.season,
+      players: 0,
+      trainingDays: form.trainingDays,
+      coach: form.coachName ? {
+        name: form.coachName,
+        email: form.coachEmail,
+        password: form.coachPassword,
+        role: "entrenador",
+        userCreated,
+      } : null,
+      assistantCoach: null,
+    });
+
+    // Mostrar credenciales si se creó el usuario
+    if (form.coachEmail) {
+      setCreatedUser({ name: form.coachName, email: form.coachEmail, password: form.coachPassword });
+    } else {
+      onClose();
+    }
+    setLoading(false);
+  };
+
+  // Pantalla de confirmación con credenciales
+  if (createdUser) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
+          <div className="p-6 text-center">
+            <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle size={28} className="text-green-500" />
+            </div>
+            <h2 className="font-bold text-depro-dark text-lg mb-1">Equipo y usuario creados</h2>
+            <p className="text-sm text-depro-gray mb-5">
+              Guarda estas credenciales y compártelas con el entrenador. No podrás volver a ver la contraseña.
+            </p>
+            <div className="bg-depro-gray-light rounded-xl p-4 text-left space-y-3 mb-5">
+              {createdUser.name && (
+                <div>
+                  <p className="text-xs text-depro-gray mb-0.5">Nombre</p>
+                  <p className="font-semibold text-depro-dark">{createdUser.name}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-depro-gray mb-0.5">Email (usuario)</p>
+                <p className="font-semibold text-depro-dark font-mono">{createdUser.email}</p>
+              </div>
+              <div>
+                <p className="text-xs text-depro-gray mb-0.5">Contraseña</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-depro-dark font-mono text-lg tracking-wider">{createdUser.password}</p>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(createdUser.password)}
+                    className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors"
+                  >
+                    <Copy size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-full py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors"
+            >
+              Entendido, cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-depro w-full max-w-md my-auto">
@@ -88,7 +181,7 @@ function NewTeamModal({ onClose, onCreate }) {
           <h2 className="font-bold text-depro-dark text-lg">Añadir equipo</h2>
           <button onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
         </div>
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
           <div>
             <label className="block text-sm font-medium text-depro-dark mb-1">Nombre del equipo *</label>
             <input
@@ -140,8 +233,10 @@ function NewTeamModal({ onClose, onCreate }) {
             </div>
           </div>
 
+          {/* Entrenador */}
           <div className="pt-2 border-t border-depro-border">
-            <p className="text-sm font-medium text-depro-dark mb-3">Entrenador principal</p>
+            <p className="text-sm font-medium text-depro-dark mb-1">Entrenador principal</p>
+            <p className="text-xs text-depro-gray mb-3">Se creará su cuenta de acceso automáticamente.</p>
             <div className="space-y-3">
               <input
                 className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
@@ -156,30 +251,37 @@ function NewTeamModal({ onClose, onCreate }) {
                 value={form.coachEmail}
                 onChange={(e) => setForm((f) => ({ ...f, coachEmail: e.target.value }))}
               />
+              <div>
+                <label className="block text-xs text-depro-gray mb-1">Contraseña de acceso</label>
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 border border-depro-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    value={form.coachPassword}
+                    onChange={(e) => setForm((f) => ({ ...f, coachPassword: e.target.value }))}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, coachPassword: generatePassword() }))}
+                    className="px-3 py-2 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
+                    title="Generar nueva contraseña"
+                  >
+                    <RefreshCw size={14} />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <div className="flex gap-3 p-6 border-t border-depro-border">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">Cancelar</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">
+            Cancelar
+          </button>
           <button
-            onClick={() => {
-              if (!form.name) return;
-              onCreate({
-                id: `t${Date.now()}`,
-                name: form.name,
-                category: form.category,
-                season: form.season,
-                players: 0,
-                trainingDays: form.trainingDays,
-                coach: form.coachName ? { name: form.coachName, email: form.coachEmail, role: "entrenador" } : null,
-                assistantCoach: null,
-              });
-              onClose();
-            }}
-            disabled={!form.name}
-            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40"
+            onClick={handleCreate}
+            disabled={!form.name || loading}
+            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
           >
-            Crear equipo
+            {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creando…</> : "Crear equipo"}
           </button>
         </div>
       </div>
