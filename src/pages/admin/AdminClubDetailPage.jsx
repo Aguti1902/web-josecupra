@@ -1015,12 +1015,15 @@ function IdentidadTab({ club, onSave }) {
 
         {/* Colores */}
         <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-5">
-          <h3 className="font-semibold text-depro-dark flex items-center gap-2">
-            <Palette size={16} className="text-depro-blue" />
-            Colores corporativos
-          </h3>
-          <ColorPicker label="Color principal" value={primaryColor} onChange={setPrimary} />
-          <ColorPicker label="Color secundario / texto" value={secondaryColor} onChange={setSecond} />
+          <div>
+            <h3 className="font-semibold text-depro-dark flex items-center gap-2">
+              <Palette size={16} className="text-depro-blue" />
+              Colores corporativos
+            </h3>
+            <p className="text-xs text-depro-gray mt-0.5">Los dos colores del club que se usarán en su interfaz privada.</p>
+          </div>
+          <ColorPicker label="Color 1 — Principal" value={primaryColor} onChange={setPrimary} />
+          <ColorPicker label="Color 2 — Secundario" value={secondaryColor} onChange={setSecond} />
         </div>
       </div>
 
