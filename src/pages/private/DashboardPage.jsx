@@ -93,25 +93,61 @@ function ClubBanner({ club, team, teamRole, accent, secondColor }) {
   );
 }
 
-// ── Stat card ────────────────────────────────────────────────
-function StatCard({ label, value, sub, icon: Icon, color }) {
+// ── Stat card con colores del club ──────────────────────────
+function StatCard({ label, value, sub, icon: Icon, accent, secondary }) {
+  const textOnAccent = contrastText(accent);
   return (
-    <div className="bg-white border border-depro-border rounded-xl p-4 hover:shadow-md transition-all">
+    <div
+      className="rounded-xl p-4 hover:shadow-md transition-all border"
+      style={{ backgroundColor: accent, borderColor: accent }}
+    >
       <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: color + "15" }}>
-          <Icon size={20} style={{ color }} />
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+        >
+          <Icon size={20} style={{ color: textOnAccent }} />
+        </div>
+        <TrendingUp size={13} style={{ color: "rgba(255,255,255,0.6)" }} className="mt-1" />
+      </div>
+      <div className="text-2xl font-black" style={{ color: textOnAccent }}>{value ?? "—"}</div>
+      <div className="text-sm mt-0.5" style={{ color: textOnAccent + "CC" }}>{label}</div>
+      {sub && <div className="text-xs mt-0.5 font-bold" style={{ color: textOnAccent + "99" }}>{sub}</div>}
+    </div>
+  );
+}
+
+// ── Stat card variante secundaria ────────────────────────────
+function StatCardSecondary({ label, value, sub, icon: Icon, accent, secondary }) {
+  const textOnSecondary = contrastText(secondary || "#ffffff");
+  const isWhite = (secondary || "#ffffff").toLowerCase() === "#ffffff" || (secondary || "#fff").toLowerCase() === "#fff";
+  return (
+    <div
+      className={`rounded-xl p-4 hover:shadow-md transition-all border ${isWhite ? "border-depro-border" : ""}`}
+      style={{
+        backgroundColor: isWhite ? "#F9FAFB" : secondary,
+        borderColor: isWhite ? undefined : secondary,
+      }}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: accent + "20" }}
+        >
+          <Icon size={20} style={{ color: accent }} />
         </div>
         <TrendingUp size={13} className="text-green-500 mt-1" />
       </div>
-      <div className="text-2xl font-black text-depro-dark">{value ?? "—"}</div>
-      <div className="text-sm text-depro-gray mt-0.5">{label}</div>
-      {sub && <div className="text-xs mt-0.5 font-medium" style={{ color }}>{sub}</div>}
+      <div className="text-2xl font-black" style={{ color: isWhite ? "#111827" : textOnSecondary }}>{value ?? "—"}</div>
+      <div className="text-sm mt-0.5" style={{ color: isWhite ? "#6B7280" : textOnSecondary + "CC" }}>{label}</div>
+      {sub && <div className="text-xs mt-0.5 font-bold" style={{ color: accent }}>{sub}</div>}
     </div>
   );
 }
 
 // ── Training days pill strip ─────────────────────────────────
-function TrainingDaysPills({ days = [], accent }) {
+function TrainingDaysPills({ days = [], accent, secondary }) {
+  const textOnAccent = contrastText(accent);
   return (
     <div className="flex gap-1.5 flex-wrap">
       {DAYS_FULL.map((day, i) => (
@@ -120,13 +156,31 @@ function TrainingDaysPills({ days = [], accent }) {
           className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold"
           style={
             days.includes(day)
-              ? { backgroundColor: accent, color: "#fff" }
+              ? { backgroundColor: accent, color: textOnAccent }
               : { backgroundColor: "#F3F4F6", color: "#9CA3AF" }
           }
         >
           {DAY_SHORT[i]}
         </span>
       ))}
+    </div>
+  );
+}
+
+// ── Section heading with accent stripe ──────────────────────
+function SectionHeading({ title, accent, count }) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <div className="w-1 h-6 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
+      <h3 className="font-bold text-depro-dark text-lg flex-1">{title}</h3>
+      {count !== undefined && (
+        <span
+          className="text-xs font-bold px-2.5 py-1 rounded-full"
+          style={{ backgroundColor: accent + "15", color: accent }}
+        >
+          {count}
+        </span>
+      )}
     </div>
   );
 }
@@ -141,58 +195,75 @@ function CoordinadorDashboard({ club, accent, secondColor }) {
 
   return (
     <div className="space-y-6">
-      {/* Stats globales del club */}
+      {/* Stats globales del club — alternando primary y secondary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Equipos" value={teams.length} sub="en el club" icon={Shield} color={accent} />
-        <StatCard label="Jugadores" value={totalPlayers} sub="en total" icon={Users} color="#3BC21D" />
-        <StatCard label="Microciclos" value={(club?.plans || []).length} sub="planificados" icon={ClipboardList} color="#F6CC12" />
-        <StatCard label="Sesiones" value={totalSessions} sub="en planificación" icon={Calendar} color="#FB2C39" />
+        <StatCard label="Equipos" value={teams.length} sub="en el club" icon={Shield} accent={accent} secondary={secondColor} />
+        <StatCardSecondary label="Jugadores" value={totalPlayers} sub="en total" icon={Users} accent={accent} secondary={secondColor} />
+        <StatCard label="Microciclos" value={(club?.plans || []).length} sub="planificados" icon={ClipboardList} accent={accent} secondary={secondColor} />
+        <StatCardSecondary label="Sesiones" value={totalSessions} sub="en planificación" icon={Calendar} accent={accent} secondary={secondColor} />
       </div>
 
       {/* Equipos */}
       <div>
-        <h3 className="font-bold text-depro-dark text-lg mb-4">Equipos del club</h3>
+        <SectionHeading title="Equipos del club" accent={accent} count={teams.length} />
         {teams.length === 0 ? (
-          <div className="text-center py-14 border border-dashed border-depro-border rounded-2xl text-depro-gray">
-            <Shield size={36} className="mx-auto mb-3 opacity-30" />
-            <p className="font-medium">Sin equipos todavía</p>
-            <p className="text-sm mt-1">El administrador aún no ha añadido equipos a este club.</p>
+          <div
+            className="text-center py-14 border-2 border-dashed rounded-2xl"
+            style={{ borderColor: accent + "30" }}
+          >
+            <Shield size={36} className="mx-auto mb-3" style={{ color: accent + "50" }} />
+            <p className="font-medium text-depro-dark">Sin equipos todavía</p>
+            <p className="text-sm mt-1 text-depro-gray">El administrador aún no ha añadido equipos a este club.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {teams.map((team) => {
               const teamPlans = (club?.plans || []).filter((mc) => !mc.teamId || mc.teamId === team.id);
               return (
-                <div key={team.id} className="bg-white border border-depro-border rounded-xl p-5 space-y-3 hover:shadow-md transition-all">
+                <div
+                  key={team.id}
+                  className="bg-white rounded-xl p-5 space-y-3 hover:shadow-md transition-all border"
+                  style={{ borderColor: accent + "25", borderTopWidth: "3px", borderTopColor: accent }}
+                >
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-bold text-depro-dark">{team.name}</h4>
                       <p className="text-xs text-depro-gray mt-0.5">{team.category} · {team.season}</p>
                     </div>
                     <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: accent + "15", color: accent }}
+                      className="text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: accent, color: contrastText(accent) }}
                     >
-                      {team.players || 0} jugadores
+                      {team.players || 0} jug.
                     </span>
                   </div>
 
                   {team.trainingDays?.length > 0 && (
-                    <TrainingDaysPills days={team.trainingDays} accent={accent} />
+                    <TrainingDaysPills days={team.trainingDays} accent={accent} secondary={secondColor} />
                   )}
 
                   {team.coach && (
-                    <div className="flex items-center gap-2 text-xs text-depro-gray pt-1 border-t border-depro-border">
-                      <UserCheck size={12} />
+                    <div
+                      className="flex items-center gap-2 text-xs pt-2 border-t"
+                      style={{ borderColor: accent + "20" }}
+                    >
+                      <UserCheck size={12} style={{ color: accent }} />
                       <span className="font-medium text-depro-dark">{team.coach.name}</span>
+                      <span
+                        className="ml-auto text-xs px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: accent + "10", color: accent }}
+                      >Entrenador</span>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-xs text-depro-gray pt-1 border-t border-depro-border">
-                    <span className="flex items-center gap-1"><ClipboardList size={11} /> {teamPlans.length} microciclos</span>
+                  <div
+                    className="flex items-center justify-between text-xs pt-2 border-t"
+                    style={{ borderColor: accent + "20" }}
+                  >
+                    <span className="flex items-center gap-1 text-depro-gray"><ClipboardList size={11} /> {teamPlans.length} microciclos</span>
                     <Link
                       to="/dashboard/plan"
-                      className="flex items-center gap-1 font-semibold hover:underline"
+                      className="flex items-center gap-1 font-bold hover:underline"
                       style={{ color: accent }}
                     >
                       Ver plan <ChevronRight size={11} />
@@ -208,19 +279,26 @@ function CoordinadorDashboard({ club, accent, secondColor }) {
       {/* Planificación global */}
       {(club?.plans || []).length > 0 && (
         <div>
-          <h3 className="font-bold text-depro-dark text-lg mb-4">Microciclos activos</h3>
+          <SectionHeading title="Microciclos activos" accent={accent} count={(club.plans || []).length} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {(club.plans || []).slice(0, 4).map((mc) => {
               const teamName = teams.find((t) => t.id === mc.teamId)?.name || "Todos los equipos";
               return (
-                <div key={mc.id} className="bg-white border border-depro-border rounded-xl p-5">
+                <div
+                  key={mc.id}
+                  className="bg-white border rounded-xl p-5"
+                  style={{ borderColor: accent + "25", borderLeftWidth: "3px", borderLeftColor: accent }}
+                >
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
                     <h4 className="font-semibold text-depro-dark">{mc.name}</h4>
-                    <span className="ml-auto text-xs text-depro-gray bg-depro-gray-light px-2 py-0.5 rounded-full">{teamName}</span>
+                    <span
+                      className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: accent + "15", color: accent }}
+                    >{teamName}</span>
                   </div>
                   <p className="text-sm text-depro-gray mb-2">{mc.objective || "Sin objetivo definido"}</p>
-                  <div className="text-xs text-depro-gray flex items-center gap-1">
+                  <div className="text-xs flex items-center gap-1 font-medium" style={{ color: accent }}>
                     <Activity size={11} /> {(mc.sessions || []).length} sesiones
                   </div>
                 </div>
@@ -236,20 +314,17 @@ function CoordinadorDashboard({ club, accent, secondColor }) {
 // ════════════════════════════════════════════════════════════
 // ENTRENADOR / AYUDANTE DASHBOARD
 // ════════════════════════════════════════════════════════════
-function EntrenadorDashboard({ club, team, teamRole, accent }) {
+function EntrenadorDashboard({ club, team, teamRole, accent, secondColor }) {
   const [players, setPlayers] = useState([]);
 
   useEffect(() => {
-    // Buscar jugadores que pertenecen a este club en Supabase (profiles con role player y clubId)
     if (!club?.id) return;
     import("../../lib/supabase").then(({ supabase: sb }) => {
       sb.from("profiles")
         .select("id, name, avatar, plan, position, level")
         .eq("role", "player")
         .then(({ data }) => {
-          // También buscar en localStorage los jugadores que se unieron con código
           const allClubPlayers = (data || []).filter((p) => {
-            // Comprobar en localStorage si este jugador tiene este club
             const saved = localStorage.getItem(`depro_player_club_${p.id}`);
             return saved === club.id;
           });
@@ -266,33 +341,33 @@ function EntrenadorDashboard({ club, team, teamRole, accent }) {
   const nextSession = myPlans.flatMap((mc) => mc.sessions || [])[0] || null;
 
   const quickLinks = [
-    { to: "/dashboard/plan", label: "Planificación semanal", icon: ClipboardList },
-    { to: "/dashboard/squad", label: "Plantilla", icon: Users },
-    { to: "/dashboard/tactical", label: "Guía táctica", icon: BookOpen },
-    { to: "/dashboard/mesocycle", label: "Mesociclo", icon: Activity },
+    { to: "/dashboard/plan",      label: "Planificación semanal", icon: ClipboardList },
+    { to: "/dashboard/squad",     label: "Plantilla",             icon: Users },
+    { to: "/dashboard/tactics",   label: "Guía táctica",          icon: BookOpen },
+    { to: "/dashboard/mesocycle", label: "Mesociclo",             icon: Activity },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Stats del equipo */}
+      {/* Stats del equipo — alternando primary y secondary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Jugadores" value={team?.players || "—"} sub={team?.name} icon={Users} color={accent} />
-        <StatCard label="Microciclos" value={myPlans.length} sub="asignados" icon={ClipboardList} color="#3BC21D" />
-        <StatCard label="Sesiones" value={myPlans.reduce((s, mc) => s + (mc.sessions?.length || 0), 0)} sub="en total" icon={Calendar} color="#F6CC12" />
-        <StatCard label="Categoría" value={team?.category || "—"} sub={team?.season} icon={Shield} color="#0A36F7" />
+        <StatCard label="Jugadores" value={team?.players || "—"} sub={team?.name || "equipo"} icon={Users} accent={accent} secondary={secondColor} />
+        <StatCardSecondary label="Microciclos" value={myPlans.length} sub="asignados" icon={ClipboardList} accent={accent} secondary={secondColor} />
+        <StatCard label="Sesiones" value={myPlans.reduce((s, mc) => s + (mc.sessions?.length || 0), 0)} sub="en total" icon={Calendar} accent={accent} secondary={secondColor} />
+        <StatCardSecondary label="Categoría" value={team?.category || "—"} sub={team?.season} icon={Shield} accent={accent} secondary={secondColor} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Próxima sesión */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="font-bold text-depro-dark">Próxima sesión</h3>
+          <SectionHeading title="Próxima sesión" accent={accent} />
           {nextSession ? (
-            <div className="bg-white border border-depro-border rounded-xl p-5">
+            <div className="bg-white border rounded-xl p-5" style={{ borderColor: accent + "25", borderTopWidth: "3px", borderTopColor: accent }}>
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <span
-                    className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full mb-2"
-                    style={{ backgroundColor: accent + "15", color: accent }}
+                    className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full mb-2"
+                    style={{ backgroundColor: accent, color: contrastText(accent) }}
                   >
                     {nextSession.type || "Sesión"}
                   </span>
@@ -300,16 +375,20 @@ function EntrenadorDashboard({ club, team, teamRole, accent }) {
                   <p className="text-sm text-depro-gray mt-0.5">{nextSession.objective || nextSession.description}</p>
                 </div>
                 {nextSession.duration && (
-                  <div className="flex items-center gap-1 text-depro-gray text-sm flex-shrink-0">
+                  <div className="flex items-center gap-1 text-sm flex-shrink-0 font-medium" style={{ color: accent }}>
                     <Clock size={13} /> {nextSession.duration}
                   </div>
                 )}
               </div>
               {(nextSession.exercises || []).slice(0, 3).map((ex, i) => (
-                <div key={i} className="flex items-center gap-3 py-2 px-3 bg-depro-gray-light rounded-xl mb-2">
+                <div
+                  key={i}
+                  className="flex items-center gap-3 py-2 px-3 rounded-xl mb-2"
+                  style={{ backgroundColor: accent + "08" }}
+                >
                   <div
                     className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: accent + "20", color: accent }}
+                    style={{ backgroundColor: accent, color: contrastText(accent) }}
                   >
                     {i + 1}
                   </div>
@@ -620,7 +699,7 @@ export default function DashboardPage() {
         <ClubBanner club={club} team={team} teamRole={teamRole} accent={accent} secondColor={secondColor} />
         {teamRole === "coordinador"
           ? <CoordinadorDashboard club={club} accent={accent} secondColor={secondColor} />
-          : <EntrenadorDashboard club={club} team={team} teamRole={teamRole} accent={accent} />
+          : <EntrenadorDashboard club={club} team={team} teamRole={teamRole} accent={accent} secondColor={secondColor} />
         }
       </div>
     );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, Library, Zap, Activity,
@@ -44,6 +44,7 @@ const clubNav = [
 
 export default function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState(null);
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -52,8 +53,24 @@ export default function AppLayout({ children }) {
 
   const club = user?.club;
   const accent = club?.primaryColor || "#0A36F7";
+  const secondary = club?.secondaryColor || "#ffffff";
   const activeTextColor = contrastText(accent);
   const navItems = user?.role === "club" ? clubNav : playerNav;
+
+  // Cargar foto de perfil desde localStorage
+  useEffect(() => {
+    const load = () => {
+      if (!user?.id) return;
+      const key = user.role === "club"
+        ? `depro_club_profile_${user.id}`
+        : `depro_admin_photo`;
+      const p = localStorage.getItem(key);
+      setProfilePhoto(p || null);
+    };
+    load();
+    const iv = setInterval(load, 3000);
+    return () => clearInterval(iv);
+  }, [user?.id, user?.role]);
 
   return (
     <div className="flex h-screen bg-depro-gray-light overflow-hidden">
@@ -64,7 +81,7 @@ export default function AppLayout({ children }) {
         } lg:relative lg:translate-x-0`}
       >
         {/* Club branding */}
-        <div className="p-5 border-b border-depro-border">
+        <div className="p-4 border-b border-depro-border">
           <div className="flex items-center gap-3">
             {club?.logo ? (
               <img
@@ -74,26 +91,25 @@ export default function AppLayout({ children }) {
               />
             ) : (
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 shadow-sm"
-                style={{ backgroundColor: accent + "15", color: accent }}
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0 shadow-sm border border-depro-border"
+                style={{ backgroundColor: accent + "15", color: contrastText(accent + "15") === "#ffffff" ? accent : "#111827" }}
               >
                 {club?.abbreviation || club?.name?.[0] || "D"}
               </div>
             )}
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="text-depro-dark font-bold text-sm truncate">{club?.name || "DEPRO"}</div>
               {user?.role === "club" ? (
-                <>
-                  {user?.team_role === "coordinador" ? (
-                    <div className="text-xs font-semibold mt-0.5" style={{ color: accent }}>Coordinador</div>
-                  ) : user?.team ? (
-                    <div className="text-xs text-depro-gray mt-0.5 truncate">
-                      {user.team.name} · <span className="capitalize">{user.team_role}</span>
-                    </div>
-                  ) : null}
-                </>
+                <span
+                  className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
+                  style={{ backgroundColor: accent, color: activeTextColor }}
+                >
+                  {user?.team_role === "coordinador" ? "Coordinador"
+                    : user?.team_role === "entrenador" ? `${user.team?.name || "Entrenador"}`
+                    : user?.team_role || "Club"}
+                </span>
               ) : (
-                <div className="text-xs font-semibold mt-0.5" style={{ color: accent }}>{user?.plan || "Jugador"}</div>
+                <div className="text-xs text-depro-gray mt-0.5 truncate">{user?.plan || "Jugador"}</div>
               )}
             </div>
           </div>
@@ -130,10 +146,15 @@ export default function AppLayout({ children }) {
         <div className="p-4 border-t border-depro-border">
           <div className="flex items-center gap-3 mb-3">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold"
-              style={{ backgroundColor: accent + "15", color: accent }}
+              className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden border border-depro-border"
+              style={{ backgroundColor: accent + "15" }}
             >
-              {user?.avatar || "?"}
+              {profilePhoto
+                ? <img src={profilePhoto} alt="perfil" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ color: accent }}>
+                    {user?.avatar || "?"}
+                  </div>
+              }
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-depro-dark text-sm font-semibold truncate">{user?.name}</div>
