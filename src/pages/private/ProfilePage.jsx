@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 
@@ -8,8 +8,61 @@ function lsGet(key, fallback) {
   catch { return fallback; }
 }
 
+// Color visible sobre fondo blanco (evita blanco sobre blanco)
+function lum(hex) {
+  try {
+    const h = (hex || "#000").replace("#", "");
+    return (0.299 * parseInt(h.slice(0,2),16) + 0.587 * parseInt(h.slice(2,4),16) + 0.114 * parseInt(h.slice(4,6),16)) / 255;
+  } catch { return 0; }
+}
+function safeColor(color, fallback = "#0A36F7") {
+  return lum(color) > 0.75 ? fallback : (color || fallback);
+}
+function contrastText(hex) { return lum(hex) > 0.55 ? "#111827" : "#ffffff"; }
+
+// Comprimir imagen a base64 (máx 200×200, JPEG 0.75)
+async function compressImage(file, maxPx = 200, quality = 0.75) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const w = Math.round(img.width  * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuth();
+  const fileRef = useRef(null);
+
+  // ── Foto de perfil ──────────────────────────────────────────
+  const photoKey = `depro_player_photo_${user?.id}`;
+  const [profilePhoto, setProfilePhoto] = useState(() => localStorage.getItem(photoKey) || null);
+  const [photoMsg, setPhotoMsg]         = useState("");
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file);
+      localStorage.setItem(photoKey, compressed);
+      setProfilePhoto(compressed);
+      setPhotoMsg("Foto guardada ✓");
+      setTimeout(() => setPhotoMsg(""), 2500);
+    } catch {
+      setPhotoMsg("Error al guardar la foto");
+    }
+  };
 
   // Paso 1: introducir código
   const [clubCode, setClubCode]     = useState("");
@@ -144,8 +197,23 @@ export default function ProfilePage() {
           <User size={18} className="text-depro-blue" /> Mi perfil
         </h2>
         <div className="flex items-center gap-4 mb-5">
-          <div className="w-16 h-16 rounded-2xl bg-depro-blue/10 flex items-center justify-center text-2xl font-black text-depro-blue flex-shrink-0">
-            {user?.avatar || "?"}
+          {/* Avatar con upload */}
+          <div className="relative flex-shrink-0">
+            <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-depro-border bg-depro-blue/10 flex items-center justify-center">
+              {profilePhoto
+                ? <img src={profilePhoto} alt="perfil" className="w-full h-full object-cover" />
+                : <span className="text-2xl font-black text-depro-blue">{user?.avatar || "?"}</span>
+              }
+            </div>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-depro-blue text-white flex items-center justify-center shadow-sm hover:bg-depro-blue-dark transition-colors"
+              title="Cambiar foto"
+            >
+              <Camera size={13} />
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
           </div>
           <div>
             <div className="text-lg font-bold text-depro-dark">{user?.name}</div>
@@ -153,6 +221,7 @@ export default function ProfilePage() {
             <span className="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-depro-blue/10 text-depro-blue">
               {user?.plan || "Jugador"}
             </span>
+            {photoMsg && <div className="text-xs text-green-600 mt-1">{photoMsg}</div>}
           </div>
         </div>
 
@@ -283,40 +352,45 @@ export default function ProfilePage() {
             </div>
 
             {/* Selector de equipo */}
-            {teams.length > 0 ? (
-              <div>
-                <label className="block text-sm font-semibold text-depro-dark mb-2">
-                  Elige tu equipo
-                </label>
-                <div className="space-y-2">
-                  {teams.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setSelectedTeam(t.id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
-                        selectedTeam === t.id
-                          ? "border-2"
-                          : "border-depro-border hover:border-depro-blue/40"
-                      }`}
-                      style={selectedTeam === t.id ? { borderColor: foundClub.primaryColor || "#0A36F7", backgroundColor: (foundClub.primaryColor || "#0A36F7") + "06" } : {}}
-                    >
-                      <div
-                        className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
-                        style={{ backgroundColor: (foundClub.primaryColor || "#0A36F7") + "15", color: foundClub.primaryColor || "#0A36F7" }}
-                      >
-                        {t.name?.[0]?.toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-depro-dark text-sm">{t.name}</div>
-                        {t.category && <div className="text-xs text-depro-gray">{t.category} · {t.season}</div>}
-                        {t.coach?.name && <div className="text-xs text-depro-gray">Entrenador: {t.coach.name}</div>}
-                      </div>
-                      {selectedTeam === t.id && <CheckCircle size={16} style={{ color: foundClub.primaryColor || "#0A36F7" }} />}
-                    </button>
-                  ))}
+            {teams.length > 0 ? (() => {
+              const clubColor = safeColor(foundClub.primaryColor);
+              const clubTextContrast = contrastText(clubColor);
+              return (
+                <div>
+                  <label className="block text-sm font-semibold text-depro-dark mb-2">
+                    Elige tu equipo
+                  </label>
+                  <div className="space-y-2">
+                    {teams.map((t) => {
+                      const isSel = selectedTeam === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => setSelectedTeam(t.id)}
+                          className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                            isSel ? "" : "border-depro-border hover:border-depro-blue/40 bg-white"
+                          }`}
+                          style={isSel ? { borderColor: clubColor, backgroundColor: clubColor + "10" } : {}}
+                        >
+                          <div
+                            className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-black flex-shrink-0"
+                            style={{ backgroundColor: clubColor + "20", color: clubColor }}
+                          >
+                            {t.name?.[0]?.toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-depro-dark text-sm">{t.name}</div>
+                            {t.category && <div className="text-xs text-depro-gray">{t.category}{t.season ? ` · ${t.season}` : ""}</div>}
+                            {t.coach?.name && <div className="text-xs text-depro-gray">Entrenador: {t.coach.name}</div>}
+                          </div>
+                          {isSel && <CheckCircle size={18} style={{ color: clubColor }} className="flex-shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ) : (
+              );
+            })() : (
               <p className="text-sm text-depro-gray bg-depro-gray-light rounded-xl p-3">
                 Este club aún no tiene equipos creados. Contacta con tu coordinador.
               </p>
@@ -325,19 +399,20 @@ export default function ProfilePage() {
             <div className="flex gap-3">
               <button
                 onClick={() => { setFoundClub(null); setTeams([]); setCodeStatus(null); }}
-                className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm text-depro-gray hover:bg-depro-gray-light transition-colors"
+                className="flex-1 py-2.5 rounded-xl border-2 border-depro-border text-sm font-semibold text-depro-dark hover:bg-depro-gray-light transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleJoinTeam}
                 disabled={joining || !selectedTeam}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                style={{ backgroundColor: foundClub.primaryColor || "#0A36F7", color: "#fff" }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-opacity"
+                style={{ backgroundColor: safeColor(foundClub.primaryColor), color: contrastText(safeColor(foundClub.primaryColor)) }}
               >
-                {joining ? <div className="spinner border-white/20 border-t-white w-4 h-4" /> : <>
-                  Unirme al equipo <ChevronRight size={15} />
-                </>}
+                {joining
+                  ? <div className="spinner border-white/20 border-t-white w-4 h-4" />
+                  : <>Unirme al equipo <ChevronRight size={15} /></>
+                }
               </button>
             </div>
           </div>
