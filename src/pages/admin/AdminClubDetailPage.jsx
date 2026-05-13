@@ -1078,6 +1078,8 @@ export default function AdminClubDetailPage() {
   const [showNewMc, setShowNewMc]   = useState(false);
   const [plans, setPlans]           = useState([]);
   const [copied, setCopied]         = useState(false);
+  const [recreating, setRecreating] = useState(false);
+  const [recreateMsg, setRecreateMsg] = useState(null);
 
   useEffect(() => {
     Promise.all([loadClubs(), loadMedia()]).then(([clubs, meds]) => {
@@ -1120,6 +1122,35 @@ export default function AdminClubDetailPage() {
     navigator.clipboard.writeText(club.login_code || club.loginCode || "");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRecreateAccess = async () => {
+    if (!club?.coordinator?.email || !club?.coordinator?.password) {
+      setRecreateMsg({ ok: false, msg: "No hay credenciales guardadas para este coordinador." });
+      return;
+    }
+    setRecreating(true);
+    setRecreateMsg(null);
+    const result = await createClubUser({
+      email: club.coordinator.email,
+      password: club.coordinator.password,
+      name: club.coordinator.name,
+      role: "club",
+      clubId: club.id,
+      teamRole: "coordinador",
+    });
+    setRecreating(false);
+    if (result.ok) {
+      setRecreateMsg({ ok: true, msg: `✓ Acceso creado. El coordinador ya puede entrar con: ${club.coordinator.email}` });
+      setClub((c) => ({ ...c, coordinator: { ...c.coordinator, userCreated: true } }));
+    } else {
+      setRecreateMsg({
+        ok: false,
+        msg: result.error?.includes("already registered")
+          ? "Este email ya existe en Supabase. El coordinador puede intentar entrar directamente o restablecer la contraseña."
+          : `Error: ${result.error}`,
+      });
+    }
   };
 
   const updateClub = (updater) => {
@@ -1214,9 +1245,9 @@ export default function AdminClubDetailPage() {
                 {club.city && <span>{club.city}, {club.country}</span>}
                 <span className="flex items-center gap-1">
                   <Mail size={12} />
-                  {club.coordinator.email}
+                  {club.coordinator?.email || "—"}
                 </span>
-                {club.coordinator.phone && (
+                {club.coordinator?.phone && (
                   <span className="flex items-center gap-1">
                     <Phone size={12} />
                     {club.coordinator.phone}
@@ -1227,6 +1258,44 @@ export default function AdminClubDetailPage() {
                   Alta: {club.createdAt}
                 </span>
               </div>
+
+              {/* Acceso coordinador */}
+              {club.coordinator?.email && (
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <div className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
+                    club.coordinator?.userCreated
+                      ? "bg-green-50 text-green-700 border-green-200"
+                      : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                  }`}>
+                    {club.coordinator?.userCreated ? <CheckCircle size={11} /> : <Clock size={11} />}
+                    {club.coordinator?.userCreated ? "Acceso activo" : "Acceso pendiente"}
+                  </div>
+                  <button
+                    onClick={handleRecreateAccess}
+                    disabled={recreating}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-depro-blue hover:text-depro-blue-dark border border-depro-blue/30 hover:border-depro-blue px-3 py-1 rounded-full transition-colors disabled:opacity-50"
+                  >
+                    {recreating ? <div className="spinner border-depro-blue/20 border-t-depro-blue w-3 h-3" /> : <RefreshCw size={11} />}
+                    {recreating ? "Creando..." : "Recrear acceso"}
+                  </button>
+                  {club.coordinator?.password && (
+                    <button
+                      onClick={() => navigator.clipboard.writeText(`${club.coordinator.email}\n${club.coordinator.password}`)}
+                      className="flex items-center gap-1.5 text-xs text-depro-gray hover:text-depro-dark border border-depro-border px-3 py-1 rounded-full transition-colors"
+                      title="Copiar credenciales"
+                    >
+                      <Copy size={11} /> Copiar credenciales
+                    </button>
+                  )}
+                </div>
+              )}
+              {recreateMsg && (
+                <div className={`mt-2 text-xs px-3 py-2 rounded-lg ${
+                  recreateMsg.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
+                }`}>
+                  {recreateMsg.msg}
+                </div>
+              )}
             </div>
 
             {/* Login code */}
