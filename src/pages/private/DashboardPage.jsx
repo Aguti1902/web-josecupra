@@ -12,15 +12,24 @@ import { weeklyPlan, coachFeedback } from "../../data/mockData";
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-// Contraste automático de texto
-function contrastText(hex) {
+// Luminancia 0–1
+function lum(hex) {
   try {
-    const h = (hex || "#0A36F7").replace("#", "");
+    const h = (hex || "#000").replace("#", "");
     const r = parseInt(h.slice(0, 2), 16);
     const g = parseInt(h.slice(2, 4), 16);
     const b = parseInt(h.slice(4, 6), 16);
-    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55 ? "#111827" : "#ffffff";
-  } catch { return "#ffffff"; }
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  } catch { return 0; }
+}
+
+function contrastText(hex) {
+  return lum(hex) > 0.55 ? "#111827" : "#ffffff";
+}
+
+// Devuelve el color si es oscuro suficiente sobre blanco, si no devuelve el fallback
+function visibleOnWhite(color, fallback = "#0A36F7") {
+  return lum(color) > 0.75 ? fallback : color;
 }
 
 // ── Shared header banner ─────────────────────────────────────
@@ -28,9 +37,15 @@ function ClubBanner({ club, team, teamRole, accent, secondColor }) {
   const roleLabel = { coordinador: "Coordinador", entrenador: "Entrenador", ayudante: "Ayudante técnico" };
   const RoleIcon = { coordinador: Crown, entrenador: UserCheck, ayudante: Dumbbell }[teamRole] || UserCheck;
   const hasBanner = !!club?.banner;
-  // Si hay banner, texto siempre blanco (sobre imagen oscurecida). Si no, usar secondColor o contraste.
-  const textColor = hasBanner ? "#ffffff" : (secondColor || contrastText(accent));
-  const mutedColor = hasBanner ? "rgba(255,255,255,0.75)" : (textColor + "AA");
+
+  // Color seguro para el fondo del banner cuando no hay imagen
+  const safeBg = lum(accent) > 0.75
+    ? (lum(secondColor) > 0.75 ? "#1E3A8A" : secondColor)
+    : accent;
+
+  // Texto: si hay banner siempre blanco. Si no, contraste sobre el safeBg
+  const textColor = hasBanner ? "#ffffff" : contrastText(safeBg);
+  const mutedColor = hasBanner ? "rgba(255,255,255,0.75)" : (textColor === "#ffffff" ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.55)");
 
   return (
     <div
@@ -38,7 +53,7 @@ function ClubBanner({ club, team, teamRole, accent, secondColor }) {
       style={{
         background: hasBanner
           ? `url(${club.banner}) center/cover no-repeat`
-          : `linear-gradient(135deg, ${accent} 0%, ${accent}DD 100%)`,
+          : `linear-gradient(135deg, ${safeBg} 0%, ${safeBg}DD 100%)`,
         minHeight: "120px",
       }}
     >
@@ -93,19 +108,37 @@ function ClubBanner({ club, team, teamRole, accent, secondColor }) {
   );
 }
 
-// ── Stat card con colores del club ──────────────────────────
+// ── Stat card — se adapta: relleno si el color es oscuro, borde si es claro ──
 function StatCard({ label, value, sub, icon: Icon, accent, secondary }) {
+  const safeAccent = visibleOnWhite(accent, visibleOnWhite(secondary, "#0A36F7"));
+  const isLight = lum(accent) > 0.75;
+
+  if (isLight) {
+    // Modo borde: fondo blanco con borde y acentos en color
+    return (
+      <div
+        className="bg-white rounded-xl p-4 hover:shadow-md transition-all border-2"
+        style={{ borderColor: safeAccent }}
+      >
+        <div className="flex items-start justify-between mb-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: safeAccent + "15" }}>
+            <Icon size={20} style={{ color: safeAccent }} />
+          </div>
+          <TrendingUp size={13} className="text-green-500 mt-1" />
+        </div>
+        <div className="text-2xl font-black text-depro-dark">{value ?? "—"}</div>
+        <div className="text-sm text-depro-gray mt-0.5">{label}</div>
+        {sub && <div className="text-xs mt-0.5 font-bold" style={{ color: safeAccent }}>{sub}</div>}
+      </div>
+    );
+  }
+
+  // Modo relleno: fondo con el color del club
   const textOnAccent = contrastText(accent);
   return (
-    <div
-      className="rounded-xl p-4 hover:shadow-md transition-all border"
-      style={{ backgroundColor: accent, borderColor: accent }}
-    >
+    <div className="rounded-xl p-4 hover:shadow-md transition-all border" style={{ backgroundColor: accent, borderColor: accent }}>
       <div className="flex items-start justify-between mb-3">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-        >
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
           <Icon size={20} style={{ color: textOnAccent }} />
         </div>
         <TrendingUp size={13} style={{ color: "rgba(255,255,255,0.6)" }} className="mt-1" />
@@ -119,28 +152,38 @@ function StatCard({ label, value, sub, icon: Icon, accent, secondary }) {
 
 // ── Stat card variante secundaria ────────────────────────────
 function StatCardSecondary({ label, value, sub, icon: Icon, accent, secondary }) {
-  const textOnSecondary = contrastText(secondary || "#ffffff");
-  const isWhite = (secondary || "#ffffff").toLowerCase() === "#ffffff" || (secondary || "#fff").toLowerCase() === "#fff";
-  return (
-    <div
-      className={`rounded-xl p-4 hover:shadow-md transition-all border ${isWhite ? "border-depro-border" : ""}`}
-      style={{
-        backgroundColor: isWhite ? "#F9FAFB" : secondary,
-        borderColor: isWhite ? undefined : secondary,
-      }}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: accent + "20" }}
-        >
-          <Icon size={20} style={{ color: accent }} />
+  const safeAccent = visibleOnWhite(accent, visibleOnWhite(secondary, "#0A36F7"));
+  const secLight = lum(secondary) > 0.75;
+
+  if (secLight) {
+    // Secundario claro → usar fondo muy suave con borde del color primario visible
+    return (
+      <div className="bg-depro-gray-light rounded-xl p-4 hover:shadow-md transition-all border border-depro-border">
+        <div className="flex items-start justify-between mb-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: safeAccent + "20" }}>
+            <Icon size={20} style={{ color: safeAccent }} />
+          </div>
+          <TrendingUp size={13} className="text-green-500 mt-1" />
         </div>
-        <TrendingUp size={13} className="text-green-500 mt-1" />
+        <div className="text-2xl font-black text-depro-dark">{value ?? "—"}</div>
+        <div className="text-sm text-depro-gray mt-0.5">{label}</div>
+        {sub && <div className="text-xs mt-0.5 font-bold" style={{ color: safeAccent }}>{sub}</div>}
       </div>
-      <div className="text-2xl font-black" style={{ color: isWhite ? "#111827" : textOnSecondary }}>{value ?? "—"}</div>
-      <div className="text-sm mt-0.5" style={{ color: isWhite ? "#6B7280" : textOnSecondary + "CC" }}>{label}</div>
-      {sub && <div className="text-xs mt-0.5 font-bold" style={{ color: accent }}>{sub}</div>}
+    );
+  }
+
+  const textOnSec = contrastText(secondary);
+  return (
+    <div className="rounded-xl p-4 hover:shadow-md transition-all border" style={{ backgroundColor: secondary, borderColor: secondary }}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
+          <Icon size={20} style={{ color: textOnSec }} />
+        </div>
+        <TrendingUp size={13} style={{ color: "rgba(255,255,255,0.6)" }} className="mt-1" />
+      </div>
+      <div className="text-2xl font-black" style={{ color: textOnSec }}>{value ?? "—"}</div>
+      <div className="text-sm mt-0.5" style={{ color: textOnSec + "CC" }}>{label}</div>
+      {sub && <div className="text-xs mt-0.5 font-bold" style={{ color: textOnSec + "99" }}>{sub}</div>}
     </div>
   );
 }

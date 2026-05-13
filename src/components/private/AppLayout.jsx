@@ -18,18 +18,26 @@ const playerNav = [
   { to: "/dashboard/profile",   icon: User,            label: "Mi perfil" },
 ];
 
-// Calcula si un color hex es claro u oscuro y devuelve el color de texto contrastante
-function contrastText(hex) {
+// Luminancia 0-1 de un color hex
+function luminance(hex) {
   try {
-    const h = hex.replace("#", "");
-    const r = parseInt(h.substring(0, 2), 16);
-    const g = parseInt(h.substring(2, 4), 16);
-    const b = parseInt(h.substring(4, 6), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.55 ? "#111827" : "#ffffff";
-  } catch {
-    return "#ffffff";
-  }
+    const h = (hex || "#000").replace("#", "");
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  } catch { return 0; }
+}
+
+// Contraste de texto para poner SOBRE un color de fondo
+function contrastText(hex) {
+  return luminance(hex) > 0.55 ? "#111827" : "#ffffff";
+}
+
+// Elige el color más visible para usar como color de acento visible sobre FONDO BLANCO.
+// Si el color es demasiado claro (blanco, crema…) devuelve el fallback.
+function visibleOnWhite(color, fallback = "#0A36F7") {
+  return luminance(color) > 0.75 ? fallback : color;
 }
 
 const clubNav = [
@@ -52,9 +60,15 @@ export default function AppLayout({ children }) {
   const handleLogout = () => { logout(); navigate("/"); };
 
   const club = user?.club;
-  const accent = club?.primaryColor || "#0A36F7";
-  const secondary = club?.secondaryColor || "#ffffff";
-  const activeTextColor = contrastText(accent);
+  // Colores del club
+  const rawAccent    = club?.primaryColor   || "#0A36F7";
+  const rawSecondary = club?.secondaryColor || "#ffffff";
+  // Para elementos sobre fondo BLANCO del sidebar usamos el color que sea visible
+  const sidebarAccent = visibleOnWhite(rawAccent, visibleOnWhite(rawSecondary, "#0A36F7"));
+  // Para elementos sobre fondo de color (banner, cards rellenas) usamos el raw
+  const accent        = rawAccent;
+  const secondary     = rawSecondary;
+  const activeTextColor = contrastText(sidebarAccent);
   const navItems = user?.role === "club" ? clubNav : playerNav;
 
   // Cargar foto de perfil desde localStorage
@@ -92,7 +106,7 @@ export default function AppLayout({ children }) {
             ) : (
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0 shadow-sm border border-depro-border"
-                style={{ backgroundColor: accent + "15", color: contrastText(accent + "15") === "#ffffff" ? accent : "#111827" }}
+                style={{ backgroundColor: sidebarAccent + "15", color: sidebarAccent }}
               >
                 {club?.abbreviation || club?.name?.[0] || "D"}
               </div>
@@ -102,14 +116,14 @@ export default function AppLayout({ children }) {
               {user?.role === "club" ? (
                 <span
                   className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
-                  style={{ backgroundColor: accent, color: activeTextColor }}
+                  style={{ backgroundColor: sidebarAccent, color: contrastText(sidebarAccent) }}
                 >
                   {user?.team_role === "coordinador" ? "Coordinador"
                     : user?.team_role === "entrenador" ? `${user.team?.name || "Entrenador"}`
                     : user?.team_role || "Club"}
                 </span>
               ) : (
-                <div className="text-xs text-depro-gray mt-0.5 truncate">{user?.plan || "Jugador"}</div>
+                <div className="text-xs font-semibold mt-0.5" style={{ color: sidebarAccent }}>{user?.plan || "Jugador"}</div>
               )}
             </div>
           </div>
@@ -131,7 +145,7 @@ export default function AppLayout({ children }) {
                       ? "shadow-sm"
                       : "text-depro-gray hover:text-depro-dark hover:bg-depro-gray-light"
                   }`}
-                  style={active ? { backgroundColor: accent, color: activeTextColor } : {}}
+                  style={active ? { backgroundColor: sidebarAccent, color: contrastText(sidebarAccent) } : {}}
                 >
                   <item.icon size={18} />
                   {item.label}
@@ -147,11 +161,11 @@ export default function AppLayout({ children }) {
           <div className="flex items-center gap-3 mb-3">
             <div
               className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden border border-depro-border"
-              style={{ backgroundColor: accent + "15" }}
+              style={{ backgroundColor: sidebarAccent + "15" }}
             >
               {profilePhoto
                 ? <img src={profilePhoto} alt="perfil" className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ color: accent }}>
+                :               <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ color: sidebarAccent }}>
                     {user?.avatar || "?"}
                   </div>
               }
