@@ -69,7 +69,7 @@ function NewTeamModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
     name: "", category: "Juvenil", season: "2024/25",
     coachName: "", coachEmail: "",
-    trainingDays: [], trainingTime: "18:00", trainingLocation: "",
+    trainingDays: [],
   });
 
   const toggleDay = (day) => {
@@ -140,26 +140,6 @@ function NewTeamModal({ onClose, onCreate }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-depro-dark mb-1">Hora de entreno</label>
-              <input
-                type="time"
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                value={form.trainingTime}
-                onChange={(e) => setForm((f) => ({ ...f, trainingTime: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-depro-dark mb-1">Campo / Instalación</label>
-              <input
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                placeholder="Campo Municipal"
-                value={form.trainingLocation}
-                onChange={(e) => setForm((f) => ({ ...f, trainingLocation: e.target.value }))}
-              />
-            </div>
-          </div>
           <div className="pt-2 border-t border-depro-border">
             <p className="text-sm font-medium text-depro-dark mb-3">Entrenador principal</p>
             <div className="space-y-3">
@@ -191,8 +171,6 @@ function NewTeamModal({ onClose, onCreate }) {
                 season: form.season,
                 players: 0,
                 trainingDays: form.trainingDays,
-                trainingTime: form.trainingTime,
-                trainingLocation: form.trainingLocation,
                 coach: form.coachName ? { name: form.coachName, email: form.coachEmail, role: "entrenador" } : null,
                 assistantCoach: null,
               });
@@ -1276,16 +1254,6 @@ export default function AdminClubDetailPage() {
                           {DAY_SHORT[i]}
                         </span>
                       ))}
-                      {team.trainingTime && (
-                        <span className="ml-1 text-xs text-depro-gray flex items-center gap-1">
-                          <Clock size={11} /> {team.trainingTime}
-                        </span>
-                      )}
-                      {team.trainingLocation && (
-                        <span className="text-xs text-depro-gray flex items-center gap-1">
-                          <MapPin size={11} /> {team.trainingLocation}
-                        </span>
-                      )}
                     </div>
                   )}
 
