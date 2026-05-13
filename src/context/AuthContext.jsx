@@ -46,7 +46,15 @@ function loadClubDataFromStorage(meta) {
 // Carga el club de un jugador si ha introducido un código de club
 function loadPlayerClubFromStorage(userId) {
   try {
-    const clubId = localStorage.getItem(`depro_player_club_${userId}`);
+    const raw = localStorage.getItem(`depro_player_club_${userId}`);
+    if (!raw) return null;
+    // Soportar formato antiguo (string) y nuevo ({ clubId, teamId })
+    let clubId, teamId;
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed === "object") { clubId = parsed.clubId; teamId = parsed.teamId; }
+      else clubId = parsed;
+    } catch { clubId = raw; }
     if (!clubId) return null;
 
     const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");

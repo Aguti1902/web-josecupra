@@ -453,17 +453,30 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
 // ENTRENADOR / AYUDANTE DASHBOARD
 // ════════════════════════════════════════════════════════════
 function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack }) {
-  const [players, setPlayers] = useState([]);
+  const [squadPlayers, setSquadPlayers]  = useState([]); // añadidos manualmente
+  const [regPlayers, setRegPlayers]      = useState([]); // jugadores registrados (Stripe)
+  const players = [...squadPlayers, ...regPlayers.map((p) => ({ ...p, _registered: true }))];
+
   // Color seguro sobre fondo blanco
   const sa = visibleOnWhite(accent, visibleOnWhite(secondColor, "#0A36F7"));
 
+  // Jugadores manuales del squad
   useEffect(() => {
     if (!club?.id || !team?.id) return;
     try {
       const raw = localStorage.getItem(`depro_squad_${club.id}_${team.id}`);
-      setPlayers(JSON.parse(raw || "[]"));
-    } catch { setPlayers([]); }
+      setSquadPlayers(JSON.parse(raw || "[]"));
+    } catch { setSquadPlayers([]); }
   }, [club?.id, team?.id]);
+
+  // Jugadores registrados con plan de pago que se han unido a este equipo
+  useEffect(() => {
+    if (!team?.id) return;
+    fetch(`/api/team-players?teamId=${team.id}`)
+      .then((r) => r.ok ? r.json() : { players: [] })
+      .then(({ players: list }) => setRegPlayers(list || []))
+      .catch(() => setRegPlayers([]));
+  }, [team?.id]);
 
   const allPlans = club?.plans || [];
   const myPlans = team
@@ -614,9 +627,15 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
                       <div className="text-sm font-medium text-depro-dark truncate">{p.name}</div>
                       {p.position && <div className="text-xs text-depro-gray">{p.position}</div>}
                     </div>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: sa + "15", color: sa }}>
-                      {p.number ? `#${p.number}` : p.position || "—"}
-                    </span>
+                    {p._registered ? (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">
+                        {p.plan || "Premium"}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: sa + "15", color: sa }}>
+                        {p.number ? `#${p.number}` : p.position || "—"}
+                      </span>
+                    )}
                   </div>
                 ))}
                 {players.length > 6 && (
