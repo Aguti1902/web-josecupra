@@ -320,7 +320,21 @@ export default function AdminClubsManagerPage() {
   const [copied, setCopied]         = useState(null);
 
   useEffect(() => {
-    loadClubs().then((data) => { setClubs(data); setLoading(false); });
+    loadClubs().then((data) => {
+      // Enriquecer cada club con logo y conteo real de usuarios desde clubDetail
+      const enriched = data.map((c) => {
+        try {
+          const detail = JSON.parse(localStorage.getItem(`depro_club_${c.id}`) || "null");
+          if (!detail) return c;
+          let userCount = (c.users || []).length;
+          if (detail.coordinator?.email) userCount++;
+          (detail.teams || []).forEach((t) => { if (t.coach?.email) userCount++; });
+          return { ...c, logo: detail.logo || c.logo, _userCount: userCount };
+        } catch { return c; }
+      });
+      setClubs(enriched);
+      setLoading(false);
+    });
   }, []);
 
   const filtered = clubs.filter((c) => {
@@ -427,9 +441,12 @@ export default function AdminClubsManagerPage() {
               className="bg-white border border-depro-border rounded-xl p-5 hover:shadow-card transition-shadow"
             >
               <div className="flex items-center gap-4">
-                {/* Logo placeholder */}
-                <div className="w-12 h-12 rounded-xl bg-depro-gray-light flex items-center justify-center font-bold text-depro-dark text-sm shrink-0">
-                  {club.abbreviation}
+                {/* Logo */}
+                <div className="w-12 h-12 rounded-xl bg-depro-gray-light flex items-center justify-center font-bold text-depro-dark text-sm shrink-0 overflow-hidden border border-depro-border">
+                  {club.logo
+                    ? <img src={club.logo} alt={club.name} className="w-full h-full object-contain p-0.5" />
+                    : club.abbreviation
+                  }
                 </div>
 
                 {/* Main info */}
@@ -452,27 +469,10 @@ export default function AdminClubsManagerPage() {
                     </span>
                     <span className="flex items-center gap-1">
                       <Shield size={10} />
-                      {club.users.length} usuario{club.users.length !== 1 ? "s" : ""}
+                      {club._userCount ?? club.users?.length ?? 0} usuario{(club._userCount ?? club.users?.length ?? 0) !== 1 ? "s" : ""}
                     </span>
                     <span>Alta: {club.createdAt}</span>
                   </div>
-                </div>
-
-                {/* Login code */}
-                <div className="hidden sm:flex items-center gap-2 bg-depro-gray-light rounded-lg px-3 py-2">
-                  <span className="text-xs text-depro-gray">Código</span>
-                  <span className="font-mono font-bold text-depro-dark text-sm">{club.loginCode}</span>
-                  <button
-                    onClick={() => copyCode(club.loginCode, club.id)}
-                    className="text-depro-gray hover:text-depro-blue transition-colors"
-                    title="Copiar código"
-                  >
-                    {copied === club.id ? (
-                      <CheckCircle size={14} className="text-green-500" />
-                    ) : (
-                      <Copy size={14} />
-                    )}
-                  </button>
                 </div>
 
                 {/* Actions */}
