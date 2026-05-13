@@ -65,7 +65,7 @@ function generatePassword() {
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 
-function NewTeamModal({ onClose, onCreate }) {
+function NewTeamModal({ onClose, onCreate, clubId }) {
   const [form, setForm] = useState({
     name: "", category: "Juvenil", season: "2024/25",
     coachName: "", coachEmail: "", coachPassword: generatePassword(),
@@ -87,6 +87,8 @@ function NewTeamModal({ onClose, onCreate }) {
     if (!form.name) return;
     setLoading(true);
 
+    const teamId = `t${Date.now()}`;
+
     // Crear usuario en Supabase Auth si se proporcionó email
     let userCreated = false;
     if (form.coachEmail && form.coachPassword) {
@@ -95,12 +97,15 @@ function NewTeamModal({ onClose, onCreate }) {
         password: form.coachPassword,
         name: form.coachName,
         role: "club",
+        clubId,
+        teamId,
+        teamRole: "entrenador",
       });
       userCreated = result.ok;
     }
 
     onCreate({
-      id: `t${Date.now()}`,
+      id: teamId,
       name: form.name,
       category: form.category,
       season: form.season,
@@ -1502,7 +1507,7 @@ export default function AdminClubDetailPage() {
         </div>
       )}
 
-      {showNewTeam && <NewTeamModal onClose={() => setShowNewTeam(false)} onCreate={addTeam} />}
+      {showNewTeam && <NewTeamModal onClose={() => setShowNewTeam(false)} onCreate={addTeam} clubId={club.id} />}
       {showNewUser && <NewUserModal teams={club.teams} onClose={() => setShowNewUser(false)} onCreate={addUser} />}
     </div>
   );

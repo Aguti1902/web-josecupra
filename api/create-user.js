@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { email, password, name, role = "club" } = req.body || {};
+  const { email, password, name, role = "club", clubId, teamId, teamRole } = req.body || {};
 
   if (!email || !password) {
     return res.status(400).json({ error: "email y password son obligatorios" });
@@ -25,8 +25,8 @@ export default async function handler(req, res) {
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    user_metadata: { name, role },
-    email_confirm: true,   // ← usuario creado ya confirmado, sin email de verificación
+    user_metadata: { name, role, clubId, teamId, teamRole },
+    email_confirm: true,
   });
 
   if (error) {

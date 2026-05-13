@@ -24,8 +24,11 @@ function StatCard({ label, value, sub, icon: Icon, color }) {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const isClub = user?.role === "club";
   const club = user?.club;
+  const team = user?.team;
   const accent = club?.primaryColor || "#0A36F7";
+  const secondColor = club?.secondaryColor || "#FFFFFF";
   const isPremium = user?.plan === "Premium" || user?.plan === "Pro";
 
   const today = weeklyPlan.find((d) => d.sessions.some((s) => s.status === "today"));
@@ -33,39 +36,81 @@ export default function DashboardPage() {
   const completedDays = weeklyPlan.filter((d) => d.sessions.some((s) => s.status === "completed")).length;
   const lastFeedback = coachFeedback[0];
 
+  // Planificación del club: microciclos asignados al equipo del entrenador
+  const clubPlans = club?.plans || [];
+  const teamPlans = team
+    ? clubPlans.filter((mc) => !mc.teamId || mc.teamId === team.id)
+    : clubPlans;
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       {/* Welcome banner */}
       <div
-        className="rounded-2xl p-6 border"
-        style={{ background: `linear-gradient(135deg, ${accent}08 0%, white 100%)`, borderColor: accent + "20" }}
+        className="rounded-2xl p-6 border overflow-hidden"
+        style={{
+          background: isClub && club
+            ? `linear-gradient(135deg, ${accent} 0%, ${accent}CC 100%)`
+            : `linear-gradient(135deg, ${accent}08 0%, white 100%)`,
+          borderColor: accent + "20",
+        }}
       >
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div
-            className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-black flex-shrink-0 shadow-sm"
-            style={{ backgroundColor: accent + "15", color: accent }}
-          >
-            {user?.avatar}
-          </div>
+          {/* Logo o avatar */}
+          {isClub && club?.logo ? (
+            <img
+              src={club.logo}
+              alt={club.name}
+              className="w-14 h-14 rounded-xl object-contain bg-white p-1 flex-shrink-0 shadow"
+            />
+          ) : (
+            <div
+              className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-black flex-shrink-0 shadow-sm"
+              style={{
+                backgroundColor: isClub ? "rgba(255,255,255,0.2)" : accent + "15",
+                color: isClub ? secondColor : accent,
+              }}
+            >
+              {isClub ? (club?.abbreviation || club?.name?.[0] || "C") : (user?.avatar)}
+            </div>
+          )}
+
           <div className="flex-1">
-            <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: accent }}>
+            <p
+              className="text-xs font-bold uppercase tracking-wider mb-0.5"
+              style={{ color: isClub ? "rgba(255,255,255,0.7)" : accent }}
+            >
               {new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
             </p>
-            <h2 className="text-2xl font-black text-depro-dark">
-              Hola, {user?.name?.split(" ")[0]}.
+            <h2
+              className="text-2xl font-black"
+              style={{ color: isClub ? secondColor : "var(--depro-dark, #111)" }}
+            >
+              {isClub ? (club?.name || "Mi Club") : `Hola, ${user?.name?.split(" ")[0]}.`}
             </h2>
-            <p className="text-depro-gray text-sm mt-0.5">
-              {user?.role === "club"
-                ? `${user.players} jugadores · ${user.category}`
-                : `${user.trainingDays} días de entreno · ${user.level}`}
+            <p
+              className="text-sm mt-0.5"
+              style={{ color: isClub ? "rgba(255,255,255,0.75)" : "#6B7280" }}
+            >
+              {isClub
+                ? `${team?.name || "Sin equipo asignado"} · ${user?.team_role || "Entrenador"}`
+                : `${user?.training_days ?? user?.trainingDays ?? "—"} días de entreno · ${user?.level || "—"}`}
             </p>
           </div>
-          {isPremium && (
+
+          {isPremium && !isClub && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-depro-yellow text-depro-dark text-xs font-black">
               <Trophy size={13} /> Plan Premium
             </div>
           )}
-          {todaySession && (
+          {isClub && club && (
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0"
+              style={{ backgroundColor: "rgba(255,255,255,0.2)", color: secondColor }}
+            >
+              {club.plan || "Activo"}
+            </div>
+          )}
+          {!isClub && todaySession && (
             <Link
               to="/dashboard/plan"
               className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-90"
@@ -76,6 +121,39 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Planificación del club si es entrenador */}
+      {isClub && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-depro-dark text-lg">Planificación de {team?.name || "tu equipo"}</h3>
+          </div>
+          {teamPlans.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-depro-border rounded-2xl text-depro-gray">
+              <Calendar size={32} className="mx-auto mb-2 opacity-30" />
+              <p className="font-medium">Sin planificación asignada todavía</p>
+              <p className="text-sm mt-1">El administrador aún no ha creado microciclos para este equipo.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {teamPlans.map((mc) => (
+                <div key={mc.id} className="bg-white border border-depro-border rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accent }} />
+                    <h4 className="font-semibold text-depro-dark">{mc.name}</h4>
+                    <span className="ml-auto text-xs text-depro-gray">{mc.weekLabel}</span>
+                  </div>
+                  <p className="text-sm text-depro-gray mb-3">{mc.objective}</p>
+                  <div className="flex items-center gap-2 text-xs text-depro-gray">
+                    <Activity size={12} />
+                    <span>{(mc.sessions || []).length} sesiones</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Premium contact card */}
       {isPremium && (

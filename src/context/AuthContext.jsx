@@ -3,18 +3,64 @@ import { supabase } from "../lib/supabase";
 
 const AuthContext = createContext(null);
 
+// Carga los datos del club y equipo desde localStorage usando los IDs guardados en user_metadata
+function loadClubDataFromStorage(meta) {
+  try {
+    const clubId = meta?.clubId;
+    const teamId = meta?.teamId;
+    const teamRole = meta?.teamRole;
+    if (!clubId) return { club: null, team: null, teamRole: null };
+
+    const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+    const club = clubs.find((c) => c.id === clubId) || null;
+
+    // Buscar equipo dentro del club (en clubs_ext o en el propio club)
+    const ext = JSON.parse(localStorage.getItem("depro_clubs_ext") || "{}");
+    const clubExt = ext[clubId] || {};
+    const teams = club?.teams || clubExt.teams || [];
+    const team = teams.find((t) => t.id === teamId) || null;
+
+    // Cargar planificación del club
+    const clubDetail = JSON.parse(localStorage.getItem(`depro_club_${clubId}`) || "null");
+    const plans = clubDetail?.plans || [];
+
+    return { club: club ? { ...club, plans } : null, team, teamRole };
+  } catch {
+    return { club: null, team: null, teamRole: null };
+  }
+}
+
 function buildUser(authUser, profile) {
-  if (profile) return { ...profile, email: authUser.email };
   const meta = authUser.user_metadata ?? {};
   const email = authUser.email ?? "";
+
+  if (profile) {
+    // Si el perfil de Supabase no tiene club vinculado, buscar en localStorage
+    let club = profile.club;
+    let team = profile.team;
+    let teamRole = profile.team_role;
+
+    if (!club && meta.clubId) {
+      const stored = loadClubDataFromStorage(meta);
+      club = stored.club;
+      team = stored.team;
+      teamRole = stored.teamRole || teamRole;
+    }
+
+    return { ...profile, email, club, team, team_role: teamRole };
+  }
+
+  // Usuario sin perfil en Supabase todavía — usar metadata
+  const { club, team, teamRole } = loadClubDataFromStorage(meta);
   return {
     id: authUser.id,
     email,
     name: meta.name ?? email.split("@")[0],
     avatar: (meta.name ?? email)[0]?.toUpperCase() ?? "U",
     role: meta.role ?? (email === "jose@depro.es" ? "admin" : "player"),
-    club: null,
-    team: null,
+    team_role: meta.teamRole ?? null,
+    club,
+    team,
   };
 }
 

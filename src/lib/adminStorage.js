@@ -14,12 +14,12 @@ import { supabase } from "./supabase";
  * Llama al endpoint serverless /api/create-user que usa la service role key.
  * Returns { ok: true } o { ok: false, error }
  */
-export async function createClubUser({ email, password, name, role = "club" }) {
+export async function createClubUser({ email, password, name, role = "club", clubId, teamId, teamRole }) {
   try {
     const res = await fetch("/api/create-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name, role }),
+      body: JSON.stringify({ email, password, name, role, clubId, teamId, teamRole }),
     });
     const data = await res.json();
     return data;
