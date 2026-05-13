@@ -187,7 +187,7 @@ export default function ProfilePage() {
     await refreshUser();
   };
 
-  const accent = currentClub?.primaryColor || "#0A36F7";
+  const accent = safeColor(currentClub?.primaryColor);
 
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
@@ -333,14 +333,15 @@ export default function ProfilePage() {
           /* Paso 2: seleccionar equipo */
           <div className="space-y-4">
             {/* Club encontrado */}
+            {(() => { const fc = safeColor(foundClub.primaryColor); return (
             <div
               className="rounded-xl p-3 flex items-center gap-3 border"
-              style={{ backgroundColor: (foundClub.primaryColor || "#0A36F7") + "08", borderColor: (foundClub.primaryColor || "#0A36F7") + "30" }}
+              style={{ backgroundColor: fc + "10", borderColor: fc + "30" }}
             >
               {foundClub.logo
                 ? <img src={foundClub.logo} alt={foundClub.name} className="w-10 h-10 rounded-xl object-contain bg-white p-0.5 border border-depro-border flex-shrink-0" />
                 : <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0"
-                    style={{ backgroundColor: (foundClub.primaryColor || "#0A36F7") + "15", color: foundClub.primaryColor || "#0A36F7" }}>
+                    style={{ backgroundColor: fc + "20", color: fc }}>
                     {foundClub.abbreviation || foundClub.name?.[0]}
                   </div>
               }
@@ -350,6 +351,7 @@ export default function ProfilePage() {
               </div>
               <CheckCircle size={16} className="text-green-500 ml-auto flex-shrink-0" />
             </div>
+            ); })()}
 
             {/* Selector de equipo */}
             {teams.length > 0 ? (() => {
