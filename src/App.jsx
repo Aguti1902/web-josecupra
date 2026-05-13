@@ -7,6 +7,7 @@ import Navbar from "./components/public/Navbar";
 import HomePage from "./pages/public/HomePage";
 import LoginPage from "./pages/public/LoginPage";
 import OnboardingPage from "./pages/public/OnboardingPage";
+import PaymentSuccessPage from "./pages/public/PaymentSuccessPage";
 
 // Private (client app)
 import AppLayout from "./components/private/AppLayout";
@@ -90,6 +91,7 @@ function AppRoutes() {
         }
       />
       <Route path="/comprar" element={<OnboardingPage />} />
+      <Route path="/pago-exitoso" element={<PaymentSuccessPage />} />
 
       {/* ── Client App ─────────────────────────────────────────── */}
       <Route path="/dashboard" element={<ClientRoute><AppLayout><DashboardPage /></AppLayout></ClientRoute>} />

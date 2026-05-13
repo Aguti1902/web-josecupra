@@ -351,116 +351,88 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
 /* ─────────────────────────────────────────────
    STEP 4 — Pago
 ───────────────────────────────────────────── */
-function StepPago({ form, plan, onBack, onConfirm, processing }) {
-  const [method, setMethod] = useState("card");
-  const [card, setCard] = useState({ number: "", expiry: "", cvc: "", name: "" });
-  const hasDiscount = !!form.clubCode;
-  const discount = hasDiscount ? Math.round(plan.price * 0.15) : 0;
-  const total = plan.price - discount;
+function StepPago({ form, plan, onBack }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
 
-  const validCard = method !== "card" || (card.number.length >= 15 && card.expiry.length >= 4 && card.cvc.length >= 3 && card.name);
+  const hasDiscount = !!form.clubCode;
+  const discount    = hasDiscount ? Math.round(plan.price * 0.15) : 0;
+  const total       = plan.price - discount;
+
+  const handleStripeCheckout = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId:   plan.id,
+          formData: form,
+          origin:   window.location.origin,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al crear sesión de pago");
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
       <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu pago</h2>
-      <p className="text-depro-gray text-sm mb-8">Pago seguro mediante Stripe. No guardamos datos de tarjeta.</p>
+      <p className="text-depro-gray text-sm mb-8">Serás redirigido a Stripe para completar el pago de forma segura.</p>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Pago */}
+        {/* Info izquierda */}
         <div className="lg:col-span-2 space-y-5">
-          {/* Métodos */}
+          {/* Qué incluye */}
           <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card">
-            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-3 block">Método de pago</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setMethod("card")}
-                className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                  method === "card" ? "border-depro-blue bg-depro-blue/[0.03]" : "border-depro-border bg-white hover:border-depro-blue/40"
-                }`}
-              >
-                <CreditCard size={18} className="text-depro-blue" />
-                <span className="font-bold text-sm text-depro-dark">Tarjeta</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMethod("paypal")}
-                className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                  method === "paypal" ? "border-depro-blue bg-depro-blue/[0.03]" : "border-depro-border bg-white hover:border-depro-blue/40"
-                }`}
-              >
-                <div className="w-5 h-5 rounded-md flex items-center justify-center bg-[#003087] text-white text-[10px] font-black">P</div>
-                <span className="font-bold text-sm text-depro-dark">PayPal</span>
-              </button>
-            </div>
+            <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-4">Tu plan incluye</div>
+            <ul className="space-y-2.5">
+              {plan.features.map((f) => (
+                <li key={f} className="flex items-center gap-2.5 text-sm text-depro-dark">
+                  <CheckCircle size={15} className="text-depro-green shrink-0" /> {f}
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* Datos tarjeta */}
-          {method === "card" && (
-            <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card space-y-4">
-              <div>
-                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Número de tarjeta</label>
-                <input
-                  type="text" value={card.number}
-                  onChange={(e) => setCard({ ...card, number: e.target.value.replace(/[^\d ]/g, "").slice(0, 19) })}
-                  className="admin-input w-full tracking-wider"
-                  placeholder="1234 1234 1234 1234"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Caducidad</label>
-                  <input
-                    type="text" value={card.expiry}
-                    onChange={(e) => setCard({ ...card, expiry: e.target.value.replace(/[^\d/]/g, "").slice(0, 5) })}
-                    className="admin-input w-full"
-                    placeholder="MM / AA"
-                  />
+          {/* Resumen del perfil */}
+          <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card">
+            <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-4">Tus datos</div>
+            <div className="grid grid-cols-2 gap-y-2 text-sm">
+              {[
+                ["Nombre",    form.name],
+                ["Email",     form.email],
+                ["Posición",  form.posicion],
+                ["Nivel",     form.nivel],
+                ["Frecuencia",form.frecuencia],
+              ].filter(([, v]) => v).map(([label, val]) => (
+                <div key={label}>
+                  <span className="text-depro-gray">{label}: </span>
+                  <span className="font-semibold text-depro-dark">{val}</span>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">CVC</label>
-                  <input
-                    type="text" value={card.cvc}
-                    onChange={(e) => setCard({ ...card, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-                    className="admin-input w-full"
-                    placeholder="123"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Nombre en la tarjeta</label>
-                <input
-                  type="text" value={card.name}
-                  onChange={(e) => setCard({ ...card, name: e.target.value })}
-                  className="admin-input w-full"
-                  placeholder="Como aparece en la tarjeta"
-                />
-              </div>
+              ))}
             </div>
-          )}
-
-          {method === "paypal" && (
-            <div className="bg-white border border-depro-border rounded-2xl p-8 shadow-card text-center">
-              <div className="w-12 h-12 rounded-2xl bg-[#003087] text-white text-lg font-black flex items-center justify-center mx-auto mb-4">P</div>
-              <p className="text-sm text-depro-gray max-w-md mx-auto">
-                Al confirmar, te redirigiremos a PayPal para completar el pago de forma segura.
-              </p>
-            </div>
-          )}
+          </div>
 
           <div className="flex items-center gap-2 text-xs text-depro-gray">
             <Lock size={12} className="text-depro-green" />
-            Pago cifrado y seguro · No guardamos los datos de tu tarjeta
+            Pago 100% seguro con Stripe · No guardamos datos de tarjeta
           </div>
         </div>
 
-        {/* Resumen */}
+        {/* Resumen precio */}
         <div className="lg:col-span-1">
           <div className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden sticky top-4">
             <div className="p-5 border-b border-depro-border">
               <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2">Resumen</div>
-              <div className="flex items-center gap-3 mb-1">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: plan.bg }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: plan.bg }}>
                   {plan.id === "basic" ? <Zap size={18} style={{ color: plan.color }} /> : <Trophy size={18} style={{ color: plan.color }} />}
                 </div>
                 <div>
@@ -471,54 +443,49 @@ function StepPago({ form, plan, onBack, onConfirm, processing }) {
             </div>
 
             <div className="p-5 space-y-2 text-sm">
-              <div className="flex items-center justify-between text-depro-gray">
-                <span>Subtotal</span>
-                <span>{plan.price}€</span>
+              <div className="flex justify-between text-depro-gray">
+                <span>Subtotal</span><span>{plan.price}€</span>
               </div>
               {hasDiscount && (
-                <div className="flex items-center justify-between text-depro-green">
-                  <span className="flex items-center gap-1.5">
-                    <BadgeCheck size={13} /> Código {form.clubCode}
-                  </span>
+                <div className="flex justify-between text-depro-green">
+                  <span className="flex items-center gap-1"><BadgeCheck size={13} /> Código club</span>
                   <span>– {discount}€</span>
                 </div>
               )}
-              <div className="border-t border-depro-border pt-3 mt-3 flex items-center justify-between">
-                <span className="font-bold text-depro-dark">Total hoy</span>
+              <div className="border-t border-depro-border pt-3 flex justify-between">
+                <span className="font-bold text-depro-dark">Total / mes</span>
                 <span className="text-xl font-black text-depro-dark">{total}€</span>
               </div>
-              <div className="text-[11px] text-depro-gray">Cobro recurrente mensual. Cancela cuando quieras.</div>
+              <div className="text-[11px] text-depro-gray">Suscripción mensual. Cancela cuando quieras.</div>
             </div>
 
-            <div className="p-5 border-t border-depro-border">
+            <div className="p-5 border-t border-depro-border space-y-3">
+              {error && (
+                <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">
+                  <AlertCircle size={13} className="shrink-0 mt-0.5" /> {error}
+                </div>
+              )}
               <button
-                onClick={() => onConfirm({ method, card, total })}
-                disabled={!validCard || processing}
+                onClick={handleStripeCheckout}
+                disabled={loading}
                 className="w-full bg-depro-blue hover:bg-depro-blue-dark text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {processing ? (
-                  <>
-                    <div className="spinner border-white/20 border-t-white" />
-                    Procesando...
-                  </>
+                {loading ? (
+                  <><div className="spinner border-white/20 border-t-white" /> Redirigiendo a Stripe...</>
                 ) : (
-                  <>
-                    <Lock size={14} /> Pagar {total}€
-                  </>
+                  <><Lock size={14} /> Pagar {total}€ con Stripe</>
                 )}
               </button>
-
-                <div className="flex items-center justify-center gap-2 mt-3 text-[10px] text-depro-gray">
-                <Shield size={11} className="text-depro-blue" />
-                Pago seguro · Cancela cuando quieras
+              <div className="flex items-center justify-center gap-1.5 text-[10px] text-depro-gray">
+                <Shield size={11} className="text-depro-blue" /> Pago seguro · Cancela cuando quieras
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-8 flex">
-        <button onClick={onBack} disabled={processing} className="btn-ghost flex items-center gap-2 disabled:opacity-50">
+      <div className="mt-8">
+        <button onClick={onBack} disabled={loading} className="btn-ghost flex items-center gap-2 disabled:opacity-50">
           <ArrowLeft size={16} /> Volver
         </button>
       </div>
@@ -592,8 +559,6 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState(initial ? 2 : 1);
   const [planId, setPlanId] = useState(initial);
-  const [processing, setProcessing] = useState(false);
-  const [done, setDone] = useState(false);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -611,12 +576,6 @@ export default function OnboardingPage() {
 
   const plan = PLANS[planId] || PLANS.basic;
 
-  const confirmPayment = async () => {
-    setProcessing(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    setProcessing(false);
-    setDone(true);
-  };
 
   return (
     <div className="min-h-screen bg-depro-gray-light pt-16 pb-24">
@@ -633,11 +592,9 @@ export default function OnboardingPage() {
         </div>
 
         {/* Wizard */}
-        {!done && <StepHeader current={step} />}
+        <StepHeader current={step} />
 
-        {done && <StepDone plan={plan} form={form} />}
-
-        {!done && step === 1 && (
+        {step === 1 && (
           <StepPlan
             selected={planId}
             onSelect={setPlanId}
@@ -645,7 +602,7 @@ export default function OnboardingPage() {
           />
         )}
 
-        {!done && step === 2 && (
+        {step === 2 && (
           <StepDatos
             form={form}
             setForm={setForm}
@@ -654,7 +611,7 @@ export default function OnboardingPage() {
           />
         )}
 
-        {!done && step === 3 && (
+        {step === 3 && (
           <StepFutbol
             form={form}
             setForm={setForm}
@@ -663,13 +620,11 @@ export default function OnboardingPage() {
           />
         )}
 
-        {!done && step === 4 && (
+        {step === 4 && (
           <StepPago
             form={form}
             plan={plan}
-            processing={processing}
             onBack={() => setStep(3)}
-            onConfirm={confirmPayment}
           />
         )}
       </div>
