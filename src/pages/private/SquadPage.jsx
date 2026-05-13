@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  Users, Search, Plus, Trash2, Edit3, X, Save,
-  ChevronDown, Filter, UserPlus, Shield,
+  Users, Search, Trash2, Edit3, X, Save,
+  Filter, UserPlus, Shield, CheckCircle,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../lib/supabase";
 
 // ── Constantes ───────────────────────────────────────────────
 const POSITIONS = [
@@ -192,15 +193,16 @@ export default function SquadPage() {
   }, [user?.team, user?.email, isCoord, allTeams]);
 
   // ── Estado ────────────────────────────────────────────────
-  const [squads, setSquads] = useState({}); // { teamId: player[] }
-  const [search, setSearch]       = useState("");
-  const [posFilter, setPosFilter] = useState("Todos");
+  const [squads, setSquads]         = useState({}); // { teamId: player[] }
+  const [regPlayers, setRegPlayers] = useState([]); // jugadores registrados vía Supabase
+  const [search, setSearch]         = useState("");
+  const [posFilter, setPosFilter]   = useState("Todos");
   const [teamFilter, setTeamFilter] = useState("todos");
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal]   = useState(false);
   const [editPlayer, setEditPlayer] = useState(null);
-  const [teamError, setTeamError] = useState(false);
+  const [teamError, setTeamError]   = useState(false);
 
-  // ── Cargar plantillas ─────────────────────────────────────
+  // ── Cargar plantillas manuales (localStorage) ─────────────
   useEffect(() => {
     if (!clubId) return;
     const loaded = {};
@@ -211,7 +213,42 @@ export default function SquadPage() {
     setSquads(loaded);
   }, [clubId, isCoord, myTeam, allTeams]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Jugadores visibles ────────────────────────────────────
+  // ── Cargar jugadores registrados desde Supabase ───────────
+  useEffect(() => {
+    const teamIds = isCoord
+      ? allTeams.map((t) => t.id)
+      : myTeam ? [myTeam.id] : [];
+    if (teamIds.length === 0) return;
+
+    (async () => {
+      try {
+        // Intentar API Vercel primero
+        const apiUrl = `/api/team-players?teamId=${teamIds[0]}`;
+        const res    = await fetch(apiUrl).catch(() => null);
+        if (res?.ok) {
+          const { players: list } = await res.json();
+          if (list?.length > 0) { setRegPlayers(list); return; }
+        }
+        // Fallback: consultar profiles directamente
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, name, plan, team_id")
+          .in("team_id", teamIds);
+        if (data?.length > 0) {
+          setRegPlayers(data.map((p) => ({
+            id:       p.id,
+            name:     p.name || "Jugador registrado",
+            plan:     p.plan || "—",
+            position: "—",
+            _teamId:  p.team_id,
+            _reg:     true,
+          })));
+        }
+      } catch { /* silencioso */ }
+    })();
+  }, [isCoord, allTeams, myTeam]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Jugadores manuales visibles ───────────────────────────
   const allPlayers = useMemo(() => {
     const teams = isCoord ? allTeams : (myTeam ? [myTeam] : []);
     return teams.flatMap((t) =>
@@ -228,7 +265,7 @@ export default function SquadPage() {
     });
   }, [allPlayers, search, posFilter, teamFilter, isCoord]);
 
-  // ── Estadísticas ─────────────────────────────────────────
+  // ── Estadísticas (manual + registrados) ──────────────────
   const stats = useMemo(() => {
     const src = allPlayers;
     const withAge = src.filter((p) => p.age);
@@ -238,8 +275,8 @@ export default function SquadPage() {
     const posCounts = {};
     src.forEach((p) => { posCounts[p.position] = (posCounts[p.position] || 0) + 1; });
     const topPos = Object.entries(posCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
-    return { total: src.length, avgAge, topPos };
-  }, [allPlayers]);
+    return { total: src.length + regPlayers.length, avgAge, topPos };
+  }, [allPlayers, regPlayers]);
 
   // ── CRUD ─────────────────────────────────────────────────
   const activeTeamId = isCoord ? null : myTeam?.id;
@@ -513,6 +550,53 @@ export default function SquadPage() {
           })
         )}
       </div>
+
+      {/* Jugadores registrados con plan de pago */}
+      {regPlayers.length > 0 && (
+        <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
+          <div
+            className="px-5 py-3 border-b border-depro-border flex items-center gap-2"
+            style={{ backgroundColor: sa + "08" }}
+          >
+            <CheckCircle size={14} style={{ color: sa }} />
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: sa }}>
+              Jugadores con plan individual ({regPlayers.length})
+            </span>
+          </div>
+          {regPlayers.map((p) => {
+            const teamName = allTeams.find((t) => t.id === p._teamId)?.name || myTeam?.name || "—";
+            return (
+              <div
+                key={p.id}
+                className="flex items-center gap-3 px-5 py-4 border-b border-depro-border last:border-b-0 hover:bg-depro-gray-light/40 transition-colors"
+              >
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0"
+                  style={{ backgroundColor: sa + "15", color: sa }}
+                >
+                  {(p.name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-depro-dark text-sm">{p.name}</div>
+                  <div className="text-xs text-depro-gray">{teamName}</div>
+                </div>
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: "#22C55E15", color: "#16A34A" }}
+                >
+                  {p.plan || "Plan activo"}
+                </span>
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 border"
+                  style={{ borderColor: sa + "40", color: sa }}
+                >
+                  Registrado
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
