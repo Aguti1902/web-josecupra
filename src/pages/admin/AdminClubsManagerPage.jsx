@@ -14,6 +14,7 @@ import {
   MapPin,
   Crown,
   Star,
+  Trash2,
 } from "lucide-react";
 import { loadClubs, saveClub, deleteClub } from "../../lib/adminStorage";
 
@@ -384,14 +385,23 @@ export default function AdminClubsManagerPage() {
                   </button>
                 </div>
 
-                {/* Action */}
-                <button
-                  onClick={() => navigate(`/admin/clubs/${club.id}`)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors text-sm font-medium shrink-0"
-                >
-                  Gestionar
-                  <ChevronRight size={15} />
-                </button>
+                {/* Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => navigate(`/admin/clubs/${club.id}`)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors text-sm font-medium"
+                  >
+                    Gestionar
+                    <ChevronRight size={15} />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(club.id); }}
+                    className="p-2 rounded-xl border border-depro-border text-depro-gray hover:border-red-400 hover:text-red-500 transition-colors"
+                    title="Eliminar club"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
             </div>
           ))
