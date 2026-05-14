@@ -195,7 +195,7 @@ function BlockExerciseEditor({ block, onUpdate }) {
 function SessionEditorModal({ onClose, onCreate }) {
   const [tab, setTab] = useState("resumen");
   const [form, setForm] = useState({
-    day: "Lunes", title: "", duration: "75 min", intensity: "Media",
+    title: "", duration: "75 min", intensity: "Media",
     objective: "", space: "",
     blocks: defaultBlocks(),
     tests: PHYSICAL_TEST_FIELDS.map((t) => ({ ...t, description: "", reference: "" })),
@@ -239,7 +239,7 @@ function SessionEditorModal({ onClose, onCreate }) {
               <div className="font-black text-depro-dark leading-none">{form.title || "Nueva sesión"}</div>
               <div className="text-[10px] text-depro-gray mt-0.5">
                 <span className="font-bold" style={{ color: sessionTypeMeta.color }}>{sessionTypeMeta.label}</span>
-                {form.day && <span className="ml-2">· {form.day}</span>}
+                <span className="ml-2 opacity-60">· El día se asigna automáticamente</span>
               </div>
             </div>
           </div>
@@ -272,20 +272,11 @@ function SessionEditorModal({ onClose, onCreate }) {
                   <div className="text-xs font-semibold mt-1" style={{ color: sessionTypeMeta.color }}>{sessionTypeMeta.label}</div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Título *</label>
-                  <input className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="Ej. Posesión · presión alta" value={form.title}
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Día</label>
-                  <select className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    value={form.day} onChange={(e) => setForm((f) => ({ ...f, day: e.target.value }))}>
-                    {SESSION_DAYS.map((d) => <option key={d}>{d}</option>)}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Título *</label>
+                <input className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                  placeholder="Ej. Posesión · presión alta" value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
