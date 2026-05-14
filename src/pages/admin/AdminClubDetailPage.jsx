@@ -118,7 +118,7 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
         email: form.coachEmail,
         password: form.coachPassword,
         role: "entrenador",
-        userCreated: true,
+        userCreated,
       } : null,
       assistantCoach: null,
     });
@@ -310,8 +310,85 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
   );
 }
 
-function NewUserModal({ teams, onClose, onCreate }) {
-  const [form, setForm] = useState({ name: "", email: "", role: "entrenador", team: "", password: generatePassword() });
+function NewUserModal({ teams, clubId, onClose, onCreate }) {
+  const [form, setForm] = useState({ name: "", email: "", role: "entrenador", teamId: "", password: generatePassword() });
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null); // { ok, email, password, error }
+
+  const selectedTeam = teams.find((t) => t.id === form.teamId) || null;
+
+  const handleCreate = async () => {
+    if (!form.email) return;
+    setLoading(true);
+
+    const res = await createClubUser({
+      email: form.email,
+      password: form.password,
+      name: form.name || form.email,
+      role: "club",
+      clubId,
+      teamId: form.teamId || undefined,
+      teamRole: form.role,
+    });
+
+    onCreate({
+      id: `u${Date.now()}`,
+      name: form.name || form.email,
+      email: form.email,
+      role: form.role,
+      team: selectedTeam?.name || null,
+      teamId: form.teamId || null,
+      active: true,
+      lastLogin: "nunca",
+      password: form.password,
+      userCreated: res.ok,
+    });
+
+    setResult({ ok: res.ok, email: form.email, password: form.password, error: res.error });
+    setLoading(false);
+  };
+
+  // Pantalla de resultado
+  if (result) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="bg-white rounded-2xl shadow-depro w-full max-w-md p-6 text-center">
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${result.ok ? "bg-green-50" : "bg-yellow-50"}`}>
+            {result.ok
+              ? <CheckCircle size={28} className="text-green-500" />
+              : <Clock size={28} className="text-yellow-500" />
+            }
+          </div>
+          <h2 className="font-bold text-depro-dark text-lg mb-1">
+            {result.ok ? "Usuario creado con éxito" : "Usuario guardado (acceso pendiente)"}
+          </h2>
+          {result.ok ? (
+            <div className="bg-gray-50 rounded-xl p-4 mt-4 text-left space-y-2">
+              <p className="text-xs text-depro-gray uppercase font-semibold tracking-wider">Credenciales de acceso</p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-depro-gray">Email:</span>
+                <span className="text-sm font-mono font-bold text-depro-dark">{result.email}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-depro-gray">Contraseña:</span>
+                <span className="text-sm font-mono font-bold text-depro-dark">{result.password}</span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-depro-gray mt-2">
+              {result.error || "No se pudo crear la cuenta en Supabase. Usa el botón 'Recrear acceso' desde la pestaña Usuarios."}
+            </p>
+          )}
+          <button
+            onClick={onClose}
+            className="mt-6 w-full py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -367,11 +444,11 @@ function NewUserModal({ teams, onClose, onCreate }) {
               <label className="block text-sm font-medium text-depro-dark mb-1">Equipo asignado</label>
               <select
                 className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                value={form.team}
-                onChange={(e) => setForm((f) => ({ ...f, team: e.target.value }))}
+                value={form.teamId}
+                onChange={(e) => setForm((f) => ({ ...f, teamId: e.target.value }))}
               >
                 <option value="">— Sin equipo —</option>
-                {teams.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+                {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
           )}
@@ -400,24 +477,11 @@ function NewUserModal({ teams, onClose, onCreate }) {
         <div className="flex gap-3 p-6 border-t border-depro-border">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">Cancelar</button>
           <button
-            onClick={() => {
-              if (!form.email) return;
-              onCreate({
-                id: `u${Date.now()}`,
-                name: form.name || form.email,
-                email: form.email,
-                role: form.role,
-                team: form.team || null,
-                active: true,
-                lastLogin: "nunca",
-                password: form.password,
-              });
-              onClose();
-            }}
-            disabled={!form.email}
-            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40"
+            onClick={handleCreate}
+            disabled={!form.email || loading}
+            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
           >
-            Crear usuario
+            {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creando...</> : "Crear usuario"}
           </button>
         </div>
       </div>
@@ -1754,7 +1818,7 @@ export default function AdminClubDetailPage() {
       )}
 
       {showNewTeam && <NewTeamModal onClose={() => setShowNewTeam(false)} onCreate={addTeam} clubId={club.id} />}
-      {showNewUser && <NewUserModal teams={club.teams} onClose={() => setShowNewUser(false)} onCreate={addUser} />}
+      {showNewUser && <NewUserModal teams={club.teams} clubId={club.id} onClose={() => setShowNewUser(false)} onCreate={addUser} />}
     </div>
     </>
   );

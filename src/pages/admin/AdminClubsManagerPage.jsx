@@ -98,7 +98,7 @@ function NewClubModal({ onClose, onCreate }) {
         email: form.coordinatorEmail,
         phone: form.coordinatorPhone,
         password: form.coordinatorPassword,
-        userCreated: true,
+        userCreated,
       },
       loginCode: generatedCode,
       teams: [], users: [], mediaAssigned: [],
