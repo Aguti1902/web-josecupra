@@ -571,6 +571,63 @@ function DisenarTareas({ accentColor }) {
 }
 
 /* ─────────────────────────────────────────────
+   CLUB — Ejercicio con vídeo expandible
+───────────────────────────────────────────── */
+function ExerciseCardClub({ ex, ytId, accentColor }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-depro-border rounded-xl overflow-hidden bg-white">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 p-3 hover:bg-depro-gray-light/40 transition-colors text-left"
+      >
+        {/* Thumbnail o placeholder */}
+        {ytId ? (
+          <img
+            src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
+            alt={ex.name}
+            className="w-16 h-12 rounded-lg object-cover flex-shrink-0 border border-depro-border"
+          />
+        ) : (
+          <div
+            className="w-16 h-12 rounded-lg flex items-center justify-center flex-shrink-0 border border-depro-border"
+            style={{ backgroundColor: accentColor + "10" }}
+          >
+            <Play size={18} style={{ color: accentColor, opacity: 0.5 }} />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-depro-dark text-sm leading-tight">{ex.name}</p>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {ex.sets  && <span className="text-[10px] text-depro-gray bg-depro-gray-light px-2 py-0.5 rounded-md">{ex.sets} series</span>}
+            {ex.reps  && <span className="text-[10px] text-depro-gray bg-depro-gray-light px-2 py-0.5 rounded-md">{ex.reps}</span>}
+            {ex.rest  && <span className="text-[10px] text-depro-gray bg-depro-gray-light px-2 py-0.5 rounded-md">Desc: {ex.rest}</span>}
+          </div>
+        </div>
+        {ytId && (
+          <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0"
+            style={{ backgroundColor: accentColor + "15", color: accentColor }}>
+            <Youtube size={11} /> {open ? "Cerrar" : "Ver"}
+          </span>
+        )}
+      </button>
+
+      {open && ytId && (
+        <div className="border-t border-depro-border">
+          <iframe
+            src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`}
+            title={ex.name}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full aspect-video"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
    CLUB — SESIÓN CERRADA con iconografía condicional
 ───────────────────────────────────────────── */
 function ClubSessionCard({ session, accentColor }) {
@@ -626,22 +683,31 @@ function ClubSessionCard({ session, accentColor }) {
       </button>
 
       {expanded && (
-        <div className="px-5 pb-5 border-t border-depro-border">
-          {/* Vídeo cerrado */}
-          <div className="mt-4 aspect-video bg-depro-gray-light rounded-2xl flex items-center justify-center border border-depro-border group cursor-pointer hover:border-depro-blue transition-colors">
-            <div className="text-center">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform" style={{ backgroundColor: accentColor + "15" }}>
-                <Play size={24} style={{ color: accentColor }} />
+        <div className="px-5 pb-5 border-t border-depro-border space-y-4">
+          {/* Ejercicios con vídeos */}
+          {(session.exercises || []).length > 0 ? (
+            <div className="mt-4 space-y-3">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray">
+                Ejercicios · {(session.exercises || []).length}
               </div>
-              <p className="text-xs text-depro-gray">Reproducir vídeo de la sesión</p>
+              {(session.exercises || []).map((ex, i) => {
+                const ytId = getYouTubeId(ex.videoUrl);
+                return (
+                  <ExerciseCardClub key={i} ex={ex} ytId={ytId} accentColor={accentColor} />
+                );
+              })}
             </div>
-          </div>
+          ) : (
+            <div className="mt-4 flex items-center justify-center py-8 bg-depro-gray-light rounded-2xl border border-dashed border-depro-border">
+              <p className="text-xs text-depro-gray">Sin ejercicios añadidos en esta sesión</p>
+            </div>
+          )}
 
           {/* Diseñar tareas */}
           <DisenarTareas accentColor={accentColor} />
 
           {/* Slider de cumplimiento */}
-          <div className="mt-4 bg-depro-gray-light/50 rounded-xl p-4 border border-depro-border">
+          <div className="bg-depro-gray-light/50 rounded-xl p-4 border border-depro-border">
             <div className="flex items-center justify-between text-xs font-bold text-depro-dark mb-2">
               <span>Marca el % completado por el equipo</span>
               <span style={{ color: accentColor }}>{completion}%</span>
@@ -661,7 +727,7 @@ function ClubSessionCard({ session, accentColor }) {
             </button>
           </div>
 
-          <p className="mt-3 text-[10px] text-depro-gray text-center italic">
+          <p className="text-[10px] text-depro-gray text-center italic">
             Contenido cerrado · Diseñado por el preparador. Sin opciones de edición.
           </p>
         </div>
