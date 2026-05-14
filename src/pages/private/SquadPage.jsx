@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Users, Search, Trash2, Edit3, X, Save,
   Filter, UserPlus, Shield, CheckCircle,
+  TrendingUp, Activity, Zap, ChevronRight,
+  Calendar, BarChart2, Trophy,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -164,6 +166,156 @@ function PlayerModal({ initial, onSave, onClose, sa }) {
   );
 }
 
+// ── Helpers de datos del jugador ────────────────────────────
+const TESTS_META = [
+  { id: "resistencia", name: "Resistencia",  unit: "rectas", color: "#3B82F6" },
+  { id: "sprint",      name: "Sprint",        unit: "seg",    color: "#EF4444" },
+  { id: "cod",         name: "COD 5-10-5",   unit: "seg",    color: "#8B5CF6" },
+  { id: "cmj",         name: "Salto CMJ",    unit: "cm",     color: "#22C55E" },
+];
+
+function weekKey() {
+  const d = new Date(); const day = d.getDay() || 7;
+  const mon = new Date(d); mon.setDate(d.getDate() - day + 1);
+  return mon.toISOString().slice(0, 10);
+}
+
+function loadPlayerStats(playerId) {
+  // Progreso semanal
+  let completedDays = 0;
+  try {
+    const raw = localStorage.getItem(`depro_progress_${playerId}_${weekKey()}`);
+    completedDays = (JSON.parse(raw || "[]")).length;
+  } catch {}
+
+  // Plan generado
+  let plan = null;
+  let totalSessions = 0, completedSessions = 0;
+  try {
+    plan = JSON.parse(localStorage.getItem(`depro_plan_${playerId}`) || "null");
+    if (plan) {
+      const allSessions = plan.flatMap((d) => d.sessions || []);
+      totalSessions    = allSessions.length;
+      completedSessions = allSessions.filter((s) => s.status === "completed").length;
+    }
+  } catch {}
+
+  // Tests físicos
+  const tests = TESTS_META.map((t) => {
+    try {
+      const hist = JSON.parse(localStorage.getItem(`depro_test_${playerId}_${t.id}`) || "[]");
+      const last = hist[hist.length - 1];
+      return { ...t, last: last?.value ?? null, date: last?.date ?? null, count: hist.length };
+    } catch { return { ...t, last: null, date: null, count: 0 }; }
+  });
+
+  return { completedDays, plan: !!plan, totalSessions, completedSessions, tests };
+}
+
+// ── Modal estadísticas jugador registrado ────────────────────
+function PlayerStatsModal({ player, onClose, sa }) {
+  const stats = useMemo(() => loadPlayerStats(player.id), [player.id]);
+  const pct   = stats.totalSessions > 0
+    ? Math.round((stats.completedSessions / stats.totalSessions) * 100) : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-depro-border sticky top-0 bg-white z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black" style={{ backgroundColor: sa + "15", color: sa }}>
+              {(player.name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <div className="font-bold text-depro-dark">{player.name}</div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#22C55E15", color: "#16A34A" }}>
+                  {player.plan || "Plan activo"}
+                </span>
+                {player.email && <span className="text-xs text-depro-gray">{player.email}</span>}
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-depro-gray-light text-depro-gray">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Progreso semanal */}
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-3">
+              <Calendar size={12} /> Semana actual
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-depro-gray-light rounded-xl p-4 text-center">
+                <div className="text-2xl font-black" style={{ color: sa }}>{stats.completedDays}</div>
+                <div className="text-xs text-depro-gray mt-0.5">Días completados</div>
+              </div>
+              <div className="bg-depro-gray-light rounded-xl p-4 text-center">
+                <div className="text-2xl font-black text-depro-dark">{stats.plan ? "✓" : "—"}</div>
+                <div className="text-xs text-depro-gray mt-0.5">Plan generado</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Progreso del plan */}
+          {stats.totalSessions > 0 && (
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-3">
+                <BarChart2 size={12} /> Progreso del plan
+              </h3>
+              <div className="bg-depro-gray-light rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-depro-dark font-medium">{stats.completedSessions} / {stats.totalSessions} sesiones</span>
+                  <span className="text-sm font-black" style={{ color: pct === 100 ? "#22C55E" : sa }}>{pct}%</span>
+                </div>
+                <div className="h-2 bg-white rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: pct === 100 ? "#22C55E" : sa }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tests físicos */}
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-3">
+              <Activity size={12} /> Tests físicos (Premium)
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {stats.tests.map((t) => (
+                <div key={t.id} className="bg-depro-gray-light rounded-xl p-3 border-l-4" style={{ borderColor: t.color }}>
+                  <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{t.name}</div>
+                  {t.last !== null ? (
+                    <>
+                      <div className="text-xl font-black mt-0.5" style={{ color: t.color }}>
+                        {t.last} <span className="text-xs font-normal text-depro-gray">{t.unit}</span>
+                      </div>
+                      <div className="text-[10px] text-depro-gray mt-0.5">{t.date} · {t.count} mediciones</div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-depro-gray mt-1">Sin datos</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Sin datos */}
+          {!stats.plan && stats.completedDays === 0 && stats.tests.every((t) => t.last === null) && (
+            <div className="text-center py-6 text-depro-gray">
+              <Trophy size={28} className="mx-auto mb-2 text-depro-border" />
+              <p className="text-sm font-medium text-depro-dark">Sin actividad registrada aún</p>
+              <p className="text-xs mt-1">El jugador aún no ha generado su plan ni completado tests.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ════════════════════════════════════════════════════════════
 // SQUAD PAGE
 // ════════════════════════════════════════════════════════════
@@ -198,9 +350,10 @@ export default function SquadPage() {
   const [search, setSearch]         = useState("");
   const [posFilter, setPosFilter]   = useState("Todos");
   const [teamFilter, setTeamFilter] = useState("todos");
-  const [showModal, setShowModal]   = useState(false);
-  const [editPlayer, setEditPlayer] = useState(null);
-  const [teamError, setTeamError]   = useState(false);
+  const [showModal, setShowModal]       = useState(false);
+  const [editPlayer, setEditPlayer]     = useState(null);
+  const [teamError, setTeamError]       = useState(false);
+  const [statsPlayer, setStatsPlayer]   = useState(null);
 
   // ── Cargar plantillas manuales (localStorage) ─────────────
   useEffect(() => {
@@ -583,12 +736,17 @@ export default function SquadPage() {
       {regPlayers.length > 0 && (
         <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
           <div
-            className="px-5 py-3 border-b border-depro-border flex items-center gap-2"
+            className="px-5 py-3 border-b border-depro-border flex items-center justify-between gap-2"
             style={{ backgroundColor: sa + "08" }}
           >
-            <CheckCircle size={14} style={{ color: sa }} />
-            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: sa }}>
-              Jugadores con plan individual ({regPlayers.length})
+            <div className="flex items-center gap-2">
+              <CheckCircle size={14} style={{ color: sa }} />
+              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: sa }}>
+                Jugadores con plan individual ({regPlayers.length})
+              </span>
+            </div>
+            <span className="text-[10px] text-depro-gray flex items-center gap-1">
+              <TrendingUp size={10} /> Clic para ver estadísticas
             </span>
           </div>
           {regPlayers.map((p) => {
@@ -596,7 +754,8 @@ export default function SquadPage() {
             return (
               <div
                 key={p.id}
-                className="flex items-center gap-3 px-5 py-4 border-b border-depro-border last:border-b-0 hover:bg-depro-gray-light/40 transition-colors"
+                onClick={() => setStatsPlayer(p)}
+                className="flex items-center gap-3 px-5 py-4 border-b border-depro-border last:border-b-0 hover:bg-depro-gray-light/40 transition-colors cursor-pointer group"
               >
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0"
@@ -620,10 +779,20 @@ export default function SquadPage() {
                 >
                   Registrado
                 </span>
+                <ChevronRight size={14} className="text-depro-gray group-hover:text-depro-dark transition-colors flex-shrink-0" />
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* Modal estadísticas jugador registrado */}
+      {statsPlayer && (
+        <PlayerStatsModal
+          player={statsPlayer}
+          onClose={() => setStatsPlayer(null)}
+          sa={sa}
+        />
       )}
 
       {/* Modal */}
