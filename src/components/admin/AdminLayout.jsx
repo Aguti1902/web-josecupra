@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, LogOut, Menu, X, ChevronRight,
-  Settings, Brain, Building2, Globe, Shield,
+  Settings, Brain, Building2, Globe, Shield, CalendarDays,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -17,7 +17,8 @@ const navGroups = [
   {
     label: "Contenido",
     items: [
-      { to: "/admin/plan-builder", icon: Brain, label: "Motor de planes" },
+      { to: "/admin/planificacion", icon: CalendarDays, label: "Planificación" },
+      { to: "/admin/plan-builder",  icon: Brain,        label: "Motor de planes" },
     ],
   },
   {

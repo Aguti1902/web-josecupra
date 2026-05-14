@@ -1243,29 +1243,25 @@ function ClubMicrocycles({ accent }) {
   const userAgeBlock = getAgeBlock(userTeamCategory); // "Bloque 1" / "Bloque 2" / "Bloque 3" / null
   const clubId = user?.club?.id ?? null;
 
-  // Cargar planes: primero user.club.plans (localStorage), luego API si está vacío
-  const [allPlans, setAllPlans] = useState(
-    () => (user?.club?.plans || []).map(normalizePlan)
-  );
+  // Cargar planes globales: localStorage primero, luego API (cross-device)
+  const [allPlans, setAllPlans] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("depro_global_plans") || "[]").map(normalizePlan); }
+    catch { return []; }
+  });
   useEffect(() => {
-    if (!clubId) return;
-    if (allPlans.length > 0) return; // ya tenemos datos
     fetch("/api/admin-clubs")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (!data) return;
-        const club = (data.clubs || []).find((c) => c.id === clubId);
-        if (club?.plans?.length > 0) {
-          // Guardar en caché local
-          try {
-            const det = JSON.parse(localStorage.getItem(`depro_club_${clubId}`) || "{}");
-            localStorage.setItem(`depro_club_${clubId}`, JSON.stringify({ ...det, plans: club.plans }));
-          } catch {}
-          setAllPlans(club.plans.map(normalizePlan));
+        const globalEntry = (data.clubs || []).find((c) => c.id === "GLOBAL_PLANS");
+        const apiPlans = globalEntry?.plans;
+        if (apiPlans?.length > 0) {
+          try { localStorage.setItem("depro_global_plans", JSON.stringify(apiPlans)); } catch {}
+          setAllPlans(apiPlans.map(normalizePlan));
         }
       })
       .catch(() => {});
-  }, [clubId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filtrar: coordinador ve todos; entrenador ve planes de su bloque de edad
   // Sistema nuevo: filtra por ageBlock. Sistema antiguo (fallback): filtra por teamId.

@@ -1660,7 +1660,7 @@ export default function AdminClubDetailPage() {
 
   const [club, setClub]             = useState(null);
   const [loading, setLoading]       = useState(true);
-  const [activeTab, setActiveTab]   = useState("planificacion");
+  const [activeTab, setActiveTab]   = useState("identidad");
   const [showNewTeam, setShowNewTeam] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
   const [showNewMc, setShowNewMc]   = useState(false);
@@ -1791,7 +1791,6 @@ export default function AdminClubDetailPage() {
   const TABS = [
     { id: "identidad", label: "Identidad", icon: Palette },
     { id: "equipos", label: "Equipos", icon: Shield, count: (club.teams || []).length },
-    { id: "planificacion", label: "Planificación", icon: ClipboardList, count: plans.length },
     { id: "usuarios", label: "Usuarios", icon: Users, count: (() => {
       let n = (club.users || []).length;
       if (club.coordinator?.email) n++;
@@ -2009,18 +2008,6 @@ export default function AdminClubDetailPage() {
       {/* IDENTIDAD */}
       {activeTab === "identidad" && (
         <IdentidadTab club={club} onSave={(patch) => { updateClub((c) => ({ ...c, ...patch })); }} />
-      )}
-
-      {/* PLANIFICACIÓN */}
-      {activeTab === "planificacion" && (
-        <PlanificacionSection
-          plans={plans}
-          teams={club.teams || []}
-          onAddSession={addSession}
-          onDeleteSession={deleteSession}
-          onDeleteMicrocycle={deleteMicrocycle}
-          onCreateMicrocycle={addMicrocycle}
-        />
       )}
 
       {/* EQUIPOS */}
