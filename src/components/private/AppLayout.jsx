@@ -41,13 +41,12 @@ export default function AppLayout({ children }) {
 
   // Nav items built with translations
   const playerNav = [
-    { to: "/dashboard",           icon: LayoutDashboard, label: t("nav.dashboard") },
-    { to: "/dashboard/plan",      icon: Calendar,        label: t("nav.weekly_plan") },
-    { to: "/dashboard/technique", icon: Zap,             label: t("nav.technique") },
-    { to: "/dashboard/physical",  icon: Activity,        label: t("nav.physical") },
-    { to: "/dashboard/feedback",  icon: MessageSquare,   label: t("nav.feedback") },
-    { to: "/dashboard/ranking",   icon: Trophy,          label: t("nav.ranking") },
-    { to: "/dashboard/profile",   icon: User,            label: t("nav.my_profile") },
+    { to: "/dashboard",          icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dashboard/plan",     icon: Calendar,        label: t("nav.weekly_plan") },
+    { to: "/dashboard/physical", icon: Activity,        label: "Tests" },
+    { to: "/dashboard/feedback", icon: MessageSquare,   label: t("nav.feedback") },
+    { to: "/dashboard/ranking",  icon: Trophy,          label: t("nav.ranking") },
+    { to: "/dashboard/profile",  icon: User,            label: t("nav.my_profile") },
   ];
 
   const coordinadorNav = [
