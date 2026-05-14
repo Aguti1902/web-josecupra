@@ -34,8 +34,9 @@ import {
   Palette,
   ImagePlus,
   MapPin,
+  Youtube,
 } from "lucide-react";
-import { loadClubs, saveClubDetail, loadClubDetail, loadMedia, createClubUser } from "../../lib/adminStorage";
+import { loadClubs, saveClubDetail, loadClubDetail, createClubUser } from "../../lib/adminStorage";
 
 const ROLES = [
   { id: "coordinador", label: "Coordinador", icon: Crown, color: "text-depro-blue bg-depro-blue/10" },
@@ -622,6 +623,12 @@ function NewMicrocycleModal({ teams, onClose, onCreate }) {
   );
 }
 
+function getYouTubeId(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^&?/\s]{11})/);
+  return m ? m[1] : null;
+}
+
 function NewSessionModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
     day: "Lunes",
@@ -631,8 +638,7 @@ function NewSessionModal({ onClose, onCreate }) {
     space: "",
     players: "",
     objective: "",
-    exercises: [{ name: "", sets: 3, reps: "10", rest: "60s" }],
-    mediaIds: [],
+    exercises: [{ name: "", sets: 3, reps: "10", rest: "60s", videoUrl: "" }],
   });
 
   const updateExercise = (i, field, val) =>
@@ -643,18 +649,10 @@ function NewSessionModal({ onClose, onCreate }) {
     });
 
   const addExercise = () =>
-    setForm((f) => ({ ...f, exercises: [...f.exercises, { name: "", sets: 3, reps: "10", rest: "60s" }] }));
+    setForm((f) => ({ ...f, exercises: [...f.exercises, { name: "", sets: 3, reps: "10", rest: "60s", videoUrl: "" }] }));
 
   const removeExercise = (i) =>
     setForm((f) => ({ ...f, exercises: f.exercises.filter((_, idx) => idx !== i) }));
-
-  const toggleMedia = (mid) =>
-    setForm((f) => ({
-      ...f,
-      mediaIds: f.mediaIds.includes(mid)
-        ? f.mediaIds.filter((x) => x !== mid)
-        : [...f.mediaIds, mid],
-    }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overflow-y-auto p-4">
@@ -742,57 +740,57 @@ function NewSessionModal({ onClose, onCreate }) {
                 <Plus size={12} /> Añadir
               </button>
             </div>
-            <div className="space-y-2">
-              {form.exercises.map((ex, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                  <input
-                    className="col-span-5 border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="Nombre del ejercicio"
-                    value={ex.name}
-                    onChange={(e) => updateExercise(i, "name", e.target.value)}
-                  />
-                  <input
-                    className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="Series"
-                    value={ex.sets}
-                    onChange={(e) => updateExercise(i, "sets", e.target.value)}
-                  />
-                  <input
-                    className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="Reps/T."
-                    value={ex.reps}
-                    onChange={(e) => updateExercise(i, "reps", e.target.value)}
-                  />
-                  <input
-                    className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="Desc."
-                    value={ex.rest}
-                    onChange={(e) => updateExercise(i, "rest", e.target.value)}
-                  />
-                  <button onClick={() => removeExercise(i)} className="col-span-1 flex items-center justify-center text-depro-gray hover:text-depro-red">
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {form.exercises.map((ex, i) => {
+                const ytId = getYouTubeId(ex.videoUrl);
+                return (
+                  <div key={i} className="border border-depro-border rounded-xl p-3 space-y-2 bg-depro-gray-light/30">
+                    <div className="grid grid-cols-12 gap-2 items-center">
+                      <input
+                        className="col-span-5 border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+                        placeholder="Nombre del ejercicio"
+                        value={ex.name}
+                        onChange={(e) => updateExercise(i, "name", e.target.value)}
+                      />
+                      <input
+                        className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+                        placeholder="Series"
+                        value={ex.sets}
+                        onChange={(e) => updateExercise(i, "sets", e.target.value)}
+                      />
+                      <input
+                        className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+                        placeholder="Reps/T."
+                        value={ex.reps}
+                        onChange={(e) => updateExercise(i, "reps", e.target.value)}
+                      />
+                      <input
+                        className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+                        placeholder="Descanso"
+                        value={ex.rest}
+                        onChange={(e) => updateExercise(i, "rest", e.target.value)}
+                      />
+                      <button onClick={() => removeExercise(i)} className="col-span-1 flex items-center justify-center text-depro-gray hover:text-red-500">
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Youtube size={14} className={ytId ? "text-red-500" : "text-depro-gray"} />
+                      <input
+                        className="flex-1 border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+                        placeholder="URL YouTube (opcional)"
+                        value={ex.videoUrl || ""}
+                        onChange={(e) => updateExercise(i, "videoUrl", e.target.value)}
+                      />
+                      {ytId && (
+                        <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt="" className="w-12 h-9 rounded-md object-cover border border-depro-border" />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <p className="text-xs text-depro-gray mt-1">Nombre · Series · Reps/Tiempo · Descanso</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-depro-dark mb-2">Adjuntar vídeos de la biblioteca</label>
-            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-              {mediaLibrary.filter((m) => m.type === "video").map((v) => (
-                <label key={v.id} className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    className="accent-depro-blue"
-                    checked={form.mediaIds.includes(v.id)}
-                    onChange={() => toggleMedia(v.id)}
-                  />
-                  <span className="text-sm text-depro-dark group-hover:text-depro-blue">{v.title}</span>
-                  <span className="text-xs text-depro-gray ml-auto">{v.duration}</span>
-                </label>
-              ))}
-            </div>
+            <p className="text-xs text-depro-gray mt-1">Nombre · Series · Reps/Tiempo · Descanso · URL YouTube</p>
           </div>
         </div>
         <div className="flex gap-3 p-6 border-t border-depro-border">
@@ -894,7 +892,7 @@ function MicrocycleCard({ mc, teams, onAddSession, onDeleteSession, onDelete }) 
             </div>
           ) : (
             mc.sessions.map((session) => {
-              const videos = mediaLibrary.filter((m) => session.mediaIds?.includes(m.id));
+              const videoExercises = (session.exercises || []).filter((ex) => getYouTubeId(ex.videoUrl));
               return (
                 <div key={session.id} className="px-5 py-4">
                   <div className="flex items-start justify-between gap-2">
@@ -917,36 +915,39 @@ function MicrocycleCard({ mc, teams, onAddSession, onDeleteSession, onDelete }) 
                             <Users size={10} />{session.players} jug.
                           </span>
                         )}
+                        {videoExercises.length > 0 && (
+                          <span className="text-xs text-red-500 flex items-center gap-0.5 font-medium">
+                            <Youtube size={10} />{videoExercises.length} vídeo{videoExercises.length > 1 ? "s" : ""}
+                          </span>
+                        )}
                       </div>
                       <p className="font-medium text-depro-dark text-sm">{session.title}</p>
                       {session.objective && (
                         <p className="text-xs text-depro-gray mt-0.5">{session.objective}</p>
                       )}
                       <div className="mt-2 space-y-1">
-                        {session.exercises.slice(0, 3).map((ex, i) => (
-                          <div key={i} className="text-xs text-depro-gray flex items-center gap-2">
-                            <span className="w-1 h-1 rounded-full bg-depro-blue/60 shrink-0" />
-                            <span className="font-medium text-depro-dark/80">{ex.name}</span>
-                            <span className="text-depro-gray/70 ml-auto">
-                              {ex.sets}×{ex.reps} · {ex.rest}
-                            </span>
-                          </div>
-                        ))}
-                        {session.exercises.length > 3 && (
+                        {(session.exercises || []).slice(0, 3).map((ex, i) => {
+                          const ytId = getYouTubeId(ex.videoUrl);
+                          return (
+                            <div key={i} className="text-xs text-depro-gray flex items-center gap-2">
+                              {ytId ? (
+                                <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt="" className="w-8 h-6 rounded object-cover shrink-0" />
+                              ) : (
+                                <span className="w-1 h-1 rounded-full bg-depro-blue/60 shrink-0" />
+                              )}
+                              <span className="font-medium text-depro-dark/80">{ex.name}</span>
+                              <span className="text-depro-gray/70 ml-auto">
+                                {ex.sets}×{ex.reps} · {ex.rest}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {(session.exercises || []).length > 3 && (
                           <p className="text-xs text-depro-gray/60 pl-3">
                             +{session.exercises.length - 3} más…
                           </p>
                         )}
                       </div>
-                      {videos.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {videos.map((v) => (
-                            <span key={v.id} className="flex items-center gap-1 text-xs text-depro-blue bg-depro-blue/8 px-2 py-0.5 rounded-full">
-                              <Play size={9} /> {v.title.slice(0, 20)}…
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                     <button
                       onClick={() => onDeleteSession(mc.id, session.id)}
