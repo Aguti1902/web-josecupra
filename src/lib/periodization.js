@@ -136,3 +136,69 @@ export function getDayRationale(day, sessionType) {
   };
   return map[day] ?? "";
 }
+
+/* ═══════════════════════════════════════════════════════════
+   UTILIDADES DE CALENDARIO
+   ═══════════════════════════════════════════════════════════ */
+
+/**
+ * Dado el startDate (YYYY-MM-DD) del mesociclo y la fecha de hoy,
+ * devuelve el índice de la semana actual (0-based).
+ * Devuelve -1 si el mesociclo no ha empezado o ya terminó.
+ */
+export function getCurrentWeekIndex(startDate, endDate) {
+  if (!startDate) return 0; // sin fecha → mostrar semana 1 por defecto
+  const start = new Date(startDate);
+  const end   = endDate ? new Date(endDate) : null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  start.setHours(0, 0, 0, 0);
+  if (end) end.setHours(23, 59, 59, 999);
+
+  if (today < start) return 0;          // antes del inicio → semana 1
+  if (end && today > end) return -1;    // terminado
+
+  const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+  return Math.floor(diffDays / 7);
+}
+
+/**
+ * Formatea una fecha YYYY-MM-DD como "5 may 2025".
+ */
+export function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/**
+ * Calcula la fecha de inicio de la semana N (0-based) dentro del mesociclo.
+ */
+export function getWeekStartDate(mesocicloStartDate, weekIndex) {
+  if (!mesocicloStartDate) return null;
+  const d = new Date(mesocicloStartDate + "T00:00:00");
+  d.setDate(d.getDate() + weekIndex * 7);
+  return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+}
+
+/**
+ * Devuelve si el mesociclo está activo hoy.
+ */
+export function isMesocicloActive(startDate, endDate) {
+  if (!startDate) return false;
+  const today = new Date();
+  const start = new Date(startDate + "T00:00:00");
+  const end   = endDate ? new Date(endDate + "T23:59:59") : null;
+  return today >= start && (!end || today <= end);
+}
+
+/**
+ * Dado un mesociclo con startDate y endDate, calcula cuántas semanas tiene.
+ */
+export function getMesocicloWeeks(startDate, endDate) {
+  if (!startDate || !endDate) return null;
+  const start = new Date(startDate + "T00:00:00");
+  const end   = new Date(endDate + "T00:00:00");
+  const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  return Math.ceil(diffDays / 7);
+}

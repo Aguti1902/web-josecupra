@@ -4,7 +4,10 @@ import {
   Activity, Flame, Zap, Clock, Layers, PlayCircle, Shield, Info,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { distributeMesocycleForTeam, getDayRationale, getSessionType } from "../../lib/periodization";
+import {
+  distributeMesocycleForTeam, getDayRationale, getSessionType,
+  getCurrentWeekIndex, formatDate, getWeekStartDate, isMesocicloActive, getMesocicloWeeks,
+} from "../../lib/periodization";
 
 /* ── Helper: bloque de edad por categoría ─────────────────── */
 function getAgeBlock(category) {
@@ -197,6 +200,11 @@ export default function MesocyclePage() {
     3 // base: Jose crea 3 sesiones/semana
   );
 
+  /* Semana actual según el calendario real del mesociclo */
+  const currentWeekIdx = getCurrentWeekIndex(activePlan?.startDate, activePlan?.endDate);
+  const mesocicloActive = isMesocicloActive(activePlan?.startDate, activePlan?.endDate);
+  const totalCalendarWeeks = getMesocicloWeeks(activePlan?.startDate, activePlan?.endDate);
+
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
       {/* Header */}
@@ -262,13 +270,23 @@ export default function MesocyclePage() {
                     "bg-yellow-50 text-yellow-700 border-yellow-200"
                   }`}>{activePlan.status}</span>
                 </div>
-                <div className="flex flex-wrap gap-3 text-xs text-depro-gray">
-                  {activePlan.dateRange && <span className="flex items-center gap-1"><Calendar size={11}/>{activePlan.dateRange}</span>}
-                  {activePlan.focus && <span className="flex items-center gap-1"><Zap size={11}/>{activePlan.focus}</span>}
-                  <span className="flex items-center gap-1"><Layers size={11}/>{sessions.length} sesiones</span>
+                <div className="flex flex-wrap gap-3 text-xs text-depro-gray mt-1">
+                  {activePlan.startDate && (
+                    <span className="flex items-center gap-1">
+                      <Calendar size={11}/>
+                      {formatDate(activePlan.startDate)} → {formatDate(activePlan.endDate)}
+                    </span>
+                  )}
+                  {totalCalendarWeeks && (
+                    <span className="flex items-center gap-1"><Layers size={11}/>{totalCalendarWeeks} semanas</span>
+                  )}
+                  <span className="flex items-center gap-1"><Zap size={11}/>{allSessions.length} sesiones totales</span>
                 </div>
-                {activePlan.objective && (
-                  <p className="text-sm text-depro-gray mt-2">{activePlan.objective}</p>
+                {mesocicloActive && currentWeekIdx >= 0 && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-green-50 border border-green-200 text-green-700">
+                    <CheckCircle size={10}/>
+                    Semana {currentWeekIdx + 1} en curso
+                  </div>
                 )}
               </div>
             </div>
@@ -282,17 +300,30 @@ export default function MesocyclePage() {
             </div>
           )}
 
-          {weeks.map(({ weekNumber, sessions: weekSessions }, wi) => (
-            <div key={wi} className="mb-6">
+          {weeks.map(({ weekNumber, sessions: weekSessions }, wi) => {
+            const isCurrentWeek = wi === currentWeekIdx;
+            const weekStart = getWeekStartDate(activePlan?.startDate, wi);
+            return (
+            <div key={wi} className={`mb-6 ${isCurrentWeek ? "relative" : ""}`}>
               {/* Cabecera semana */}
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center border text-xs font-black flex-shrink-0"
-                  style={{ backgroundColor: accent + "15", borderColor: accent + "25", color: accent }}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center border text-xs font-black flex-shrink-0 transition-colors ${
+                  isCurrentWeek ? "shadow-md" : ""
+                }`}
+                  style={isCurrentWeek
+                    ? { backgroundColor: accent, borderColor: accent, color: "white" }
+                    : { backgroundColor: accent + "15", borderColor: accent + "25", color: accent }}>
                   {weekNumber}
                 </div>
-                <div>
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-black text-depro-dark">Semana {weekNumber}</span>
-                  <span className="text-xs text-depro-gray ml-2">· {weekSessions.length} sesiones</span>
+                  {weekStart && <span className="text-[10px] text-depro-gray">{weekStart}</span>}
+                  <span className="text-xs text-depro-gray">· {weekSessions.length} sesiones</span>
+                  {isCurrentWeek && (
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 flex items-center gap-1">
+                      <CheckCircle size={9}/> Esta semana
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 h-px bg-depro-border" />
               </div>
@@ -331,7 +362,8 @@ export default function MesocyclePage() {
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {/* Leyenda de periodización */}
           {trainingDays.length > 0 && (

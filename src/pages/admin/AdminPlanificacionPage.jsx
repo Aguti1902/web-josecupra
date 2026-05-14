@@ -419,7 +419,9 @@ function SessionEditorModal({ onClose, onCreate }) {
 /* ── Modal nuevo microciclo ──────────────────────────────── */
 function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
   const [form, setForm] = useState({
-    label: "", ageBlock: initialAgeBlock, dateRange: "", status: "borrador",
+    label: "", ageBlock: initialAgeBlock,
+    startDate: "", endDate: "",
+    status: "borrador",
   });
 
   return (
@@ -467,22 +469,31 @@ function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-depro-dark mb-1">Periodo</label>
-            <input className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-              placeholder="5 – 11 may 2025" value={form.dateRange}
-              onChange={(e) => setForm((f) => ({ ...f, dateRange: e.target.value }))} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-depro-dark mb-1">Fecha inicio *</label>
+              <input type="date" className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                value={form.startDate}
+                onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-depro-dark mb-1">Fecha fin *</label>
+              <input type="date" className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                value={form.endDate}
+                min={form.startDate}
+                onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))} />
+            </div>
           </div>
         </div>
         <div className="flex gap-3 p-6 border-t border-depro-border">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">Cancelar</button>
           <button
             onClick={() => {
-              if (!form.label || !form.ageBlock) return;
+              if (!form.label || !form.ageBlock || !form.startDate || !form.endDate) return;
               onCreate({ ...form, id: `mc${Date.now()}`, sessions: [] });
               onClose();
             }}
-            disabled={!form.label || !form.ageBlock}
+            disabled={!form.label || !form.ageBlock || !form.startDate || !form.endDate}
             className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40"
           >
             Crear mesociclo
@@ -513,7 +524,12 @@ function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete }) {
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="font-mono text-xs font-black text-depro-blue bg-depro-blue/10 px-2 py-0.5 rounded">{mc.code}</span>
               <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${statusStyle}`}>{mc.status}</span>
-              {mc.dateRange && <span className="text-xs text-depro-gray flex items-center gap-1"><Calendar size={10}/>{mc.dateRange}</span>}
+              {(mc.startDate || mc.dateRange) && (
+                <span className="text-xs text-depro-gray flex items-center gap-1">
+                  <Calendar size={10}/>
+                  {mc.startDate ? `${mc.startDate} → ${mc.endDate}` : mc.dateRange}
+                </span>
+              )}
             </div>
             <p className="text-sm font-bold text-depro-dark truncate">{mc.label}</p>
             {mc.focus && <p className="text-xs text-depro-gray mt-0.5">{mc.focus}</p>}

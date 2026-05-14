@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import { distributeWeekSessions, getDayRationale, getSessionType as getPeriodizationSessionType } from "../../lib/periodization";
+import {
+  distributeWeekSessions, getDayRationale, getSessionType as getPeriodizationSessionType,
+  getCurrentWeekIndex, formatDate,
+} from "../../lib/periodization";
 import {
   Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
   Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
@@ -1285,13 +1288,17 @@ function ClubMicrocycles({ accent }) {
     </div>
   );
 
-  // Distribuir sesiones según los días de entrenamiento del equipo
-  // Tomamos las primeras N sesiones (primera "semana" del mesociclo) para la vista semanal
+  // Detectar semana actual según el calendario real del mesociclo
   const SESSIONS_PER_BASE_WEEK = 3;
-  const firstWeekSessions = (micro.sessions || []).slice(0, SESSIONS_PER_BASE_WEEK);
+  const currentWeekIdx = getCurrentWeekIndex(micro.startDate, micro.endDate);
+  const safeWeekIdx = currentWeekIdx < 0 ? 0 : currentWeekIdx; // si terminó, mostrar última semana
+  const weekStart = safeWeekIdx * SESSIONS_PER_BASE_WEEK;
+  const currentWeekSessions = (micro.sessions || []).slice(weekStart, weekStart + SESSIONS_PER_BASE_WEEK);
+
+  // Distribuir sesiones de la semana actual según los días del equipo
   const distributedWeekSessions = !isCoordinator && trainingDays.length > 0
-    ? distributeWeekSessions(firstWeekSessions, trainingDays)
-    : firstWeekSessions;
+    ? distributeWeekSessions(currentWeekSessions, trainingDays)
+    : currentWeekSessions;
 
   const totalCompletion = Math.round(
     distributedWeekSessions.reduce((acc, s) => acc + (s.completion ?? 0), 0) / Math.max(distributedWeekSessions.length, 1)
@@ -1300,12 +1307,20 @@ function ClubMicrocycles({ accent }) {
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Microciclos</h1>
+        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Microciclo</h1>
         <p className="text-depro-gray text-sm">
           {isCoordinator
-            ? "Todos los equipos · Filtra por microciclo"
+            ? "Todos los equipos · Filtra por mesociclo"
             : `${user?.team?.name}${userTeamCategory ? ` (${userTeamCategory})` : ""}${userAgeBlock ? ` · ${userAgeBlock}` : ""}`}
         </p>
+        {!isCoordinator && micro.startDate && (
+          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-depro-blue-light/40 border border-depro-blue/20 text-xs">
+            <Calendar size={11} className="text-depro-blue" />
+            <span className="text-depro-dark font-bold">Semana {safeWeekIdx + 1}</span>
+            <span className="text-depro-gray">· {micro.label}</span>
+            <span className="text-depro-gray">· {formatDate(micro.startDate)} → {formatDate(micro.endDate)}</span>
+          </div>
+        )}
       </div>
 
       {/* Selector de microciclos */}
