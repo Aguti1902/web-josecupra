@@ -31,7 +31,6 @@ import AdminOverviewPage from "./pages/admin/AdminOverviewPage";
 import AdminClientsPage from "./pages/admin/AdminClientsPage";
 import AdminClientDetailPage from "./pages/admin/AdminClientDetailPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
-import AdminMediaPage from "./pages/admin/AdminMediaPage";
 import AdminPlanBuilderPage from "./pages/admin/AdminPlanBuilderPage";
 import AdminClubsManagerPage from "./pages/admin/AdminClubsManagerPage";
 import AdminClubDetailPage from "./pages/admin/AdminClubDetailPage";
@@ -115,7 +114,6 @@ function AppRoutes() {
       <Route path="/admin" element={<AdminRoute><AdminLayout><AdminOverviewPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clients" element={<AdminRoute><AdminLayout><AdminClientsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clients/:id" element={<AdminRoute><AdminLayout><AdminClientDetailPage /></AdminLayout></AdminRoute>} />
-      <Route path="/admin/media" element={<AdminRoute><AdminLayout><AdminMediaPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/plan-builder" element={<AdminRoute><AdminLayout><AdminPlanBuilderPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clubs" element={<AdminRoute><AdminLayout><AdminClubsManagerPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clubs/:id" element={<AdminRoute><AdminLayout><AdminClubDetailPage /></AdminLayout></AdminRoute>} />

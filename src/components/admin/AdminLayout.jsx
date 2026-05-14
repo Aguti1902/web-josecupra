@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, LogOut, Menu, X, ChevronRight,
-  Settings, Shield, Globe, Video, Brain, Building2,
+  Settings, Brain, Building2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -17,7 +17,6 @@ const navGroups = [
   {
     label: "Contenido",
     items: [
-      { to: "/admin/media", icon: Video, label: "Biblioteca de medios" },
       { to: "/admin/plan-builder", icon: Brain, label: "Motor de planes" },
     ],
   },
