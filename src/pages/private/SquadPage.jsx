@@ -229,18 +229,18 @@ export default function SquadPage() {
           const { players: list } = await res.json();
           if (list?.length > 0) { setRegPlayers(list); return; }
         }
-        // Fallback: consultar profiles directamente
+        // Fallback: consultar profiles directamente usando app_team_id (sin FK)
         const { data } = await supabase
           .from("profiles")
-          .select("id, name, plan, team_id")
-          .in("team_id", teamIds);
+          .select("id, name, plan, app_team_id")
+          .in("app_team_id", teamIds);
         if (data?.length > 0) {
           setRegPlayers(data.map((p) => ({
             id:       p.id,
             name:     p.name || "Jugador registrado",
             plan:     p.plan || "—",
             position: "—",
-            _teamId:  p.team_id,
+            _teamId:  p.app_team_id,
             _reg:     true,
           })));
         }

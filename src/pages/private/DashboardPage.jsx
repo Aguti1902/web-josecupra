@@ -479,12 +479,12 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
       .then((r) => r.ok ? r.json() : Promise.reject("api_fail"))
       .then(({ players: list }) => { if (list?.length >= 0) setRegPlayers(list); })
       .catch(async () => {
-        // Fallback: consultar tabla profiles directamente (funciona en local y en Vercel)
+        // Fallback: consultar profiles usando app_team_id (columna texto, sin FK)
         try {
           const { data } = await supabase
             .from("profiles")
-            .select("id, name, plan, team_role")
-            .eq("team_id", team.id);
+            .select("id, name, plan, app_team_id")
+            .eq("app_team_id", team.id);
           if (data && data.length > 0) {
             setRegPlayers(data.map((p) => ({
               id:       p.id,
