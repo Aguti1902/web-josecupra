@@ -104,7 +104,7 @@ function IASimulator({ blocks }) {
         return {
           day,
           block: block || null,
-          withVideo: block?.linkedVideos?.length > 0,
+          withVideo: (block?.exercises || []).some((ex) => getYouTubeId(ex.videoUrl)),
         };
       });
       setSimulated({ matched, plan });
@@ -253,9 +253,9 @@ function IASimulator({ blocks }) {
               )}
 
               {simulated.plan.map((entry, i) => {
-                const videos = entry.block
-                  ? mediaLibrary.filter((m) => entry.block.linkedVideos?.includes(m.id))
-                  : [];
+                const videoCount = entry.block
+                  ? (entry.block.exercises || []).filter((ex) => getYouTubeId(ex.videoUrl)).length
+                  : 0;
                 return (
                   <div
                     key={i}
@@ -272,18 +272,8 @@ function IASimulator({ blocks }) {
                         <p className="text-sm font-medium text-depro-dark">{entry.block.name}</p>
                         <p className="text-xs text-depro-gray mt-0.5">
                           {entry.block.exercises.length} ejercicios
-                          {videos.length > 0 && ` · ${videos.length} vídeo${videos.length > 1 ? "s" : ""}`}
+                          {videoCount > 0 && ` · ${videoCount} vídeo${videoCount > 1 ? "s" : ""} YouTube`}
                         </p>
-                        {videos.length > 0 && (
-                          <div className="flex gap-1 mt-1.5">
-                            {videos.map((v) => (
-                              <span key={v.id} className="flex items-center gap-1 text-xs text-depro-blue bg-depro-blue/8 px-2 py-0.5 rounded-full">
-                                <Play size={9} />
-                                {v.title.slice(0, 22)}…
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </>
                     ) : (
                       <p className="text-xs text-depro-gray italic">Sin bloque asignado · Descanso</p>
