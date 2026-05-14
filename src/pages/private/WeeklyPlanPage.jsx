@@ -459,119 +459,213 @@ function PlayerWeeklyPlan({ accent }) {
   );
 }
 
-/* ─────────────────────────────────────────────
-   DISEÑAR TAREAS (guía táctica embebida en sesión)
-───────────────────────────────────────────── */
-const TASK_ICONS = { space: Maximize2, players: Users, time: Clock, intensity: Flame };
+/* ══════════════════════════════════════════════
+   DATOS DE SESIÓN CLUB — A/B/C
+══════════════════════════════════════════════ */
+function getSessionType(intensity) {
+  const i = (intensity || "").toLowerCase();
+  if (i.includes("máxima") || i.includes("maxima")) return "C";
+  if (i.includes("alta") || i.includes("media-alta")) return "B";
+  return "A";
+}
+const ST = {
+  A: { label: "Extensiva",  color: "#3B82F6", bg: "#EFF6FF", emoji: "🔵" },
+  B: { label: "Intensiva",  color: "#F59E0B", bg: "#FFFBEB", emoji: "🟡" },
+  C: { label: "Reactiva",   color: "#EF4444", bg: "#FEF2F2", emoji: "🔴" },
+};
+const WARMUP_GUIDE_ITEMS = [
+  { icon: "⚽", title: "Con balón",         text: "Posesión simple, rueda o rondo de activación" },
+  { icon: "🔄", title: "Tarea integrada",   text: "Rondo, conservación o circuito técnico corto" },
+  { icon: "📐", title: "Espacio",           text: "Zona media del campo · Sin presión inicial" },
+  { icon: "👥", title: "Participación",     text: "Todo el equipo desde el minuto 1" },
+  { icon: "⏱️", title: "Duración",          text: "10–15 min · Escalado gradual hasta ritmo medio" },
+  { icon: "❌", title: "Evitar",            text: "Sprints sin balón, ejercicios estáticos, carga en frío" },
+];
+const PROTOCOL_INFO = {
+  A: [
+    { emoji: "🎯", label: "Qué haremos",   value: "Trabajo de volumen y dominio colectivo" },
+    { emoji: "💡", label: "Por qué",        value: "Construir base técnica sin sobrecargar el SNC" },
+    { emoji: "⏱️", label: "Duración",       value: "Series largas · 8–12 min de trabajo" },
+    { emoji: "🔋", label: "Intensidad",     value: "60–70% · Ritmo controlado" },
+    { emoji: "⚠️", label: "Sub-12",         value: "Reducir series 20% · Sin impacto articular" },
+  ],
+  B: [
+    { emoji: "🎯", label: "Qué haremos",   value: "Alta exigencia en espacios reducidos" },
+    { emoji: "💡", label: "Por qué",        value: "Mejorar decisión bajo presión y velocidad de ejecución" },
+    { emoji: "⏱️", label: "Duración",       value: "Bloques cortos · 4–6 min de trabajo" },
+    { emoji: "🔋", label: "Intensidad",     value: "80–90% · Ritmo muy elevado" },
+    { emoji: "⚠️", label: "Sub-14",         value: "Máx. 85% FCmax · Vigilar carga articular" },
+  ],
+  C: [
+    { emoji: "🎯", label: "Qué haremos",   value: "Acciones explosivas y velocidad reactiva máxima" },
+    { emoji: "💡", label: "Por qué",        value: "Activar el SNC y mejorar la velocidad de reacción" },
+    { emoji: "⏱️", label: "Duración",       value: "Ráfagas cortas · 2–4 min · Descanso 3–5 min" },
+    { emoji: "🔋", label: "Intensidad",     value: "100% · Sin reservas · Máximo esfuerzo" },
+    { emoji: "⚠️", label: "Sub-16",         value: "Calentamiento mínimo 15 min · Riesgo lesional" },
+  ],
+};
+const DAY_RECS = {
+  A: [
+    { emoji: "📐", text: "Espacios amplios para circulación fluida" },
+    { emoji: "🔁", text: "Alta repetición con baja presión temporal" },
+    { emoji: "⏳", text: "Descansos largos entre series, sin prisa" },
+    { emoji: "🤝", text: "Participación colectiva: todo el equipo junto" },
+  ],
+  B: [
+    { emoji: "📐", text: "Espacios reducidos para forzar decisiones rápidas" },
+    { emoji: "👥", text: "Grupos pequeños → máxima participación individual" },
+    { emoji: "⚡", text: "Bloques cortos de alta exigencia sin pausa" },
+    { emoji: "🎯", text: "Presión constante sobre el portador del balón" },
+  ],
+  C: [
+    { emoji: "💨", text: "Acciones de 2–4 seg con arranque máximo" },
+    { emoji: "🛑", text: "Recuperación generosa para mantener calidad" },
+    { emoji: "🔀", text: "Cambios de dirección y velocidad al máximo" },
+    { emoji: "😴", text: "El descanso define la calidad de cada acción" },
+  ],
+};
+const TASK_TYPES = [
+  "Automatismos","Ruedas de pase","Posesiones","Juegos de posición",
+  "Conservaciones","Rondo simple","Rondo ampliado","Rondo direccional",
+  "Partidos reducidos","Partidos condicionados","Finalización",
+  "Oleadas","Secuencias por carriles","1 vs 1","2 vs 1","3 vs 2",
+  "Transiciones ofensivas","Transiciones defensivas","Circuitos técnicos",
+  "Tarea mixta","Tarea global","Juegos reactivos","Presión tras pérdida",
+  "Salida de balón","Juego posicional","Pressing zonal","Combinativas",
+  "Trabajo técnico individual",
+];
+const BASE_PARAMS = {
+  A: { space:"Amplio", grouping:"Todo el equipo", balls:"1 c/2–3 jug.", work:"8–12 min", rest:"3–4 min", intensity:"60–70%" },
+  B: { space:"Reducido", grouping:"Grupos de 4–8", balls:"1 por grupo", work:"4–6 min", rest:"1–2 min", intensity:"80–90%" },
+  C: { space:"Direccional", grouping:"Grupos de 4–6", balls:"1 por acción", work:"2–4 min", rest:"3–5 min", intensity:"Máxima" },
+};
+const TASK_CUES = {
+  "Posesiones":             { A:["Espacio grande, baja presión","Circulación sin urgencia","Fútbol asociativo"],               B:["Espacio reducido, ritmo alto","Presión inmediata en pérdida","Superioridades cambiantes"],         C:["Acciones rápidas y transiciones veloces","Presión total","Máx. 2–3 min por serie"] },
+  "Rondo simple":           { A:["1–2 toques sin presión temporal","Apoyo siempre disponible","Ritmo técnico"],                 B:["1 toque obligatorio","Espacio más pequeño","Velocidad de circulación máxima"],               C:["Reacción inmediata al cambio de rol","Sprint defensivo al perder","Pocas rep. máxima calidad"] },
+  "Partidos reducidos":     { A:["Campo grande, juego asociativo","Libertad táctica total","Descansos generosos"],              B:["Campo pequeño, alta intensidad","Transiciones muy rápidas","Presión constante"],               C:["Ráfagas de 2–3 min al 100%","Descanso amplio entre partidos","Transición inmediata"] },
+  "Finalización":           { A:["Muchos disparos, poca presión","Variedad de posiciones de tiro","Ritmo técnico"],             B:["Finalización bajo presión activa","Velocidad en el último pase","Decisión rápida"],            C:["Sprint de llegada máximo","Disparo sin control previo","Recuperación total entre rep."] },
+  "1 vs 1":                 { A:["Espacio amplio para el dribling","Muchas repeticiones técnicas","Sin urgencia"],              B:["Espacio reducido para 1v1","Alta presión defensiva","Decisión instantánea"],                    C:["Arranque máximo desde el primer metro","100% en el sprint","Transición explosiva"] },
+  "Transiciones ofensivas": { A:["Salida organizada sin urgencia","Múltiples líneas de pase","Comunicación táctica"],           B:["Velocidad de transición máxima","Salida en 3 seg máximo","Superioridad aprovechada"],           C:["Sprint total al recuperar","Decisión instantánea","Máxima velocidad hasta el gol"] },
+  "Pressing zonal":         { A:["Zonas amplias de pressing suave","Organización de referencias","Baja intensidad defensiva"],  B:["Pressing coordinado y agresivo","Trampa defensiva activa","Alta intensidad en zona"],           C:["Activación total del pressing","Sprint explosivo defensivo","Recuperar el balón en 5 seg"] },
+};
+const DEFAULT_CUES = {
+  A:["Ritmo técnico controlado · alta repetición","Espacios amplios sin urgencia temporal","Descansos generosos entre series"],
+  B:["Velocidad de decisión máxima","Presión alta sobre el portador","Grupos reducidos sin pausa"],
+  C:["Arranque explosivo en cada acción","Descanso completo antes de repetir","100% de intensidad en cada ráfaga"],
+};
 
-function DisenarTareas({ accentColor }) {
-  const [open, setOpen] = useState(false);
+/* ─────────────────────────────────────────────
+   DISEÑADOR DE TAREAS — 28 tipos + parámetros A/B/C
+───────────────────────────────────────────── */
+
+function DisenarTareas({ accentColor, sessionType = "A" }) {
   const [dropOpen, setDropOpen] = useState(false);
-  const [selectedKey, setSelectedKey] = useState(tacticalGuides[0].key);
-  const guide = tacticalGuides.find((g) => g.key === selectedKey);
+  const [selectedTask, setSelectedTask] = useState(TASK_TYPES[0]);
+  const st = ST[sessionType];
+  const params = BASE_PARAMS[sessionType];
+  const cues = (TASK_CUES[selectedTask] || DEFAULT_CUES)[sessionType];
+  const recs = DAY_RECS[sessionType];
 
   return (
-    <div className="mt-4 border border-depro-border rounded-2xl overflow-hidden">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-5 py-3.5 bg-depro-gray-light hover:bg-depro-gray-light/70 transition-colors"
+    <div className="space-y-5">
+      {/* Dropdown tipo de tarea */}
+      <div className="relative">
+        <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2 block">
+          Tipo de tarea
+        </label>
+        <button
+          onClick={() => setDropOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-depro-gray-light border border-depro-border rounded-xl text-sm font-semibold text-depro-dark hover:bg-depro-gray-light/70 transition-colors"
+        >
+          <span>{selectedTask}</span>
+          <ChevronDown size={14} className={`text-depro-gray transition-transform ${dropOpen ? "rotate-180" : ""}`} />
+        </button>
+        {dropOpen && (
+          <div className="absolute left-0 right-0 mt-1 bg-white border border-depro-border rounded-xl shadow-card-hover z-20 max-h-60 overflow-y-auto">
+            {TASK_TYPES.map((t) => (
+              <button
+                key={t}
+                onClick={() => { setSelectedTask(t); setDropOpen(false); }}
+                className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+                  t === selectedTask ? "font-bold text-depro-blue bg-depro-blue-light" : "text-depro-dark hover:bg-depro-gray-light"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Banner visual de la tarea */}
+      <div
+        className="w-full rounded-2xl p-8 flex flex-col items-center justify-center border"
+        style={{ background: `linear-gradient(135deg, ${st.bg} 0%, ${st.color}18 100%)`, borderColor: st.color + "30" }}
       >
-        <div className="flex items-center gap-2 text-sm font-bold text-depro-dark">
-          <PencilRuler size={15} style={{ color: accentColor }} />
-          Diseñar tareas
+        <div className="text-5xl mb-3">⚽</div>
+        <div className="text-2xl font-black text-center" style={{ color: st.color }}>{selectedTask}</div>
+        <div className="text-xs text-depro-gray mt-1.5">{st.emoji} Sesión {st.label}</div>
+      </div>
+
+      {/* Parámetros condicionales */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs font-black px-3 py-1 rounded-full" style={{ backgroundColor: st.color + "15", color: st.color }}>
+            {st.emoji} Parámetros para Sesión {st.label}
+          </span>
         </div>
-        {open ? <ChevronUp size={15} className="text-depro-gray" /> : <ChevronDown size={15} className="text-depro-gray" />}
-      </button>
-
-      {open && (
-        <div className="px-5 pb-5 pt-4 bg-white space-y-4">
-          {/* Selector de tipo de tarea */}
-          <div className="relative">
-            <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-1 block">Tipo de tarea</label>
-            <button
-              onClick={() => setDropOpen((v) => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-depro-gray-light border border-depro-border rounded-xl text-sm font-semibold text-depro-dark hover:bg-depro-gray-light/70 transition-colors"
-            >
-              <span>{guide.label}</span>
-              <ChevronDown size={14} className={`text-depro-gray transition-transform ${dropOpen ? "rotate-180" : ""}`} />
-            </button>
-            {dropOpen && (
-              <div className="absolute left-0 right-0 mt-1 bg-white border border-depro-border rounded-xl shadow-card-hover z-20 overflow-hidden">
-                {tacticalGuides.map((g) => (
-                  <button
-                    key={g.key}
-                    onClick={() => { setSelectedKey(g.key); setDropOpen(false); }}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors ${
-                      g.key === selectedKey ? "bg-depro-blue-light text-depro-blue font-bold" : "text-depro-dark hover:bg-depro-gray-light"
-                    }`}
-                  >
-                    {g.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Objetivo */}
-          <div className="rounded-xl px-4 py-3 text-sm" style={{ backgroundColor: accentColor + "08", border: `1px solid ${accentColor}20` }}>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>
-              <Target size={11} /> Objetivo
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          {[
+            { label:"Espacio",    value:params.space,     icon:"📐" },
+            { label:"Agrupación", value:params.grouping,  icon:"👥" },
+            { label:"Balones",    value:params.balls,     icon:"⚽" },
+            { label:"Trabajo",    value:params.work,      icon:"⏱️" },
+            { label:"Descanso",   value:params.rest,      icon:"🛑" },
+            { label:"Intensidad", value:params.intensity, icon:"🔋" },
+          ].map(({ label, value, icon }) => (
+            <div key={label} className="bg-depro-gray-light rounded-xl p-3 border border-depro-border">
+              <div className="text-lg mb-1">{icon}</div>
+              <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{label}</div>
+              <div className="text-xs font-black text-depro-dark mt-0.5">{value}</div>
             </div>
-            <p className="text-depro-dark font-medium leading-snug">{guide.objective}</p>
-          </div>
-
-          {/* Condicionantes */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {guide.icons.map((iconKey) => {
-              const Icon = TASK_ICONS[iconKey];
-              const labels = {
-                space:     { label: "Espacio",    value: guide.conditions.space },
-                players:   { label: "Jugadores",  value: guide.conditions.players },
-                time:      { label: "Tiempo",     value: guide.conditions.time },
-                intensity: { label: "Intensidad", value: guide.conditions.intensity },
-              };
-              const item = labels[iconKey];
-              return (
-                <div key={iconKey} className="bg-depro-gray-light rounded-xl p-3 border border-depro-border">
-                  <Icon size={14} style={{ color: accentColor }} />
-                  <div className="text-[9px] font-bold text-depro-gray uppercase tracking-wide mt-1.5">{item.label}</div>
-                  <div className="text-xs font-bold text-depro-dark mt-0.5">{item.value}</div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Orientaciones */}
-          <div>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: accentColor }}>
-              <Info size={11} /> Orientaciones metodológicas
-            </div>
-            <ul className="space-y-1.5">
-              {guide.orientations.map((o, i) => (
-                <li key={i} className="flex items-start gap-2 text-xs text-depro-dark">
-                  <span className="w-4 h-4 rounded-md flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5" style={{ backgroundColor: accentColor + "20", color: accentColor }}>
-                    {i + 1}
-                  </span>
-                  <span className="leading-relaxed">{o}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
-            <AlertTriangle size={13} className="text-amber-600 mt-0.5 flex-shrink-0" />
-            <p className="text-[10px] text-depro-dark leading-relaxed">
-              <strong>Apoyo pedagógico:</strong> guía de referencia para diseñar tus tareas. No genera archivos.
-            </p>
-          </div>
+          ))}
         </div>
-      )}
+      </div>
+
+      {/* Consignas específicas */}
+      <div className="rounded-xl p-4 space-y-2.5" style={{ backgroundColor: st.color + "08", border: `1px solid ${st.color}20` }}>
+        <div className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: st.color }}>
+          💬 Consignas · {selectedTask}
+        </div>
+        {cues.map((c, i) => (
+          <div key={i} className="flex items-start gap-2.5">
+            <span className="w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5"
+              style={{ backgroundColor: st.color + "20", color: st.color }}>{i + 1}</span>
+            <span className="text-xs text-depro-dark leading-relaxed">{c}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Recomendaciones del día */}
+      <div className="bg-depro-gray-light rounded-2xl p-4 border border-depro-border">
+        <div className="text-xs font-bold text-depro-dark mb-3">
+          📋 Recomendaciones del día · Sesión {st.label}
+        </div>
+        <div className="space-y-2">
+          {recs.map((r, i) => (
+            <div key={i} className="flex items-center gap-2.5 text-xs text-depro-dark">
+              <span className="text-base">{r.emoji}</span>
+              <span className="leading-snug">{r.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
 /* ─────────────────────────────────────────────
-   CLUB — Ejercicio con vídeo expandible
+   CLUB — Ejercicio expandible con vídeo YouTube
 ───────────────────────────────────────────── */
 function ExerciseCardClub({ ex, ytId, accentColor }) {
   const [open, setOpen] = useState(false);
@@ -627,109 +721,245 @@ function ExerciseCardClub({ ex, ytId, accentColor }) {
   );
 }
 
-/* ─────────────────────────────────────────────
-   CLUB — SESIÓN CERRADA con iconografía condicional
-───────────────────────────────────────────── */
-function ClubSessionCard({ session, accentColor }) {
-  const [expanded, setExpanded] = useState(false);
+/* ═══════════════════════════════════════════════════════════
+   CLUB — SESIÓN con 4 bloques: Resumen / Calentamiento /
+          Protocolo / Diseñador de tareas
+═══════════════════════════════════════════════════════════ */
+function ClubSessionCard({ session, accentColor, sessionNumber }) {
+  const [expanded, setExpanded]     = useState(false);
+  const [activeBlock, setActiveBlock] = useState("resumen");
   const [completion, setCompletion] = useState(session.completion ?? 0);
-  const color = typeColor[session.type] || accentColor;
+
+  const sessionType = getSessionType(session.intensity);
+  const st          = ST[sessionType];
+  const exercises   = session.exercises || [];
+  const warmupYtId  = getYouTubeId(session.warmupVideoUrl)   || getYouTubeId(exercises[0]?.videoUrl) || null;
+  const protoYtId   = getYouTubeId(session.protocolVideoUrl) || getYouTubeId(exercises[1]?.videoUrl) || warmupYtId;
+
+  const BLOCKS = [
+    { id:"resumen",       label:"Resumen" },
+    { id:"calentamiento", label:"Calentamiento" },
+    { id:"protocolo",     label:"Protocolo" },
+    { id:"tareas",        label:"Diseñar tareas" },
+  ];
 
   return (
     <div className="bg-white border border-depro-border rounded-2xl overflow-hidden shadow-card">
+      {/* ── Header cerrado ── */}
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left">
         <div className="p-5 flex items-start gap-4 hover:bg-depro-gray-light/40 transition-colors">
-          {/* Icono tipo */}
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + "15" }}>
-            {completion === 100 ? <CheckCircle size={20} style={{ color: "#3BC21D" }} /> : <Play size={20} style={{ color }} />}
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl font-black"
+            style={{ backgroundColor: st.bg, color: st.color }}
+          >
+            {sessionNumber || "•"}
           </div>
-
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-depro-gray">{session.day}</span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: color + "15", color }}>{session.type}</span>
-              {completion === 100 && <span className="tag-green text-xs">Completada</span>}
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: st.color + "15", color: st.color }}>
+                {st.emoji} {st.label}
+              </span>
+              {completion === 100 && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700">Completada ✓</span>}
             </div>
-            <h3 className="font-bold text-depro-dark text-base mb-1">{session.title}</h3>
-            <p className="text-xs text-depro-gray leading-relaxed mb-3">{session.objective}</p>
-
-            {/* Iconografía condicional cerrada: tiempo, espacio, jugadores, intensidad */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <ConditionPill Icon={Clock}     label={session.duration}              color={accentColor} />
-              <ConditionPill Icon={Maximize2} label={session.space}                 color={accentColor} />
-              <ConditionPill Icon={Users}     label={`${session.players} jug.`}     color={accentColor} />
-              <ConditionPill Icon={Flame}     label={session.intensity}             color={intensityColor[session.intensity]} />
+            <h3 className="font-black text-depro-dark text-base mb-1">Sesión {sessionNumber}</h3>
+            <div className="flex flex-wrap gap-3 text-xs text-depro-gray">
+              {session.duration  && <span>⏱ {session.duration}</span>}
+              {session.intensity && <span>🔋 {session.intensity}</span>}
+              {exercises.length > 0 && <span>📋 {exercises.length} ejercicio{exercises.length !== 1 ? "s" : ""}</span>}
             </div>
           </div>
-
           <div className="flex-shrink-0 text-depro-gray">
             {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </div>
         </div>
-
-        {/* Barra de % */}
-        <div className="px-5 pb-3">
-          <div className="flex items-center justify-between text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-1">
+        <div className="px-5 pb-4">
+          <div className="flex items-center justify-between text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-1.5">
             <span>Cumplimiento</span>
-            <span style={{ color: completion === 100 ? "#3BC21D" : accentColor }}>{completion}%</span>
+            <span style={{ color: completion === 100 ? "#16A34A" : accentColor }}>{completion}%</span>
           </div>
           <div className="h-1.5 bg-depro-gray-light rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${completion}%`, backgroundColor: completion === 100 ? "#3BC21D" : accentColor }}
-            />
+            <div className="h-full rounded-full transition-all"
+              style={{ width:`${completion}%`, backgroundColor: completion === 100 ? "#16A34A" : accentColor }} />
           </div>
         </div>
       </button>
 
+      {/* ── Bloques expandidos ── */}
       {expanded && (
-        <div className="px-5 pb-5 border-t border-depro-border space-y-4">
-          {/* Ejercicios con vídeos */}
-          {(session.exercises || []).length > 0 ? (
-            <div className="mt-4 space-y-3">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray">
-                Ejercicios · {(session.exercises || []).length}
-              </div>
-              {(session.exercises || []).map((ex, i) => {
-                const ytId = getYouTubeId(ex.videoUrl);
-                return (
-                  <ExerciseCardClub key={i} ex={ex} ytId={ytId} accentColor={accentColor} />
-                );
-              })}
-            </div>
-          ) : (
-            <div className="mt-4 flex items-center justify-center py-8 bg-depro-gray-light rounded-2xl border border-dashed border-depro-border">
-              <p className="text-xs text-depro-gray">Sin ejercicios añadidos en esta sesión</p>
-            </div>
-          )}
-
-          {/* Diseñar tareas */}
-          <DisenarTareas accentColor={accentColor} />
-
-          {/* Slider de cumplimiento */}
-          <div className="bg-depro-gray-light/50 rounded-xl p-4 border border-depro-border">
-            <div className="flex items-center justify-between text-xs font-bold text-depro-dark mb-2">
-              <span>Marca el % completado por el equipo</span>
-              <span style={{ color: accentColor }}>{completion}%</span>
-            </div>
-            <input
-              type="range" min="0" max="100" step="5" value={completion}
-              onChange={(e) => setCompletion(Number(e.target.value))}
-              className="w-full"
-              style={{ accentColor }}
-            />
-            <button
-              onClick={() => setCompletion(100)}
-              className="mt-3 w-full py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: accentColor }}
-            >
-              <CheckCircle size={15} /> Marcar como completada (100%)
-            </button>
+        <div className="border-t border-depro-border">
+          {/* Tabs */}
+          <div className="flex border-b border-depro-border bg-depro-gray-light/40 overflow-x-auto">
+            {BLOCKS.map((b) => (
+              <button
+                key={b.id}
+                onClick={() => setActiveBlock(b.id)}
+                className={`flex-shrink-0 px-4 py-3 text-xs font-bold transition-colors border-b-2 ${
+                  activeBlock === b.id
+                    ? "border-current text-depro-blue bg-white"
+                    : "border-transparent text-depro-gray hover:text-depro-dark"
+                }`}
+              >
+                {b.label}
+              </button>
+            ))}
           </div>
 
-          <p className="text-[10px] text-depro-gray text-center italic">
-            Contenido cerrado · Diseñado por el preparador. Sin opciones de edición.
-          </p>
+          <div className="p-5">
+
+            {/* ─── BLOQUE 1: RESUMEN ─── */}
+            {activeBlock === "resumen" && (
+              <div className="space-y-4">
+                <div className="rounded-2xl p-5 flex items-center gap-4"
+                  style={{ background:`linear-gradient(135deg,${st.bg} 0%,white 100%)`, border:`1px solid ${st.color}25` }}>
+                  <div className="text-5xl font-black leading-none" style={{ color: st.color }}>{sessionNumber}</div>
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-0.5">Sesión del día</div>
+                    <div className="font-black text-depro-dark text-xl">Sesión {sessionNumber}</div>
+                    <div className="text-sm font-semibold mt-0.5" style={{ color: st.color }}>{st.emoji} {st.label}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label:"Duración",   value:session.duration   || "—", icon:"⏱️" },
+                    { label:"Intensidad", value:session.intensity  || "—", icon:"🔋" },
+                    { label:"Dinámica",   value:st.label,                   icon:st.emoji },
+                    { label:"Ejercicios", value:`${exercises.length} tareas`, icon:"📋" },
+                  ].map(({ label, value, icon }) => (
+                    <div key={label} className="bg-depro-gray-light rounded-xl p-4 border border-depro-border">
+                      <div className="text-xl mb-1">{icon}</div>
+                      <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{label}</div>
+                      <div className="text-sm font-black text-depro-dark mt-0.5">{value}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-xl p-4 border border-depro-border space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-depro-dark">
+                    <span>% completado por el equipo</span>
+                    <span style={{ color: accentColor }}>{completion}%</span>
+                  </div>
+                  <input type="range" min="0" max="100" step="5" value={completion}
+                    onChange={(e) => setCompletion(Number(e.target.value))}
+                    className="w-full" style={{ accentColor }} />
+                  <button onClick={() => setCompletion(100)}
+                    className="w-full py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: accentColor }}>
+                    <CheckCircle size={15} /> Marcar como completada (100%)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ─── BLOQUE 2: CALENTAMIENTO ─── */}
+            {activeBlock === "calentamiento" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* LEFT: vídeo */}
+                  <div>
+                    {warmupYtId ? (
+                      <div className="rounded-2xl overflow-hidden border border-depro-border">
+                        <iframe src={`https://www.youtube.com/embed/${warmupYtId}?rel=0&modestbranding=1`}
+                          title="Calentamiento" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen className="w-full aspect-video" />
+                      </div>
+                    ) : (
+                      <div className="aspect-video rounded-2xl bg-depro-gray-light border border-dashed border-depro-border flex items-center justify-center">
+                        <div className="text-center"><div className="text-4xl mb-2">▶️</div>
+                          <p className="text-xs text-depro-gray">Sin vídeo de calentamiento</p></div>
+                      </div>
+                    )}
+                  </div>
+                  {/* RIGHT: info */}
+                  <div className="space-y-3">
+                    {exercises[0] && (
+                      <div className="bg-white border border-depro-border rounded-xl p-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wide text-depro-blue mb-2">A · Propuesto por el preparador</div>
+                        <div className="font-bold text-depro-dark">{exercises[0].name}</div>
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {exercises[0].sets && <span className="text-[10px] bg-depro-gray-light px-2 py-1 rounded-md">{exercises[0].sets} series</span>}
+                          {exercises[0].reps && <span className="text-[10px] bg-depro-gray-light px-2 py-1 rounded-md">{exercises[0].reps}</span>}
+                          {exercises[0].rest && <span className="text-[10px] bg-depro-gray-light px-2 py-1 rounded-md">Desc: {exercises[0].rest}</span>}
+                        </div>
+                      </div>
+                    )}
+                    <div className="bg-white border border-depro-border rounded-xl p-4">
+                      <div className="text-[10px] font-bold uppercase tracking-wide mb-3" style={{ color: accentColor }}>
+                        B · Guía para calentamiento integrado
+                      </div>
+                      <div className="space-y-2">
+                        {WARMUP_GUIDE_ITEMS.map((item) => (
+                          <div key={item.title} className="flex items-start gap-2">
+                            <span className="text-base flex-shrink-0">{item.icon}</span>
+                            <div>
+                              <span className="text-xs font-bold text-depro-dark">{item.title}: </span>
+                              <span className="text-xs text-depro-gray">{item.text}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ─── BLOQUE 3: PROTOCOLO ─── */}
+            {activeBlock === "protocolo" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* LEFT: vídeo + ejercicios */}
+                  <div className="space-y-3">
+                    {protoYtId ? (
+                      <div className="rounded-2xl overflow-hidden border border-depro-border">
+                        <iframe src={`https://www.youtube.com/embed/${protoYtId}?rel=0&modestbranding=1`}
+                          title="Protocolo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen className="w-full aspect-video" />
+                      </div>
+                    ) : (
+                      <div className="aspect-video rounded-2xl bg-depro-gray-light border border-dashed border-depro-border flex items-center justify-center">
+                        <div className="text-center"><div className="text-4xl mb-2">▶️</div>
+                          <p className="text-xs text-depro-gray">Sin vídeo de protocolo</p></div>
+                      </div>
+                    )}
+                    {exercises.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray">
+                          Ejercicios de la sesión
+                        </div>
+                        {exercises.map((ex, i) => (
+                          <ExerciseCardClub key={i} ex={ex} ytId={getYouTubeId(ex.videoUrl)} accentColor={accentColor} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* RIGHT: protocolo info */}
+                  <div>
+                    <div className="bg-white border border-depro-border rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: st.color + "15", color: st.color }}>
+                          {st.emoji} Protocolo · Sesión {st.label}
+                        </span>
+                      </div>
+                      {PROTOCOL_INFO[sessionType].map((item) => (
+                        <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-depro-gray-light border border-depro-border">
+                          <span className="text-2xl flex-shrink-0">{item.emoji}</span>
+                          <div>
+                            <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{item.label}</div>
+                            <div className="text-sm font-semibold text-depro-dark mt-0.5">{item.value}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ─── BLOQUE 4: DISEÑADOR DE TAREAS ─── */}
+            {activeBlock === "tareas" && (
+              <DisenarTareas accentColor={accentColor} sessionType={sessionType} />
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -859,8 +1089,8 @@ function ClubMicrocycles({ accent }) {
 
       {/* Sesiones */}
       <div className="space-y-4">
-        {micro.sessions.map((s) => (
-          <ClubSessionCard key={s.id} session={s} accentColor={accent} />
+        {micro.sessions.map((s, idx) => (
+          <ClubSessionCard key={s.id} session={s} accentColor={accent} sessionNumber={idx + 1} />
         ))}
       </div>
     </div>

@@ -641,6 +641,8 @@ function NewSessionModal({ onClose, onCreate }) {
     space: "",
     players: "",
     objective: "",
+    warmupVideoUrl: "",
+    protocolVideoUrl: "",
     exercises: [{ name: "", sets: 3, reps: "10", rest: "60s", videoUrl: "" }],
   });
 
@@ -735,6 +737,31 @@ function NewSessionModal({ onClose, onCreate }) {
               value={form.objective}
               onChange={(e) => setForm((f) => ({ ...f, objective: e.target.value }))}
             />
+          </div>
+          {/* Vídeos de sección */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-depro-gray mb-1 flex items-center gap-1">
+                <Video size={11} /> URL vídeo calentamiento (YouTube)
+              </label>
+              <input
+                className="w-full border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                placeholder="https://youtu.be/…"
+                value={form.warmupVideoUrl}
+                onChange={(e) => setForm((f) => ({ ...f, warmupVideoUrl: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-depro-gray mb-1 flex items-center gap-1">
+                <Video size={11} /> URL vídeo protocolo (YouTube)
+              </label>
+              <input
+                className="w-full border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                placeholder="https://youtu.be/…"
+                value={form.protocolVideoUrl}
+                onChange={(e) => setForm((f) => ({ ...f, protocolVideoUrl: e.target.value }))}
+              />
+            </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
