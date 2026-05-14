@@ -43,7 +43,7 @@ export default function AppLayout({ children }) {
   const playerNav = [
     { to: "/dashboard",          icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/dashboard/plan",     icon: Calendar,        label: t("nav.weekly_plan") },
-    { to: "/dashboard/physical", icon: Activity,        label: "Tests" },
+    { to: "/dashboard/physical", icon: Activity,        label: t("nav.tests") },
     { to: "/dashboard/feedback", icon: MessageSquare,   label: t("nav.feedback") },
     { to: "/dashboard/ranking",  icon: Trophy,          label: t("nav.ranking") },
     { to: "/dashboard/profile",  icon: User,            label: t("nav.my_profile") },
@@ -57,10 +57,10 @@ export default function AppLayout({ children }) {
 
   const entrenadorNav = [
     { to: "/dashboard",              icon: LayoutDashboard, label: t("nav.dashboard") },
-    { to: "/dashboard/plan",         icon: Calendar,        label: "Microciclo" },
+    { to: "/dashboard/plan",         icon: Calendar,        label: t("nav.microcycle") },
     { to: "/dashboard/mesocycle",    icon: ClipboardList,   label: t("nav.mesocycle") },
     { to: "/dashboard/squad",        icon: UsersIcon,       label: t("nav.squad") },
-    { to: "/dashboard/team-tests",   icon: Activity,        label: "Tests" },
+    { to: "/dashboard/team-tests",   icon: Activity,        label: t("nav.tests") },
     { to: "/dashboard/club-profile", icon: User,            label: t("nav.my_profile") },
   ];
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 
@@ -43,6 +44,7 @@ async function compressImage(file, maxPx = 200, quality = 0.75) {
 
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuth();
+  const { t } = useTranslation();
   const fileRef = useRef(null);
 
   // ── Foto de perfil ──────────────────────────────────────────
@@ -126,7 +128,7 @@ export default function ProfilePage() {
 
     if (!found) {
       setCodeStatus("error");
-      setCodeMsg("Código no válido. Pide el código a tu entrenador o coordinador.");
+      setCodeMsg(t("profile.club_not_found"));
       setCodeLoading(false);
       return;
     }
@@ -140,7 +142,7 @@ export default function ProfilePage() {
     setTeams(clubTeams);
     setSelectedTeam(clubTeams[0]?.id || "");
     setCodeStatus("ok");
-    setCodeMsg(`Club encontrado: ${found.name}. Ahora elige tu equipo.`);
+    setCodeMsg(t("profile.club_found", { name: found.name }));
     setCodeLoading(false);
   };
 
@@ -197,7 +199,7 @@ export default function ProfilePage() {
 
   // ── Salir del club ──────────────────────────────────────────
   const handleLeaveClub = async () => {
-    if (!window.confirm("¿Seguro que quieres salir del club? Tu perfil personal seguirá activo.")) return;
+    if (!window.confirm(t("profile.leave_club_confirm"))) return;
     // Leer teamId actual antes de borrar la asociación
     const oldAssoc = JSON.parse(localStorage.getItem(`depro_player_club_${user.id}`) || "{}");
     localStorage.removeItem(`depro_player_club_${user.id}`);
@@ -227,7 +229,7 @@ export default function ProfilePage() {
       {/* Datos personales */}
       <div className="bg-white border border-depro-border rounded-2xl p-6">
         <h2 className="font-bold text-depro-dark text-lg mb-5 flex items-center gap-2">
-          <User size={18} className="text-depro-blue" /> Mi perfil
+          <User size={18} className="text-depro-blue" /> {t("profile.title")}
         </h2>
         <div className="flex items-center gap-4 mb-5">
           {/* Avatar con upload */}
@@ -261,45 +263,45 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 gap-3 text-sm">
           {(user?.objetivo || user?.objective) && (
             <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">Objetivo</div>
+              <div className="text-xs text-depro-gray mb-0.5">{t("profile.objective")}</div>
               <div className="font-semibold text-depro-dark">{user.objetivo || user.objective}</div>
             </div>
           )}
           {user?.deporte && (
             <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">Deporte</div>
+              <div className="text-xs text-depro-gray mb-0.5">{t("profile.sport")}</div>
               <div className="font-semibold text-depro-dark">{user.deporte}</div>
             </div>
           )}
           {(user?.frecuencia || user?.training_days || user?.trainingDays) && (
             <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">Frecuencia</div>
+              <div className="text-xs text-depro-gray mb-0.5">{t("profile.frequency")}</div>
               <div className="font-semibold text-depro-dark">
-                {user.frecuencia || `${user.training_days || user.trainingDays} días / sem`}
+                {user.frecuencia || `${user.training_days || user.trainingDays} ${t("profile.days_week")}`}
               </div>
             </div>
           )}
           {user?.material && (
             <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">Material</div>
+              <div className="text-xs text-depro-gray mb-0.5">{t("profile.material")}</div>
               <div className="font-semibold text-depro-dark">{user.material}</div>
             </div>
           )}
           {(user?.lesion?.length > 0) && (
             <div className="bg-depro-gray-light rounded-xl p-3 col-span-2">
-              <div className="text-xs text-depro-gray mb-0.5">Lesiones / molestias</div>
+              <div className="text-xs text-depro-gray mb-0.5">{t("profile.injury")}</div>
               <div className="font-semibold text-depro-dark">{user.lesion.join(", ")}</div>
             </div>
           )}
           {user?.position && (
             <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">Posición</div>
+              <div className="text-xs text-depro-gray mb-0.5">{t("squad.position")}</div>
               <div className="font-semibold text-depro-dark">{user.position}</div>
             </div>
           )}
           {user?.level && (
             <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">Nivel</div>
+              <div className="text-xs text-depro-gray mb-0.5">{t("common.active")}</div>
               <div className="font-semibold text-depro-dark">{user.level}</div>
             </div>
           )}
@@ -309,10 +311,10 @@ export default function ProfilePage() {
       {/* Club asociado */}
       <div className="bg-white border border-depro-border rounded-2xl p-6">
         <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
-          <Shield size={18} className="text-depro-blue" /> Mi club
+          <Shield size={18} className="text-depro-blue" /> {t("profile.my_club")}
         </h2>
         <p className="text-sm text-depro-gray mb-5">
-          Introduce el código que te ha dado tu entrenador para asociarte a tu equipo. El entrenador podrá ver tus estadísticas y entrenos desde el panel del club.
+          {t("profile.my_club_desc")}
         </p>
 
         {currentClub ? (
@@ -358,7 +360,7 @@ export default function ProfilePage() {
               onClick={handleLeaveClub}
               className="flex items-center gap-2 text-sm text-depro-gray hover:text-red-500 transition-colors"
             >
-              <LogOut size={14} /> Salir del club
+              <LogOut size={14} /> {t("profile.leave_club")}
             </button>
           </div>
 
@@ -393,15 +395,15 @@ export default function ProfilePage() {
               return (
                 <div>
                   <label className="block text-sm font-semibold text-depro-dark mb-2">
-                    Elige tu equipo
+                    {t("profile.select_team")}
                   </label>
                   <div className="space-y-2">
-                    {teams.map((t) => {
-                      const isSel = selectedTeam === t.id;
+                    {teams.map((team) => {
+                      const isSel = selectedTeam === team.id;
                       return (
                         <button
-                          key={t.id}
-                          onClick={() => setSelectedTeam(t.id)}
+                          key={team.id}
+                          onClick={() => setSelectedTeam(team.id)}
                           className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
                             isSel ? "" : "border-depro-border hover:border-depro-blue/40 bg-white"
                           }`}
@@ -411,12 +413,12 @@ export default function ProfilePage() {
                             className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-black flex-shrink-0"
                             style={{ backgroundColor: clubColor + "20", color: clubColor }}
                           >
-                            {t.name?.[0]?.toUpperCase()}
+                            {team.name?.[0]?.toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-depro-dark text-sm">{t.name}</div>
-                            {t.category && <div className="text-xs text-depro-gray">{t.category}{t.season ? ` · ${t.season}` : ""}</div>}
-                            {t.coach?.name && <div className="text-xs text-depro-gray">Entrenador: {t.coach.name}</div>}
+                            <div className="font-semibold text-depro-dark text-sm">{team.name}</div>
+                            {team.category && <div className="text-xs text-depro-gray">{team.category}{team.season ? ` · ${team.season}` : ""}</div>}
+                            {team.coach?.name && <div className="text-xs text-depro-gray">{t("profile.coach_label")}: {team.coach.name}</div>}
                           </div>
                           {isSel && <CheckCircle size={18} style={{ color: clubColor }} className="flex-shrink-0" />}
                         </button>
@@ -427,7 +429,7 @@ export default function ProfilePage() {
               );
             })() : (
               <p className="text-sm text-depro-gray bg-depro-gray-light rounded-xl p-3">
-                Este club aún no tiene equipos creados. Contacta con tu coordinador.
+                {t("profile.no_teams")}
               </p>
             )}
 
@@ -436,7 +438,7 @@ export default function ProfilePage() {
                 onClick={() => { setFoundClub(null); setTeams([]); setCodeStatus(null); }}
                 className="flex-1 py-2.5 rounded-xl border-2 border-depro-border text-sm font-semibold text-depro-dark hover:bg-depro-gray-light transition-colors"
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleJoinTeam}
@@ -446,7 +448,7 @@ export default function ProfilePage() {
               >
                 {joining
                   ? <div className="spinner border-white/20 border-t-white w-4 h-4" />
-                  : <>Unirme al equipo <ChevronRight size={15} /></>
+                  : <>{t("profile.join_team")} <ChevronRight size={15} /></>
                 }
               </button>
             </div>
@@ -480,7 +482,7 @@ export default function ProfilePage() {
               className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {codeLoading ? <div className="spinner border-white/20 border-t-white" /> : <>
-                Buscar club <ChevronRight size={15} />
+                {t("profile.search_club")} <ChevronRight size={15} />
               </>}
             </button>
           </form>
@@ -493,7 +495,7 @@ export default function ProfilePage() {
           onClick={() => logout()}
           className="flex items-center gap-2 text-depro-gray hover:text-red-500 text-sm font-medium transition-colors w-full py-1.5 px-2 rounded-xl hover:bg-red-50"
         >
-          <LogOut size={16} /> Cerrar sesión
+          <LogOut size={16} /> {t("profile.logout")}
         </button>
       </div>
     </div>

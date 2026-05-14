@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import { Globe, ChevronDown, Check } from "lucide-react";
 
 const LANGS = [
-  { code: "es", label: "Español", flag: "🇪🇸" },
-  { code: "en", label: "English", flag: "🇬🇧" },
-  { code: "ca", label: "Català",  flag: "🏴" },
+  { code: "es", label: "Español", short: "ES" },
+  { code: "en", label: "English", short: "EN" },
+  { code: "ca", label: "Català",  short: "CA" },
 ];
 
 export default function LanguageSwitcher({ compact = false, light = false }) {
@@ -45,9 +45,9 @@ export default function LanguageSwitcher({ compact = false, light = false }) {
           <Globe size={16} />
         ) : (
           <>
-            <Globe size={15} />
-            <span>{current.flag} {current.label}</span>
-            <ChevronDown size={13} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+            <Globe size={14} />
+            <span className="font-semibold text-xs tracking-wide">{current.short}</span>
+            <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} />
           </>
         )}
       </button>
@@ -60,7 +60,7 @@ export default function LanguageSwitcher({ compact = false, light = false }) {
               onClick={() => changeLanguage(l.code)}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-depro-dark hover:bg-depro-gray-light transition-colors"
             >
-              <span className="text-base">{l.flag}</span>
+              <span className="text-xs font-black text-depro-gray w-6">{l.short}</span>
               <span className="font-medium flex-1 text-left">{l.label}</span>
               {current.code === l.code && <Check size={13} className="text-depro-blue" />}
             </button>
