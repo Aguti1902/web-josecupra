@@ -419,8 +419,7 @@ function SessionEditorModal({ onClose, onCreate }) {
 /* ── Modal nuevo microciclo ──────────────────────────────── */
 function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
   const [form, setForm] = useState({
-    code: "", label: "", ageBlock: initialAgeBlock,
-    dateRange: "", objective: "", focus: "", status: "borrador",
+    label: "", ageBlock: initialAgeBlock, dateRange: "", status: "borrador",
   });
 
   return (
@@ -452,10 +451,10 @@ function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-depro-dark mb-1">Código *</label>
+              <label className="block text-sm font-medium text-depro-dark mb-1">Nombre *</label>
               <input className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                placeholder="S.1, S.2…" value={form.code}
-                onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} />
+                placeholder="Mesociclo 1 · Adaptación" value={form.label}
+                onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-depro-dark mb-1">Estado</label>
@@ -467,40 +466,23 @@ function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
               </select>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-depro-dark mb-1">Nombre / descripción *</label>
-            <input className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-              placeholder="Microciclo 1 · Bloque de adaptación" value={form.label}
-              onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
-          </div>
+
           <div>
             <label className="block text-sm font-medium text-depro-dark mb-1">Periodo</label>
             <input className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
               placeholder="5 – 11 may 2025" value={form.dateRange}
               onChange={(e) => setForm((f) => ({ ...f, dateRange: e.target.value }))} />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-depro-dark mb-1">Foco del microciclo</label>
-            <input className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-              placeholder="Posesión y presión, Transiciones…" value={form.focus}
-              onChange={(e) => setForm((f) => ({ ...f, focus: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-depro-dark mb-1">Objetivo general</label>
-            <textarea rows={2} className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30 resize-none"
-              placeholder="Objetivo de este microciclo…" value={form.objective}
-              onChange={(e) => setForm((f) => ({ ...f, objective: e.target.value }))} />
-          </div>
         </div>
         <div className="flex gap-3 p-6 border-t border-depro-border">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">Cancelar</button>
           <button
             onClick={() => {
-              if (!form.code || !form.label || !form.ageBlock) return;
+              if (!form.label || !form.ageBlock) return;
               onCreate({ ...form, id: `mc${Date.now()}`, sessions: [] });
               onClose();
             }}
-            disabled={!form.code || !form.label || !form.ageBlock}
+            disabled={!form.label || !form.ageBlock}
             className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40"
           >
             Crear mesociclo
