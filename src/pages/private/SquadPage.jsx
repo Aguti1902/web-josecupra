@@ -222,27 +222,26 @@ export default function SquadPage() {
 
     (async () => {
       try {
-        // Intentar API Vercel primero
-        const apiUrl = `/api/team-players?teamId=${teamIds[0]}`;
-        const res    = await fetch(apiUrl).catch(() => null);
+        // Consultar player_team_links — tabla sin FK, legible por todos los autenticados
+        const { data, error } = await supabase
+          .from("player_team_links")
+          .select("player_id, name, plan, team_id")
+          .in("team_id", teamIds);
+        if (!error && data?.length > 0) {
+          setRegPlayers(data.map((p) => ({
+            id:      p.player_id,
+            name:    p.name || "Jugador",
+            plan:    p.plan || "—",
+            _teamId: p.team_id,
+            _reg:    true,
+          })));
+          return;
+        }
+        // Fallback: API Vercel (funciona en producción)
+        const res = await fetch(`/api/team-players?teamId=${teamIds[0]}`).catch(() => null);
         if (res?.ok) {
           const { players: list } = await res.json();
-          if (list?.length > 0) { setRegPlayers(list); return; }
-        }
-        // Fallback: consultar profiles directamente usando app_team_id (sin FK)
-        const { data } = await supabase
-          .from("profiles")
-          .select("id, name, plan, app_team_id")
-          .in("app_team_id", teamIds);
-        if (data?.length > 0) {
-          setRegPlayers(data.map((p) => ({
-            id:       p.id,
-            name:     p.name || "Jugador registrado",
-            plan:     p.plan || "—",
-            position: "—",
-            _teamId:  p.app_team_id,
-            _reg:     true,
-          })));
+          if (list?.length > 0) setRegPlayers(list.map((p) => ({ ...p, _reg: true })));
         }
       } catch { /* silencioso */ }
     })();

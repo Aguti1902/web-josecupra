@@ -479,15 +479,15 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
       .then((r) => r.ok ? r.json() : Promise.reject("api_fail"))
       .then(({ players: list }) => { if (list?.length >= 0) setRegPlayers(list); })
       .catch(async () => {
-        // Fallback: consultar profiles usando app_team_id (columna texto, sin FK)
+        // Fallback: consultar player_team_links (tabla sin FK, legible por autenticados)
         try {
           const { data } = await supabase
-            .from("profiles")
-            .select("id, name, plan, app_team_id")
-            .eq("app_team_id", team.id);
-          if (data && data.length > 0) {
+            .from("player_team_links")
+            .select("player_id, name, plan, team_id")
+            .eq("team_id", team.id);
+          if (data?.length > 0) {
             setRegPlayers(data.map((p) => ({
-              id:       p.id,
+              id:       p.player_id,
               name:     p.name || "Jugador",
               plan:     p.plan || "—",
               position: null,

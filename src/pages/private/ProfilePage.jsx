@@ -160,13 +160,14 @@ export default function ProfilePage() {
       await supabase.auth.updateUser({
         data: { clubId: foundClub.id, teamId: selectedTeam, teamRole: "jugador" },
       });
-      // Actualizar profiles con columnas de texto (sin FK) para que el entrenador pueda consultar
-      await supabase.from("profiles").upsert({
-        id:          user.id,
-        app_team_id: selectedTeam,
-        app_club_id: foundClub.id,
-        team_role:   "jugador",
-      }, { onConflict: "id" });
+      // Registrar en player_team_links (tabla sin FK, legible por todos los autenticados)
+      await supabase.from("player_team_links").upsert({
+        player_id: user.id,
+        team_id:   selectedTeam,
+        club_id:   foundClub.id,
+        name:      user.name || user.email?.split("@")[0] || "Jugador",
+        plan:      user.plan || "—",
+      }, { onConflict: "player_id" });
     } catch {}
 
     setCurrentClub(foundClub);
@@ -186,7 +187,7 @@ export default function ProfilePage() {
     localStorage.removeItem(`depro_player_club_${user.id}`);
     try {
       await supabase.auth.updateUser({ data: { clubId: null, teamId: null, teamRole: null } });
-      await supabase.from("profiles").upsert({ id: user.id, app_team_id: null, app_club_id: null, team_role: null }, { onConflict: "id" });
+      await supabase.from("player_team_links").delete().eq("player_id", user.id);
     } catch {}
     setCurrentClub(null);
     setCurrentTeam(null);
