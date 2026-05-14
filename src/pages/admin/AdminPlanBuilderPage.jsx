@@ -23,7 +23,16 @@ import {
   RefreshCw,
   AlertCircle,
   ChevronRight,
+  Youtube,
+  Link,
 } from "lucide-react";
+
+/** Extrae el video ID de cualquier formato de URL de YouTube */
+function getYouTubeId(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^&?/\s]{11})/);
+  return m ? m[1] : null;
+}
 import { loadPlanBlocks, savePlanBlock, deletePlanBlock, togglePlanBlock, loadMedia } from "../../lib/adminStorage";
 import { EXERCISES, TAGS } from "../../data/exercises";
 import { Search, List, BookOpen } from "lucide-react";
@@ -298,7 +307,7 @@ function IASimulator({ blocks }) {
 /* ── Block Card ──────────────────────────────────────────────── */
 function BlockCard({ block, onToggle, onEdit, onDelete }) {
   const [expanded, setExpanded] = useState(false);
-  const linkedVideos = mediaLibrary.filter((m) => block.linkedVideos?.includes(m.id));
+  const videoCount = (block.exercises || []).filter((ex) => getYouTubeId(ex.videoUrl)).length;
 
   return (
     <div className={`bg-white border rounded-xl overflow-hidden transition-shadow hover:shadow-card ${
@@ -358,6 +367,12 @@ function BlockCard({ block, onToggle, onEdit, onDelete }) {
             <Flame size={11} />
             {block.targetFrequency.join(", ")} días/sem
           </span>
+          {videoCount > 0 && (
+            <span className="flex items-center gap-1 text-red-500 font-medium">
+              <Youtube size={11} />
+              {videoCount} vídeo{videoCount > 1 ? "s" : ""}
+            </span>
+          )}
         </div>
 
         <button
@@ -370,53 +385,45 @@ function BlockCard({ block, onToggle, onEdit, onDelete }) {
       </div>
 
       {expanded && (
-        <div className="border-t border-depro-border px-4 pb-4 pt-3 space-y-4">
-          <div>
-            <p className="text-xs font-semibold text-depro-dark mb-2 flex items-center gap-1">
-              <ListChecks size={13} />
-              Ejercicios ({block.exercises.length})
-            </p>
-            <div className="space-y-1.5">
-              {block.exercises.map((ex, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between px-3 py-2 bg-depro-gray-light rounded-lg text-xs"
-                >
-                  <span className="font-medium text-depro-dark">{ex.name}</span>
-                  <span className="text-depro-gray">
-                    {ex.sets} series · {ex.reps} · {ex.rest}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {linkedVideos.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-depro-dark mb-2 flex items-center gap-1">
-                <Video size={13} />
-                Vídeos que acompañan este bloque
-              </p>
-              <div className="space-y-1.5">
-                {linkedVideos.map((v) => (
-                  <div
-                    key={v.id}
-                    className="flex items-center gap-2 px-3 py-2 bg-depro-blue/5 rounded-lg text-xs text-depro-blue"
+        <div className="border-t border-depro-border px-4 pb-4 pt-3 space-y-2">
+          <p className="text-xs font-semibold text-depro-dark mb-2 flex items-center gap-1">
+            <ListChecks size={13} />
+            Ejercicios ({block.exercises.length})
+          </p>
+          {block.exercises.map((ex, i) => {
+            const ytId = getYouTubeId(ex.videoUrl);
+            return (
+              <div key={i} className="flex items-center gap-3 px-3 py-2 bg-depro-gray-light rounded-xl text-xs">
+                {ytId ? (
+                  <a
+                    href={`https://www.youtube.com/watch?v=${ytId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0"
                   >
-                    <Play size={11} />
-                    <span className="font-medium">{v.title}</span>
-                    <span className="text-depro-gray ml-auto">{v.duration}</span>
+                    <img
+                      src={`https://img.youtube.com/vi/${ytId}/default.jpg`}
+                      alt=""
+                      className="w-14 h-10 rounded-lg object-cover border border-depro-border hover:opacity-80 transition-opacity"
+                    />
+                  </a>
+                ) : (
+                  <div className="w-14 h-10 rounded-lg bg-depro-border/40 flex items-center justify-center shrink-0">
+                    <Video size={14} className="text-depro-gray/50" />
                   </div>
-                ))}
+                )}
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold text-depro-dark block truncate">{ex.name}</span>
+                  <span className="text-depro-gray">{ex.sets} series · {ex.reps} · {ex.rest}</span>
+                </div>
+                {ytId && (
+                  <span className="shrink-0 flex items-center gap-1 text-red-500 font-medium">
+                    <Youtube size={11} /> YouTube
+                  </span>
+                )}
               </div>
-            </div>
-          )}
-
-          {linkedVideos.length === 0 && (
-            <p className="text-xs text-depro-gray italic">
-              Sin vídeos vinculados — la IA incluirá el bloque sin material audiovisual.
-            </p>
-          )}
+            );
+          })}
         </div>
       )}
     </div>
@@ -434,7 +441,7 @@ function BlockModal({ block, onClose, onSave }) {
       targetLevels: [],
       targetFrequency: [],
       targetGoals: [],
-      exercises: [{ name: "", sets: 3, reps: "10", rest: "60s" }],
+      exercises: [{ name: "", sets: 3, reps: "10", rest: "60s", videoUrl: "" }],
       linkedVideos: [],
       active: true,
       priority: 99,
@@ -455,12 +462,10 @@ function BlockModal({ block, onClose, onSave }) {
     });
 
   const addExercise = () =>
-    setForm((f) => ({ ...f, exercises: [...f.exercises, { name: "", sets: 3, reps: "10", rest: "60s" }] }));
+    setForm((f) => ({ ...f, exercises: [...f.exercises, { name: "", sets: 3, reps: "10", rest: "60s", videoUrl: "" }] }));
 
   const removeExercise = (i) =>
     setForm((f) => ({ ...f, exercises: f.exercises.filter((_, idx) => idx !== i) }));
-
-  const videos = mediaLibrary.filter((m) => m.type === "video");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overflow-y-auto p-4">
@@ -571,61 +576,65 @@ function BlockModal({ block, onClose, onSave }) {
                 <Plus size={12} /> Añadir
               </button>
             </div>
-            <div className="space-y-2">
-              {form.exercises.map((ex, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                  <input
-                    className="col-span-5 border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="Nombre"
-                    value={ex.name}
-                    onChange={(e) => updateExercise(i, "name", e.target.value)}
-                  />
-                  <input
-                    className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="Series"
-                    value={ex.sets}
-                    onChange={(e) => updateExercise(i, "sets", e.target.value)}
-                  />
-                  <input
-                    className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="Reps"
-                    value={ex.reps}
-                    onChange={(e) => updateExercise(i, "reps", e.target.value)}
-                  />
-                  <input
-                    className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="Desc."
-                    value={ex.rest}
-                    onChange={(e) => updateExercise(i, "rest", e.target.value)}
-                  />
-                  <button onClick={() => removeExercise(i)} className="col-span-1 flex items-center justify-center text-depro-gray hover:text-depro-red">
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {form.exercises.map((ex, i) => {
+                const ytId = getYouTubeId(ex.videoUrl);
+                return (
+                  <div key={i} className="border border-depro-border rounded-xl p-3 space-y-2 bg-depro-gray-light/30">
+                    {/* Fila 1: nombre + series + reps + descanso + eliminar */}
+                    <div className="grid grid-cols-12 gap-2 items-center">
+                      <input
+                        className="col-span-5 border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+                        placeholder="Nombre del ejercicio"
+                        value={ex.name}
+                        onChange={(e) => updateExercise(i, "name", e.target.value)}
+                      />
+                      <input
+                        className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+                        placeholder="Series"
+                        value={ex.sets}
+                        onChange={(e) => updateExercise(i, "sets", e.target.value)}
+                      />
+                      <input
+                        className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+                        placeholder="Reps"
+                        value={ex.reps}
+                        onChange={(e) => updateExercise(i, "reps", e.target.value)}
+                      />
+                      <input
+                        className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+                        placeholder="Descanso"
+                        value={ex.rest}
+                        onChange={(e) => updateExercise(i, "rest", e.target.value)}
+                      />
+                      <button onClick={() => removeExercise(i)} className="col-span-1 flex items-center justify-center text-depro-gray hover:text-red-500">
+                        <X size={14} />
+                      </button>
+                    </div>
+                    {/* Fila 2: URL de YouTube */}
+                    <div className="flex items-center gap-2">
+                      <Youtube size={14} className={ytId ? "text-red-500" : "text-depro-gray"} />
+                      <input
+                        className="flex-1 border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+                        placeholder="URL de YouTube (opcional) — ej. https://youtu.be/xxxxx"
+                        value={ex.videoUrl || ""}
+                        onChange={(e) => updateExercise(i, "videoUrl", e.target.value)}
+                      />
+                      {ytId && (
+                        <img
+                          src={`https://img.youtube.com/vi/${ytId}/default.jpg`}
+                          alt="thumb"
+                          className="w-12 h-9 rounded-md object-cover border border-depro-border"
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <p className="text-xs text-depro-gray mt-1">Nombre · Series · Reps · Descanso</p>
+            <p className="text-xs text-depro-gray mt-1">Nombre · Series · Reps · Descanso · URL YouTube</p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-depro-dark mb-2">
-              Vídeos que acompañarán este bloque
-            </label>
-            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-              {videos.map((v) => (
-                <label key={v.id} className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    className="accent-depro-blue"
-                    checked={form.linkedVideos.includes(v.id)}
-                    onChange={() => toggleArr("linkedVideos", v.id)}
-                  />
-                  <span className="text-sm text-depro-dark group-hover:text-depro-blue">{v.title}</span>
-                  <span className="text-xs text-depro-gray ml-auto">{v.duration}</span>
-                </label>
-              ))}
-            </div>
-          </div>
         </div>
 
         <div className="flex gap-3 p-6 border-t border-depro-border">
@@ -877,8 +886,8 @@ export default function AdminPlanBuilderPage() {
         </div>
         <div className="bg-white border border-depro-border rounded-xl p-4">
           <p className="text-xs text-depro-gray mb-1">Con vídeo</p>
-          <p className="text-2xl font-bold text-depro-blue">
-            {blocks.filter((b) => b.linkedVideos?.length > 0).length}
+          <p className="text-2xl font-bold text-red-500">
+            {blocks.reduce((acc, b) => acc + (b.exercises || []).filter((ex) => getYouTubeId(ex.videoUrl)).length, 0)}
           </p>
         </div>
       </div>

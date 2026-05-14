@@ -2,8 +2,14 @@ import { useState, useEffect } from "react";
 import {
   Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
   Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
-  PencilRuler, Info, AlertTriangle,
+  PencilRuler, Info, AlertTriangle, Youtube,
 } from "lucide-react";
+
+function getYouTubeId(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^&?/\s]{11})/);
+  return m ? m[1] : null;
+}
 import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
@@ -30,6 +36,7 @@ function ConditionPill({ Icon, label, color = "#6B7280" }) {
    MODAL EJERCICIO (jugador)
 ───────────────────────────────────────────── */
 function ExerciseModal({ exercise, onClose, accent }) {
+  const ytId = getYouTubeId(exercise.videoUrl);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -42,30 +49,49 @@ function ExerciseModal({ exercise, onClose, accent }) {
           <ConditionPill Icon={Clock} label={exercise.duration} color={accent} />
           <ConditionPill Icon={Gauge} label={`${exercise.sets} series`} />
           <ConditionPill Icon={Pause} label={exercise.reps} />
+          {exercise.rest && <ConditionPill Icon={Pause} label={`Descanso: ${exercise.rest}`} />}
         </div>
-        <div className="aspect-video bg-depro-gray-light rounded-2xl mb-5 flex items-center justify-center border border-depro-border group cursor-pointer hover:border-depro-blue transition-colors">
-          <div className="text-center">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform" style={{ backgroundColor: accent + "15" }}>
-              <Play size={24} style={{ color: accent }} />
+
+        {/* Vídeo YouTube embebido */}
+        {ytId ? (
+          <div className="rounded-2xl overflow-hidden mb-5 border border-depro-border">
+            <iframe
+              src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`}
+              title={exercise.name}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full aspect-video"
+            />
+          </div>
+        ) : (
+          <div className="aspect-video bg-depro-gray-light rounded-2xl mb-5 flex items-center justify-center border border-dashed border-depro-border">
+            <div className="text-center">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: accent + "15" }}>
+                <Video size={24} style={{ color: accent }} className="opacity-50" />
+              </div>
+              <p className="text-xs text-depro-gray">Sin vídeo disponible</p>
             </div>
-            <p className="text-xs text-depro-gray">Reproducir vídeo</p>
           </div>
-        </div>
-        <p className="text-depro-gray leading-relaxed mb-5 text-sm">{exercise.description}</p>
-        <div className="rounded-xl p-4 border text-sm mb-5" style={{ backgroundColor: accent + "08", borderColor: accent + "20" }}>
-          <div className="font-bold text-depro-dark mb-2 flex items-center gap-1.5">
-            <Target size={14} style={{ color: accent }} /> Tips del preparador
+        )}
+
+        {exercise.description && (
+          <p className="text-depro-gray leading-relaxed mb-5 text-sm">{exercise.description}</p>
+        )}
+        {exercise.tips && (
+          <div className="rounded-xl p-4 border text-sm mb-5" style={{ backgroundColor: accent + "08", borderColor: accent + "20" }}>
+            <div className="font-bold text-depro-dark mb-2 flex items-center gap-1.5">
+              <Target size={14} style={{ color: accent }} /> Tips del preparador
+            </div>
+            <p className="text-depro-gray">{exercise.tips}</p>
           </div>
-          <p className="text-depro-gray">{exercise.tips}</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-all">
-            <FileText size={15} /> Descargar PDF
-          </button>
-          <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90" style={{ backgroundColor: accent, color: contrastText(accent) }}>
-            <CheckCircle size={15} /> Completar
-          </button>
-        </div>
+        )}
+        <button
+          onClick={onClose}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+          style={{ backgroundColor: accent, color: contrastText(accent) }}
+        >
+          <CheckCircle size={15} /> Entendido
+        </button>
       </div>
     </div>
   );
@@ -123,26 +149,45 @@ function SessionCard({ session, accentColor }) {
       {expanded && session.exercises && session.exercises.length > 0 && (
         <div className="px-5 pb-5 border-t border-depro-border">
           <div className="pt-4 space-y-2">
-            {session.exercises.map((ex, i) => (
-              <button key={i} onClick={() => setSelectedEx(ex)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-depro-gray-light hover:bg-depro-blue-light border border-transparent hover:border-blue-100 transition-all text-left group"
-              >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0" style={{ backgroundColor: color + "15", color }}>
-                  {i + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-depro-dark">{ex.name}</div>
-                  <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                    <ConditionPill Icon={Clock} label={ex.duration} color={color} />
-                    <ConditionPill Icon={Gauge} label={`${ex.sets} series`} />
-                    <ConditionPill Icon={Pause} label={ex.reps} />
+            {session.exercises.map((ex, i) => {
+              const ytId = getYouTubeId(ex.videoUrl);
+              return (
+                <button key={i} onClick={() => setSelectedEx(ex)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-depro-gray-light hover:bg-depro-blue-light border border-transparent hover:border-blue-100 transition-all text-left group"
+                >
+                  {ytId ? (
+                    <img
+                      src={`https://img.youtube.com/vi/${ytId}/default.jpg`}
+                      alt=""
+                      className="w-12 h-9 rounded-lg object-cover border border-depro-border shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0" style={{ backgroundColor: color + "15", color }}>
+                      {i + 1}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-depro-dark">{ex.name}</div>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      {ex.duration && <ConditionPill Icon={Clock} label={ex.duration} color={color} />}
+                      {ex.sets && <ConditionPill Icon={Gauge} label={`${ex.sets} series`} />}
+                      {ex.reps && <ConditionPill Icon={Pause} label={ex.reps} />}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-depro-gray opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Video size={13} /> Ver
-                </div>
-              </button>
-            ))}
+                  <div className="flex items-center gap-1 text-xs shrink-0">
+                    {ytId ? (
+                      <span className="flex items-center gap-1 text-red-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Youtube size={13} /> Ver
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-depro-gray opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Video size={13} /> Info
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {/* Slider de cumplimiento + acciones */}
