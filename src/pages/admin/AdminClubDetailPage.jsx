@@ -35,6 +35,8 @@ import {
   ImagePlus,
   MapPin,
   PlayCircle,
+  Wind,
+  BarChart2,
 } from "lucide-react";
 import { loadClubs, saveClubDetail, loadClubDetail, createClubUser } from "../../lib/adminStorage";
 
@@ -47,7 +49,12 @@ const ROLES = [
   { id: "ayudante", label: "Ayudante técnico", icon: Dumbbell, color: "text-orange-500 bg-orange-50" },
   { id: "jugador", label: "Jugador", icon: Users, color: "text-depro-gray bg-depro-gray-light" },
 ];
-const CATEGORIES = ["Benjamín", "Alevín", "Infantil", "Cadete", "Juvenil", "Amateur", "Semiprofesional"];
+const AGE_BLOCKS = [
+  { label: "Bloque 1 · Fútbol Base",      ages: ["Sub-9","Sub-10","Sub-11","Sub-12"] },
+  { label: "Bloque 2 · Fútbol Formativo", ages: ["Sub-13","Sub-14","Sub-15"] },
+  { label: "Bloque 3 · Fútbol Juvenil",   ages: ["Sub-16","Sub-17","Sub-18","Sub-19"] },
+];
+const CATEGORIES = AGE_BLOCKS.flatMap((b) => b.ages);
 
 function RoleBadge({ role }) {
   const found = ROLES.find((r) => r.id === role);
@@ -71,7 +78,7 @@ const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 
 function NewTeamModal({ onClose, onCreate, clubId }) {
   const [form, setForm] = useState({
-    name: "", category: "Juvenil", season: "2024/25",
+    name: "", category: "Sub-16", season: "2025/26",
     coachName: "", coachEmail: "", coachPassword: generatePassword(),
     trainingDays: [],
   });
@@ -211,7 +218,7 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
             <label className="block text-sm font-medium text-depro-dark mb-1">Nombre del equipo *</label>
             <input
               className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-              placeholder="Ej. Juvenil A"
+              placeholder="Ej. Sub-16 A"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
@@ -224,7 +231,11 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
                 value={form.category}
                 onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
               >
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                {AGE_BLOCKS.map((b) => (
+                  <optgroup key={b.label} label={b.label}>
+                    {b.ages.map((a) => <option key={a}>{a}</option>)}
+                  </optgroup>
+                ))}
               </select>
             </div>
             <div>
@@ -515,8 +526,9 @@ function NewMicrocycleModal({ teams, onClose, onCreate }) {
   const [form, setForm] = useState({
     microcycle: "",
     label: "",
-    teamId: teams[0]?.id ?? "",
-    teamName: teams[0]?.name ?? "",
+    ageBlock: "",
+    teamId: "",
+    teamName: "",
     dateRange: "",
     objective: "",
     focus: "",
@@ -563,9 +575,32 @@ function NewMicrocycleModal({ teams, onClose, onCreate }) {
               onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
             />
           </div>
+          {/* Bloque de edad */}
+          <div>
+            <label className="block text-sm font-medium text-depro-dark mb-1">Bloque de edad</label>
+            <div className="grid grid-cols-3 gap-2">
+              {AGE_BLOCKS.map((b, idx) => (
+                <button key={idx} type="button"
+                  onClick={() => setForm((f) => ({ ...f, ageBlock: b.label }))}
+                  className={`p-2.5 rounded-xl border text-xs font-bold transition-colors text-left ${
+                    form.ageBlock === b.label
+                      ? "border-depro-blue bg-depro-blue text-white"
+                      : "border-depro-border text-depro-dark hover:border-depro-blue/40"
+                  }`}>
+                  <div className="font-black text-[10px] uppercase tracking-wide mb-0.5">
+                    Bloque {idx + 1}
+                  </div>
+                  <div className={form.ageBlock === b.label ? "text-white/80" : "text-depro-gray"} style={{ fontSize: "9px" }}>
+                    {b.ages.join(" · ")}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {teams.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-depro-dark mb-1">Equipo</label>
+              <label className="block text-sm font-medium text-depro-dark mb-1">Equipo específico <span className="text-depro-gray font-normal">(opcional)</span></label>
               <select
                 className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
                 value={form.teamId}
@@ -574,7 +609,17 @@ function NewMicrocycleModal({ teams, onClose, onCreate }) {
                   setForm((f) => ({ ...f, teamId: e.target.value, teamName: t?.name ?? "" }));
                 }}
               >
-                {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                <option value="">— Todos los equipos del bloque —</option>
+                {AGE_BLOCKS.map((b) => (
+                  <optgroup key={b.label} label={b.label}>
+                    {teams.filter((t) => b.ages.includes(t.category)).map((t) => (
+                      <option key={t.id} value={t.id}>{t.name} ({t.category})</option>
+                    ))}
+                  </optgroup>
+                ))}
+                {teams.filter((t) => !CATEGORIES.includes(t.category)).map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
               </select>
             </div>
           )}
@@ -632,209 +677,436 @@ function getYouTubeId(url) {
   return m ? m[1] : null;
 }
 
+/* ── Constantes del editor de sesiones ───────────────────── */
+const SESSION_BLOCK_CONFIG = {
+  calentamiento:  { label: "Calentamiento",    color: "#F59E0B", hasVideo: true },
+  principal:      { label: "Bloque principal", color: "#3B82F6", hasVideo: false },
+  complementario: { label: "Complementario",   color: "#8B5CF6", hasVideo: false },
+  vuelta_calma:   { label: "Vuelta a la calma", color: "#10B981", hasVideo: true },
+};
+const SESSION_TYPE_OPTIONS = [
+  { value: "Baja",       type: "A", label: "A · Extensiva",  color: "#3B82F6" },
+  { value: "Media",      type: "A", label: "A · Extensiva",  color: "#3B82F6" },
+  { value: "Media-alta", type: "B", label: "B · Intensiva",  color: "#F59E0B" },
+  { value: "Alta",       type: "B", label: "B · Intensiva",  color: "#F59E0B" },
+  { value: "Máxima",     type: "C", label: "C · Reactiva",   color: "#EF4444" },
+];
+const PHYSICAL_TEST_FIELDS = [
+  { id: "resistencia", label: "Resistencia aeróbica", unit: "m / min" },
+  { id: "sprint",      label: "Sprint 30m",           unit: "seg" },
+  { id: "cod",         label: "Cambio de dirección",  unit: "seg" },
+  { id: "cmj",         label: "Salto CMJ",            unit: "cm" },
+];
+const emptyExercise = () => ({ id: `ex_${Date.now()}_${Math.random().toString(36).slice(2)}`, name: "", sets: "3", reps: "10-12", rest: "60s", duration: "", videoUrl: "", description: "", tips: "" });
+const defaultBlocks = () => [
+  { type: "calentamiento",  label: "Calentamiento",    duration: "10 min", videoUrl: "", exercises: [] },
+  { type: "principal",      label: "Bloque principal", duration: "30 min", videoUrl: "", exercises: [emptyExercise()] },
+  { type: "complementario", label: "Complementario",   duration: "15 min", videoUrl: "", exercises: [] },
+  { type: "vuelta_calma",   label: "Vuelta a la calma", duration: "5 min", videoUrl: "", exercises: [] },
+];
+
+/* ── Editor de ejercicios de un bloque ───────────────────── */
+function BlockExerciseEditor({ block, onUpdate }) {
+  const exercises = block.exercises || [];
+  const cfg = SESSION_BLOCK_CONFIG[block.type] || { color: "#3B82F6" };
+
+  const add = () => onUpdate({ exercises: [...exercises, emptyExercise()] });
+  const remove = (i) => onUpdate({ exercises: exercises.filter((_, idx) => idx !== i) });
+  const update = (i, field, val) =>
+    onUpdate({ exercises: exercises.map((ex, idx) => idx === i ? { ...ex, [field]: val } : ex) });
+
+  return (
+    <div className="space-y-3">
+      {/* Duración del bloque */}
+      <div className="flex items-center gap-3">
+        <label className="text-xs font-bold text-depro-gray uppercase tracking-wide w-20 flex-shrink-0">Duración</label>
+        <input
+          className="border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30 w-28"
+          placeholder="10 min"
+          value={block.duration || ""}
+          onChange={(e) => onUpdate({ duration: e.target.value })}
+        />
+      </div>
+
+      {/* Vídeo del bloque (si aplica) */}
+      {SESSION_BLOCK_CONFIG[block.type]?.hasVideo && (
+        <div>
+          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block flex items-center gap-1">
+            <PlayCircle size={11} /> URL vídeo YouTube
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              className="flex-1 border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+              placeholder="https://youtu.be/…"
+              value={block.videoUrl || ""}
+              onChange={(e) => onUpdate({ videoUrl: e.target.value })}
+            />
+            {getYouTubeId(block.videoUrl) && (
+              <img src={`https://img.youtube.com/vi/${getYouTubeId(block.videoUrl)}/default.jpg`}
+                alt="" className="w-16 h-12 rounded-lg object-cover border border-depro-border flex-shrink-0" />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Ejercicios */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold text-depro-gray uppercase tracking-wide">Ejercicios · {exercises.length}</span>
+          <button onClick={add}
+            className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg border transition-colors hover:bg-depro-blue-light"
+            style={{ color: cfg.color, borderColor: cfg.color + "40" }}>
+            <Plus size={11} /> Añadir ejercicio
+          </button>
+        </div>
+        {exercises.length === 0 && (
+          <div className="py-8 border border-dashed border-depro-border rounded-xl flex flex-col items-center gap-2 text-depro-gray">
+            <ClipboardList size={22} className="opacity-30" />
+            <p className="text-xs">Sin ejercicios · haz clic en "Añadir ejercicio"</p>
+          </div>
+        )}
+        <div className="space-y-3">
+          {exercises.map((ex, i) => {
+            const ytId = getYouTubeId(ex.videoUrl);
+            return (
+              <div key={ex.id || i} className="border border-depro-border rounded-xl overflow-hidden bg-white">
+                {/* Fila 1: nombre + parámetros */}
+                <div className="p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-black flex-shrink-0"
+                      style={{ backgroundColor: cfg.color + "18", color: cfg.color }}>{i + 1}</div>
+                    <input
+                      className="flex-1 border border-depro-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                      placeholder="Nombre del ejercicio"
+                      value={ex.name}
+                      onChange={(e) => update(i, "name", e.target.value)}
+                    />
+                    <button onClick={() => remove(i)} className="text-depro-gray hover:text-red-500 transition-colors p-1">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { field:"sets",     placeholder:"Series", label:"Series" },
+                      { field:"reps",     placeholder:"10-12",  label:"Reps/T." },
+                      { field:"rest",     placeholder:"60s",    label:"Descanso" },
+                      { field:"duration", placeholder:"40\"",   label:"Duración" },
+                    ].map(({ field, placeholder, label }) => (
+                      <div key={field}>
+                        <div className="text-[9px] font-bold text-depro-gray uppercase tracking-wide mb-0.5">{label}</div>
+                        <input
+                          className="w-full border border-depro-border rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                          placeholder={placeholder}
+                          value={ex[field] || ""}
+                          onChange={(e) => update(i, field, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Fila 2: video */}
+                <div className="px-3 pb-3 flex items-center gap-2 border-t border-depro-border/50 pt-2">
+                  <PlayCircle size={13} className={ytId ? "text-red-500" : "text-depro-gray"} />
+                  <input
+                    className="flex-1 border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    placeholder="URL YouTube del ejercicio (opcional)"
+                    value={ex.videoUrl || ""}
+                    onChange={(e) => update(i, "videoUrl", e.target.value)}
+                  />
+                  {ytId && <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt=""
+                    className="w-14 h-10 rounded-lg object-cover border border-depro-border flex-shrink-0" />}
+                </div>
+                {/* Fila 3: descripción + tips */}
+                <div className="px-3 pb-3 space-y-2 border-t border-depro-border/50 pt-2">
+                  <input
+                    className="w-full border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    placeholder="Descripción breve (opcional)"
+                    value={ex.description || ""}
+                    onChange={(e) => update(i, "description", e.target.value)}
+                  />
+                  <textarea
+                    rows={2}
+                    className="w-full border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30 resize-none"
+                    placeholder="Consejos técnicos: una línea por consejo (3–5)"
+                    value={ex.tips || ""}
+                    onChange={(e) => update(i, "tips", e.target.value)}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Modal editor de sesión (diseño igual al entrenador) ─── */
 function NewSessionModal({ onClose, onCreate }) {
+  const [tab, setTab] = useState("resumen");
   const [form, setForm] = useState({
     day: "Lunes",
     title: "",
     duration: "75 min",
     intensity: "Media",
+    objective: "",
     space: "",
     players: "",
-    objective: "",
-    warmupVideoUrl: "",
-    protocolVideoUrl: "",
-    exercises: [{ name: "", sets: 3, reps: "10", rest: "60s", videoUrl: "" }],
+    blocks: defaultBlocks(),
+    tests: PHYSICAL_TEST_FIELDS.map((t) => ({ ...t, description: "", reference: "" })),
+    exercises: [],
   });
 
-  const updateExercise = (i, field, val) =>
-    setForm((f) => {
-      const ex = [...f.exercises];
-      ex[i] = { ...ex[i], [field]: val };
-      return { ...f, exercises: ex };
-    });
+  const getBlock = (type) => form.blocks.find((b) => b.type === type) || { exercises: [] };
+  const updateBlock = (type, changes) =>
+    setForm((f) => ({ ...f, blocks: f.blocks.map((b) => b.type === type ? { ...b, ...changes } : b) }));
 
-  const addExercise = () =>
-    setForm((f) => ({ ...f, exercises: [...f.exercises, { name: "", sets: 3, reps: "10", rest: "60s", videoUrl: "" }] }));
+  const sessionTypeMeta = SESSION_TYPE_OPTIONS.find((o) => o.value === form.intensity) || SESSION_TYPE_OPTIONS[1];
 
-  const removeExercise = (i) =>
-    setForm((f) => ({ ...f, exercises: f.exercises.filter((_, idx) => idx !== i) }));
+  const TABS = [
+    { id:"resumen",        label:"Resumen",          icon: BarChart2 },
+    { id:"calentamiento",  label:"Calentamiento",    icon: Flame },
+    { id:"principal",      label:"Principal",        icon: Dumbbell },
+    { id:"complementario", label:"Complementario",   icon: Target },
+    { id:"vuelta_calma",   label:"Vuelta a la calma", icon: Wind },
+    { id:"tests",          label:"Tests",            icon: ClipboardList },
+  ];
+
+  const handleSave = () => {
+    if (!form.title.trim()) return;
+    const allExercises = form.blocks.flatMap((b) => b.exercises.map((ex) => ({
+      ...ex,
+      tips: ex.tips ? ex.tips.split("\n").filter(Boolean) : [],
+    })));
+    onCreate({ ...form, id: `s${Date.now()}`, exercises: allExercises });
+    onClose();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overflow-y-auto p-4">
-      <div className="bg-white rounded-2xl shadow-depro w-full max-w-2xl my-auto">
-        <div className="flex items-center justify-between p-6 border-b border-depro-border">
-          <h2 className="font-bold text-depro-dark text-lg">Nueva sesión</h2>
-          <button onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
+    <div className="fixed inset-0 z-50 flex items-stretch bg-black/50">
+      <div className="relative bg-white w-full max-w-3xl mx-auto my-4 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-depro-border flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: sessionTypeMeta.color + "18" }}>
+              <ClipboardList size={16} style={{ color: sessionTypeMeta.color }} />
+            </div>
+            <div>
+              <div className="font-black text-depro-dark leading-none">
+                {form.title || "Nueva sesión"}
+              </div>
+              <div className="text-[10px] text-depro-gray mt-0.5">
+                <span className="font-bold" style={{ color: sessionTypeMeta.color }}>{sessionTypeMeta.label}</span>
+                {form.day && <span className="ml-2">· {form.day}</span>}
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-depro-gray hover:text-depro-dark p-1 rounded-lg hover:bg-depro-gray-light transition-colors"><X size={18} /></button>
         </div>
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-depro-dark mb-1">Día</label>
-              <select
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                value={form.day}
-                onChange={(e) => setForm((f) => ({ ...f, day: e.target.value }))}
-              >
-                {SESSION_DAYS.map((d) => <option key={d}>{d}</option>)}
-              </select>
+
+        {/* Tabs */}
+        <div className="flex border-b border-depro-border overflow-x-auto flex-shrink-0 bg-depro-gray-light/30">
+          {TABS.map(({ id, label, icon: TIcon }) => (
+            <button key={id} onClick={() => setTab(id)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-bold transition-colors border-b-2 ${
+                tab === id ? "border-depro-blue text-depro-blue bg-white" : "border-transparent text-depro-gray hover:text-depro-dark"
+              }`}>
+              <TIcon size={12} /> {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Contenido de la pestaña */}
+        <div className="flex-1 overflow-y-auto p-5">
+
+          {/* ── RESUMEN ── */}
+          {tab === "resumen" && (
+            <div className="space-y-4">
+              {/* Card tipo sesión visual */}
+              <div className="rounded-2xl p-5 border flex items-center gap-4"
+                style={{ background:`linear-gradient(135deg,${sessionTypeMeta.color}10 0%,white 80%)`, borderColor: sessionTypeMeta.color + "25" }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border"
+                  style={{ backgroundColor: sessionTypeMeta.color + "18", borderColor: sessionTypeMeta.color + "30" }}>
+                  <ClipboardList size={22} style={{ color: sessionTypeMeta.color }} />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-0.5">Vista previa</div>
+                  <div className="font-black text-depro-dark text-lg leading-none">{form.title || "Sin título"}</div>
+                  <div className="text-xs font-semibold mt-1" style={{ color: sessionTypeMeta.color }}>{sessionTypeMeta.label}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Título de la sesión *</label>
+                  <input
+                    className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    placeholder="Ej. Posesión · presión alta"
+                    value={form.title}
+                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Día</label>
+                  <select
+                    className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    value={form.day}
+                    onChange={(e) => setForm((f) => ({ ...f, day: e.target.value }))}
+                  >
+                    {SESSION_DAYS.map((d) => <option key={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Duración</label>
+                  <input
+                    className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    placeholder="75 min"
+                    value={form.duration}
+                    onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">
+                    Intensidad <span className="font-semibold" style={{ color: sessionTypeMeta.color }}>({sessionTypeMeta.label})</span>
+                  </label>
+                  <select
+                    className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    value={form.intensity}
+                    onChange={(e) => setForm((f) => ({ ...f, intensity: e.target.value }))}
+                  >
+                    {INTENSITIES.map((i) => <option key={i}>{i}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Espacio</label>
+                  <input
+                    className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    placeholder="Medio campo"
+                    value={form.space}
+                    onChange={(e) => setForm((f) => ({ ...f, space: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Objetivo de la sesión</label>
+                <textarea rows={3}
+                  className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30 resize-none"
+                  placeholder="Describe el objetivo principal de esta sesión…"
+                  value={form.objective}
+                  onChange={(e) => setForm((f) => ({ ...f, objective: e.target.value }))}
+                />
+              </div>
+
+              {/* Resumen de bloques */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-depro-border">
+                {form.blocks.map((b) => {
+                  const cfg = SESSION_BLOCK_CONFIG[b.type] || { color: "#6B7280" };
+                  return (
+                    <button key={b.type} onClick={() => setTab(b.type)}
+                      className="flex items-center gap-2.5 p-3 rounded-xl border border-depro-border hover:border-current transition-colors text-left"
+                      style={{ "--hover-color": cfg.color }}>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: cfg.color + "15" }}>
+                        <ClipboardList size={13} style={{ color: cfg.color }} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-depro-dark">{b.label}</div>
+                        <div className="text-[10px] text-depro-gray">{b.exercises.length} ejercicios · {b.duration || "—"}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-depro-dark mb-1">Título *</label>
-              <input
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                placeholder="Ej. Bloque táctico · presión alta"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-depro-gray mb-1">Duración</label>
-              <input
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                placeholder="75 min"
-                value={form.duration}
-                onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-depro-gray mb-1">Intensidad</label>
-              <select
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                value={form.intensity}
-                onChange={(e) => setForm((f) => ({ ...f, intensity: e.target.value }))}
-              >
-                {INTENSITIES.map((i) => <option key={i}>{i}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-depro-gray mb-1">Espacio</label>
-              <input
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                placeholder="Medio campo"
-                value={form.space}
-                onChange={(e) => setForm((f) => ({ ...f, space: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-depro-gray mb-1">Jugadores</label>
-              <input
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                type="number"
-                placeholder="18"
-                value={form.players}
-                onChange={(e) => setForm((f) => ({ ...f, players: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-depro-dark mb-1">Objetivo de la sesión</label>
-            <textarea
-              rows={2}
-              className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30 resize-none"
-              placeholder="Objetivo principal de esta sesión…"
-              value={form.objective}
-              onChange={(e) => setForm((f) => ({ ...f, objective: e.target.value }))}
-            />
-          </div>
-          {/* Vídeos de sección */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-depro-gray mb-1 flex items-center gap-1">
-                <Video size={11} /> URL vídeo calentamiento (YouTube)
-              </label>
-              <input
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                placeholder="https://youtu.be/…"
-                value={form.warmupVideoUrl}
-                onChange={(e) => setForm((f) => ({ ...f, warmupVideoUrl: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-depro-gray mb-1 flex items-center gap-1">
-                <Video size={11} /> URL vídeo protocolo (YouTube)
-              </label>
-              <input
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                placeholder="https://youtu.be/…"
-                value={form.protocolVideoUrl}
-                onChange={(e) => setForm((f) => ({ ...f, protocolVideoUrl: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-depro-dark">Ejercicios / tareas</label>
-              <button onClick={addExercise} className="flex items-center gap-1 text-xs text-depro-blue font-medium hover:underline">
-                <Plus size={12} /> Añadir
-              </button>
-            </div>
-            <div className="space-y-3">
-              {form.exercises.map((ex, i) => {
-                const ytId = getYouTubeId(ex.videoUrl);
-                return (
-                  <div key={i} className="border border-depro-border rounded-xl p-3 space-y-2 bg-depro-gray-light/30">
-                    <div className="grid grid-cols-12 gap-2 items-center">
-                      <input
-                        className="col-span-5 border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
-                        placeholder="Nombre del ejercicio"
-                        value={ex.name}
-                        onChange={(e) => updateExercise(i, "name", e.target.value)}
-                      />
-                      <input
-                        className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
-                        placeholder="Series"
-                        value={ex.sets}
-                        onChange={(e) => updateExercise(i, "sets", e.target.value)}
-                      />
-                      <input
-                        className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
-                        placeholder="Reps/T."
-                        value={ex.reps}
-                        onChange={(e) => updateExercise(i, "reps", e.target.value)}
-                      />
-                      <input
-                        className="col-span-2 border border-depro-border rounded-lg px-2 py-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
-                        placeholder="Descanso"
-                        value={ex.rest}
-                        onChange={(e) => updateExercise(i, "rest", e.target.value)}
-                      />
-                      <button onClick={() => removeExercise(i)} className="col-span-1 flex items-center justify-center text-depro-gray hover:text-red-500">
-                        <X size={14} />
-                      </button>
+          )}
+
+          {/* ── BLOQUES DE EJERCICIOS ── */}
+          {["calentamiento","principal","complementario","vuelta_calma"].map((blockType) => {
+            if (tab !== blockType) return null;
+            const block = getBlock(blockType);
+            const cfg = SESSION_BLOCK_CONFIG[blockType];
+            return (
+              <div key={blockType} className="space-y-4">
+                <div className="flex items-center gap-3 p-4 rounded-2xl border"
+                  style={{ backgroundColor: cfg.color + "08", borderColor: cfg.color + "25" }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center border flex-shrink-0"
+                    style={{ backgroundColor: cfg.color + "18", borderColor: cfg.color + "25" }}>
+                    <ClipboardList size={18} style={{ color: cfg.color }} />
+                  </div>
+                  <div>
+                    <div className="font-black text-depro-dark">{cfg.label}</div>
+                    <div className="text-xs text-depro-gray">Edita los ejercicios, vídeos y parámetros de este bloque</div>
+                  </div>
+                </div>
+                <BlockExerciseEditor
+                  block={block}
+                  onUpdate={(changes) => updateBlock(blockType, changes)}
+                />
+              </div>
+            );
+          })}
+
+          {/* ── TESTS ── */}
+          {tab === "tests" && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-4 rounded-2xl border border-depro-blue/20 bg-depro-blue-light/30">
+                <div className="w-10 h-10 rounded-xl bg-depro-blue/10 flex items-center justify-center flex-shrink-0 border border-depro-blue/20">
+                  <ClipboardList size={18} className="text-depro-blue" />
+                </div>
+                <div>
+                  <div className="font-black text-depro-dark">Tests físicos</div>
+                  <div className="text-xs text-depro-gray">Define los tests que el entrenador realizará a sus jugadores (3 veces por temporada)</div>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {form.tests.map((test, i) => (
+                  <div key={test.id} className="border border-depro-border rounded-xl p-4 space-y-3 bg-white">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-6 h-6 rounded-lg bg-depro-blue/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-black text-depro-blue">{i+1}</span>
+                      </div>
+                      <span className="font-bold text-depro-dark text-sm">{test.label}</span>
+                      <span className="text-xs text-depro-gray ml-auto">Unidad: {test.unit}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Youtube size={14} className={ytId ? "text-red-500" : "text-depro-gray"} />
-                      <input
-                        className="flex-1 border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
-                        placeholder="URL YouTube (opcional)"
-                        value={ex.videoUrl || ""}
-                        onChange={(e) => updateExercise(i, "videoUrl", e.target.value)}
-                      />
-                      {ytId && (
-                        <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt="" className="w-12 h-9 rounded-md object-cover border border-depro-border" />
-                      )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide block mb-1">Descripción / protocolo</label>
+                        <textarea rows={2} className="w-full border border-depro-border rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                          placeholder="Cómo se realiza este test…"
+                          value={test.description}
+                          onChange={(e) => setForm((f) => ({
+                            ...f, tests: f.tests.map((t, ti) => ti === i ? { ...t, description: e.target.value } : t)
+                          }))} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide block mb-1">Valores de referencia</label>
+                        <textarea rows={2} className="w-full border border-depro-border rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                          placeholder="Ej. Sub-12: ≥1200m es bueno…"
+                          value={test.reference}
+                          onChange={(e) => setForm((f) => ({
+                            ...f, tests: f.tests.map((t, ti) => ti === i ? { ...t, reference: e.target.value } : t)
+                          }))} />
+                      </div>
                     </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
-            <p className="text-xs text-depro-gray mt-1">Nombre · Series · Reps/Tiempo · Descanso · URL YouTube</p>
-          </div>
+          )}
         </div>
-        <div className="flex gap-3 p-6 border-t border-depro-border">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">Cancelar</button>
-          <button
-            onClick={() => {
-              if (!form.title) return;
-              onCreate({ ...form, id: `s${Date.now()}` });
-              onClose();
-            }}
-            disabled={!form.title}
-            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-          >
-            <Save size={15} /> Guardar sesión
+
+        {/* Footer */}
+        <div className="flex gap-3 px-5 py-4 border-t border-depro-border flex-shrink-0 bg-white">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">
+            Cancelar
+          </button>
+          <button onClick={handleSave} disabled={!form.title.trim()}
+            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-bold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+            <Save size={14} /> Guardar sesión
           </button>
         </div>
       </div>
