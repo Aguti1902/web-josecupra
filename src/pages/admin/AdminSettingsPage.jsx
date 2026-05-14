@@ -88,6 +88,8 @@ export default function AdminSettingsPage() {
         try {
           localStorage.setItem("depro_admin_photo", compressed);
           setPhotoPreview(compressed);
+          // Notificar a AdminLayout para que actualice la foto inmediatamente
+          window.dispatchEvent(new Event("depro_photo_updated"));
         } catch {
           setSaveError("La foto es demasiado grande. Usa una imagen más pequeña.");
           setSaving(false);

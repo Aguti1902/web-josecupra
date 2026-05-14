@@ -42,9 +42,13 @@ export default function AdminLayout({ children }) {
   useEffect(() => {
     const sync = () => setProfilePhoto(localStorage.getItem("depro_admin_photo"));
     window.addEventListener("storage", sync);
-    // Polling ligero para detectar cambios en la misma pestaña
-    const interval = setInterval(sync, 2000);
-    return () => { window.removeEventListener("storage", sync); clearInterval(interval); };
+    window.addEventListener("depro_photo_updated", sync);
+    const interval = setInterval(sync, 3000);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("depro_photo_updated", sync);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleLogout = () => { logout(); navigate("/"); };

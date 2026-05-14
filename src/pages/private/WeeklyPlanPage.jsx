@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../../context/AuthContext";
 
 const Youtube = PlayCircle;
 
@@ -14,7 +15,6 @@ function getYouTubeId(url) {
   const m = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^&?/\s]{11})/);
   return m ? m[1] : null;
 }
-import { useAuth } from "../../context/AuthContext";
 import { clubWeeklyPlan } from "../../data/mockData";
 import { getDayObjectives, filterExercises } from "../../data/exercises";
 
