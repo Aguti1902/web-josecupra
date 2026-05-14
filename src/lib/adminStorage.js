@@ -63,8 +63,22 @@ function genId() {
 //          localStorage actúa como caché offline.
 // ════════════════════════════════════════════════════════════
 
-/** Guarda el objeto completo del club en clubs_detail (JSONB, sin RLS) */
+/** Guarda el objeto completo del club en clubs_detail via API serverless (bypasea RLS) */
 async function pushClubToSupabase(clubData) {
+  // 1. Intentar via serverless (service role key, bypasea RLS)
+  try {
+    const res = await fetch("/api/admin-clubs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ club: clubData }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.ok) return true;
+    }
+  } catch {}
+
+  // 2. Fallback: directo con anon key (solo funciona si RLS está desactivado)
   try {
     const { error } = await supabase
       .from("clubs_detail")
@@ -72,7 +86,7 @@ async function pushClubToSupabase(clubData) {
         { club_id: clubData.id, data: clubData, updated_at: new Date().toISOString() },
         { onConflict: "club_id" }
       );
-    if (error) console.warn("[adminStorage] pushClubToSupabase error:", error.message);
+    if (error) console.warn("[adminStorage] pushClubToSupabase (anon fallback) error:", error.message);
     return !error;
   } catch (e) {
     console.warn("[adminStorage] pushClubToSupabase exception:", e.message);

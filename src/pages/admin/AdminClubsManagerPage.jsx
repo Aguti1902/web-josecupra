@@ -18,7 +18,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { loadClubs, saveClub, deleteClub, createClubUser } from "../../lib/adminStorage";
-import { supabase } from "../../lib/supabase";
 
 function generatePassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -375,7 +374,7 @@ export default function AdminClubsManagerPage() {
     setClubs((prev) => prev.filter((c) => c.id !== id));
   };
 
-  // Sube todos los clubs locales a Supabase (útil cuando se cambia de dispositivo)
+  // Sube todos los clubs locales a Supabase via serverless (bypasea RLS)
   const handleSync = async () => {
     setSyncing(true);
     setSyncMsg("");
@@ -385,19 +384,23 @@ export default function AdminClubsManagerPage() {
       let fail = 0;
       for (const club of localClubs) {
         if (!club.id) continue;
-        // Mergedel detalle local si existe
+        // Fusionar con el detalle local si existe
         let merged = { ...club };
         try {
           const detail = JSON.parse(localStorage.getItem(`depro_club_${club.id}`) || "null");
           if (detail) merged = { ...merged, ...detail, id: club.id };
         } catch {}
 
-        const { error } = await supabase.from("clubs_detail").upsert(
-          { club_id: merged.id, data: merged, updated_at: new Date().toISOString() },
-          { onConflict: "club_id" }
-        );
-        if (error) { fail++; console.warn("sync error:", error.message); }
-        else ok++;
+        try {
+          const res = await fetch("/api/admin-clubs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ club: merged }),
+          });
+          const json = res.ok ? await res.json() : null;
+          if (json?.ok) ok++;
+          else fail++;
+        } catch { fail++; }
       }
       setSyncMsg(`✓ ${ok} clubs sincronizados${fail ? `, ${fail} con error` : ""}`);
     } catch (e) {
