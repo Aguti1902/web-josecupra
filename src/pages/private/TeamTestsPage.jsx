@@ -1,18 +1,25 @@
 import { useState, useEffect } from "react";
-import { Activity, Users, TrendingUp, TrendingDown, Minus, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Activity, Users, TrendingUp, TrendingDown, Minus,
+  Plus, X, ChevronDown, ChevronUp, Pencil, Save,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
+/* ── Definición de tests ───────────────────────────────────── */
 const TESTS = [
-  { id: "resistencia", name: "Resistencia",  unit: "rectas", color: "#3B82F6", higher_is_better: true,  placeholder: "14",
+  { id: "resistencia", name: "Resistencia", unit: "rectas", color: "#3B82F6", higher_is_better: true,  placeholder: "14",
     ranges: [{ label: "Bajo", max: 8, color: "#EF4444" }, { label: "Medio", max: 15, color: "#F59E0B" }, { label: "Bueno", max: 22, color: "#3B82F6" }, { label: "Excelente", max: Infinity, color: "#22C55E" }] },
-  { id: "sprint",      name: "Sprint",       unit: "seg",    color: "#EF4444", higher_is_better: false, placeholder: "2.85",
+  { id: "sprint",      name: "Sprint",      unit: "seg",    color: "#EF4444", higher_is_better: false, placeholder: "2.85",
     ranges: [{ label: "Excelente", max: 2.6, color: "#22C55E" }, { label: "Bueno", max: 3.0, color: "#3B82F6" }, { label: "Medio", max: 3.5, color: "#F59E0B" }, { label: "Bajo", max: Infinity, color: "#EF4444" }] },
-  { id: "cod",         name: "COD",          unit: "seg",    color: "#8B5CF6", higher_is_better: false, placeholder: "4.72",
+  { id: "cod",         name: "COD",         unit: "seg",    color: "#8B5CF6", higher_is_better: false, placeholder: "4.72",
     ranges: [{ label: "Excelente", max: 4.4, color: "#22C55E" }, { label: "Bueno", max: 5.0, color: "#3B82F6" }, { label: "Medio", max: 5.6, color: "#F59E0B" }, { label: "Bajo", max: Infinity, color: "#EF4444" }] },
-  { id: "cmj",         name: "CMJ",          unit: "cm",     color: "#22C55E", higher_is_better: true,  placeholder: "38",
+  { id: "cmj",         name: "CMJ",         unit: "cm",     color: "#22C55E", higher_is_better: true,  placeholder: "38",
     ranges: [{ label: "Bajo", max: 25, color: "#EF4444" }, { label: "Medio", max: 35, color: "#F59E0B" }, { label: "Bueno", max: 45, color: "#3B82F6" }, { label: "Excelente", max: Infinity, color: "#22C55E" }] },
 ];
 
+const EVALS = ["T1", "T2", "T3"]; // 3 evaluaciones por temporada
+
+/* ── Helpers de color ─────────────────────────────────────── */
 function lum(hex) {
   try { const h = (hex||"#000").replace("#",""); return (0.299*parseInt(h.slice(0,2),16)+0.587*parseInt(h.slice(2,4),16)+0.114*parseInt(h.slice(4,6),16))/255; }
   catch { return 0; }
@@ -20,278 +27,364 @@ function lum(hex) {
 function safeAccent(hex) { return lum(hex) > 0.75 ? "#0A36F7" : (hex || "#0A36F7"); }
 function contrastText(hex) { return lum(hex) > 0.55 ? "#111827" : "#ffffff"; }
 
-function testKey(playerId, testId) { return `depro_test_${playerId}_${testId}`; }
-function loadLast(playerId, testId) {
+/* ── Helpers de datos ─────────────────────────────────────── */
+// key: depro_season_tests_{playerId}  → { resistencia: ["14","",""], sprint: [...], ... }
+function seasonKey(playerId) { return `depro_season_tests_${playerId}`; }
+function loadSeasonData(playerId) {
   try {
-    const arr = JSON.parse(localStorage.getItem(testKey(playerId, testId)) || "[]");
-    return arr.length ? arr[arr.length - 1] : null;
-  } catch { return null; }
+    const raw = localStorage.getItem(seasonKey(playerId));
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch { return {}; }
 }
-function loadHistory(playerId, testId) {
-  try { return JSON.parse(localStorage.getItem(testKey(playerId, testId)) || "[]"); }
-  catch { return []; }
+function saveSeasonData(playerId, data) {
+  localStorage.setItem(seasonKey(playerId), JSON.stringify(data));
 }
-function saveToHistory(playerId, testId, value) {
-  const h = loadHistory(playerId, testId);
-  h.push({ date: new Date().toLocaleDateString("es-ES"), value });
-  localStorage.setItem(testKey(playerId, testId), JSON.stringify(h));
+function getEvalValues(playerId, testId) {
+  // Devuelve array de 3 posiciones: ["val1", "val2", ""] ó ["","",""]
+  const d = loadSeasonData(playerId);
+  return d[testId] || ["", "", ""];
 }
+function setEvalValue(playerId, testId, evalIdx, value) {
+  const d = loadSeasonData(playerId);
+  const arr = d[testId] || ["", "", ""];
+  arr[evalIdx] = value;
+  d[testId] = arr;
+  saveSeasonData(playerId, d);
+}
+
 function getRange(test, val) {
   const n = parseFloat(val);
   if (isNaN(n)) return null;
   return test.ranges.find((r) => n < r.max) || test.ranges[test.ranges.length - 1];
 }
-function getTrend(test, playerId) {
-  const h = loadHistory(playerId, test.id);
-  if (h.length < 2) return null;
-  const diff = parseFloat(h[h.length-1].value) - parseFloat(h[h.length-2].value);
-  if (isNaN(diff) || diff === 0) return 0;
-  return test.higher_is_better ? diff : -diff; // positivo = mejoró
+
+function getDelta(test, vals) {
+  // Retorna delta entre los últimos dos valores registrados
+  const filled = vals.filter((v) => v !== "" && !isNaN(parseFloat(v)));
+  if (filled.length < 2) return null;
+  const last = parseFloat(filled[filled.length - 1]);
+  const prev = parseFloat(filled[filled.length - 2]);
+  const diff = last - prev;
+  if (diff === 0) return { value: 0, improved: null };
+  const improved = test.higher_is_better ? diff > 0 : diff < 0;
+  return { value: diff, improved, abs: Math.abs(diff).toFixed(2) };
 }
 
-/* ── Sparkline SVG ────────────────────────────────────────────── */
-function Sparkline({ history, color, width = 140, height = 44 }) {
-  const vals = history.map((e) => parseFloat(e.value)).filter((v) => !isNaN(v));
-  if (vals.length < 2) return (
-    <div className="flex items-center justify-center text-[10px] text-depro-gray/50" style={{ width, height }}>
-      Sin datos suficientes
+/* ── Sparkline 3 puntos ───────────────────────────────────── */
+function Sparkline3({ vals, test, width = 160, height = 60 }) {
+  const points = vals
+    .map((v, i) => ({ i, v: parseFloat(v), empty: v === "" || isNaN(parseFloat(v)) }));
+  const filled = points.filter((p) => !p.empty);
+  if (filled.length === 0) return (
+    <div className="flex items-center justify-center text-[10px] text-depro-gray/40" style={{ width, height }}>
+      Sin datos
     </div>
   );
-  const min = Math.min(...vals), max = Math.max(...vals);
+
+  const values = filled.map((p) => p.v);
+  const min = Math.min(...values), max = Math.max(...values);
   const range = max - min || 1;
-  const pad = 6;
-  const pts = vals.map((v, i) => {
-    const x = pad + (i / (vals.length - 1)) * (width - pad * 2);
-    const y = pad + (1 - (v - min) / range) * (height - pad * 2);
-    return [x, y];
+  const padX = 20, padY = 10;
+  const innerW = width - padX * 2, innerH = height - padY * 2;
+
+  const toXY = (idx) => ({
+    x: padX + (idx / 2) * innerW,
+    y: padY + innerH - ((parseFloat(vals[idx] || min) - min) / range) * innerH,
   });
-  const pathD = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const areaD = `${pathD} L${pts[pts.length-1][0].toFixed(1)},${height} L${pts[0][0].toFixed(1)},${height} Z`;
+
+  const linePts = [];
+  for (let i = 0; i < 3; i++) {
+    if (vals[i] !== "" && !isNaN(parseFloat(vals[i]))) {
+      if (linePts.length === 0) linePts.push(`M${toXY(i).x.toFixed(1)},${toXY(i).y.toFixed(1)}`);
+      else linePts.push(`L${toXY(i).x.toFixed(1)},${toXY(i).y.toFixed(1)}`);
+    }
+  }
+
+  // Área bajo la línea (solo puntos con datos)
+  const filledPts = [0,1,2].filter((i) => vals[i] !== "" && !isNaN(parseFloat(vals[i])));
+  const areaPath = filledPts.length >= 2
+    ? `${linePts.join(" ")} L${toXY(filledPts[filledPts.length-1]).x.toFixed(1)},${height} L${toXY(filledPts[0]).x.toFixed(1)},${height} Z`
+    : null;
 
   return (
-    <svg width={width} height={height} className="overflow-visible">
+    <svg width={width} height={height}>
       <defs>
-        <linearGradient id={`g-${color.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        <linearGradient id={`sg-${test.id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={test.color} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={test.color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={areaD} fill={`url(#g-${color.replace("#","")})`} />
-      <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-      {pts.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={i === pts.length - 1 ? 4 : 2.5} fill={color} />
+      {/* Grid lines */}
+      <line x1={padX} y1={padY} x1={padX} x2={padX} y2={height - padY} stroke="#E5E7EB" strokeWidth="1" />
+      <line x1={padX + innerW/2} y1={padY} x2={padX + innerW/2} y2={height - padY} stroke="#E5E7EB" strokeWidth="1" strokeDasharray="3,3" />
+      <line x1={padX + innerW} y1={padY} x2={padX + innerW} y2={height - padY} stroke="#E5E7EB" strokeWidth="1" />
+
+      {/* Área */}
+      {areaPath && <path d={areaPath} fill={`url(#sg-${test.id})`} />}
+
+      {/* Línea */}
+      {linePts.length > 1 && <path d={linePts.join(" ")} fill="none" stroke={test.color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
+
+      {/* Puntos */}
+      {[0,1,2].map((i) => {
+        const { x, y } = toXY(i);
+        const hasVal = vals[i] !== "" && !isNaN(parseFloat(vals[i]));
+        const r = hasVal ? getRange(test, vals[i]) : null;
+        return (
+          <g key={i}>
+            {hasVal ? (
+              <>
+                <circle cx={x} cy={y} r={6} fill="white" stroke={r?.color || test.color} strokeWidth="2.5" />
+                <circle cx={x} cy={y} r={3} fill={r?.color || test.color} />
+              </>
+            ) : (
+              <circle cx={x} cy={y} r={4} fill="#F3F4F6" stroke="#D1D5DB" strokeWidth="1.5" strokeDasharray="2,2" />
+            )}
+          </g>
+        );
+      })}
+
+      {/* Etiquetas T1/T2/T3 */}
+      {[0,1,2].map((i) => (
+        <text key={i} x={toXY(i).x} y={height} textAnchor="middle" fontSize="9" fontWeight="700" fill="#9CA3AF">
+          {EVALS[i]}
+        </text>
       ))}
     </svg>
   );
 }
 
-/* ── Panel expandible de gráficas de un jugador ─────────────── */
-function PlayerGraphs({ player, accent }) {
+/* ── Panel evolutivo de un jugador (expandido) ───────────── */
+function PlayerEvolutionPanel({ player, accent, onEdit }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 pb-5 pt-3 bg-depro-gray-light/40 border-t border-depro-border">
-      {TESTS.map((t) => {
-        const history = loadHistory(player.id, t.id);
-        const last = history[history.length - 1];
-        const range = last ? getRange(t, last.value) : null;
-        const vals = history.map((e) => parseFloat(e.value)).filter((v) => !isNaN(v));
-        const improved = vals.length >= 2
-          ? (t.higher_is_better ? vals[vals.length-1] > vals[vals.length-2] : vals[vals.length-1] < vals[vals.length-2])
-          : null;
+    <div className="border-t border-depro-border bg-gray-50/60 px-5 py-4">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs font-bold text-depro-gray uppercase tracking-wide">Evolución por test · {player.name}</p>
+        <button
+          onClick={() => onEdit(player)}
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
+        >
+          <Pencil size={11} /> Editar marcas
+        </button>
+      </div>
 
-        return (
-          <div key={t.id} className="bg-white rounded-xl border border-depro-border p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
-                <span className="text-xs font-bold text-depro-dark">{t.name}</span>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {TESTS.map((t) => {
+          const vals   = getEvalValues(player.id, t.id);
+          const delta  = getDelta(t, vals);
+          const filled = vals.filter((v) => v !== "" && !isNaN(parseFloat(v)));
+
+          return (
+            <div key={t.id} className="bg-white rounded-xl border border-depro-border p-3">
+              {/* Header test */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
+                  <span className="text-xs font-bold text-depro-dark">{t.name}</span>
+                </div>
+                {delta && (
+                  <span
+                    className="flex items-center gap-0.5 text-[10px] font-bold"
+                    style={{ color: delta.improved ? "#22C55E" : delta.improved === false ? "#EF4444" : "#6B7280" }}
+                  >
+                    {delta.improved ? <TrendingUp size={10} /> : delta.improved === false ? <TrendingDown size={10} /> : <Minus size={10} />}
+                    {delta.abs} {t.unit}
+                  </span>
+                )}
               </div>
-              {improved !== null && (
-                <span style={{ color: improved ? "#22C55E" : "#EF4444" }}>
-                  {improved ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                </span>
+
+              {/* Gráfica */}
+              <Sparkline3 vals={vals} test={t} width={140} height={56} />
+
+              {/* Tabla T1/T2/T3 */}
+              <div className="mt-2 grid grid-cols-3 gap-1">
+                {vals.map((v, i) => {
+                  const r = v !== "" && !isNaN(parseFloat(v)) ? getRange(t, v) : null;
+                  return (
+                    <div key={i} className="text-center rounded-lg py-1.5" style={{ backgroundColor: r ? r.color + "12" : "#F9FAFB" }}>
+                      <div className="text-[9px] font-bold text-depro-gray">{EVALS[i]}</div>
+                      {v !== "" && !isNaN(parseFloat(v)) ? (
+                        <>
+                          <div className="text-xs font-black mt-0.5" style={{ color: r?.color || t.color }}>{v}</div>
+                          <div className="text-[8px]" style={{ color: r?.color || t.color }}>{r?.label}</div>
+                        </>
+                      ) : (
+                        <div className="text-[10px] text-depro-gray/40 mt-0.5">–</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {filled.length === 0 && (
+                <p className="text-[10px] text-depro-gray text-center mt-1">Sin registros</p>
               )}
             </div>
-
-            <Sparkline history={history} color={t.color} width={120} height={40} />
-
-            {last ? (
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-sm font-black" style={{ color: range?.color || t.color }}>
-                  {last.value} <span className="text-[10px] font-medium">{t.unit}</span>
-                </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: (range?.color || t.color) + "15", color: range?.color || t.color }}>
-                  {range?.label}
-                </span>
-              </div>
-            ) : (
-              <p className="text-[10px] text-depro-gray mt-2">Sin registros</p>
-            )}
-
-            {/* Mini historial */}
-            {history.length > 0 && (
-              <div className="mt-2 space-y-0.5 max-h-16 overflow-y-auto">
-                {[...history].reverse().slice(0, 4).map((e, i) => (
-                  <div key={i} className="flex justify-between text-[10px] text-depro-gray">
-                    <span>{e.date}</span>
-                    <span className="font-mono font-medium text-depro-dark">{e.value} {t.unit}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ── Modal para registrar un valor de test ─────────────────── */
-function AddTestModal({ player, test, accent, onClose, onSave }) {
-  const [val, setVal] = useState("");
-  const history = loadHistory(player.id, test.id);
-  const range = getRange(test, val);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-black text-depro-dark">{test.name}</h3>
-            <p className="text-xs text-depro-gray">{player.name}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-depro-gray hover:text-depro-dark"><X size={18} /></button>
-        </div>
-
-        {/* Último resultado */}
-        {history.length > 0 && (
-          <div className="bg-depro-gray-light rounded-xl p-3 mb-4 text-sm">
-            <span className="text-depro-gray">Último: </span>
-            <strong>{history[history.length-1].value} {test.unit}</strong>
-            <span className="text-depro-gray ml-1">({history[history.length-1].date})</span>
-          </div>
-        )}
-
-        {/* Input */}
-        <div className="flex items-center gap-2 mb-2">
-          <input
-            type="number" step="0.01" autoFocus
-            placeholder={test.placeholder}
-            value={val}
-            onChange={(e) => setVal(e.target.value)}
-            className="flex-1 border border-depro-border rounded-xl px-4 py-2.5 text-base font-mono focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-          />
-          <span className="text-sm text-depro-gray font-medium w-12">{test.unit}</span>
-        </div>
-
-        {/* Nivel en tiempo real */}
-        {range && val && (
-          <div className="flex items-center gap-2 mb-4 px-1">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: range.color }} />
-            <span className="text-xs font-bold" style={{ color: range.color }}>{range.label}</span>
-          </div>
-        )}
-
-        {/* Rangos referencia */}
-        <div className="grid grid-cols-4 gap-1 mb-5">
-          {test.ranges.filter(r => isFinite(r.max)).map((r, i, arr) => (
-            <div key={r.label} className="text-center rounded-lg p-1.5" style={{ backgroundColor: r.color + "12" }}>
-              <div className="text-[9px] font-bold" style={{ color: r.color }}>{r.label}</div>
-              <div className="text-[9px] text-depro-gray">{i===0?`<${r.max}`:`${arr[i-1].max}–${r.max}`}</div>
-            </div>
-          ))}
-          <div className="text-center rounded-lg p-1.5" style={{ backgroundColor: test.ranges[test.ranges.length-1].color + "12" }}>
-            <div className="text-[9px] font-bold" style={{ color: test.ranges[test.ranges.length-1].color }}>{test.ranges[test.ranges.length-1].label}</div>
-            <div className="text-[9px] text-depro-gray">≥{test.ranges[test.ranges.length-2]?.max}</div>
-          </div>
-        </div>
-
-        <button
-          onClick={() => { if (val && !isNaN(parseFloat(val))) { saveToHistory(player.id, test.id, val); onSave(); onClose(); } }}
-          disabled={!val || isNaN(parseFloat(val))}
-          className="w-full py-3 rounded-xl font-bold text-sm disabled:opacity-40 transition-colors"
-          style={{ backgroundColor: accent, color: contrastText(accent) }}
-        >
-          Guardar resultado
-        </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-/* ── Página principal ─────────────────────────────────────────── */
+/* ── Modal para registrar/editar las 3 marcas de un jugador ── */
+function EditMarksModal({ player, accent, onClose, onSave }) {
+  const [inputs, setInputs] = useState(() => {
+    const d = loadSeasonData(player.id);
+    const init = {};
+    TESTS.forEach((t) => { init[t.id] = [...(d[t.id] || ["", "", ""])]; });
+    return init;
+  });
+
+  const handleSave = () => {
+    TESTS.forEach((t) => {
+      setEvalValue; // ensure fn is referenced
+      const d = loadSeasonData(player.id);
+      d[t.id] = inputs[t.id];
+      saveSeasonData(player.id, d);
+    });
+    onSave();
+    onClose();
+  };
+
+  // Guardar directamente por campo
+  const set = (testId, evalIdx, val) => {
+    setInputs((prev) => {
+      const arr = [...(prev[testId] || ["","",""])];
+      arr[evalIdx] = val;
+      return { ...prev, [testId]: arr };
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-depro-border sticky top-0 bg-white z-10">
+          <div>
+            <h3 className="font-black text-depro-dark text-lg">Marcas de {player.name}</h3>
+            <p className="text-xs text-depro-gray">3 evaluaciones por temporada (T1, T2, T3)</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl text-depro-gray hover:text-depro-dark hover:bg-depro-gray-light transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {TESTS.map((t) => (
+            <div key={t.id} className="bg-depro-gray-light/50 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color }} />
+                <span className="text-sm font-bold text-depro-dark">{t.name}</span>
+                <span className="text-xs text-depro-gray">({t.unit})</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {EVALS.map((label, i) => {
+                  const val = inputs[t.id]?.[i] || "";
+                  const range = val !== "" && !isNaN(parseFloat(val)) ? getRange(t, val) : null;
+                  return (
+                    <div key={i}>
+                      <label className="text-xs font-bold text-depro-gray mb-1 block">{label}</label>
+                      <input
+                        type="number" step="0.01"
+                        placeholder={t.placeholder}
+                        value={val}
+                        onChange={(e) => set(t.id, i, e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 transition-colors ${
+                          range ? "border-transparent focus:ring-depro-blue/30" : "border-depro-border focus:ring-depro-blue/30"
+                        }`}
+                        style={range ? { borderColor: range.color + "60", backgroundColor: range.color + "08" } : {}}
+                      />
+                      {range && (
+                        <div className="text-[10px] font-bold mt-1 flex items-center gap-1" style={{ color: range.color }}>
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: range.color }} />
+                          {range.label}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-3 p-6 border-t border-depro-border sticky bottom-0 bg-white">
+          <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-depro-border text-depro-gray font-semibold text-sm hover:border-depro-dark transition-colors">
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: accent, color: contrastText(accent) }}
+          >
+            <Save size={15} /> Guardar marcas
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Página principal ────────────────────────────────────── */
 export default function TeamTestsPage() {
-  const { user } = useAuth();
-  const accent = safeAccent(user?.club?.primaryColor || "#0A36F7");
+  const { user }  = useAuth();
+  const accent    = safeAccent(user?.club?.primaryColor || "#0A36F7");
 
-  const [players, setPlayers]         = useState([]);
-  const [data, setData]               = useState({}); // { playerId: { testId: lastEntry } }
-  const [modal, setModal]             = useState(null); // { player, test }
-  const [sortBy, setSortBy]           = useState(null); // { testId, dir: 'asc'|'desc' }
-  const [tick, setTick]               = useState(0);    // para forzar re-render tras guardar
-  const [expandedPlayer, setExpanded] = useState(null); // playerId con gráficas abiertas
+  const [players,         setPlayers]    = useState([]);
+  const [sortBy,          setSortBy]     = useState(null);
+  const [expandedPlayer,  setExpanded]   = useState(null);
+  const [editingPlayer,   setEditing]    = useState(null);
+  const [tick,            setTick]       = useState(0);
 
-  // Cargar plantilla
+  /* Carga plantilla */
   useEffect(() => {
-    const clubId = user?.club?.id;
-    const teamId = user?.team?.id;
+    const clubId = user?.club?.id, teamId = user?.team?.id;
     if (!clubId || !teamId) return;
-
     const manual = JSON.parse(localStorage.getItem(`depro_squad_${clubId}_${teamId}`) || "[]");
     const registered = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!key?.startsWith("depro_player_club_")) continue;
       try {
-        const val = JSON.parse(localStorage.getItem(key) || "null");
-        if (!val) continue;
+        const val  = JSON.parse(localStorage.getItem(key) || "null");
+        if (!val)  continue;
         const pClubId = typeof val === "object" ? val.clubId : val;
         const pTeamId = typeof val === "object" ? val.teamId : null;
         if (pClubId !== clubId || pTeamId !== teamId) continue;
-        const playerId = key.replace("depro_player_club_", "");
-        registered.push({ id: playerId, name: val.name || val.email || playerId, isRegistered: true });
+        const pid = key.replace("depro_player_club_", "");
+        registered.push({ id: pid, name: val.name || val.email || pid, isRegistered: true });
       } catch { /* ignore */ }
     }
     const ids = new Set(manual.map((p) => p.id));
     setPlayers([...manual, ...registered.filter((p) => !ids.has(p.id))]);
   }, [user?.club?.id, user?.team?.id]);
 
-  // Construir mapa de datos
-  useEffect(() => {
-    const map = {};
-    players.forEach((p) => {
-      map[p.id] = {};
-      TESTS.forEach((t) => { map[p.id][t.id] = loadLast(p.id, t.id); });
-    });
-    setData(map);
-  }, [players, tick]);
-
-  // Ordenar jugadores
+  /* Ordenar */
   const sortedPlayers = [...players].sort((a, b) => {
     if (!sortBy) return 0;
-    const aVal = parseFloat(data[a.id]?.[sortBy.testId]?.value ?? "");
-    const bVal = parseFloat(data[b.id]?.[sortBy.testId]?.value ?? "");
-    const aNum = isNaN(aVal) ? -Infinity : aVal;
-    const bNum = isNaN(bVal) ? -Infinity : bVal;
+    const aVals = getEvalValues(a.id, sortBy.testId);
+    const bVals = getEvalValues(b.id, sortBy.testId);
+    // Usar el último valor registrado
+    const aLast = [...aVals].reverse().find((v) => v !== "" && !isNaN(parseFloat(v)));
+    const bLast = [...bVals].reverse().find((v) => v !== "" && !isNaN(parseFloat(v)));
+    const aNum  = aLast ? parseFloat(aLast) : -Infinity;
+    const bNum  = bLast ? parseFloat(bLast) : -Infinity;
     return sortBy.dir === "asc" ? aNum - bNum : bNum - aNum;
   });
 
-  const toggleSort = (testId) => {
-    setSortBy((prev) => {
-      if (prev?.testId !== testId) return { testId, dir: "desc" };
-      if (prev.dir === "desc") return { testId, dir: "asc" };
-      return null;
-    });
-  };
+  const toggleSort = (testId) => setSortBy((prev) => {
+    if (prev?.testId !== testId) return { testId, dir: "desc" };
+    if (prev.dir === "desc")     return { testId, dir: "asc" };
+    return null;
+  });
 
   if (players.length === 0) return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Tests del equipo</h1>
-        <p className="text-depro-gray text-sm">Registra y compara los tests físicos de tu plantilla.</p>
-      </div>
+      <h1 className="text-2xl font-black text-depro-dark mb-2">Tests del equipo</h1>
       <div className="bg-white border-2 border-dashed border-depro-border rounded-2xl text-center py-16">
         <Users size={36} className="mx-auto mb-3 text-depro-gray opacity-40" />
-        <h3 className="font-bold text-depro-dark mb-2">Sin jugadores en la plantilla</h3>
+        <h3 className="font-bold text-depro-dark mb-1">Sin jugadores en la plantilla</h3>
         <p className="text-sm text-depro-gray">Añade jugadores desde la sección Plantilla.</p>
       </div>
     </div>
@@ -300,49 +393,45 @@ export default function TeamTestsPage() {
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6 gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-depro-gray mb-1">
-            <Activity size={13} style={{ color: accent }} /> Tests físicos
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black text-depro-dark">Tests del equipo</h1>
-          <p className="text-depro-gray text-sm mt-0.5">{players.length} jugadores · Pulsa cualquier celda para registrar un resultado</p>
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-depro-gray mb-1">
+          <Activity size={13} style={{ color: accent }} /> Tests físicos · 3 evaluaciones / temporada
         </div>
+        <h1 className="text-2xl md:text-3xl font-black text-depro-dark">Tests del equipo</h1>
+        <p className="text-depro-gray text-sm mt-0.5">
+          {players.length} jugadores · Pulsa una fila para ver la evolución T1→T2→T3
+        </p>
       </div>
 
-      {/* Leyenda de niveles */}
-      <div className="flex flex-wrap items-center gap-3 mb-5">
+      {/* Leyenda */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5">
         {[{ label: "Excelente", color: "#22C55E" }, { label: "Bueno", color: "#3B82F6" }, { label: "Medio", color: "#F59E0B" }, { label: "Bajo", color: "#EF4444" }].map((l) => (
           <div key={l.label} className="flex items-center gap-1.5 text-xs text-depro-gray">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: l.color }} />
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: l.color }} />
             {l.label}
           </div>
         ))}
-        <span className="text-xs text-depro-gray ml-2">· Pulsa columna para ordenar</span>
+        <span className="text-xs text-depro-gray/60">· T1 = 1ª eval · T2 = 2ª eval · T3 = 3ª eval</span>
       </div>
 
       {/* Tabla comparativa */}
       <div className="bg-white border border-depro-border rounded-2xl overflow-hidden shadow-card">
+
         {/* Cabecera */}
-        <div className="grid grid-cols-[1fr_repeat(4,minmax(100px,1fr))] border-b border-depro-border">
-          <div className="px-5 py-3.5 text-xs font-bold text-depro-gray uppercase tracking-wider">
-            Jugador
-          </div>
+        <div className="grid grid-cols-[1fr_repeat(4,minmax(90px,1fr))] border-b border-depro-border bg-depro-gray-light/50">
+          <div className="px-5 py-3 text-xs font-bold text-depro-gray uppercase tracking-wider">Jugador</div>
           {TESTS.map((t) => {
             const active = sortBy?.testId === t.id;
             return (
-              <button
-                key={t.id}
-                onClick={() => toggleSort(t.id)}
-                className="px-3 py-3.5 text-left border-l border-depro-border hover:bg-depro-gray-light/50 transition-colors"
+              <button key={t.id} onClick={() => toggleSort(t.id)}
+                className="px-3 py-3 text-left border-l border-depro-border hover:bg-white/70 transition-colors"
               >
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: t.color }} />
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
                   <span className="text-xs font-bold text-depro-dark">{t.name}</span>
                   {active
-                    ? (sortBy.dir === "desc" ? <ChevronDown size={12} className="text-depro-gray" /> : <ChevronUp size={12} className="text-depro-gray" />)
-                    : <ChevronDown size={12} className="text-depro-gray/30" />
-                  }
+                    ? (sortBy.dir === "desc" ? <ChevronDown size={11} className="text-depro-gray" /> : <ChevronUp size={11} className="text-depro-gray" />)
+                    : <ChevronDown size={11} className="text-depro-gray/25" />}
                 </div>
                 <div className="text-[10px] text-depro-gray mt-0.5">{t.unit}</div>
               </button>
@@ -354,101 +443,121 @@ export default function TeamTestsPage() {
         {sortedPlayers.map((player, pi) => {
           const isExpanded = expandedPlayer === player.id;
           return (
-          <div key={player.id} className={pi < sortedPlayers.length - 1 ? "border-b border-depro-border" : ""}>
-            <div className="grid grid-cols-[1fr_repeat(4,minmax(100px,1fr))] hover:bg-depro-gray-light/30 transition-colors">
-            {/* Nombre + toggle gráficas */}
-            <div className="px-5 py-4 flex items-center gap-3">
-              <button
-                onClick={() => setExpanded(isExpanded ? null : player.id)}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: accent + "15", color: accent }}
-                title={isExpanded ? "Ocultar gráficas" : "Ver gráficas"}
-              >
-                {(player.name || "?")[0].toUpperCase()}
-              </button>
-              <div className="min-w-0 flex-1">
-                <button
-                  onClick={() => setExpanded(isExpanded ? null : player.id)}
-                  className="text-sm font-bold text-depro-dark truncate hover:underline flex items-center gap-1"
-                >
-                  {player.name}
-                  {isExpanded ? <ChevronUp size={11} className="text-depro-gray flex-shrink-0" /> : <ChevronDown size={11} className="text-depro-gray flex-shrink-0" />}
-                </button>
-                {player.isRegistered && (
-                  <div className="text-[10px] text-depro-gray">Plan individual</div>
-                )}
-              </div>
-            </div>
+            <div key={player.id} className={pi < sortedPlayers.length - 1 ? "border-b border-depro-border" : ""}>
+              <div className="grid grid-cols-[1fr_repeat(4,minmax(90px,1fr))] hover:bg-depro-gray-light/20 transition-colors">
 
-            {/* Celdas de tests */}
-            {TESTS.map((t) => {
-              const entry = data[player.id]?.[t.id];
-              const range = entry ? getRange(t, entry.value) : null;
-              const trend = getTrend(t, player.id);
+                {/* Nombre */}
+                <div className="px-5 py-3.5 flex items-center gap-3">
+                  <button
+                    onClick={() => setExpanded(isExpanded ? null : player.id)}
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 hover:opacity-80"
+                    style={{ backgroundColor: accent + "15", color: accent }}
+                  >
+                    {(player.name || "?")[0].toUpperCase()}
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <button
+                      onClick={() => setExpanded(isExpanded ? null : player.id)}
+                      className="text-sm font-bold text-depro-dark hover:underline flex items-center gap-1 truncate"
+                    >
+                      {player.name}
+                      {isExpanded ? <ChevronUp size={10} className="text-depro-gray flex-shrink-0" /> : <ChevronDown size={10} className="text-depro-gray flex-shrink-0" />}
+                    </button>
+                    {player.isRegistered && <div className="text-[10px] text-depro-gray">Plan individual</div>}
+                  </div>
+                </div>
 
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setModal({ player, test: t })}
-                  className="px-3 py-4 border-l border-depro-border text-left hover:bg-depro-gray-light/60 transition-colors group relative"
-                >
-                  {entry ? (
-                    <>
-                      {/* Fondo color nivel */}
-                      <div
-                        className="absolute inset-1 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{ backgroundColor: range?.color + "08" }}
-                      />
-                      <div className="relative">
-                        <div className="text-base font-black leading-none" style={{ color: range?.color || t.color }}>
-                          {entry.value}
-                          <span className="text-[10px] font-medium ml-0.5">{t.unit}</span>
-                        </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <span className="text-[10px] font-bold" style={{ color: range?.color || t.color }}>{range?.label}</span>
-                          {trend !== null && (
-                            <span style={{ color: trend > 0 ? "#22C55E" : trend < 0 ? "#EF4444" : "#6B7280" }}>
-                              {trend > 0 ? <TrendingUp size={10} /> : trend < 0 ? <TrendingDown size={10} /> : <Minus size={10} />}
-                            </span>
+                {/* Celdas: muestra T1 / T2 / T3 en mini formato */}
+                {TESTS.map((t) => {
+                  const vals  = getEvalValues(player.id, t.id);
+                  const delta = getDelta(t, vals);
+                  // Última marca registrada
+                  const lastVal = [...vals].reverse().find((v) => v !== "" && !isNaN(parseFloat(v)));
+                  const range   = lastVal ? getRange(t, lastVal) : null;
+
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setEditing(player)}
+                      className="px-3 py-3.5 border-l border-depro-border text-left hover:bg-depro-gray-light/50 group transition-colors"
+                    >
+                      {lastVal ? (
+                        <>
+                          {/* Última marca grande */}
+                          <div className="text-base font-black leading-none" style={{ color: range?.color || t.color }}>
+                            {lastVal}<span className="text-[10px] font-medium ml-0.5">{t.unit}</span>
+                          </div>
+                          {/* Mini pills T1/T2/T3 */}
+                          <div className="flex items-center gap-0.5 mt-1.5">
+                            {vals.map((v, i) => {
+                              const r = v !== "" && !isNaN(parseFloat(v)) ? getRange(t, v) : null;
+                              return (
+                                <div
+                                  key={i}
+                                  className="text-[8px] font-bold px-1 py-0.5 rounded"
+                                  style={{
+                                    backgroundColor: r ? r.color + "20" : "#F3F4F6",
+                                    color: r ? r.color : "#9CA3AF",
+                                  }}
+                                >
+                                  {EVALS[i]}{v !== "" && !isNaN(parseFloat(v)) ? ` ${v}` : ""}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {/* Tendencia */}
+                          {delta && (
+                            <div className="flex items-center gap-0.5 mt-1" style={{ color: delta.improved ? "#22C55E" : delta.improved === false ? "#EF4444" : "#6B7280" }}>
+                              {delta.improved ? <TrendingUp size={10} /> : delta.improved === false ? <TrendingDown size={10} /> : <Minus size={10} />}
+                              <span className="text-[9px] font-bold">{delta.abs} {t.unit}</span>
+                            </div>
                           )}
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-1 text-depro-gray/40 group-hover:text-depro-blue transition-colors">
+                          <Plus size={12} /><span className="text-xs">Añadir</span>
                         </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-1 text-depro-gray/40 group-hover:text-depro-blue transition-colors">
-                      <Plus size={13} />
-                      <span className="text-xs">Añadir</span>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Panel evolución expandido */}
+              {isExpanded && (
+                <PlayerEvolutionPanel
+                  player={player}
+                  accent={accent}
+                  onEdit={(p) => setEditing(p)}
+                />
+              )}
             </div>
-            {/* Panel gráficas expandible */}
-            {isExpanded && <PlayerGraphs player={player} accent={accent} />}
-          </div>
           );
         })}
       </div>
 
-      {/* Resumen por test */}
+      {/* Resumen estadístico */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
         {TESTS.map((t) => {
-          const vals = players
-            .map((p) => parseFloat(data[p.id]?.[t.id]?.value ?? ""))
-            .filter((v) => !isNaN(v));
-          if (vals.length === 0) return (
+          const allLastVals = players
+            .map((p) => {
+              const vals = getEvalValues(p.id, t.id);
+              return [...vals].reverse().find((v) => v !== "" && !isNaN(parseFloat(v)));
+            })
+            .filter(Boolean)
+            .map(parseFloat);
+          if (allLastVals.length === 0) return (
             <div key={t.id} className="bg-white border border-depro-border rounded-2xl p-4">
-              <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex items-center gap-1.5 mb-1">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.color }} />
                 <span className="text-xs font-bold text-depro-dark">{t.name}</span>
               </div>
               <p className="text-xs text-depro-gray">Sin datos</p>
             </div>
           );
-          const best  = t.higher_is_better ? Math.max(...vals) : Math.min(...vals);
-          const worst = t.higher_is_better ? Math.min(...vals) : Math.max(...vals);
-          const avg   = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2);
+          const best  = t.higher_is_better ? Math.max(...allLastVals) : Math.min(...allLastVals);
+          const worst = t.higher_is_better ? Math.min(...allLastVals) : Math.max(...allLastVals);
+          const avg   = (allLastVals.reduce((a, b) => a + b, 0) / allLastVals.length).toFixed(2);
           return (
             <div key={t.id} className="bg-white border border-depro-border rounded-2xl p-4">
               <div className="flex items-center gap-1.5 mb-3">
@@ -456,32 +565,22 @@ export default function TeamTestsPage() {
                 <span className="text-xs font-bold text-depro-dark">{t.name}</span>
               </div>
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-depro-gray">Mejor</span>
-                  <span className="font-bold text-green-600">{best} {t.unit}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-depro-gray">Media</span>
-                  <span className="font-bold text-depro-dark">{avg} {t.unit}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-depro-gray">Peor</span>
-                  <span className="font-bold text-red-500">{worst} {t.unit}</span>
-                </div>
+                <div className="flex justify-between text-xs"><span className="text-depro-gray">Mejor</span><span className="font-bold text-green-600">{best} {t.unit}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-depro-gray">Media</span><span className="font-bold text-depro-dark">{avg} {t.unit}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-depro-gray">Peor</span><span className="font-bold text-red-500">{worst} {t.unit}</span></div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Modal */}
-      {modal && (
-        <AddTestModal
-          player={modal.player}
-          test={modal.test}
+      {/* Modal edición de marcas */}
+      {editingPlayer && (
+        <EditMarksModal
+          player={editingPlayer}
           accent={accent}
-          onClose={() => setModal(null)}
-          onSave={() => setTick((v) => v + 1)}
+          onClose={() => setEditing(null)}
+          onSave={() => { setTick((v) => v + 1); setExpanded(editingPlayer.id); }}
         />
       )}
     </div>
