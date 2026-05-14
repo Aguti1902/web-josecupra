@@ -89,15 +89,15 @@ function Hero() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-16 animate-in-delay-3">
-            <Link
-              to="/comprar"
+            <a
+              href="#precios"
               className="group relative overflow-hidden bg-depro-blue hover:bg-depro-blue-dark text-white font-bold px-8 py-4 rounded-xl text-base transition-all flex items-center justify-center gap-2 shadow-depro-lg"
             >
               <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
               <User size={18} /> Soy Jugador
-            </Link>
+            </a>
             <a
-              href="#clubs"
+              href="#contacto"
               className="border-2 border-white/30 hover:border-white text-white font-bold px-8 py-4 rounded-xl text-base transition-all flex items-center justify-center gap-2 hover:bg-white/10 backdrop-blur-sm"
             >
               <Users size={18} /> Soy Club
@@ -301,7 +301,7 @@ function ZonaJugador() {
   ];
 
   return (
-    <section id="jugadores-detail" className="py-24 bg-white overflow-hidden">
+    <section id="precios" className="py-24 bg-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
