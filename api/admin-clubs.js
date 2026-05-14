@@ -10,6 +10,27 @@ function getAdmin() {
   });
 }
 
+/** Intenta upsert en clubs_detail con y sin updated_at */
+async function upsertClubDetail(admin, clubId, data) {
+  // Intento 1: con updated_at
+  const r1 = await admin.from("clubs_detail").upsert(
+    { club_id: clubId, data, updated_at: new Date().toISOString() },
+    { onConflict: "club_id" }
+  );
+  if (!r1.error) return { ok: true };
+
+  // Intento 2: sin updated_at (por si la columna no existe)
+  const r2 = await admin.from("clubs_detail").upsert(
+    { club_id: clubId, data },
+    { onConflict: "club_id" }
+  );
+  if (!r2.error) return { ok: true };
+
+  // Intento 3: INSERT + ON CONFLICT UPDATE via rpc si los upserts fallan
+  // (puede fallar si la tabla no existe)
+  return { ok: false, error: r2.error.message };
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -17,31 +38,27 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const admin = getAdmin();
-  if (!admin) return res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY no configurada" });
+  if (!admin) {
+    return res.status(500).json({
+      error: "SUPABASE_SERVICE_ROLE_KEY no configurada en las variables de entorno de Vercel"
+    });
+  }
 
   // ── GET → listar todos los clubs ─────────────────────────────────────────
   if (req.method === "GET") {
-    // Primary source: clubs_detail (contains the full club object as JSONB)
+    // Primary: clubs_detail (full object)
     const { data: details, error: detErr } = await admin
       .from("clubs_detail")
-      .select("club_id, data, updated_at")
-      .order("updated_at", { ascending: false });
+      .select("club_id, data");
 
     if (!detErr && details && details.length > 0) {
-      const clubs = details.map((d) => ({
-        ...(d.data || {}),
-        id: d.club_id,
-      }));
+      const clubs = details.map((d) => ({ ...(d.data || {}), id: d.club_id }));
       return res.status(200).json({ clubs });
     }
 
-    // Fallback: read from clubs table (minimal data)
-    const { data, error } = await admin
-      .from("clubs")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) return res.status(400).json({ error: error.message });
+    // Fallback: clubs table
+    const { data, error } = await admin.from("clubs").select("*");
+    if (error) return res.status(400).json({ error: error.message, detailError: detErr?.message });
     return res.status(200).json({ clubs: data || [] });
   }
 
@@ -53,7 +70,7 @@ export default async function handler(req, res) {
     const clubId = club.id;
     if (!clubId) return res.status(400).json({ error: "club.id requerido" });
 
-    // 1. Minimal row for the clubs registry table
+    // 1. Intento de upsert en clubs registry (solo columnas seguras)
     const registryRow = {
       id:         clubId,
       name:       club.name       || "Sin nombre",
@@ -62,28 +79,19 @@ export default async function handler(req, res) {
       plan:       club.plan       || "personalizado",
       created_at: club.created_at || new Date().toISOString(),
     };
-
-    // Try to upsert to clubs registry (ignore extra-column errors gracefully)
     try {
       await admin.from("clubs").upsert(registryRow, { onConflict: "id" });
-    } catch (_) { /* non-fatal */ }
+    } catch (_) { /* non-fatal — tabla puede tener schema diferente */ }
 
-    // 2. Always store the FULL club object + optional detail in clubs_detail
-    const fullDetail = detail
-      ? { ...club, ...detail }  // merge club base + explicit detail
-      : club;                   // full club object is the detail
+    // 2. Guardar el objeto COMPLETO en clubs_detail (JSONB flexible)
+    const fullDetail = detail ? { ...club, ...detail } : club;
+    const result = await upsertClubDetail(admin, clubId, fullDetail);
 
-    const { error: detailErr } = await admin.from("clubs_detail").upsert(
-      {
-        club_id:    clubId,
-        data:       fullDetail,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "club_id" }
-    );
-
-    if (detailErr) {
-      return res.status(400).json({ error: detailErr.message });
+    if (!result.ok) {
+      return res.status(400).json({
+        error: result.error,
+        hint: "Ejecuta en Supabase SQL Editor: CREATE TABLE IF NOT EXISTS clubs_detail (club_id text primary key, data jsonb not null default \\'{}\\', updated_at timestamptz default now()); ALTER TABLE clubs_detail DISABLE ROW LEVEL SECURITY;"
+      });
     }
 
     return res.status(200).json({ ok: true, id: clubId });

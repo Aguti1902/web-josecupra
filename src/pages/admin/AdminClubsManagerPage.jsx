@@ -382,6 +382,7 @@ export default function AdminClubsManagerPage() {
       const localClubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
       let ok = 0;
       let fail = 0;
+      let lastError = "";
       for (const club of localClubs) {
         if (!club.id) continue;
         // Fusionar con el detalle local si existe
@@ -397,12 +398,17 @@ export default function AdminClubsManagerPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ club: merged }),
           });
-          const json = res.ok ? await res.json() : null;
-          if (json?.ok) ok++;
-          else fail++;
-        } catch { fail++; }
+          const json = await res.json().catch(() => null);
+          if (res.ok && json?.ok) ok++;
+          else {
+            fail++;
+            lastError = json?.error || `HTTP ${res.status}`;
+          }
+        } catch (e) { fail++; lastError = e.message; }
       }
-      setSyncMsg(`✓ ${ok} clubs sincronizados${fail ? `, ${fail} con error` : ""}`);
+      if (ok > 0 && fail === 0) setSyncMsg(`✓ ${ok} clubs sincronizados`);
+      else if (ok > 0) setSyncMsg(`✓ ${ok} ok, ${fail} error: ${lastError}`);
+      else setSyncMsg(`✗ Error: ${lastError || "API no disponible"}`);
     } catch (e) {
       setSyncMsg("Error al sincronizar: " + e.message);
     }
