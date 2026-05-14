@@ -19,67 +19,77 @@ export default async function handler(req, res) {
   const admin = getAdmin();
   if (!admin) return res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY no configurada" });
 
-  // ── GET /api/admin-clubs → listar todos los clubs con detalles ──
+  // ── GET → listar todos los clubs ─────────────────────────────────────────
   if (req.method === "GET") {
+    // Primary source: clubs_detail (contains the full club object as JSONB)
+    const { data: details, error: detErr } = await admin
+      .from("clubs_detail")
+      .select("club_id, data, updated_at")
+      .order("updated_at", { ascending: false });
+
+    if (!detErr && details && details.length > 0) {
+      const clubs = details.map((d) => ({
+        ...(d.data || {}),
+        id: d.club_id,
+      }));
+      return res.status(200).json({ clubs });
+    }
+
+    // Fallback: read from clubs table (minimal data)
     const { data, error } = await admin
       .from("clubs")
       .select("*")
       .order("created_at", { ascending: false });
+
     if (error) return res.status(400).json({ error: error.message });
-
-    // Cargar detalles (equipos, identidad) desde clubs_detail
-    const ids = (data || []).map((c) => c.id);
-    let details = [];
-    if (ids.length > 0) {
-      const { data: det } = await admin
-        .from("clubs_detail")
-        .select("*")
-        .in("club_id", ids);
-      details = det || [];
-    }
-
-    const merged = (data || []).map((club) => {
-      const det = details.find((d) => d.club_id === club.id);
-      return det
-        ? { ...club, ...det.data, id: club.id }
-        : club;
-    });
-
-    return res.status(200).json({ clubs: merged });
+    return res.status(200).json({ clubs: data || [] });
   }
 
-  // ── POST /api/admin-clubs → crear o actualizar club ──
+  // ── POST → crear o actualizar club ───────────────────────────────────────
   if (req.method === "POST") {
     const { club, detail } = req.body || {};
     if (!club) return res.status(400).json({ error: "club requerido" });
 
-    const { id, teams, users, mediaAssigned, ...row } = club;
+    const clubId = club.id;
+    if (!clubId) return res.status(400).json({ error: "club.id requerido" });
 
-    let savedId = id;
+    // 1. Minimal row for the clubs registry table
+    const registryRow = {
+      id:         clubId,
+      name:       club.name       || "Sin nombre",
+      city:       club.city       || null,
+      status:     club.status     || "Activo",
+      plan:       club.plan       || "personalizado",
+      created_at: club.created_at || new Date().toISOString(),
+    };
 
-    if (id) {
-      // Actualizar existente
-      await admin.from("clubs").upsert({ id, ...row }, { onConflict: "id" });
-    } else {
-      // Insertar nuevo
-      const { data, error } = await admin.from("clubs").insert([row]).select().single();
-      if (error) return res.status(400).json({ error: error.message });
-      savedId = data.id;
+    // Try to upsert to clubs registry (ignore extra-column errors gracefully)
+    try {
+      await admin.from("clubs").upsert(registryRow, { onConflict: "id" });
+    } catch (_) { /* non-fatal */ }
+
+    // 2. Always store the FULL club object + optional detail in clubs_detail
+    const fullDetail = detail
+      ? { ...club, ...detail }  // merge club base + explicit detail
+      : club;                   // full club object is the detail
+
+    const { error: detailErr } = await admin.from("clubs_detail").upsert(
+      {
+        club_id:    clubId,
+        data:       fullDetail,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "club_id" }
+    );
+
+    if (detailErr) {
+      return res.status(400).json({ error: detailErr.message });
     }
 
-    // Guardar detalle (equipos, identidad, planes) en clubs_detail
-    if (detail || teams || users) {
-      const detailData = detail || { teams, users, mediaAssigned };
-      await admin.from("clubs_detail").upsert(
-        { club_id: savedId, data: detailData, updated_at: new Date().toISOString() },
-        { onConflict: "club_id" }
-      );
-    }
-
-    return res.status(200).json({ ok: true, id: savedId });
+    return res.status(200).json({ ok: true, id: clubId });
   }
 
-  // ── DELETE /api/admin-clubs → eliminar club ──
+  // ── DELETE → eliminar club ───────────────────────────────────────────────
   if (req.method === "DELETE") {
     const { id } = req.body || {};
     if (!id) return res.status(400).json({ error: "id requerido" });

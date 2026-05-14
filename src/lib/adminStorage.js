@@ -75,25 +75,24 @@ async function apiClubs(method, body) {
 }
 
 export async function loadClubs() {
-  // 1. Intentar cargar desde Supabase via serverless (siempre actualizado)
+  // 1. Intentar cargar desde Supabase via serverless (siempre actualizado, todos los devices)
   const remote = await apiClubs("GET");
   if (remote?.clubs && remote.clubs.length > 0) {
     lsSet("depro_clubs", remote.clubs);
-    // Actualizar también los detalles en localStorage
+    // Sincronizar detalles individuales en localStorage para acceso offline
     remote.clubs.forEach((club) => {
-      if (club.teams || club.primaryColor || club.logo) {
-        const existing = lsGet(`depro_club_${club.id}`, null);
-        if (!existing) lsSet(`depro_club_${club.id}`, club);
+      if (club.id) {
+        lsSet(`depro_club_${club.id}`, club);
       }
     });
     return remote.clubs;
   }
 
-  // 2. Fallback: localStorage (datos del dispositivo actual)
+  // 2. Fallback: localStorage del dispositivo actual
   const local = lsGet("depro_clubs", []);
   if (local.length > 0) return local;
 
-  // 3. Último recurso: Supabase directo con anon key
+  // 3. Último recurso: Supabase directo con anon key (solo datos básicos)
   try {
     const { data, error } = await supabase
       .from("clubs")
@@ -112,20 +111,21 @@ export async function saveClub(clubData) {
   if (!clubData.id) {
     clubData = { ...clubData, id: genId(), created_at: new Date().toISOString() };
   }
-  const { id, teams, users, mediaAssigned } = clubData;
+  const { id } = clubData;
 
   // 1. Guardar en localStorage (caché inmediata)
   const clubs = lsGet("depro_clubs", []);
   const idx = clubs.findIndex((c) => c.id === id);
   if (idx >= 0) clubs[idx] = clubData; else clubs.unshift(clubData);
   lsSet("depro_clubs", clubs);
+  lsSet(`depro_club_${id}`, clubData);
 
-  const ext = lsGet("depro_clubs_ext", {});
-  ext[id] = { teams, users, mediaAssigned };
-  lsSet("depro_clubs_ext", ext);
-
-  // 2. Persistir en Supabase via serverless (disponible en todos los devices)
-  await apiClubs("POST", { club: clubData });
+  // 2. Persistir el club COMPLETO en Supabase via serverless (disponible en todos los devices)
+  // La API guarda el objeto completo en clubs_detail (JSONB) para sincronización cross-device
+  const result = await apiClubs("POST", { club: clubData });
+  if (!result?.ok) {
+    console.warn("[adminStorage] saveClub: fallo al persistir en Supabase", result);
+  }
 
   return clubData;
 }
@@ -150,9 +150,10 @@ export function loadClubDetail(clubId) {
 }
 
 export function saveClubDetail(clubId, data) {
+  // 1. localStorage — detalle individual
   lsSet(`depro_club_${clubId}`, data);
 
-  // Sincronizar identity de vuelta a la lista principal en localStorage
+  // 2. Actualizar la lista principal en localStorage con los campos de identidad
   const clubs = lsGet("depro_clubs", []);
   const idx = clubs.findIndex((c) => c.id === clubId);
   if (idx >= 0) {
@@ -166,15 +167,15 @@ export function saveClubDetail(clubId, data) {
       ...(data.teams !== undefined          && { teams: data.teams }),
     };
     lsSet("depro_clubs", clubs);
+
+    // 3. Persistir el club completo (base + detail) en Supabase
+    // Enviamos el objeto fusionado para que clubs_detail tenga TODA la información
+    const merged = { ...clubs[idx], ...data, id: clubId };
+    apiClubs("POST", { club: merged }).catch(() => {});
+  } else {
+    // Club no está en la lista local, guardar solo el detail
+    apiClubs("POST", { club: { id: clubId, ...data } }).catch(() => {});
   }
-
-  // Sincronizar en clubs_ext
-  const ext = lsGet("depro_clubs_ext", {});
-  ext[clubId] = { ...(ext[clubId] || {}), teams: data.teams, users: data.users, mediaAssigned: data.mediaAssigned };
-  lsSet("depro_clubs_ext", ext);
-
-  // Persistir detalles en Supabase (incluye teams, identidad, planes)
-  apiClubs("POST", { club: { id: clubId, ...clubs[idx] }, detail: data }).catch(() => {});
 }
 
 // ════════════════════════════════════════════════════════════
