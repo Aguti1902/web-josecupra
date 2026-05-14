@@ -36,8 +36,9 @@ import {
   MapPin,
   PlayCircle,
 } from "lucide-react";
-const Youtube = PlayCircle;
 import { loadClubs, saveClubDetail, loadClubDetail, createClubUser } from "../../lib/adminStorage";
+
+const Youtube = PlayCircle;
 
 const ROLES = [
   { id: "coordinador", label: "Coordinador", icon: Crown, color: "text-depro-blue bg-depro-blue/10" },

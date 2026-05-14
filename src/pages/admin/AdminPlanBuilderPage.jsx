@@ -25,6 +25,10 @@ import {
   ChevronRight,
   PlayCircle,
 } from "lucide-react";
+import { loadPlanBlocks, savePlanBlock, deletePlanBlock, togglePlanBlock, loadMedia } from "../../lib/adminStorage";
+import { EXERCISES, TAGS } from "../../data/exercises";
+import { Search, List, BookOpen } from "lucide-react";
+
 const Youtube = PlayCircle;
 
 /** Extrae el video ID de cualquier formato de URL de YouTube */
@@ -33,9 +37,6 @@ function getYouTubeId(url) {
   const m = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^&?/\s]{11})/);
   return m ? m[1] : null;
 }
-import { loadPlanBlocks, savePlanBlock, deletePlanBlock, togglePlanBlock, loadMedia } from "../../lib/adminStorage";
-import { EXERCISES, TAGS } from "../../data/exercises";
-import { Search, List, BookOpen } from "lucide-react";
 
 const CATEGORIES = [
   { id: "físico", label: "Físico", icon: Flame, color: "text-orange-500 bg-orange-50" },
