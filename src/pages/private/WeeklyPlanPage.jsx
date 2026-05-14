@@ -3,6 +3,7 @@ import {
   Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
   Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { clubWeeklyPlan } from "../../data/mockData";
 import { getDayObjectives, filterExercises } from "../../data/exercises";
@@ -222,6 +223,7 @@ function buildLocalPlan(user) {
 
 function PlayerWeeklyPlan({ accent }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const planKey = `depro_plan_${user?.id}`;
 
   const [plan, setPlan]       = useState(null);
@@ -246,7 +248,7 @@ function PlayerWeeklyPlan({ accent }) {
   };
 
   const handleReset = () => {
-    if (!confirm("¿Regenerar el plan? Se perderán los cambios actuales.")) return;
+    if (!confirm(t("weekly_plan.regenerate") + "?")) return;
     localStorage.removeItem(planKey);
     setPlan(null);
   };
@@ -268,35 +270,37 @@ function PlayerWeeklyPlan({ accent }) {
     const hasProfile = !!(user?.objetivo || user?.frecuencia);
     return (
       <div className="p-4 md:p-8 max-w-3xl mx-auto">
-        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Plan semanal</h1>
-        <p className="text-depro-gray text-sm mb-8">Tu plan personalizado generado según tu perfil.</p>
+        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">{t("weekly_plan.title")}</h1>
+        <p className="text-depro-gray text-sm mb-8">{t("weekly_plan.subtitle")}</p>
 
         <div className="bg-white border border-depro-border rounded-2xl p-8 text-center shadow-card">
           <div className="w-16 h-16 rounded-2xl bg-depro-blue/10 flex items-center justify-center mx-auto mb-5">
             <Sparkles size={30} className="text-depro-blue" />
           </div>
           <h2 className="text-xl font-bold text-depro-dark mb-2">
-            {hasProfile ? "Tu plan está listo para generarse" : "Completa tu perfil primero"}
+            {hasProfile ? t("weekly_plan.no_plan_title") : t("dashboard.cta_missing")}
           </h2>
           {hasProfile ? (
             <>
-              <p className="text-depro-gray text-sm mb-2">Se generará un plan de <strong>{user?.frecuencia}</strong> días / semana con objetivo <strong>{user?.objetivo}</strong>.</p>
+              <p className="text-depro-gray text-sm mb-2">{t("weekly_plan.no_plan_desc")}</p>
               {user?.lesion?.length > 0 && (
-                <p className="text-xs text-amber-600 mb-4">Lesiones excluidas: {user.lesion.join(", ")}</p>
+                <p className="text-xs text-amber-600 mb-4">{user.lesion.join(", ")}</p>
               )}
               <button
                 onClick={handleGenerate}
                 disabled={generating}
                 className="inline-flex items-center gap-2 px-8 py-3.5 bg-depro-blue text-white font-bold rounded-xl hover:bg-depro-blue-dark transition-colors mt-4 disabled:opacity-60"
               >
-                {generating ? <><RefreshCw size={16} className="animate-spin" /> Generando…</> : <><Zap size={16} /> Generar mi plan</>}
+                {generating
+                  ? <><RefreshCw size={16} className="animate-spin" /> {t("weekly_plan.generating")}</>
+                  : <><Zap size={16} /> {t("weekly_plan.generate")}</>}
               </button>
             </>
           ) : (
             <>
-              <p className="text-depro-gray text-sm mb-5">Necesitamos conocer tu objetivo, frecuencia y material disponible.</p>
+              <p className="text-depro-gray text-sm mb-5">{t("dashboard.no_plan_desc")}</p>
               <a href="/comprar" className="inline-flex items-center gap-2 px-6 py-3 bg-depro-blue text-white font-bold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm">
-                Completar perfil
+                {t("dashboard.generate_plan")}
               </a>
             </>
           )}

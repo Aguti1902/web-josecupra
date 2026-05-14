@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Lock, Save, Trash2, TrendingUp, TrendingDown, Minus, ChevronRight, Activity } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 // ── 4 tests oficiales ─────────────────────────────────────────
 const TESTS = [
@@ -309,6 +310,7 @@ function DetailPanel({ test, userId }) {
 // ── Página principal ──────────────────────────────────────────
 export default function PhysicalPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const isPremium = user?.plan === "Premium" || user?.plan === "premium";
   const [selected, setSelected] = useState(TESTS[0].id);
   const activeTest = TESTS.find((t) => t.id === selected);
@@ -322,19 +324,19 @@ export default function PhysicalPage() {
   if (!isPremium) {
     return (
       <div className="p-4 md:p-8 max-w-3xl mx-auto">
-        <div className="flex items-center gap-2 text-xs font-bold text-depro-blue uppercase tracking-wide mb-6">
-          <Activity size={13} /> Tests físicos
+          <div className="flex items-center gap-2 text-xs font-bold text-depro-blue uppercase tracking-wide mb-6">
+          <Activity size={13} /> {t("physical.title")}
         </div>
         <div className="bg-white border-2 border-dashed border-depro-border rounded-2xl p-12 text-center">
           <div className="w-16 h-16 rounded-2xl bg-depro-yellow/15 flex items-center justify-center mx-auto mb-4">
             <Lock size={28} className="text-depro-yellow" />
           </div>
-          <h2 className="text-xl font-bold text-depro-dark mb-2">Disponible en Plan Premium</h2>
+          <h2 className="text-xl font-bold text-depro-dark mb-2">{t("physical.premium_only")}</h2>
           <p className="text-sm text-depro-gray max-w-sm mx-auto mb-6">
-            Los tests físicos con análisis evolutivo y feedback personalizado están incluidos en el plan Premium.
+            {t("physical.subtitle")}
           </p>
           <a href="/comprar?plan=premium" className="inline-flex items-center gap-2 px-6 py-3 bg-depro-yellow text-depro-dark font-bold rounded-xl hover:opacity-90 transition-opacity text-sm">
-            Actualizar a Premium
+            {t("physical.upgrade")}
           </a>
         </div>
       </div>
@@ -346,10 +348,10 @@ export default function PhysicalPage() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs font-bold text-depro-blue uppercase tracking-wide mb-2">
-          <Activity size={13} /> Tests físicos
+          <Activity size={13} /> {t("physical.title")}
         </div>
-        <h1 className="text-2xl md:text-3xl font-black text-depro-dark">Evaluación física</h1>
-        <p className="text-depro-gray text-sm mt-1">Selecciona un test para ver tu evolución y añadir mediciones.</p>
+        <h1 className="text-2xl md:text-3xl font-black text-depro-dark">{t("physical.title")}</h1>
+        <p className="text-depro-gray text-sm mt-1">{t("physical.select_test")}</p>
       </div>
 
       {/* Layout 2 columnas */}

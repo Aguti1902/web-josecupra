@@ -5,18 +5,9 @@ import {
   MessageSquare, LogOut, Menu, X, ChevronRight, Trophy,
   ClipboardList, Users as UsersIcon, BookOpen, User,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-
-const playerNav = [
-  { to: "/dashboard",           icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/dashboard/plan",      icon: Calendar,        label: "Plan semanal" },
-  { to: "/dashboard/library",   icon: Library,         label: "Biblioteca" },
-  { to: "/dashboard/technique", icon: Zap,             label: "Técnica" },
-  { to: "/dashboard/physical",  icon: Activity,        label: "Física" },
-  { to: "/dashboard/feedback",  icon: MessageSquare,   label: "Feedback" },
-  { to: "/dashboard/ranking",   icon: Trophy,          label: "Ranking" },
-  { to: "/dashboard/profile",   icon: User,            label: "Mi perfil" },
-];
+import LanguageSwitcher from "../shared/LanguageSwitcher";
 
 // Luminancia 0-1 de un color hex
 function luminance(hex) {
@@ -40,30 +31,41 @@ function visibleOnWhite(color, fallback = "#0A36F7") {
   return luminance(color) > 0.75 ? fallback : color;
 }
 
-// Coordinador: visión global del club, sin herramientas de planificación de sesiones
-const coordinadorNav = [
-  { to: "/dashboard",              icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/dashboard/squad",        icon: UsersIcon,       label: "Plantilla" },
-  { to: "/dashboard/club-profile", icon: User,            label: "Mi perfil" },
-];
-
-// Entrenador / Ayudante: herramientas de trabajo diario con el equipo
-const entrenadorNav = [
-  { to: "/dashboard",              icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/dashboard/plan",         icon: Calendar,        label: "Plan semanal" },
-  { to: "/dashboard/squad",        icon: UsersIcon,       label: "Plantilla" },
-  { to: "/dashboard/tactics",      icon: BookOpen,        label: "Guía táctica" },
-  { to: "/dashboard/mesocycle",    icon: ClipboardList,   label: "Mesociclo" },
-  { to: "/dashboard/library",      icon: Library,         label: "Biblioteca" },
-  { to: "/dashboard/club-profile", icon: User,            label: "Mi perfil" },
-];
-
 export default function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  // Nav items built with translations
+  const playerNav = [
+    { to: "/dashboard",           icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dashboard/plan",      icon: Calendar,        label: t("nav.weekly_plan") },
+    { to: "/dashboard/library",   icon: Library,         label: t("nav.library") },
+    { to: "/dashboard/technique", icon: Zap,             label: t("nav.technique") },
+    { to: "/dashboard/physical",  icon: Activity,        label: t("nav.physical") },
+    { to: "/dashboard/feedback",  icon: MessageSquare,   label: t("nav.feedback") },
+    { to: "/dashboard/ranking",   icon: Trophy,          label: t("nav.ranking") },
+    { to: "/dashboard/profile",   icon: User,            label: t("nav.my_profile") },
+  ];
+
+  const coordinadorNav = [
+    { to: "/dashboard",              icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dashboard/squad",        icon: UsersIcon,       label: t("nav.squad") },
+    { to: "/dashboard/club-profile", icon: User,            label: t("nav.my_profile") },
+  ];
+
+  const entrenadorNav = [
+    { to: "/dashboard",              icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dashboard/plan",         icon: Calendar,        label: t("nav.weekly_plan") },
+    { to: "/dashboard/squad",        icon: UsersIcon,       label: t("nav.squad") },
+    { to: "/dashboard/tactics",      icon: BookOpen,        label: t("nav.tactics") },
+    { to: "/dashboard/mesocycle",    icon: ClipboardList,   label: t("nav.mesocycle") },
+    { to: "/dashboard/library",      icon: Library,         label: t("nav.library") },
+    { to: "/dashboard/club-profile", icon: User,            label: t("nav.my_profile") },
+  ];
 
   const handleLogout = () => { logout(); navigate("/"); };
 
@@ -110,18 +112,18 @@ export default function AppLayout({ children }) {
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0-6v2m0-6V5m-4 7a4 4 0 108 0 4 4 0 00-8 0z" /></svg>
             </div>
           )}
-          <h1 className="text-xl font-bold text-depro-dark mb-2">Acceso suspendido</h1>
+          <h1 className="text-xl font-bold text-depro-dark mb-2">{t("dashboard.suspended_title")}</h1>
           <p className="text-sm text-depro-gray mb-1">
-            El acceso al panel de <strong>{club?.name || "tu club"}</strong> ha sido suspendido.
+            {t("dashboard.suspended_desc", { club: club?.name || "tu club" })}
           </p>
           <p className="text-xs text-depro-gray mb-6">
-            Si crees que es un error, contacta con el administrador de DEPRO.
+            {t("dashboard.suspended_hint")}
           </p>
           <button
             onClick={() => { logout(); navigate("/"); }}
             className="w-full py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors"
           >
-            Cerrar sesión
+            {t("nav.logout")}
           </button>
         </div>
       </div>
@@ -173,7 +175,7 @@ export default function AppLayout({ children }) {
 
         {/* Nav */}
         <nav className="flex-1 p-4 overflow-y-auto">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">Navegación</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">{t("nav.dashboard")}</p>
           <div className="space-y-0.5">
             {navItems.map((item) => {
               const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
@@ -217,12 +219,15 @@ export default function AppLayout({ children }) {
               <div className="text-depro-gray text-xs truncate">{user?.email}</div>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-depro-gray hover:text-depro-red text-sm transition-colors w-full py-2 px-3 rounded-xl hover:bg-red-50"
-          >
-            <LogOut size={16} /> Cerrar sesión
-          </button>
+          <div className="flex items-center justify-between mb-1">
+            <LanguageSwitcher compact />
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-depro-gray hover:text-depro-red text-sm transition-colors py-2 px-3 rounded-xl hover:bg-red-50"
+            >
+              <LogOut size={16} /> {t("nav.logout")}
+            </button>
+          </div>
         </div>
       </aside>
 

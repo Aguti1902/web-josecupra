@@ -1,6 +1,7 @@
 import { Star, TrendingUp, MessageSquare, Calendar, Target, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useTranslation } from "react-i18next";
 import { coachFeedback } from "../../data/mockData";
 
 function FeedbackCard({ fb }) {
@@ -83,6 +84,7 @@ function lum(hex) {
 
 export default function FeedbackPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const raw    = user?.club?.primaryColor || "#0A36F7";
   const accent = lum(raw) > 0.75 ? "#0A36F7" : raw;
   const avg = (coachFeedback.reduce((a, f) => a + f.rating, 0) / coachFeedback.length).toFixed(1);
@@ -90,16 +92,16 @@ export default function FeedbackPage() {
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Feedback del preparador</h1>
-        <p className="text-depro-gray text-sm">Revisiones semanales y ajustes personalizados</p>
+        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">{t("feedback.title")}</h1>
+        <p className="text-depro-gray text-sm">{t("feedback.subtitle")}</p>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          { label: "Revisiones", value: coachFeedback.length, icon: MessageSquare },
-          { label: "Valoración media", value: `${avg}/10`, icon: Star },
-          { label: "Próximo foco", value: coachFeedback[0]?.nextFocus || "—", icon: Target, small: true },
+          { label: t("feedback.notes"),     value: coachFeedback.length, icon: MessageSquare },
+          { label: t("feedback.technique"), value: `${avg}/10`, icon: Star },
+          { label: t("feedback.adjustment"),value: coachFeedback[0]?.nextFocus || "—", icon: Target, small: true },
         ].map((s) => (
           <div key={s.label} className="card text-center">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: accent + "15" }}>

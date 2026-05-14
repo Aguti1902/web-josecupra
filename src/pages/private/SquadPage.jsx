@@ -5,6 +5,7 @@ import {
   TrendingUp, Activity, Zap, ChevronRight,
   Calendar, BarChart2, Trophy,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 
@@ -344,11 +345,13 @@ export default function SquadPage() {
     ) || null;
   }, [user?.team, user?.email, isCoord, allTeams]);
 
+  const { t } = useTranslation();
+
   // ── Estado ────────────────────────────────────────────────
-  const [squads, setSquads]         = useState({}); // { teamId: player[] }
-  const [regPlayers, setRegPlayers] = useState([]); // jugadores registrados vía Supabase
+  const [squads, setSquads]         = useState({});
+  const [regPlayers, setRegPlayers] = useState([]);
   const [search, setSearch]         = useState("");
-  const [posFilter, setPosFilter]   = useState("Todos");
+  const [posFilter, setPosFilter]   = useState(t("squad.all"));
   const [teamFilter, setTeamFilter] = useState("todos");
   const [showModal, setShowModal]       = useState(false);
   const [editPlayer, setEditPlayer]     = useState(null);

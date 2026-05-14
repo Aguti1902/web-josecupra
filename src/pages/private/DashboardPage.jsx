@@ -6,6 +6,7 @@ import {
   Users, Shield, ClipboardList, BookOpen, ChevronRight,
   Crown, UserCheck, Dumbbell,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { weeklyPlan, coachFeedback } from "../../data/mockData";
@@ -35,7 +36,8 @@ function visibleOnWhite(color, fallback = "#0A36F7") {
 
 // ── Shared header banner ─────────────────────────────────────
 function ClubBanner({ club, team, teamRole, accent, secondColor }) {
-  const roleLabel = { coordinador: "Coordinador", entrenador: "Entrenador", ayudante: "Ayudante técnico" };
+  const { t: tg } = useTranslation();
+  const roleLabel = { coordinador: tg("dashboard.coordinator"), entrenador: tg("dashboard.coach"), ayudante: tg("dashboard.assistant") };
   const RoleIcon = { coordinador: Crown, entrenador: UserCheck, ayudante: Dumbbell }[teamRole] || UserCheck;
   const hasBanner = !!club?.banner;
 
@@ -958,7 +960,8 @@ function JugadorDashboard({ user, club }) {
 // ════════════════════════════════════════════════════════════
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [selectedTeam, setSelectedTeam] = useState(null); // coordinador viendo un equipo
+  const { t } = useTranslation();
+  const [selectedTeam, setSelectedTeam] = useState(null);
   const club = user?.club;
   const team = user?.team;
   const teamRole = user?.team_role;

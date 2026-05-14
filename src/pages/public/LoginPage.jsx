@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, Zap, Trophy, ShieldCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import LanguageSwitcher from "../../components/shared/LanguageSwitcher";
 
 const DEMO_ACCOUNTS = [
   { label: "Plan Básico",   icon: Zap,         email: "basico@depro.es",   password: "Depro2026!", color: "#0A36F7", bg: "#EEF1FF"  },
@@ -17,6 +19,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +30,7 @@ export default function LoginPage() {
     if (result.success) {
       navigate(result.role === "admin" ? "/admin" : "/dashboard");
     } else {
-      setError(result.error ?? "Email o contraseña incorrectos");
+      setError(result.error ?? t("login.error_default"));
     }
   };
 
@@ -45,12 +48,10 @@ export default function LoginPage() {
         <div className="absolute inset-0 flex flex-col justify-end p-12">
           <div>
             <h2 className="text-4xl font-black text-white leading-tight mb-4">
-              Tu plan físico,<br />
-              <span className="text-depro-yellow">siempre contigo.</span>
+              {t("login.hero_title")}<br />
+              <span className="text-depro-yellow">{t("login.hero_highlight")}</span>
             </h2>
-            <p className="text-blue-100 text-lg">
-              Accede a tu panel personalizado y comienza a entrenar con metodología profesional.
-            </p>
+            <p className="text-blue-100 text-lg">{t("login.hero_subtitle")}</p>
           </div>
         </div>
       </div>
@@ -62,13 +63,13 @@ export default function LoginPage() {
             <Link to="/" className="inline-block mb-6">
               <img src="/logo.png" alt="DEPRO" className="h-8 w-auto" />
             </Link>
-            <h1 className="text-3xl font-black text-depro-dark mb-2">Bienvenido de vuelta</h1>
-            <p className="text-depro-gray">Accede a tu panel de entrenamiento</p>
+            <h1 className="text-3xl font-black text-depro-dark mb-2">{t("login.title")}</h1>
+            <p className="text-depro-gray">{t("login.subtitle")}</p>
           </div>
 
           {/* Accesos rápidos demo */}
           <div className="mb-6 p-4 bg-depro-gray-light rounded-2xl border border-depro-border">
-            <p className="text-[11px] font-bold text-depro-gray uppercase tracking-wide mb-3">Acceso rápido</p>
+            <p className="text-[11px] font-bold text-depro-gray uppercase tracking-wide mb-3">{t("login.quick_access")}</p>
             <div className="grid grid-cols-2 gap-2">
               {DEMO_ACCOUNTS.filter((a) => !a.adminOnly).map((acc) => {
                 const Icon = acc.icon;
@@ -91,12 +92,12 @@ export default function LoginPage() {
                 );
               })}
             </div>
-            <p className="text-[10px] text-depro-gray mt-2 text-center">Pulsa para rellenar el formulario automáticamente</p>
+            <p className="text-[10px] text-depro-gray mt-2 text-center">{t("login.quick_hint")}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-depro-dark mb-1.5">Email</label>
+              <label className="block text-sm font-semibold text-depro-dark mb-1.5">{t("login.email")}</label>
               <div className="relative">
                 <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -109,7 +110,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-depro-dark mb-1.5">Contraseña</label>
+              <label className="block text-sm font-semibold text-depro-dark mb-1.5">{t("login.password")}</label>
               <div className="relative">
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -139,20 +140,17 @@ export default function LoginPage() {
               className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
               {loading ? <div className="spinner border-white/20 border-t-white" /> : <>
-                Acceder <ArrowRight size={16} />
+                {t("login.submit")} <ArrowRight size={16} />
               </>}
             </button>
           </form>
 
-          <p className="text-center text-sm text-depro-gray mt-6">
-            ¿No tienes acceso?{" "}
-            <a href="/#contacto" className="text-depro-blue hover:underline font-semibold">
-              Solicitar ahora
-            </a>
-          </p>
+          <div className="flex justify-center mt-4">
+            <LanguageSwitcher />
+          </div>
 
-          <Link to="/" className="block text-center text-sm text-depro-gray hover:text-depro-dark mt-4 transition-colors">
-            ← Volver al inicio
+          <Link to="/" className="block text-center text-sm text-depro-gray hover:text-depro-dark mt-3 transition-colors">
+            ← {t("common.back")}
           </Link>
         </div>
       </div>

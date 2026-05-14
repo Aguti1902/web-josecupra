@@ -3,6 +3,7 @@ import {
   Trophy, Zap, CheckCircle, Flame, Star, Medal, Crown,
   TrendingUp, Users, Calendar, Activity,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 
 // ── Utilidades de localStorage ─────────────────────────────
@@ -228,11 +229,13 @@ function lum(hex) {
 
 export default function RankingPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("Semanal");
+  const { t } = useTranslation();
+  const TABS_I18N = [t("ranking.daily"), t("ranking.weekly"), t("ranking.monthly")];
+  const [activeTab, setActiveTab] = useState(t("ranking.weekly"));
 
   const rankingData = useMemo(() => buildRealRanking(user), [user?.id]);
 
-  const key     = TAB_KEY[activeTab];
+  const key     = TAB_KEY[activeTab] ?? "weekly";
   const sorted  = [...(rankingData.leaderboard || [])].sort((a, b) => b.points[key] - a.points[key]);
   const myEntry = sorted.find((p) => p.id === user?.id) ?? null;
   const myRank  = myEntry ? sorted.indexOf(myEntry) + 1 : null;
@@ -249,12 +252,12 @@ export default function RankingPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-depro-dark">Ranking</h1>
-          <p className="text-depro-gray text-sm mt-0.5">Compite con los mejores jugadores de la plataforma</p>
+          <h1 className="text-2xl font-black text-depro-dark">{t("ranking.title")}</h1>
+          <p className="text-depro-gray text-sm mt-0.5">{t("ranking.subtitle")}</p>
         </div>
         <div className="hidden sm:flex items-center gap-2 bg-white border border-depro-border rounded-xl px-4 py-2 shadow-card">
           <Users size={15} className="text-depro-blue" />
-          <span className="text-sm font-semibold text-depro-dark">{sorted.length} jugadores</span>
+          <span className="text-sm font-semibold text-depro-dark">{sorted.length} {t("dashboard.players").toLowerCase()}</span>
         </div>
       </div>
 
@@ -271,9 +274,9 @@ export default function RankingPage() {
             {user?.avatar || user?.name?.[0]?.toUpperCase() || "👤"}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-bold text-depro-gray uppercase tracking-wide">Mi posición</p>
+            <p className="text-xs font-bold text-depro-gray uppercase tracking-wide">{t("ranking.your_position")}</p>
             <p className="font-black text-depro-dark text-lg leading-tight">
-              {myRank ? `#${myRank} de ${sorted.length}` : "Sin datos aún"}
+              {myRank ? `#${myRank} ${t("common.of")} ${sorted.length}` : t("common.no_data")}
             </p>
             <p className="text-xs text-depro-gray truncate">{myEntry?.club?.name || user?.name || "—"}</p>
           </div>
@@ -281,9 +284,9 @@ export default function RankingPage() {
 
         <div className="grid grid-cols-3 gap-3 sm:gap-6">
           {[
-            { icon: Star,     label: "Puntos semana", value: myEntry ? myEntry.points.weekly.toLocaleString() : "—" },
-            { icon: Flame,    label: "Racha",          value: myEntry?.streak != null ? `${myEntry.streak}d` : "—" },
-            { icon: Activity, label: "Sesiones",       value: myEntry?.sessionsCompleted ?? "—" },
+            { icon: Star,     label: t("ranking.points"),       value: myEntry ? myEntry.points.weekly.toLocaleString() : "—" },
+            { icon: Flame,    label: t("ranking.streak"),       value: myEntry?.streak != null ? `${myEntry.streak}d` : "—" },
+            { icon: Activity, label: t("dashboard.sessions"),   value: myEntry?.sessionsCompleted ?? "—" },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="text-center">
               <div className="flex items-center justify-center gap-1 mb-0.5">
@@ -303,7 +306,7 @@ export default function RankingPage() {
         <div className="lg:col-span-2 space-y-4">
           {/* Tabs */}
           <div className="flex gap-1 bg-depro-gray-light p-1 rounded-xl w-fit">
-            {TABS.map((tab) => (
+            {TABS_I18N.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -322,10 +325,8 @@ export default function RankingPage() {
           {sorted.length === 0 ? (
             <div className="bg-white border-2 border-dashed border-depro-border rounded-2xl p-10 text-center">
               <Trophy size={40} className="mx-auto mb-3 text-depro-border" />
-              <p className="font-bold text-depro-dark mb-1">El ranking está vacío</p>
-              <p className="text-sm text-depro-gray max-w-xs mx-auto">
-                Completa sesiones de entrenamiento para aparecer aquí y competir con otros jugadores.
-              </p>
+              <p className="font-bold text-depro-dark mb-1">{t("ranking.no_ranking")}</p>
+              <p className="text-sm text-depro-gray max-w-xs mx-auto">{t("ranking.no_ranking_desc")}</p>
             </div>
           ) : (
             <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card">
@@ -411,13 +412,13 @@ export default function RankingPage() {
         <div className="space-y-4">
           <h2 className="font-bold text-depro-dark flex items-center gap-2">
             <TrendingUp size={16} className="text-depro-blue" />
-            Actividad reciente
+            {t("ranking.activity_feed")}
           </h2>
 
           {(rankingData.activityFeed || []).length === 0 ? (
             <div className="bg-white border border-depro-border rounded-xl p-6 text-center text-sm text-depro-gray">
               <Activity size={24} className="mx-auto mb-2 text-depro-border" />
-              Sin actividad reciente todavía.
+              {t("ranking.no_activity")}
             </div>
           ) : null}
 

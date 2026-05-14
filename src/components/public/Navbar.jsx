@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../shared/LanguageSwitcher";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
@@ -16,10 +19,10 @@ export default function Navbar() {
   useEffect(() => setOpen(false), [pathname]);
 
   const links = [
-    { label: "Servicios", href: "#servicios" },
-    { label: "Jugadores", href: "#jugadores" },
-    { label: "Clubs", href: "#clubs" },
-    { label: "Sobre DEPRO", href: "#sobre" },
+    { label: t("nav.services"), href: "#servicios" },
+    { label: t("nav.players"),  href: "#jugadores" },
+    { label: t("nav.clubs"),    href: "#clubs" },
+    { label: t("nav.about"),    href: "#sobre" },
   ];
 
   return (
@@ -55,15 +58,16 @@ export default function Navbar() {
           </nav>
 
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
+            <LanguageSwitcher />
             <Link
               to="/login"
-              className="text-sm font-medium text-depro-dark hover:text-depro-blue transition-colors"
+              className="text-sm font-medium text-depro-dark hover:text-depro-blue transition-colors px-3 py-2"
             >
-              Acceder
+              {t("nav.login")}
             </Link>
             <Link to="/comprar" className="btn-primary text-sm py-2.5">
-              Empezar ahora
+              {t("nav.start")}
             </Link>
           </div>
 
@@ -92,19 +96,9 @@ export default function Navbar() {
               </a>
             ))}
             <div className="border-t border-depro-border mt-3 pt-3 flex flex-col gap-2">
-              <Link
-                to="/login"
-                className="btn-outline-dark text-center text-sm"
-              >
-                Acceder
-              </Link>
-              <Link
-                to="/comprar"
-                className="btn-primary text-center text-sm"
-                onClick={() => setOpen(false)}
-              >
-                Empezar ahora
-              </Link>
+              <div className="flex justify-center mb-1"><LanguageSwitcher /></div>
+              <Link to="/login" className="btn-outline-dark text-center text-sm">{t("nav.login")}</Link>
+              <Link to="/comprar" className="btn-primary text-center text-sm" onClick={() => setOpen(false)}>{t("nav.start")}</Link>
             </div>
           </div>
         </div>
