@@ -23,9 +23,9 @@ import {
   RefreshCw,
   AlertCircle,
   ChevronRight,
-  Youtube,
-  Link,
+  PlayCircle,
 } from "lucide-react";
+const Youtube = PlayCircle;
 
 /** Extrae el video ID de cualquier formato de URL de YouTube */
 function getYouTubeId(url) {

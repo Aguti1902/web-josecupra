@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import {
   Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
   Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
-  PencilRuler, Info, AlertTriangle, Youtube,
+  PencilRuler, Info, AlertTriangle, PlayCircle,
 } from "lucide-react";
+const Youtube = PlayCircle;
 
 function getYouTubeId(url) {
   if (!url) return null;

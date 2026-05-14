@@ -34,8 +34,9 @@ import {
   Palette,
   ImagePlus,
   MapPin,
-  Youtube,
+  PlayCircle,
 } from "lucide-react";
+const Youtube = PlayCircle;
 import { loadClubs, saveClubDetail, loadClubDetail, createClubUser } from "../../lib/adminStorage";
 
 const ROLES = [
