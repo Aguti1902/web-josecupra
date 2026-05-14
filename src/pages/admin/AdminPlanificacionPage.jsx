@@ -419,7 +419,7 @@ function SessionEditorModal({ onClose, onCreate }) {
 /* ── Modal nuevo microciclo ──────────────────────────────── */
 function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
   const [form, setForm] = useState({
-    microcycle: "", label: "", ageBlock: initialAgeBlock,
+    code: "", label: "", ageBlock: initialAgeBlock,
     dateRange: "", objective: "", focus: "", status: "borrador",
   });
 
@@ -427,7 +427,7 @@ function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-depro w-full max-w-lg">
         <div className="flex items-center justify-between p-6 border-b border-depro-border">
-          <h2 className="font-bold text-depro-dark text-lg">Nuevo microciclo</h2>
+          <h2 className="font-bold text-depro-dark text-lg">Nuevo mesociclo</h2>
           <button onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-4">
@@ -454,8 +454,8 @@ function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
             <div>
               <label className="block text-sm font-medium text-depro-dark mb-1">Código *</label>
               <input className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                placeholder="S.1, S.2…" value={form.microcycle}
-                onChange={(e) => setForm((f) => ({ ...f, microcycle: e.target.value }))} />
+                placeholder="S.1, S.2…" value={form.code}
+                onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-depro-dark mb-1">Estado</label>
@@ -496,14 +496,14 @@ function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">Cancelar</button>
           <button
             onClick={() => {
-              if (!form.microcycle || !form.label || !form.ageBlock) return;
+              if (!form.code || !form.label || !form.ageBlock) return;
               onCreate({ ...form, id: `mc${Date.now()}`, sessions: [] });
               onClose();
             }}
-            disabled={!form.microcycle || !form.label || !form.ageBlock}
+            disabled={!form.code || !form.label || !form.ageBlock}
             className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40"
           >
-            Crear microciclo
+            Crear mesociclo
           </button>
         </div>
       </div>
@@ -529,7 +529,7 @@ function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete }) {
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="font-mono text-xs font-black text-depro-blue bg-depro-blue/10 px-2 py-0.5 rounded">{mc.microcycle}</span>
+              <span className="font-mono text-xs font-black text-depro-blue bg-depro-blue/10 px-2 py-0.5 rounded">{mc.code}</span>
               <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${statusStyle}`}>{mc.status}</span>
               {mc.dateRange && <span className="text-xs text-depro-gray flex items-center gap-1"><Calendar size={10}/>{mc.dateRange}</span>}
             </div>
@@ -702,7 +702,7 @@ export default function AdminPlanificacionPage() {
                 {blockPlans.length === 0 && (
                   <div className="py-8 text-center text-depro-gray">
                     <ClipboardList size={24} className="mx-auto mb-2 opacity-25" />
-                    <p className="text-xs font-medium">Sin microciclos</p>
+                    <p className="text-xs font-medium">Sin mesociclos</p>
                     <p className="text-[10px] opacity-60 mt-0.5">Añade el primero para este bloque</p>
                   </div>
                 )}
