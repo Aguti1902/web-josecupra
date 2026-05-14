@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Calendar, Library, Zap, Activity,
+  LayoutDashboard, Calendar, Zap, Activity,
   MessageSquare, LogOut, Menu, X, ChevronRight, Trophy,
   ClipboardList, Users as UsersIcon, BookOpen, User,
 } from "lucide-react";
@@ -43,7 +43,6 @@ export default function AppLayout({ children }) {
   const playerNav = [
     { to: "/dashboard",           icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/dashboard/plan",      icon: Calendar,        label: t("nav.weekly_plan") },
-    { to: "/dashboard/library",   icon: Library,         label: t("nav.library") },
     { to: "/dashboard/technique", icon: Zap,             label: t("nav.technique") },
     { to: "/dashboard/physical",  icon: Activity,        label: t("nav.physical") },
     { to: "/dashboard/feedback",  icon: MessageSquare,   label: t("nav.feedback") },
@@ -63,7 +62,6 @@ export default function AppLayout({ children }) {
     { to: "/dashboard/squad",        icon: UsersIcon,       label: t("nav.squad") },
     { to: "/dashboard/tactics",      icon: BookOpen,        label: t("nav.tactics") },
     { to: "/dashboard/mesocycle",    icon: ClipboardList,   label: t("nav.mesocycle") },
-    { to: "/dashboard/library",      icon: Library,         label: t("nav.library") },
     { to: "/dashboard/club-profile", icon: User,            label: t("nav.my_profile") },
   ];
 
