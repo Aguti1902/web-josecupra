@@ -4,21 +4,55 @@ import { supabase } from "../lib/supabase";
 const AuthContext = createContext(null);
 
 // Carga los datos completos del club (incluyendo identity: logo, colores, slogan)
-function loadClubDataFromStorage(meta) {
+function loadClubDataFromStorage(meta, userEmail) {
   try {
     const clubId   = meta?.clubId;
     const teamId   = meta?.teamId;
     const teamRole = meta?.teamRole;
-    if (!clubId) return { club: null, team: null, teamRole: null };
+    if (!clubId && !userEmail) return { club: null, team: null, teamRole: null };
 
-    const clubs    = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
-    const baseClub = clubs.find((c) => c.id === clubId) || null;
+    const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+    let baseClub = clubs.find((c) => c.id === clubId) || null;
+
+    // Fallback: si el ID no coincide (bug de IDs desfasados), buscar por email
+    // Solo para usuarios de club (tienen teamRole o role=club en meta)
+    const isClubUser = !!teamRole || meta?.role === "club";
+    if (!baseClub && userEmail && isClubUser) {
+      const lc = userEmail.toLowerCase();
+      if (!teamRole || teamRole === "coordinador") {
+        // Buscar por email del coordinador
+        baseClub = clubs.find((c) =>
+          c.coordinator?.email?.toLowerCase() === lc
+        ) || null;
+      }
+      if (!baseClub) {
+        // Buscar por email de entrenador: primero en depro_clubs, luego en detalles
+        baseClub = clubs.find((c) =>
+          (c.teams || []).some((t) => t.coach?.email?.toLowerCase() === lc)
+        ) || null;
+
+        // Buscar en detalles de clubs (depro_club_*) en caso de que teams no estén sincronizados
+        if (!baseClub) {
+          for (const c of clubs) {
+            try {
+              const det = JSON.parse(localStorage.getItem(`depro_club_${c.id}`) || "null");
+              if (det?.teams?.some((t) => t.coach?.email?.toLowerCase() === lc)) {
+                baseClub = c;
+                break;
+              }
+            } catch { /* ignore */ }
+          }
+        }
+      }
+    }
+
+    const effectiveClubId = baseClub?.id || clubId;
 
     // Detalles enriquecidos: logo, colores, equipos, planes, status
-    const clubDetail = JSON.parse(localStorage.getItem(`depro_club_${clubId}`) || "null");
+    const clubDetail = JSON.parse(localStorage.getItem(`depro_club_${effectiveClubId}`) || "null");
 
     // Si no está en depro_clubs pero sí en el detalle, usamos el detalle como base
-    const effectiveBase = baseClub || (clubDetail ? { id: clubId, ...clubDetail } : null);
+    const effectiveBase = baseClub || (clubDetail ? { id: effectiveClubId, ...clubDetail } : null);
     if (!effectiveBase) return { club: null, team: null, teamRole: null };
 
     const club = {
@@ -35,9 +69,14 @@ function loadClubDataFromStorage(meta) {
     };
 
     // Buscar el equipo dentro de los datos combinados
+    // Si el teamId no coincide, buscar también por email del coach en el equipo
     const ext      = JSON.parse(localStorage.getItem("depro_clubs_ext") || "{}");
-    const allTeams = club.teams.length > 0 ? club.teams : ((ext[clubId] || {}).teams || []);
-    const team     = allTeams.find((t) => t.id === teamId) || null;
+    const allTeams = club.teams.length > 0 ? club.teams : ((ext[effectiveClubId] || {}).teams || []);
+    let   team     = allTeams.find((t) => t.id === teamId) || null;
+    if (!team && userEmail && teamRole && teamRole !== "coordinador") {
+      const lc = userEmail.toLowerCase();
+      team = allTeams.find((t) => t.coach?.email?.toLowerCase() === lc) || null;
+    }
 
     return { club, team, teamRole };
   } catch {
@@ -95,7 +134,7 @@ function buildUser(authUser, profile) {
         clubId,
         teamId:   team?.id  || meta.teamId,
         teamRole: teamRole  || meta.teamRole,
-      });
+      }, email);
       if (stored.club) {
         // Prioridad: localStorage para identidad visual (logo, colores, banner, slogan, teams)
         // Supabase para datos básicos (id, name, login_code, abbreviation)
@@ -127,7 +166,7 @@ function buildUser(authUser, profile) {
 
   // Usuario sin perfil en Supabase todavía — usar metadata
   const detectedRole = meta.role ?? (email === "jose@depro.es" ? "admin" : "player");
-  const { club, team, teamRole } = loadClubDataFromStorage(meta);
+  const { club, team, teamRole } = loadClubDataFromStorage(meta, email);
 
   // Para jugadores: cargar club asociado por código si lo tienen
   const playerClub = (detectedRole === "player" && !club)

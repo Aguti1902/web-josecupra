@@ -353,9 +353,9 @@ export default function AdminClubsManagerPage() {
   };
 
   const handleCreate = async (clubData) => {
-    // Forzar ID nuevo generado en adminStorage (quitar el temporal del modal)
-    const { id: _ignore, ...rest } = clubData;
-    const saved = await saveClub(rest);
+    // Usamos el mismo ID con el que se creó el usuario Supabase
+    // para que user_metadata.clubId coincida con el ID en depro_clubs
+    const saved = await saveClub(clubData);
     setClubs((prev) => [saved, ...prev]);
   };
 
