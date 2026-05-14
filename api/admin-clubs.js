@@ -1,11 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
+const SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrYnl5Ymh0ZGVpbWt0cGFxZ2lsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyODUxOSwiZXhwIjoyMDk0MTA0NTE5fQ.IRMoSOH3zv_cXq0IlTQoW8oEtyGARNHV0v3u-tlB-iA";
 
 function getAdmin() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) return null;
-  return createClient(SUPABASE_URL, key, {
+  return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
@@ -38,11 +39,6 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const admin = getAdmin();
-  if (!admin) {
-    return res.status(500).json({
-      error: "SUPABASE_SERVICE_ROLE_KEY no configurada en las variables de entorno de Vercel"
-    });
-  }
 
   // ── GET → listar todos los clubs ─────────────────────────────────────────
   if (req.method === "GET") {
