@@ -247,7 +247,11 @@ function NewClubModal({ onClose, onCreate }) {
                 <label className="block text-xs text-depro-gray mb-1">Contraseña de acceso</label>
                 <div className="flex gap-2">
                   <input
-                    className="flex-1 border border-depro-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    className={`flex-1 border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 ${
+                      form.coordinatorPassword.length > 0 && form.coordinatorPassword.length < 6
+                        ? "border-red-400 focus:ring-red-300"
+                        : "border-depro-border focus:ring-depro-blue/30"
+                    }`}
                     value={form.coordinatorPassword}
                     onChange={(e) => setForm((f) => ({ ...f, coordinatorPassword: e.target.value }))}
                   />
@@ -260,6 +264,9 @@ function NewClubModal({ onClose, onCreate }) {
                     <RefreshCw size={14} />
                   </button>
                 </div>
+                {form.coordinatorPassword.length > 0 && form.coordinatorPassword.length < 6 && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">Mínimo 6 caracteres</p>
+                )}
               </div>
               <input
                 className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
@@ -296,7 +303,7 @@ function NewClubModal({ onClose, onCreate }) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!form.name || !form.coordinatorEmail || loading}
+            disabled={!form.name || !form.coordinatorEmail || form.coordinatorPassword.length < 6 || loading}
             className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {loading
