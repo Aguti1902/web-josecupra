@@ -52,7 +52,7 @@ const ROLES = [
 const AGE_BLOCKS = [
   { id: "Bloque 1", label: "Bloque 1 · Fútbol Base",      ages: ["Sub-9","Sub-10","Sub-11","Sub-12"], color: "#3B82F6" },
   { id: "Bloque 2", label: "Bloque 2 · Fútbol Formativo", ages: ["Sub-13","Sub-14","Sub-15"],          color: "#8B5CF6" },
-  { id: "Bloque 3", label: "Bloque 3 · Fútbol Juvenil",   ages: ["Sub-16","Sub-17","Sub-18","Sub-19"], color: "#EF4444" },
+  { id: "Bloque 3", label: "Bloque 3 · Fútbol Juvenil",   ages: ["Sub-16","Juvenil"],                  color: "#EF4444" },
 ];
 const CATEGORIES = AGE_BLOCKS.flatMap((b) => b.ages);
 

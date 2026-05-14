@@ -1213,7 +1213,7 @@ function getAgeBlock(category) {
   const blocks = {
     "Bloque 1": ["Sub-9","Sub-10","Sub-11","Sub-12"],
     "Bloque 2": ["Sub-13","Sub-14","Sub-15"],
-    "Bloque 3": ["Sub-16","Sub-17","Sub-18","Sub-19"],
+    "Bloque 3": ["Sub-16","Juvenil"],
   };
   for (const [blockId, ages] of Object.entries(blocks)) {
     if (ages.includes(category)) return blockId;
