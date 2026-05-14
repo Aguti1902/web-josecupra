@@ -3,6 +3,8 @@ import {
   Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
   Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
   PencilRuler, Info, AlertTriangle, PlayCircle,
+  Activity, Dumbbell, Wind, Layers, TrendingUp, BarChart2, ShieldCheck,
+  Timer, Calendar, Sun, Ban, ListChecks, Repeat2, BookOpen, Route,
 } from "lucide-react";
 import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
@@ -166,10 +168,10 @@ function BlockExerciseList({ exercises, accentColor, onSelect }) {
    PLAYER — SESSION CARD con 4 bloques (igual a Zona Club)
 ═══════════════════════════════════════════════════════════ */
 const BLOCK_CONFIG = {
-  calentamiento:  { label: "Calentamiento",    emoji: "🔥", color: "#F59E0B" },
-  principal:      { label: "Bloque principal", emoji: "💪", color: "#3B82F6" },
-  complementario: { label: "Complementario",  emoji: "🎯", color: "#8B5CF6" },
-  vuelta_calma:   { label: "Vuelta a la calma", emoji: "😌", color: "#10B981" },
+  calentamiento:  { label: "Calentamiento",    Icon: Flame,    color: "#F59E0B" },
+  principal:      { label: "Bloque principal", Icon: Dumbbell, color: "#3B82F6" },
+  complementario: { label: "Complementario",  Icon: Target,   color: "#8B5CF6" },
+  vuelta_calma:   { label: "Vuelta a la calma", Icon: Wind,   color: "#10B981" },
 };
 
 function SessionCard({ session, accentColor, sessionNumber, dayLabel }) {
@@ -260,13 +262,13 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel }) {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label:"Duración",   value:session.duration  || "60 min", icon:"⏱️" },
-                    { label:"Tipo",       value:session.type       || "General", icon:"🏃" },
-                    { label:"Intensidad", value:session.intensity || "Media",   icon:"🔋" },
-                    { label:"Ejercicios", value:`${blocks.reduce((a,b)=>a+b.exercises.length,0)} tareas`, icon:"📋" },
-                  ].map(({ label, value, icon }) => (
+                    { label:"Duración",   value:session.duration  || "60 min", Icon: Clock },
+                    { label:"Tipo",       value:session.type       || "General", Icon: Activity },
+                    { label:"Intensidad", value:session.intensity || "Media",   Icon: Flame },
+                    { label:"Ejercicios", value:`${blocks.reduce((a,b)=>a+b.exercises.length,0)} tareas`, Icon: Layers },
+                  ].map(({ label, value, Icon: MIcon }) => (
                     <div key={label} className="bg-depro-gray-light rounded-xl p-4 border border-depro-border">
-                      <div className="text-xl mb-1">{icon}</div>
+                      <MIcon size={16} className="mb-2" style={{ color: accentColor }} />
                       <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{label}</div>
                       <div className="text-sm font-black text-depro-dark mt-0.5">{value}</div>
                     </div>
@@ -275,13 +277,17 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel }) {
                 {/* Vista rápida de bloques */}
                 <div className="space-y-2">
                   {blocks.map((b) => {
-                    const cfg = BLOCK_CONFIG[b.type] || { label: b.label, emoji: "📌", color: accentColor };
+                    const cfg = BLOCK_CONFIG[b.type] || { label: b.label, Icon: Layers, color: accentColor };
+                    const BIcon = cfg.Icon;
                     return (
                       <div key={b.type}
                         onClick={() => setActiveBlock(b.type)}
                         className="flex items-center justify-between p-3 rounded-xl border border-depro-border bg-depro-gray-light hover:bg-depro-blue-light cursor-pointer transition-colors">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base">{cfg.emoji}</span>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: cfg.color + "18" }}>
+                            <BIcon size={13} style={{ color: cfg.color }} />
+                          </div>
                           <span className="text-sm font-bold text-depro-dark">{cfg.label}</span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -313,15 +319,23 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel }) {
             {["calentamiento","principal","complementario","vuelta_calma"].map((blockType) => {
               if (activeBlock !== blockType) return null;
               const block = getBlock(blockType);
-              const cfg = BLOCK_CONFIG[blockType];
+              const cfg = BLOCK_CONFIG[blockType] || { label: blockType, Icon: Layers, color: accentColor };
+              const BIcon = cfg.Icon;
               return (
                 <div key={blockType} className="space-y-4">
-                  <div className="flex items-center gap-2 p-4 rounded-2xl border"
+                  <div className="flex items-center gap-3 p-4 rounded-2xl border"
                     style={{ backgroundColor: cfg.color + "08", borderColor: cfg.color + "25" }}>
-                    <span className="text-3xl">{cfg.emoji}</span>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border"
+                      style={{ backgroundColor: cfg.color + "18", borderColor: cfg.color + "25" }}>
+                      <BIcon size={20} style={{ color: cfg.color }} />
+                    </div>
                     <div>
                       <div className="font-black text-depro-dark">{cfg.label}</div>
-                      {block.duration && <div className="text-xs text-depro-gray">⏱ {block.duration}</div>}
+                      {block.duration && (
+                        <div className="flex items-center gap-1 text-xs text-depro-gray mt-0.5">
+                          <Clock size={10} /> {block.duration}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <BlockExerciseList exercises={block.exercises} accentColor={cfg.color} onSelect={setSelectedEx} />
@@ -637,59 +651,59 @@ function getSessionType(intensity) {
   return "A";
 }
 const ST = {
-  A: { label: "Extensiva",  color: "#3B82F6", bg: "#EFF6FF", emoji: "🔵" },
-  B: { label: "Intensiva",  color: "#F59E0B", bg: "#FFFBEB", emoji: "🟡" },
-  C: { label: "Reactiva",   color: "#EF4444", bg: "#FEF2F2", emoji: "🔴" },
+  A: { label: "Extensiva",  color: "#3B82F6", bg: "#EFF6FF", Icon: Activity },
+  B: { label: "Intensiva",  color: "#F59E0B", bg: "#FFFBEB", Icon: Flame },
+  C: { label: "Reactiva",   color: "#EF4444", bg: "#FEF2F2", Icon: Zap },
 };
 const WARMUP_GUIDE_ITEMS = [
-  { icon: "⚽", title: "Con balón",         text: "Posesión simple, rueda o rondo de activación" },
-  { icon: "🔄", title: "Tarea integrada",   text: "Rondo, conservación o circuito técnico corto" },
-  { icon: "📐", title: "Espacio",           text: "Zona media del campo · Sin presión inicial" },
-  { icon: "👥", title: "Participación",     text: "Todo el equipo desde el minuto 1" },
-  { icon: "⏱️", title: "Duración",          text: "10–15 min · Escalado gradual hasta ritmo medio" },
-  { icon: "❌", title: "Evitar",            text: "Sprints sin balón, ejercicios estáticos, carga en frío" },
+  { Icon: Activity,  title: "Con balón",       text: "Posesión simple, rueda o rondo de activación" },
+  { Icon: Repeat2,   title: "Tarea integrada", text: "Rondo, conservación o circuito técnico corto" },
+  { Icon: Maximize2, title: "Espacio",         text: "Zona media del campo · Sin presión inicial" },
+  { Icon: Users,     title: "Participación",   text: "Todo el equipo desde el minuto 1" },
+  { Icon: Clock,     title: "Duración",        text: "10–15 min · Escalado gradual hasta ritmo medio" },
+  { Icon: Ban,       title: "Evitar",          text: "Sprints sin balón, ejercicios estáticos, carga en frío" },
 ];
 const PROTOCOL_INFO = {
   A: [
-    { emoji: "🎯", label: "Qué haremos",   value: "Trabajo de volumen y dominio colectivo" },
-    { emoji: "💡", label: "Por qué",        value: "Construir base técnica sin sobrecargar el SNC" },
-    { emoji: "⏱️", label: "Duración",       value: "Series largas · 8–12 min de trabajo" },
-    { emoji: "🔋", label: "Intensidad",     value: "60–70% · Ritmo controlado" },
-    { emoji: "⚠️", label: "Sub-12",         value: "Reducir series 20% · Sin impacto articular" },
+    { Icon: Target,       label: "Qué haremos",  value: "Trabajo de volumen y dominio colectivo" },
+    { Icon: BookOpen,     label: "Por qué",       value: "Construir base técnica sin sobrecargar el SNC" },
+    { Icon: Clock,        label: "Duración",      value: "Series largas · 8–12 min de trabajo" },
+    { Icon: Activity,     label: "Intensidad",    value: "60–70% · Ritmo controlado" },
+    { Icon: ShieldCheck,  label: "Sub-12",        value: "Reducir series 20% · Sin impacto articular" },
   ],
   B: [
-    { emoji: "🎯", label: "Qué haremos",   value: "Alta exigencia en espacios reducidos" },
-    { emoji: "💡", label: "Por qué",        value: "Mejorar decisión bajo presión y velocidad de ejecución" },
-    { emoji: "⏱️", label: "Duración",       value: "Bloques cortos · 4–6 min de trabajo" },
-    { emoji: "🔋", label: "Intensidad",     value: "80–90% · Ritmo muy elevado" },
-    { emoji: "⚠️", label: "Sub-14",         value: "Máx. 85% FCmax · Vigilar carga articular" },
+    { Icon: Target,       label: "Qué haremos",  value: "Alta exigencia en espacios reducidos" },
+    { Icon: BookOpen,     label: "Por qué",       value: "Mejorar decisión bajo presión y velocidad" },
+    { Icon: Clock,        label: "Duración",      value: "Bloques cortos · 4–6 min de trabajo" },
+    { Icon: Flame,        label: "Intensidad",    value: "80–90% · Ritmo muy elevado" },
+    { Icon: ShieldCheck,  label: "Sub-14",        value: "Máx. 85% FCmax · Vigilar carga articular" },
   ],
   C: [
-    { emoji: "🎯", label: "Qué haremos",   value: "Acciones explosivas y velocidad reactiva máxima" },
-    { emoji: "💡", label: "Por qué",        value: "Activar el SNC y mejorar la velocidad de reacción" },
-    { emoji: "⏱️", label: "Duración",       value: "Ráfagas cortas · 2–4 min · Descanso 3–5 min" },
-    { emoji: "🔋", label: "Intensidad",     value: "100% · Sin reservas · Máximo esfuerzo" },
-    { emoji: "⚠️", label: "Sub-16",         value: "Calentamiento mínimo 15 min · Riesgo lesional" },
+    { Icon: Target,       label: "Qué haremos",  value: "Acciones explosivas y velocidad reactiva máxima" },
+    { Icon: BookOpen,     label: "Por qué",       value: "Activar el SNC y mejorar la velocidad de reacción" },
+    { Icon: Timer,        label: "Duración",      value: "Ráfagas cortas · 2–4 min · Descanso 3–5 min" },
+    { Icon: Zap,          label: "Intensidad",    value: "100% · Sin reservas · Máximo esfuerzo" },
+    { Icon: ShieldCheck,  label: "Sub-16",        value: "Calentamiento mínimo 15 min · Riesgo lesional" },
   ],
 };
 const DAY_RECS = {
   A: [
-    { emoji: "📐", text: "Espacios amplios para circulación fluida" },
-    { emoji: "🔁", text: "Alta repetición con baja presión temporal" },
-    { emoji: "⏳", text: "Descansos largos entre series, sin prisa" },
-    { emoji: "🤝", text: "Participación colectiva: todo el equipo junto" },
+    { Icon: Maximize2, text: "Espacios amplios para circulación fluida" },
+    { Icon: Repeat2,   text: "Alta repetición con baja presión temporal" },
+    { Icon: Clock,     text: "Descansos largos entre series, sin prisa" },
+    { Icon: Users,     text: "Participación colectiva: todo el equipo junto" },
   ],
   B: [
-    { emoji: "📐", text: "Espacios reducidos para forzar decisiones rápidas" },
-    { emoji: "👥", text: "Grupos pequeños → máxima participación individual" },
-    { emoji: "⚡", text: "Bloques cortos de alta exigencia sin pausa" },
-    { emoji: "🎯", text: "Presión constante sobre el portador del balón" },
+    { Icon: Route,     text: "Espacios reducidos para forzar decisiones rápidas" },
+    { Icon: Users,     text: "Grupos pequeños → máxima participación individual" },
+    { Icon: Zap,       text: "Bloques cortos de alta exigencia sin pausa" },
+    { Icon: Target,    text: "Presión constante sobre el portador del balón" },
   ],
   C: [
-    { emoji: "💨", text: "Acciones de 2–4 seg con arranque máximo" },
-    { emoji: "🛑", text: "Recuperación generosa para mantener calidad" },
-    { emoji: "🔀", text: "Cambios de dirección y velocidad al máximo" },
-    { emoji: "😴", text: "El descanso define la calidad de cada acción" },
+    { Icon: TrendingUp, text: "Acciones de 2–4 seg con arranque máximo" },
+    { Icon: Timer,      text: "Recuperación generosa para mantener calidad" },
+    { Icon: Activity,   text: "Cambios de dirección y velocidad al máximo" },
+    { Icon: Sun,        text: "El descanso define la calidad de cada acción" },
   ],
 };
 const TASK_TYPES = [
@@ -730,6 +744,7 @@ function DisenarTareas({ accentColor, sessionType = "A" }) {
   const [dropOpen, setDropOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(TASK_TYPES[0]);
   const st = ST[sessionType];
+  const StIcon = st.Icon;
   const params = BASE_PARAMS[sessionType];
   const cues = (TASK_CUES[selectedTask] || DEFAULT_CUES)[sessionType];
   const recs = DAY_RECS[sessionType];
@@ -770,9 +785,14 @@ function DisenarTareas({ accentColor, sessionType = "A" }) {
         className="w-full rounded-2xl p-8 flex flex-col items-center justify-center border"
         style={{ background: `linear-gradient(135deg, ${st.bg} 0%, ${st.color}18 100%)`, borderColor: st.color + "30" }}
       >
-        <div className="text-5xl mb-3">⚽</div>
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 border"
+          style={{ backgroundColor: st.color + "20", borderColor: st.color + "30" }}>
+          <StIcon size={30} style={{ color: st.color }} />
+        </div>
         <div className="text-2xl font-black text-center" style={{ color: st.color }}>{selectedTask}</div>
-        <div className="text-xs text-depro-gray mt-1.5">{st.emoji} Sesión {st.label}</div>
+        <div className="flex items-center gap-1 text-xs text-depro-gray mt-1.5">
+          <StIcon size={10} style={{ color: st.color }} /> Sesión {st.label}
+        </div>
       </div>
 
       {/* Parámetros condicionales */}
@@ -816,16 +836,22 @@ function DisenarTareas({ accentColor, sessionType = "A" }) {
 
       {/* Recomendaciones del día */}
       <div className="bg-depro-gray-light rounded-2xl p-4 border border-depro-border">
-        <div className="text-xs font-bold text-depro-dark mb-3">
-          📋 Recomendaciones del día · Sesión {st.label}
+        <div className="flex items-center gap-1.5 text-xs font-bold text-depro-dark mb-3">
+          <ListChecks size={13} style={{ color: st.color }} /> Recomendaciones del día · Sesión {st.label}
         </div>
-        <div className="space-y-2">
-          {recs.map((r, i) => (
-            <div key={i} className="flex items-center gap-2.5 text-xs text-depro-dark">
-              <span className="text-base">{r.emoji}</span>
-              <span className="leading-snug">{r.text}</span>
-            </div>
-          ))}
+        <div className="space-y-2.5">
+          {recs.map((r, i) => {
+            const RIcon = r.Icon;
+            return (
+              <div key={i} className="flex items-center gap-2.5 text-xs text-depro-dark">
+                <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: st.color + "15" }}>
+                  <RIcon size={11} style={{ color: st.color }} />
+                </div>
+                <span className="leading-snug">{r.text}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -890,120 +916,149 @@ function ExerciseCardClub({ ex, ytId, accentColor }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   CLUB — SESIÓN con 4 bloques: Resumen / Calentamiento /
-          Protocolo / Diseñador de tareas
+   CLUB — SESIÓN con 4 bloques (diseño profesional, sin emojis)
 ═══════════════════════════════════════════════════════════ */
 function ClubSessionCard({ session, accentColor, sessionNumber }) {
-  const [expanded, setExpanded]     = useState(false);
+  const [expanded, setExpanded]       = useState(false);
   const [activeBlock, setActiveBlock] = useState("resumen");
-  const [completion, setCompletion] = useState(session.completion ?? 0);
+  const [completion, setCompletion]   = useState(session.completion ?? 0);
 
   const sessionType = getSessionType(session.intensity);
   const st          = ST[sessionType];
+  const StIcon      = st.Icon;
   const exercises   = session.exercises || [];
   const warmupYtId  = getYouTubeId(session.warmupVideoUrl)   || getYouTubeId(exercises[0]?.videoUrl) || null;
   const protoYtId   = getYouTubeId(session.protocolVideoUrl) || getYouTubeId(exercises[1]?.videoUrl) || warmupYtId;
 
   const BLOCKS = [
-    { id:"resumen",       label:"Resumen" },
-    { id:"calentamiento", label:"Calentamiento" },
-    { id:"protocolo",     label:"Protocolo" },
-    { id:"tareas",        label:"Diseñar tareas" },
+    { id:"resumen",       label:"Resumen",        Icon: BarChart2 },
+    { id:"calentamiento", label:"Calentamiento",  Icon: Flame },
+    { id:"protocolo",     label:"Protocolo",      Icon: ListChecks },
+    { id:"tareas",        label:"Diseñar tareas", Icon: PencilRuler },
   ];
 
   return (
     <div className="bg-white border border-depro-border rounded-2xl overflow-hidden shadow-card">
       {/* ── Header cerrado ── */}
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left">
-        <div className="p-5 flex items-start gap-4 hover:bg-depro-gray-light/40 transition-colors">
-          <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl font-black"
-            style={{ backgroundColor: st.bg, color: st.color }}
-          >
+        <div className="p-5 flex items-center gap-4 hover:bg-depro-gray-light/30 transition-colors">
+          {/* Chip sesión */}
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl font-black border"
+            style={{ backgroundColor: st.bg, color: st.color, borderColor: st.color + "30" }}>
             {sessionNumber || "•"}
           </div>
+
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-depro-gray">{session.day}</span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: st.color + "15", color: st.color }}>
-                {st.emoji} {st.label}
+            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+              {session.day && <span className="text-[10px] font-bold uppercase tracking-wider text-depro-gray">{session.day}</span>}
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                style={{ backgroundColor: st.bg, color: st.color, borderColor: st.color + "30" }}>
+                <StIcon size={9} /> {st.label}
               </span>
-              {completion === 100 && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700">Completada ✓</span>}
+              {completion === 100 && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">
+                  <CheckCircle size={9} /> Completada
+                </span>
+              )}
             </div>
-            <h3 className="font-black text-depro-dark text-base mb-1">Sesión {sessionNumber}</h3>
-            <div className="flex flex-wrap gap-3 text-xs text-depro-gray">
-              {session.duration  && <span>⏱ {session.duration}</span>}
-              {session.intensity && <span>🔋 {session.intensity}</span>}
-              {exercises.length > 0 && <span>📋 {exercises.length} ejercicio{exercises.length !== 1 ? "s" : ""}</span>}
+            <h3 className="font-black text-depro-dark text-base leading-none mb-2">Sesión {sessionNumber}</h3>
+            <div className="flex flex-wrap items-center gap-3">
+              {session.duration && (
+                <span className="inline-flex items-center gap-1 text-xs text-depro-gray">
+                  <Clock size={11} className="text-depro-gray" /> {session.duration}
+                </span>
+              )}
+              {session.intensity && (
+                <span className="inline-flex items-center gap-1 text-xs text-depro-gray">
+                  <Activity size={11} className="text-depro-gray" /> {session.intensity}
+                </span>
+              )}
+              {exercises.length > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs text-depro-gray">
+                  <Layers size={11} className="text-depro-gray" /> {exercises.length} ejercicio{exercises.length !== 1 ? "s" : ""}
+                </span>
+              )}
             </div>
           </div>
+
           <div className="flex-shrink-0 text-depro-gray">
             {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </div>
         </div>
+
+        {/* Barra cumplimiento */}
         <div className="px-5 pb-4">
-          <div className="flex items-center justify-between text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-1.5">
-            <span>Cumplimiento</span>
-            <span style={{ color: completion === 100 ? "#16A34A" : accentColor }}>{completion}%</span>
+          <div className="flex items-center justify-between text-[10px] font-semibold text-depro-gray uppercase tracking-wide mb-1.5">
+            <span>Cumplimiento del equipo</span>
+            <span className="font-black" style={{ color: completion === 100 ? "#16A34A" : accentColor }}>{completion}%</span>
           </div>
-          <div className="h-1.5 bg-depro-gray-light rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all"
+          <div className="h-1 bg-depro-gray-light rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-300"
               style={{ width:`${completion}%`, backgroundColor: completion === 100 ? "#16A34A" : accentColor }} />
           </div>
         </div>
       </button>
 
-      {/* ── Bloques expandidos ── */}
+      {/* ── Expandido ── */}
       {expanded && (
         <div className="border-t border-depro-border">
           {/* Tabs */}
-          <div className="flex border-b border-depro-border bg-depro-gray-light/40 overflow-x-auto">
-            {BLOCKS.map((b) => (
-              <button
-                key={b.id}
-                onClick={() => setActiveBlock(b.id)}
-                className={`flex-shrink-0 px-4 py-3 text-xs font-bold transition-colors border-b-2 ${
-                  activeBlock === b.id
-                    ? "border-current text-depro-blue bg-white"
-                    : "border-transparent text-depro-gray hover:text-depro-dark"
-                }`}
-              >
-                {b.label}
-              </button>
-            ))}
+          <div className="flex border-b border-depro-border overflow-x-auto">
+            {BLOCKS.map((b) => {
+              const BIcon = b.Icon;
+              return (
+                <button key={b.id} onClick={() => setActiveBlock(b.id)}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-bold transition-colors border-b-2 ${
+                    activeBlock === b.id
+                      ? "border-depro-blue text-depro-blue bg-depro-blue-light/30"
+                      : "border-transparent text-depro-gray hover:text-depro-dark bg-white"
+                  }`}>
+                  <BIcon size={12} />
+                  {b.label}
+                </button>
+              );
+            })}
           </div>
 
           <div className="p-5">
 
-            {/* ─── BLOQUE 1: RESUMEN ─── */}
+            {/* ── RESUMEN ── */}
             {activeBlock === "resumen" && (
               <div className="space-y-4">
-                <div className="rounded-2xl p-5 flex items-center gap-4"
-                  style={{ background:`linear-gradient(135deg,${st.bg} 0%,white 100%)`, border:`1px solid ${st.color}25` }}>
-                  <div className="text-5xl font-black leading-none" style={{ color: st.color }}>{sessionNumber}</div>
+                {/* Hero tipo sesión */}
+                <div className="rounded-2xl p-5 flex items-center gap-5 border"
+                  style={{ background:`linear-gradient(135deg,${st.bg} 0%,white 80%)`, borderColor: st.color + "25" }}>
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border"
+                    style={{ backgroundColor: st.color + "18", borderColor: st.color + "30" }}>
+                    <StIcon size={28} style={{ color: st.color }} />
+                  </div>
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-0.5">Sesión del día</div>
-                    <div className="font-black text-depro-dark text-xl">Sesión {sessionNumber}</div>
-                    <div className="text-sm font-semibold mt-0.5" style={{ color: st.color }}>{st.emoji} {st.label}</div>
+                    <div className="font-black text-depro-dark text-2xl leading-none">Sesión {sessionNumber}</div>
+                    <div className="text-sm font-semibold mt-1" style={{ color: st.color }}>{st.label}</div>
                   </div>
                 </div>
+
+                {/* Métricas */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label:"Duración",   value:session.duration   || "—", icon:"⏱️" },
-                    { label:"Intensidad", value:session.intensity  || "—", icon:"🔋" },
-                    { label:"Dinámica",   value:st.label,                   icon:st.emoji },
-                    { label:"Ejercicios", value:`${exercises.length} tareas`, icon:"📋" },
-                  ].map(({ label, value, icon }) => (
+                    { label:"Duración",   value:session.duration   || "—", Icon: Clock },
+                    { label:"Intensidad", value:session.intensity  || "—", Icon: Activity },
+                    { label:"Dinámica",   value:st.label,                   Icon: StIcon },
+                    { label:"Ejercicios", value:`${exercises.length} tareas`, Icon: Layers },
+                  ].map(({ label, value, Icon: MIcon }) => (
                     <div key={label} className="bg-depro-gray-light rounded-xl p-4 border border-depro-border">
-                      <div className="text-xl mb-1">{icon}</div>
+                      <MIcon size={16} className="mb-2" style={{ color: accentColor }} />
                       <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{label}</div>
                       <div className="text-sm font-black text-depro-dark mt-0.5">{value}</div>
                     </div>
                   ))}
                 </div>
-                <div className="rounded-xl p-4 border border-depro-border space-y-3">
+
+                {/* Slider cumplimiento */}
+                <div className="rounded-xl p-4 border border-depro-border space-y-3 bg-depro-gray-light/30">
                   <div className="flex items-center justify-between text-xs font-bold text-depro-dark">
-                    <span>% completado por el equipo</span>
+                    <span className="flex items-center gap-1.5"><TrendingUp size={13} style={{ color: accentColor }} /> % completado por el equipo</span>
                     <span style={{ color: accentColor }}>{completion}%</span>
                   </div>
                   <input type="range" min="0" max="100" step="5" value={completion}
@@ -1012,17 +1067,17 @@ function ClubSessionCard({ session, accentColor, sessionNumber }) {
                   <button onClick={() => setCompletion(100)}
                     className="w-full py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: accentColor }}>
-                    <CheckCircle size={15} /> Marcar como completada (100%)
+                    <CheckCircle size={14} /> Marcar como completada (100%)
                   </button>
                 </div>
               </div>
             )}
 
-            {/* ─── BLOQUE 2: CALENTAMIENTO ─── */}
+            {/* ── CALENTAMIENTO ── */}
             {activeBlock === "calentamiento" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* LEFT: vídeo */}
+                  {/* Video */}
                   <div>
                     {warmupYtId ? (
                       <div className="rounded-2xl overflow-hidden border border-depro-border">
@@ -1031,39 +1086,47 @@ function ClubSessionCard({ session, accentColor, sessionNumber }) {
                           allowFullScreen className="w-full aspect-video" />
                       </div>
                     ) : (
-                      <div className="aspect-video rounded-2xl bg-depro-gray-light border border-dashed border-depro-border flex items-center justify-center">
-                        <div className="text-center"><div className="text-4xl mb-2">▶️</div>
-                          <p className="text-xs text-depro-gray">Sin vídeo de calentamiento</p></div>
+                      <div className="aspect-video rounded-2xl bg-depro-gray-light border border-dashed border-depro-border flex flex-col items-center justify-center gap-2">
+                        <Video size={28} className="text-depro-gray opacity-40" />
+                        <p className="text-xs text-depro-gray">Sin vídeo de calentamiento</p>
                       </div>
                     )}
                   </div>
-                  {/* RIGHT: info */}
+                  {/* Guía */}
                   <div className="space-y-3">
                     {exercises[0] && (
                       <div className="bg-white border border-depro-border rounded-xl p-4">
-                        <div className="text-[10px] font-bold uppercase tracking-wide text-depro-blue mb-2">A · Propuesto por el preparador</div>
-                        <div className="font-bold text-depro-dark">{exercises[0].name}</div>
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          {exercises[0].sets && <span className="text-[10px] bg-depro-gray-light px-2 py-1 rounded-md">{exercises[0].sets} series</span>}
-                          {exercises[0].reps && <span className="text-[10px] bg-depro-gray-light px-2 py-1 rounded-md">{exercises[0].reps}</span>}
-                          {exercises[0].rest && <span className="text-[10px] bg-depro-gray-light px-2 py-1 rounded-md">Desc: {exercises[0].rest}</span>}
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-depro-blue mb-2">
+                          <Flame size={10} /> A · Propuesto por el preparador
+                        </div>
+                        <div className="font-bold text-depro-dark text-sm">{exercises[0].name}</div>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {exercises[0].sets && <span className="inline-flex items-center gap-1 text-[10px] bg-depro-gray-light px-2 py-1 rounded-md"><Layers size={9} /> {exercises[0].sets} series</span>}
+                          {exercises[0].reps && <span className="inline-flex items-center gap-1 text-[10px] bg-depro-gray-light px-2 py-1 rounded-md"><Repeat2 size={9} /> {exercises[0].reps}</span>}
+                          {exercises[0].rest && <span className="inline-flex items-center gap-1 text-[10px] bg-depro-gray-light px-2 py-1 rounded-md"><Timer size={9} /> {exercises[0].rest}</span>}
                         </div>
                       </div>
                     )}
                     <div className="bg-white border border-depro-border rounded-xl p-4">
-                      <div className="text-[10px] font-bold uppercase tracking-wide mb-3" style={{ color: accentColor }}>
-                        B · Guía para calentamiento integrado
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide mb-3" style={{ color: accentColor }}>
+                        <BookOpen size={10} /> B · Guía calentamiento integrado
                       </div>
-                      <div className="space-y-2">
-                        {WARMUP_GUIDE_ITEMS.map((item) => (
-                          <div key={item.title} className="flex items-start gap-2">
-                            <span className="text-base flex-shrink-0">{item.icon}</span>
-                            <div>
-                              <span className="text-xs font-bold text-depro-dark">{item.title}: </span>
-                              <span className="text-xs text-depro-gray">{item.text}</span>
+                      <div className="space-y-2.5">
+                        {WARMUP_GUIDE_ITEMS.map((item) => {
+                          const WIcon = item.Icon;
+                          return (
+                            <div key={item.title} className="flex items-start gap-2.5">
+                              <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                                style={{ backgroundColor: accentColor + "12" }}>
+                                <WIcon size={11} style={{ color: accentColor }} />
+                              </div>
+                              <div>
+                                <span className="text-xs font-bold text-depro-dark">{item.title}: </span>
+                                <span className="text-xs text-depro-gray">{item.text}</span>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1071,11 +1134,10 @@ function ClubSessionCard({ session, accentColor, sessionNumber }) {
               </div>
             )}
 
-            {/* ─── BLOQUE 3: PROTOCOLO ─── */}
+            {/* ── PROTOCOLO ── */}
             {activeBlock === "protocolo" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* LEFT: vídeo + ejercicios */}
                   <div className="space-y-3">
                     {protoYtId ? (
                       <div className="rounded-2xl overflow-hidden border border-depro-border">
@@ -1084,15 +1146,15 @@ function ClubSessionCard({ session, accentColor, sessionNumber }) {
                           allowFullScreen className="w-full aspect-video" />
                       </div>
                     ) : (
-                      <div className="aspect-video rounded-2xl bg-depro-gray-light border border-dashed border-depro-border flex items-center justify-center">
-                        <div className="text-center"><div className="text-4xl mb-2">▶️</div>
-                          <p className="text-xs text-depro-gray">Sin vídeo de protocolo</p></div>
+                      <div className="aspect-video rounded-2xl bg-depro-gray-light border border-dashed border-depro-border flex flex-col items-center justify-center gap-2">
+                        <Video size={28} className="text-depro-gray opacity-40" />
+                        <p className="text-xs text-depro-gray">Sin vídeo de protocolo</p>
                       </div>
                     )}
                     {exercises.length > 0 && (
                       <div className="space-y-2">
-                        <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray">
-                          Ejercicios de la sesión
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-depro-gray">
+                          <Layers size={10} /> Ejercicios de la sesión
                         </div>
                         {exercises.map((ex, i) => (
                           <ExerciseCardClub key={i} ex={ex} ytId={getYouTubeId(ex.videoUrl)} accentColor={accentColor} />
@@ -1100,30 +1162,37 @@ function ClubSessionCard({ session, accentColor, sessionNumber }) {
                       </div>
                     )}
                   </div>
-                  {/* RIGHT: protocolo info */}
                   <div>
-                    <div className="bg-white border border-depro-border rounded-xl p-4 space-y-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: st.color + "15", color: st.color }}>
-                          {st.emoji} Protocolo · Sesión {st.label}
-                        </span>
-                      </div>
-                      {PROTOCOL_INFO[sessionType].map((item) => (
-                        <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-depro-gray-light border border-depro-border">
-                          <span className="text-2xl flex-shrink-0">{item.emoji}</span>
-                          <div>
-                            <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{item.label}</div>
-                            <div className="text-sm font-semibold text-depro-dark mt-0.5">{item.value}</div>
-                          </div>
+                    <div className="bg-white border border-depro-border rounded-xl p-4 space-y-2.5">
+                      <div className="flex items-center gap-2 pb-2 border-b border-depro-border">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: st.color + "15" }}>
+                          <StIcon size={14} style={{ color: st.color }} />
                         </div>
-                      ))}
+                        <span className="text-xs font-bold text-depro-dark">Protocolo · Sesión {st.label}</span>
+                      </div>
+                      {PROTOCOL_INFO[sessionType].map((item) => {
+                        const PIcon = item.Icon;
+                        return (
+                          <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-depro-gray-light border border-depro-border">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: st.color + "15" }}>
+                              <PIcon size={13} style={{ color: st.color }} />
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{item.label}</div>
+                              <div className="text-sm font-semibold text-depro-dark mt-0.5">{item.value}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ─── BLOQUE 4: DISEÑADOR DE TAREAS ─── */}
+            {/* ── DISEÑAR TAREAS ── */}
             {activeBlock === "tareas" && (
               <DisenarTareas accentColor={accentColor} sessionType={sessionType} />
             )}
