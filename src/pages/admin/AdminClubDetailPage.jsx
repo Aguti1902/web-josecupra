@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { loadClubs, saveClubDetail, loadClubDetail, createClubUser } from "../../lib/adminStorage";
 
+
 const Youtube = PlayCircle;
 
 const ROLES = [
@@ -1226,7 +1227,6 @@ export default function AdminClubDetailPage() {
   const navigate = useNavigate();
 
   const [club, setClub]             = useState(null);
-  const [mediaLibrary, setMediaLibrary] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [activeTab, setActiveTab]   = useState("planificacion");
   const [showNewTeam, setShowNewTeam] = useState(false);
@@ -1239,19 +1239,24 @@ export default function AdminClubDetailPage() {
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
 
   useEffect(() => {
-    Promise.all([loadClubs(), loadMedia()]).then(([clubs, meds]) => {
+    loadClubs().then((clubs) => {
       const found = clubs.find((c) => c.id === id);
       if (found) {
-        // Intentar cargar detalles guardados
         const detail = loadClubDetail(id);
-        setClub({ teams: [], users: [], mediaAssigned: [], ...found, ...(detail || {}) });
-        setPlans(detail?.plans || []);
+        const merged = {
+          mediaAssigned: [],
+          ...found,
+          ...(detail || {}),
+        };
+        merged.teams = Array.isArray(merged.teams) ? merged.teams : [];
+        merged.users = Array.isArray(merged.users) ? merged.users : [];
+        setClub(merged);
+        setPlans(detail?.plans || found.plans || []);
       } else {
         setClub(null);
       }
-      setMediaLibrary(meds);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [id]);
 
   // Persistir cambios del club cuando cambia
@@ -1328,8 +1333,6 @@ export default function AdminClubDetailPage() {
   const toggleUserActive = (uid) =>
     updateClub((c) => ({ ...c, users: (c.users || []).map((u) => (u.id === uid ? { ...u, active: !u.active } : u)) }));
 
-  const assignedMedia = mediaLibrary.filter((m) => (club.mediaAssigned || []).includes(m.id));
-
   const updatePlans = (updater) => {
     setPlans((prev) => {
       const updated = typeof updater === "function" ? updater(prev) : updater;
@@ -1363,7 +1366,6 @@ export default function AdminClubDetailPage() {
       (club.teams || []).forEach((t) => { if (t.coach?.email) n++; });
       return n;
     })() },
-    { id: "medios", label: "Medios asignados", icon: Video, count: assignedMedia.length },
   ];
 
   const handleStatusToggle = async () => {
@@ -1793,46 +1795,6 @@ export default function AdminClubDetailPage() {
         </div>
       )}
 
-      {/* MEDIOS */}
-      {activeTab === "medios" && (
-        <div className="space-y-4">
-          <p className="text-sm text-depro-gray">
-            Archivos de la biblioteca global asignados a este club. Para añadir más, ve a{" "}
-            <button
-              onClick={() => navigate("/admin/media")}
-              className="text-depro-blue hover:underline font-medium"
-            >
-              Biblioteca de medios
-            </button>.
-          </p>
-
-          {assignedMedia.length === 0 ? (
-            <div className="text-center py-12 text-depro-gray border border-dashed border-depro-border rounded-2xl">
-              <Video size={32} className="mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Sin medios asignados a este club</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {assignedMedia.map((item) => (
-                <div key={item.id} className="bg-white border border-depro-border rounded-xl p-4 flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                    item.type === "video" ? "bg-depro-blue/10" : "bg-depro-red/10"
-                  }`}>
-                    {item.type === "video"
-                      ? <Video size={16} className="text-depro-blue" />
-                      : <FileText size={16} className="text-depro-red" />
-                    }
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-depro-dark text-sm leading-tight line-clamp-1">{item.title}</p>
-                    <p className="text-xs text-depro-gray mt-0.5">{item.size} · {item.uploadedAt}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {showNewTeam && <NewTeamModal onClose={() => setShowNewTeam(false)} onCreate={addTeam} clubId={club.id} />}
       {showNewUser && <NewUserModal teams={club.teams} clubId={club.id} onClose={() => setShowNewUser(false)} onCreate={addUser} />}

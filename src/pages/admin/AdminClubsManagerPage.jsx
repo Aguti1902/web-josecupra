@@ -327,10 +327,12 @@ export default function AdminClubsManagerPage() {
   const [copied, setCopied]         = useState(null);
 
   const enrichClubs = (data) => data.map((c) => {
-    let userCount = (c.users || []).length;
+    const teams = c.teams || [];
+    const users = c.users || [];
+    let userCount = users.length;
     if (c.coordinator?.email) userCount++;
-    (c.teams || []).forEach((t) => { if (t.coach?.email) userCount++; });
-    return { ...c, _userCount: userCount };
+    teams.forEach((t) => { if (t.coach?.email) userCount++; });
+    return { ...c, teams, users, _userCount: userCount };
   });
 
   const fetchClubs = async () => {
@@ -428,7 +430,7 @@ export default function AdminClubsManagerPage() {
           { label: "Total clubs", value: clubs.length, color: "text-depro-dark" },
           { label: "Activos", value: clubs.filter((c) => c.status === "activo").length, color: "text-green-600" },
           { label: "Pendientes", value: clubs.filter((c) => c.status === "pendiente").length, color: "text-yellow-600" },
-          { label: "Equipos totales", value: clubs.reduce((a, c) => a + c.teams.length, 0), color: "text-depro-blue" },
+          { label: "Equipos totales", value: clubs.reduce((a, c) => a + (c.teams || []).length, 0), color: "text-depro-blue" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white border border-depro-border rounded-xl p-4">
             <p className="text-xs text-depro-gray mb-1">{label}</p>
@@ -503,7 +505,7 @@ export default function AdminClubsManagerPage() {
                     )}
                     <span className="flex items-center gap-1">
                       <Users size={10} />
-                      {club.teams.length} equipo{club.teams.length !== 1 ? "s" : ""}
+                      {(club.teams || []).length} equipo{(club.teams || []).length !== 1 ? "s" : ""}
                     </span>
                     <span className="flex items-center gap-1">
                       <Shield size={10} />
