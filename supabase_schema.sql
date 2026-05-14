@@ -10,17 +10,32 @@ create extension if not exists "uuid-ossp";
 -- CLUBS
 -- ============================================================
 create table clubs (
-  id            uuid primary key default uuid_generate_v4(),
+  id            text primary key,
   name          text not null,
   abbreviation  text,
   city          text,
   country       text default 'España',
   founded       int,
-  status        text default 'pendiente' check (status in ('activo','pendiente','inactivo')),
-  plan          text default 'Básico' check (plan in ('Básico','Premium')),
-  login_code    text unique,
+  status        text default 'activo',
+  plan          text default 'Personalizado',
+  login_code    text,
+  coordinator   jsonb,
   created_at    timestamptz default now()
 );
+
+-- ============================================================
+-- CLUBS_DETAIL (identidad visual, equipos, planes, usuarios por club)
+-- Tabla JSONB para almacenar el detalle completo de cada club
+-- sin restricciones de schema rígido
+-- ============================================================
+create table if not exists clubs_detail (
+  club_id     text primary key,
+  data        jsonb not null default '{}',
+  updated_at  timestamptz default now()
+);
+
+-- Acceso libre para service role (sin RLS)
+alter table clubs_detail disable row level security;
 
 -- ============================================================
 -- TEAMS (equipos dentro de un club)

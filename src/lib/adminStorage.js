@@ -58,68 +58,88 @@ function genId() {
 }
 
 // ════════════════════════════════════════════════════════════
-// CLUBS
+// CLUBS  — Supabase (via serverless) es la fuente primaria
+//          localStorage actúa como caché offline
 // ════════════════════════════════════════════════════════════
+
+async function apiClubs(method, body) {
+  try {
+    const res = await fetch("/api/admin-clubs", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    if (res.ok) return await res.json();
+  } catch {}
+  return null;
+}
+
 export async function loadClubs() {
-  // localStorage es la fuente de verdad primaria
+  // 1. Intentar cargar desde Supabase via serverless (siempre actualizado)
+  const remote = await apiClubs("GET");
+  if (remote?.clubs && remote.clubs.length > 0) {
+    lsSet("depro_clubs", remote.clubs);
+    // Actualizar también los detalles en localStorage
+    remote.clubs.forEach((club) => {
+      if (club.teams || club.primaryColor || club.logo) {
+        const existing = lsGet(`depro_club_${club.id}`, null);
+        if (!existing) lsSet(`depro_club_${club.id}`, club);
+      }
+    });
+    return remote.clubs;
+  }
+
+  // 2. Fallback: localStorage (datos del dispositivo actual)
   const local = lsGet("depro_clubs", []);
   if (local.length > 0) return local;
 
-  // Solo si localStorage está vacío, intentamos Supabase
+  // 3. Último recurso: Supabase directo con anon key
   try {
     const { data, error } = await supabase
       .from("clubs")
       .select("*")
       .order("created_at", { ascending: false });
     if (!error && data && data.length > 0) {
-      const extended = lsGet("depro_clubs_ext", {});
-      const merged = data.map((c) => ({ ...c, ...extended[c.id] }));
-      lsSet("depro_clubs", merged);
-      return merged;
+      lsSet("depro_clubs", data);
+      return data;
     }
   } catch {}
-  return local;
+  return [];
 }
 
 export async function saveClub(clubData) {
-  const { id, teams, users, mediaAssigned, ...row } = clubData;
-
-  // Guardar siempre en localStorage (incluyendo datos extendidos)
-  const clubs = lsGet("depro_clubs", []);
-  if (id) {
-    const idx = clubs.findIndex((c) => c.id === id);
-    if (idx >= 0) clubs[idx] = clubData; else clubs.unshift(clubData);
-  } else {
-    const newClub = { ...clubData, id: genId(), created_at: new Date().toISOString() };
-    clubs.unshift(newClub);
-    clubData = newClub;
+  // Si no tiene id, generamos uno aquí (consistencia entre devices)
+  if (!clubData.id) {
+    clubData = { ...clubData, id: genId(), created_at: new Date().toISOString() };
   }
+  const { id, teams, users, mediaAssigned } = clubData;
+
+  // 1. Guardar en localStorage (caché inmediata)
+  const clubs = lsGet("depro_clubs", []);
+  const idx = clubs.findIndex((c) => c.id === id);
+  if (idx >= 0) clubs[idx] = clubData; else clubs.unshift(clubData);
   lsSet("depro_clubs", clubs);
 
-  // Guardar datos extendidos (equipos, usuarios) en clave separada
   const ext = lsGet("depro_clubs_ext", {});
-  ext[clubData.id] = { teams, users, mediaAssigned };
+  ext[id] = { teams, users, mediaAssigned };
   lsSet("depro_clubs_ext", ext);
 
-  // Intentar Supabase
-  try {
-    if (id) {
-      await supabase.from("clubs").update(row).eq("id", id);
-    } else {
-      await supabase.from("clubs").insert([row]);
-    }
-  } catch {}
+  // 2. Persistir en Supabase via serverless (disponible en todos los devices)
+  await apiClubs("POST", { club: clubData });
 
   return clubData;
 }
 
 export async function deleteClub(id) {
+  // localStorage
   const clubs = lsGet("depro_clubs", []).filter((c) => c.id !== id);
   lsSet("depro_clubs", clubs);
   const ext = lsGet("depro_clubs_ext", {});
   delete ext[id];
   lsSet("depro_clubs_ext", ext);
-  try { await supabase.from("clubs").delete().eq("id", id); } catch {}
+
+  // Supabase
+  await apiClubs("DELETE", { id });
 }
 
 // ════════════════════════════════════════════════════════════
@@ -132,7 +152,7 @@ export function loadClubDetail(clubId) {
 export function saveClubDetail(clubId, data) {
   lsSet(`depro_club_${clubId}`, data);
 
-  // Sincronizar identity (logo, colores, slogan) de vuelta a la lista principal de clubs
+  // Sincronizar identity de vuelta a la lista principal en localStorage
   const clubs = lsGet("depro_clubs", []);
   const idx = clubs.findIndex((c) => c.id === clubId);
   if (idx >= 0) {
@@ -148,10 +168,13 @@ export function saveClubDetail(clubId, data) {
     lsSet("depro_clubs", clubs);
   }
 
-  // Sincronizar en clubs_ext también
+  // Sincronizar en clubs_ext
   const ext = lsGet("depro_clubs_ext", {});
   ext[clubId] = { ...(ext[clubId] || {}), teams: data.teams, users: data.users, mediaAssigned: data.mediaAssigned };
   lsSet("depro_clubs_ext", ext);
+
+  // Persistir detalles en Supabase (incluye teams, identidad, planes)
+  apiClubs("POST", { club: { id: clubId, ...clubs[idx] }, detail: data }).catch(() => {});
 }
 
 // ════════════════════════════════════════════════════════════
