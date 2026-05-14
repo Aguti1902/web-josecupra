@@ -8,16 +8,17 @@ import { supabase } from "../../lib/supabase";
 
 // Comprime imagen de perfil a 200×200
 function compressAvatar(file) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
     reader.onload = (e) => {
       const img = new Image();
+      img.onerror = () => reject(new Error("No se pudo procesar la imagen"));
       img.onload = () => {
         const size = 200;
         const canvas = document.createElement("canvas");
         canvas.width = size; canvas.height = size;
         const ctx = canvas.getContext("2d");
-        // Recorte cuadrado centrado
         const min = Math.min(img.width, img.height);
         const sx  = (img.width  - min) / 2;
         const sy  = (img.height - min) / 2;
@@ -59,9 +60,14 @@ export default function ClubProfilePage() {
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const compressed = await compressAvatar(file);
-    setPhoto(compressed);
-    localStorage.setItem(`depro_club_profile_${user?.id}`, compressed);
+    try {
+      const compressed = await compressAvatar(file);
+      localStorage.setItem(`depro_club_profile_${user?.id}`, compressed);
+      setPhoto(compressed);
+      showMsg("ok", "Foto actualizada correctamente.");
+    } catch {
+      showMsg("error", "No se pudo procesar la imagen. Prueba con otra.");
+    }
   };
 
   const showMsg = (type, text) => {

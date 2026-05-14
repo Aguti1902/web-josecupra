@@ -670,18 +670,54 @@ function ClubSessionCard({ session, accentColor }) {
   );
 }
 
+// Normaliza un plan del admin al formato que espera ClubMicrocycles
+function normalizePlan(m) {
+  return {
+    ...m,
+    code:  m.code  || m.microcycle || "—",
+    range: m.range || m.dateRange  || "",
+    label: m.label || m.focus      || "",
+    sessions: (m.sessions || []).map((s) => ({ completion: 0, ...s })),
+  };
+}
+
 /* ─────────────────────────────────────────────
-   VISTA CLUB — Microciclos S.1, S.2, S.3, S.4
+   VISTA CLUB — Microciclos del admin
 ───────────────────────────────────────────── */
 function ClubMicrocycles({ accent }) {
   const { user } = useAuth();
-  const isCoordinator = user?.teamRole === "coordinador" || !user?.team;
+  const isCoordinator = user?.team_role === "coordinador" || !user?.team;
   const userTeamId = user?.team?.id ?? null;
+  const clubId = user?.club?.id ?? null;
 
-  // Filtrar microciclos según rol: coordinador ve todos, entrenador solo su equipo
+  // Cargar planes: primero user.club.plans (localStorage), luego API si está vacío
+  const [allPlans, setAllPlans] = useState(
+    () => (user?.club?.plans || []).map(normalizePlan)
+  );
+  useEffect(() => {
+    if (!clubId) return;
+    if (allPlans.length > 0) return; // ya tenemos datos
+    fetch("/api/admin-clubs")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data) return;
+        const club = (data.clubs || []).find((c) => c.id === clubId);
+        if (club?.plans?.length > 0) {
+          // Guardar en caché local
+          try {
+            const det = JSON.parse(localStorage.getItem(`depro_club_${clubId}`) || "{}");
+            localStorage.setItem(`depro_club_${clubId}`, JSON.stringify({ ...det, plans: club.plans }));
+          } catch {}
+          setAllPlans(club.plans.map(normalizePlan));
+        }
+      })
+      .catch(() => {});
+  }, [clubId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Filtrar: coordinador ve todos, entrenador solo su equipo
   const visiblePlans = isCoordinator
-    ? clubWeeklyPlan
-    : clubWeeklyPlan.filter((m) => m.teamId === userTeamId);
+    ? allPlans
+    : allPlans.filter((m) => !m.teamId || m.teamId === userTeamId);
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const micro = visiblePlans[selectedIdx] ?? visiblePlans[0];
@@ -689,6 +725,7 @@ function ClubMicrocycles({ accent }) {
   if (!micro) return (
     <div className="p-8 text-center text-depro-gray">
       <p className="font-medium">No hay microciclos asignados a tu equipo todavía.</p>
+      <p className="text-sm mt-1 opacity-60">El preparador los añadirá desde el panel de administración.</p>
     </div>
   );
 

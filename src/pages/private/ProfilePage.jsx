@@ -23,10 +23,12 @@ function contrastText(hex) { return lum(hex) > 0.55 ? "#111827" : "#ffffff"; }
 
 // Comprimir imagen a base64 (máx 200×200, JPEG 0.75)
 async function compressImage(file, maxPx = 200, quality = 0.75) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
     reader.onload = (e) => {
       const img = new Image();
+      img.onerror = () => reject(new Error("No se pudo procesar la imagen"));
       img.onload = () => {
         const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
         const w = Math.round(img.width  * scale);

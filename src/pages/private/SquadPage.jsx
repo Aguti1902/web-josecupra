@@ -31,7 +31,7 @@ const EMPTY_PLAYER = {
   age: "", weight: "", notes: "",
 };
 
-// ── Storage helpers ─────────────────────────────────────────
+// ── Storage helpers (localStorage + Supabase sync) ──────────
 function squadKey(clubId, teamId) {
   return `depro_squad_${clubId}_${teamId}`;
 }
@@ -40,7 +40,46 @@ function loadSquad(clubId, teamId) {
   catch { return []; }
 }
 function saveSquad(clubId, teamId, players) {
+  // 1. localStorage (inmediato)
   localStorage.setItem(squadKey(clubId, teamId), JSON.stringify(players));
+  // 2. Supabase (en segundo plano, sin bloquear)
+  syncSquadToSupabase(clubId, teamId, players).catch(() => {});
+}
+async function syncSquadToSupabase(clubId, teamId, players) {
+  try {
+    const r = await fetch("/api/admin-clubs");
+    if (!r.ok) return;
+    const data = await r.json();
+    const club = (data.clubs || []).find((c) => c.id === clubId);
+    if (!club) return;
+    const teams = (club.teams || []).map((t) =>
+      t.id === teamId ? { ...t, squad: players } : t
+    );
+    await fetch("/api/admin-clubs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ club: { ...club, teams } }),
+    });
+    // Actualizar caché local
+    const allClubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+    const idx = allClubs.findIndex((c) => c.id === clubId);
+    const updated = { ...club, teams };
+    if (idx >= 0) allClubs[idx] = updated; else allClubs.unshift(updated);
+    localStorage.setItem("depro_clubs", JSON.stringify(allClubs));
+    localStorage.setItem(`depro_club_${clubId}`, JSON.stringify(updated));
+  } catch (e) {
+    console.warn("[SquadPage] sync squad to Supabase failed:", e.message);
+  }
+}
+async function loadSquadFromSupabase(clubId, teamId) {
+  try {
+    const r = await fetch("/api/admin-clubs");
+    if (!r.ok) return null;
+    const data = await r.json();
+    const club = (data.clubs || []).find((c) => c.id === clubId);
+    const team = (club?.teams || []).find((t) => t.id === teamId);
+    return team?.squad || null;
+  } catch { return null; }
 }
 function genId() {
   return `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -358,16 +397,39 @@ export default function SquadPage() {
   const [teamError, setTeamError]       = useState(false);
   const [statsPlayer, setStatsPlayer]   = useState(null);
 
-  // ── Cargar plantillas manuales (localStorage) ─────────────
+  // ── Cargar plantillas (localStorage + Supabase) ────────────
   useEffect(() => {
     if (!clubId) return;
-    const loaded = {};
     const teamsToLoad = isCoord ? allTeams : (myTeam ? [myTeam] : []);
-    teamsToLoad.forEach((t) => {
-      loaded[t.id] = loadSquad(clubId, t.id);
-    });
-    setSquads(loaded);
-  }, [clubId, isCoord, myTeam, allTeams]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (teamsToLoad.length === 0) return;
+
+    // Carga inmediata desde localStorage
+    const fromLS = {};
+    teamsToLoad.forEach((t) => { fromLS[t.id] = loadSquad(clubId, t.id); });
+    setSquads(fromLS);
+
+    // Actualización desde Supabase (reemplaza si hay datos más recientes)
+    Promise.all(
+      teamsToLoad.map(async (t) => {
+        const remote = await loadSquadFromSupabase(clubId, t.id);
+        if (remote && remote.length > 0) {
+          // Guardar en localStorage y actualizar estado
+          localStorage.setItem(squadKey(clubId, t.id), JSON.stringify(remote));
+          return { id: t.id, squad: remote };
+        }
+        return null;
+      })
+    ).then((results) => {
+      const updates = results.filter(Boolean);
+      if (updates.length > 0) {
+        setSquads((prev) => {
+          const next = { ...prev };
+          updates.forEach(({ id, squad }) => { next[id] = squad; });
+          return next;
+        });
+      }
+    }).catch(() => {});
+  }, [clubId, isCoord]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cargar jugadores registrados desde Supabase ───────────
   useEffect(() => {
