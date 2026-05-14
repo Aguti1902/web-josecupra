@@ -18,6 +18,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { loadClubs, saveClub, deleteClub, createClubUser } from "../../lib/adminStorage";
+import { supabase } from "../../lib/supabase";
 
 function generatePassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -325,6 +326,8 @@ export default function AdminClubsManagerPage() {
   const [filterStatus, setFilterStatus] = useState("todos");
   const [showModal, setShowModal]   = useState(false);
   const [copied, setCopied]         = useState(null);
+  const [syncing, setSyncing]       = useState(false);
+  const [syncMsg, setSyncMsg]       = useState("");
 
   useEffect(() => {
     loadClubs().then((data) => {
@@ -372,6 +375,38 @@ export default function AdminClubsManagerPage() {
     setClubs((prev) => prev.filter((c) => c.id !== id));
   };
 
+  // Sube todos los clubs locales a Supabase (útil cuando se cambia de dispositivo)
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncMsg("");
+    try {
+      const localClubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+      let ok = 0;
+      let fail = 0;
+      for (const club of localClubs) {
+        if (!club.id) continue;
+        // Mergedel detalle local si existe
+        let merged = { ...club };
+        try {
+          const detail = JSON.parse(localStorage.getItem(`depro_club_${club.id}`) || "null");
+          if (detail) merged = { ...merged, ...detail, id: club.id };
+        } catch {}
+
+        const { error } = await supabase.from("clubs_detail").upsert(
+          { club_id: merged.id, data: merged, updated_at: new Date().toISOString() },
+          { onConflict: "club_id" }
+        );
+        if (error) { fail++; console.warn("sync error:", error.message); }
+        else ok++;
+      }
+      setSyncMsg(`✓ ${ok} clubs sincronizados${fail ? `, ${fail} con error` : ""}`);
+    } catch (e) {
+      setSyncMsg("Error al sincronizar: " + e.message);
+    }
+    setSyncing(false);
+    setTimeout(() => setSyncMsg(""), 4000);
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -382,13 +417,29 @@ export default function AdminClubsManagerPage() {
             Gestiona clubs, equipos internos y accesos de usuarios
           </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm"
-        >
-          <Plus size={16} />
-          Nuevo club
-        </button>
+        <div className="flex items-center gap-2">
+          {syncMsg && (
+            <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${syncMsg.startsWith("✓") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+              {syncMsg}
+            </span>
+          )}
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            title="Sincronizar clubs locales con Supabase (cross-device)"
+            className="flex items-center gap-1.5 px-3 py-2.5 border border-depro-border text-depro-gray hover:text-depro-blue hover:border-depro-blue rounded-xl transition-colors text-sm disabled:opacity-40"
+          >
+            <RefreshCw size={15} className={syncing ? "animate-spin" : ""} />
+            {syncing ? "Sincronizando…" : "Sincronizar"}
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm"
+          >
+            <Plus size={16} />
+            Nuevo club
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
