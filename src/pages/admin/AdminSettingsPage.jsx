@@ -58,9 +58,9 @@ export default function AdminSettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  // Redimensiona y comprime la imagen a máx 200x200px, <50KB
+  // Redimensiona y comprime la imagen a máx 200x200px
   const compressPhoto = (file) =>
-    new Promise((resolve) => {
+    new Promise((resolve, reject) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
@@ -73,6 +73,10 @@ export default function AdminSettingsPage() {
         URL.revokeObjectURL(url);
         resolve(canvas.toDataURL("image/jpeg", 0.7));
       };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("No se pudo procesar la imagen"));
+      };
       img.src = url;
     });
 
@@ -82,20 +86,27 @@ export default function AdminSettingsPage() {
     setSaveError("");
 
     try {
-      // 1. Comprimir y guardar foto en localStorage (evita QuotaExceededError)
+      // 1. Comprimir y guardar foto en localStorage
       if (photo) {
-        const compressed = await compressPhoto(photo);
+        let compressed;
+        try {
+          compressed = await compressPhoto(photo);
+        } catch {
+          setSaveError("No se pudo procesar la imagen. Prueba con otro archivo.");
+          setSaving(false);
+          return;
+        }
         try {
           localStorage.setItem("depro_admin_photo", compressed);
-          setPhotoPreview(compressed);
-          // Notificar a AdminLayout para que actualice la foto inmediatamente
-          window.dispatchEvent(new Event("depro_photo_updated"));
         } catch {
           setSaveError("La foto es demasiado grande. Usa una imagen más pequeña.");
           setSaving(false);
           return;
         }
+        setPhotoPreview(compressed);
         setPhoto(null);
+        // Notificar a AdminLayout para que actualice la foto inmediatamente
+        window.dispatchEvent(new Event("depro_photo_updated"));
       }
 
       // 2. Guardar datos del negocio y notificaciones
