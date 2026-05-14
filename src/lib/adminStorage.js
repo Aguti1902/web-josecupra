@@ -58,65 +58,41 @@ function genId() {
 }
 
 // ════════════════════════════════════════════════════════════
-// CLUBS  — clubs_detail (JSONB, RLS disabled) es la fuente primaria
-//          Se lee/escribe con el anon key directamente, sin serverless.
-//          localStorage actúa como caché offline.
+// CLUBS  — /api/admin-clubs es la ÚNICA fuente de verdad.
+//          Supabase siempre es primero. localStorage = caché offline.
 // ════════════════════════════════════════════════════════════
 
-/** Guarda el objeto completo del club en clubs_detail via API serverless (bypasea RLS) */
-async function pushClubToSupabase(clubData) {
-  // 1. Intentar via serverless (service role key, bypasea RLS)
-  try {
-    const res = await fetch("/api/admin-clubs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ club: clubData }),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.ok) return true;
-    }
-  } catch {}
-
-  // 2. Fallback: directo con anon key (solo funciona si RLS está desactivado)
-  try {
-    const { error } = await supabase
-      .from("clubs_detail")
-      .upsert(
-        { club_id: clubData.id, data: clubData, updated_at: new Date().toISOString() },
-        { onConflict: "club_id" }
-      );
-    if (error) console.warn("[adminStorage] pushClubToSupabase (anon fallback) error:", error.message);
-    return !error;
-  } catch (e) {
-    console.warn("[adminStorage] pushClubToSupabase exception:", e.message);
-    return false;
-  }
+async function apiClubs(method, body) {
+  const res = await fetch("/api/admin-clubs", {
+    method,
+    headers: { "Content-Type": "application/json" },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const json = await res.json().catch(() => null);
+  return { ok: res.ok, data: json };
 }
 
 export async function loadClubs() {
-  // 1. Supabase directo — clubs_detail tiene RLS desactivado, accesible con anon key
+  // 1. SIEMPRE intentar Supabase primero via API (service role key, sin restricciones)
   try {
-    // Intentar con orden por updated_at; si falla (columna no existe), sin orden
-    let result = await supabase.from("clubs_detail").select("club_id, data").order("updated_at", { ascending: false });
-    if (result.error) {
-      result = await supabase.from("clubs_detail").select("club_id, data");
+    const { ok, data } = await apiClubs("GET");
+    if (ok && data?.clubs?.length > 0) {
+      // Actualizar caché local
+      lsSet("depro_clubs", data.clubs);
+      data.clubs.forEach((c) => { if (c.id) lsSet(`depro_club_${c.id}`, c); });
+      return data.clubs;
     }
-    const { data, error } = result;
-
-    if (!error && data && data.length > 0) {
-      const clubs = data.map((row) => ({ ...(row.data || {}), id: row.club_id }));
-      lsSet("depro_clubs", clubs);
-      clubs.forEach((c) => { if (c.id) lsSet(`depro_club_${c.id}`, c); });
-      return clubs;
+    // API disponible pero sin clubs → devolver vacío (no usar localStorage de otro dispositivo)
+    if (ok && data?.clubs) {
+      lsSet("depro_clubs", []);
+      return [];
     }
   } catch (e) {
-    console.warn("[adminStorage] loadClubs Supabase error:", e.message);
+    console.warn("[adminStorage] loadClubs API error:", e.message);
   }
 
-  // 2. Fallback: localStorage del dispositivo actual
-  const local = lsGet("depro_clubs", []);
-  return local;
+  // 2. Solo si la API no está disponible (offline), usar caché local
+  return lsGet("depro_clubs", []);
 }
 
 export async function saveClub(clubData) {
@@ -125,30 +101,30 @@ export async function saveClub(clubData) {
   }
   const { id } = clubData;
 
-  // 1. Caché local inmediata
+  // 1. Guardar en Supabase PRIMERO (fuente de verdad)
+  const { ok, data } = await apiClubs("POST", { club: clubData });
+  if (!ok) {
+    console.error("[adminStorage] saveClub falló en Supabase:", data?.error);
+  }
+
+  // 2. Actualizar caché local
   const clubs = lsGet("depro_clubs", []);
   const idx = clubs.findIndex((c) => c.id === id);
   if (idx >= 0) clubs[idx] = clubData; else clubs.unshift(clubData);
   lsSet("depro_clubs", clubs);
   lsSet(`depro_club_${id}`, clubData);
 
-  // 2. Persistir en Supabase (clubs_detail, sin RLS, anon key)
-  await pushClubToSupabase(clubData);
-
   return clubData;
 }
 
 export async function deleteClub(id) {
-  // localStorage
+  // 1. Eliminar de Supabase
+  await apiClubs("DELETE", { id });
+
+  // 2. Limpiar caché local
   const clubs = lsGet("depro_clubs", []).filter((c) => c.id !== id);
   lsSet("depro_clubs", clubs);
   localStorage.removeItem(`depro_club_${id}`);
-
-  // Supabase
-  try {
-    await supabase.from("clubs_detail").delete().eq("club_id", id);
-    await supabase.from("clubs").delete().eq("id", id);
-  } catch {}
 }
 
 // ════════════════════════════════════════════════════════════
@@ -158,31 +134,22 @@ export function loadClubDetail(clubId) {
   return lsGet(`depro_club_${clubId}`, null);
 }
 
-export function saveClubDetail(clubId, data) {
-  // 1. localStorage — detalle individual
+export async function saveClubDetail(clubId, data) {
+  // 1. localStorage — caché local
   lsSet(`depro_club_${clubId}`, data);
 
-  // 2. Actualizar la lista principal en localStorage con los campos de identidad
+  // 2. Actualizar caché de lista principal
   const clubs = lsGet("depro_clubs", []);
   const idx = clubs.findIndex((c) => c.id === clubId);
+  let merged = { id: clubId, ...data };
   if (idx >= 0) {
-    clubs[idx] = {
-      ...clubs[idx],
-      ...(data.logo !== undefined           && { logo: data.logo }),
-      ...(data.banner !== undefined         && { banner: data.banner }),
-      ...(data.primaryColor !== undefined   && { primaryColor: data.primaryColor }),
-      ...(data.secondaryColor !== undefined && { secondaryColor: data.secondaryColor }),
-      ...(data.slogan !== undefined         && { slogan: data.slogan }),
-      ...(data.teams !== undefined          && { teams: data.teams }),
-    };
+    clubs[idx] = { ...clubs[idx], ...data };
+    merged = { ...clubs[idx], id: clubId };
     lsSet("depro_clubs", clubs);
-
-    // 3. Persistir el objeto fusionado completo en Supabase (clubs_detail, sin RLS)
-    const merged = { ...clubs[idx], ...data, id: clubId };
-    pushClubToSupabase(merged).catch(() => {});
-  } else {
-    pushClubToSupabase({ id: clubId, ...data }).catch(() => {});
   }
+
+  // 3. Persistir en Supabase via API (fuente de verdad)
+  await apiClubs("POST", { club: merged });
 }
 
 // ════════════════════════════════════════════════════════════

@@ -42,20 +42,17 @@ export default async function handler(req, res) {
 
   // ── GET → listar todos los clubs ─────────────────────────────────────────
   if (req.method === "GET") {
-    // Primary: clubs_detail (full object)
     const { data: details, error: detErr } = await admin
       .from("clubs_detail")
       .select("club_id, data");
 
-    if (!detErr && details && details.length > 0) {
-      const clubs = details.map((d) => ({ ...(d.data || {}), id: d.club_id }));
-      return res.status(200).json({ clubs });
+    if (detErr) {
+      return res.status(400).json({ error: detErr.message, hint: "clubs_detail table may not exist or be inaccessible" });
     }
 
-    // Fallback: clubs table
-    const { data, error } = await admin.from("clubs").select("*");
-    if (error) return res.status(400).json({ error: error.message, detailError: detErr?.message });
-    return res.status(200).json({ clubs: data || [] });
+    // Siempre devolver desde clubs_detail — incluso si está vacío
+    const clubs = (details || []).map((d) => ({ ...(d.data || {}), id: d.club_id }));
+    return res.status(200).json({ clubs });
   }
 
   // ── POST → crear o actualizar club ───────────────────────────────────────

@@ -325,25 +325,51 @@ export default function AdminClubsManagerPage() {
   const [filterStatus, setFilterStatus] = useState("todos");
   const [showModal, setShowModal]   = useState(false);
   const [copied, setCopied]         = useState(null);
-  const [syncing, setSyncing]       = useState(false);
-  const [syncMsg, setSyncMsg]       = useState("");
 
+  const enrichClubs = (data) => data.map((c) => {
+    let userCount = (c.users || []).length;
+    if (c.coordinator?.email) userCount++;
+    (c.teams || []).forEach((t) => { if (t.coach?.email) userCount++; });
+    return { ...c, _userCount: userCount };
+  });
+
+  const fetchClubs = async () => {
+    setLoading(true);
+    const data = await loadClubs();
+    setClubs(enrichClubs(data));
+    setLoading(false);
+  };
+
+  // Al montar: migrar clubs locales a Supabase si la API devuelve vacío
   useEffect(() => {
-    loadClubs().then((data) => {
-      // Enriquecer cada club con logo y conteo real de usuarios desde clubDetail
-      const enriched = data.map((c) => {
-        try {
-          const detail = JSON.parse(localStorage.getItem(`depro_club_${c.id}`) || "null");
-          if (!detail) return c;
-          let userCount = (c.users || []).length;
-          if (detail.coordinator?.email) userCount++;
-          (detail.teams || []).forEach((t) => { if (t.coach?.email) userCount++; });
-          return { ...c, logo: detail.logo || c.logo, _userCount: userCount };
-        } catch { return c; }
-      });
-      setClubs(enriched);
+    const migrate = async () => {
+      setLoading(true);
+      const apiData = await loadClubs(); // intenta API primero
+      if (apiData.length === 0) {
+        // API vacía: intentar migrar desde localStorage
+        const localClubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+        if (localClubs.length > 0) {
+          for (const club of localClubs) {
+            if (!club.id) continue;
+            let merged = { ...club };
+            try {
+              const detail = JSON.parse(localStorage.getItem(`depro_club_${club.id}`) || "null");
+              if (detail) merged = { ...merged, ...detail, id: club.id };
+            } catch {}
+            await saveClub(merged);
+          }
+          // Recargar desde API tras migración
+          const migrated = await loadClubs();
+          setClubs(enrichClubs(migrated));
+        } else {
+          setClubs([]);
+        }
+      } else {
+        setClubs(enrichClubs(apiData));
+      }
       setLoading(false);
-    });
+    };
+    migrate();
   }, []);
 
   const filtered = clubs.filter((c) => {
@@ -374,47 +400,6 @@ export default function AdminClubsManagerPage() {
     setClubs((prev) => prev.filter((c) => c.id !== id));
   };
 
-  // Sube todos los clubs locales a Supabase via serverless (bypasea RLS)
-  const handleSync = async () => {
-    setSyncing(true);
-    setSyncMsg("");
-    try {
-      const localClubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
-      let ok = 0;
-      let fail = 0;
-      let lastError = "";
-      for (const club of localClubs) {
-        if (!club.id) continue;
-        // Fusionar con el detalle local si existe
-        let merged = { ...club };
-        try {
-          const detail = JSON.parse(localStorage.getItem(`depro_club_${club.id}`) || "null");
-          if (detail) merged = { ...merged, ...detail, id: club.id };
-        } catch {}
-
-        try {
-          const res = await fetch("/api/admin-clubs", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ club: merged }),
-          });
-          const json = await res.json().catch(() => null);
-          if (res.ok && json?.ok) ok++;
-          else {
-            fail++;
-            lastError = json?.error || `HTTP ${res.status}`;
-          }
-        } catch (e) { fail++; lastError = e.message; }
-      }
-      if (ok > 0 && fail === 0) setSyncMsg(`✓ ${ok} clubs sincronizados`);
-      else if (ok > 0) setSyncMsg(`✓ ${ok} ok, ${fail} error: ${lastError}`);
-      else setSyncMsg(`✗ Error: ${lastError || "API no disponible"}`);
-    } catch (e) {
-      setSyncMsg("Error al sincronizar: " + e.message);
-    }
-    setSyncing(false);
-    setTimeout(() => setSyncMsg(""), 4000);
-  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -427,20 +412,6 @@ export default function AdminClubsManagerPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {syncMsg && (
-            <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${syncMsg.startsWith("✓") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-              {syncMsg}
-            </span>
-          )}
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            title="Sincronizar clubs locales con Supabase (cross-device)"
-            className="flex items-center gap-1.5 px-3 py-2.5 border border-depro-border text-depro-gray hover:text-depro-blue hover:border-depro-blue rounded-xl transition-colors text-sm disabled:opacity-40"
-          >
-            <RefreshCw size={15} className={syncing ? "animate-spin" : ""} />
-            {syncing ? "Sincronizando…" : "Sincronizar"}
-          </button>
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm"
