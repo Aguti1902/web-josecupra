@@ -58,10 +58,10 @@ export default function AppLayout({ children }) {
 
   const entrenadorNav = [
     { to: "/dashboard",              icon: LayoutDashboard, label: t("nav.dashboard") },
-    { to: "/dashboard/plan",         icon: Calendar,        label: t("nav.weekly_plan") },
-    { to: "/dashboard/squad",        icon: UsersIcon,       label: t("nav.squad") },
-    { to: "/dashboard/tactics",      icon: BookOpen,        label: t("nav.tactics") },
+    { to: "/dashboard/plan",         icon: Calendar,        label: "Microciclo" },
     { to: "/dashboard/mesocycle",    icon: ClipboardList,   label: t("nav.mesocycle") },
+    { to: "/dashboard/squad",        icon: UsersIcon,       label: t("nav.squad") },
+    { to: "/dashboard/team-tests",   icon: Activity,        label: "Tests" },
     { to: "/dashboard/club-profile", icon: User,            label: t("nav.my_profile") },
   ];
 

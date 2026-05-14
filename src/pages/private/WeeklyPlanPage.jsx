@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import {
   Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
   Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
+  PencilRuler, Info, AlertTriangle,
 } from "lucide-react";
+import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { clubWeeklyPlan } from "../../data/mockData";
@@ -411,6 +413,117 @@ function PlayerWeeklyPlan({ accent }) {
 }
 
 /* ─────────────────────────────────────────────
+   DISEÑAR TAREAS (guía táctica embebida en sesión)
+───────────────────────────────────────────── */
+const TASK_ICONS = { space: Maximize2, players: Users, time: Clock, intensity: Flame };
+
+function DisenarTareas({ accentColor }) {
+  const [open, setOpen] = useState(false);
+  const [dropOpen, setDropOpen] = useState(false);
+  const [selectedKey, setSelectedKey] = useState(tacticalGuides[0].key);
+  const guide = tacticalGuides.find((g) => g.key === selectedKey);
+
+  return (
+    <div className="mt-4 border border-depro-border rounded-2xl overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-3.5 bg-depro-gray-light hover:bg-depro-gray-light/70 transition-colors"
+      >
+        <div className="flex items-center gap-2 text-sm font-bold text-depro-dark">
+          <PencilRuler size={15} style={{ color: accentColor }} />
+          Diseñar tareas
+        </div>
+        {open ? <ChevronUp size={15} className="text-depro-gray" /> : <ChevronDown size={15} className="text-depro-gray" />}
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 pt-4 bg-white space-y-4">
+          {/* Selector de tipo de tarea */}
+          <div className="relative">
+            <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-1 block">Tipo de tarea</label>
+            <button
+              onClick={() => setDropOpen((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-depro-gray-light border border-depro-border rounded-xl text-sm font-semibold text-depro-dark hover:bg-depro-gray-light/70 transition-colors"
+            >
+              <span>{guide.label}</span>
+              <ChevronDown size={14} className={`text-depro-gray transition-transform ${dropOpen ? "rotate-180" : ""}`} />
+            </button>
+            {dropOpen && (
+              <div className="absolute left-0 right-0 mt-1 bg-white border border-depro-border rounded-xl shadow-card-hover z-20 overflow-hidden">
+                {tacticalGuides.map((g) => (
+                  <button
+                    key={g.key}
+                    onClick={() => { setSelectedKey(g.key); setDropOpen(false); }}
+                    className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+                      g.key === selectedKey ? "bg-depro-blue-light text-depro-blue font-bold" : "text-depro-dark hover:bg-depro-gray-light"
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Objetivo */}
+          <div className="rounded-xl px-4 py-3 text-sm" style={{ backgroundColor: accentColor + "08", border: `1px solid ${accentColor}20` }}>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>
+              <Target size={11} /> Objetivo
+            </div>
+            <p className="text-depro-dark font-medium leading-snug">{guide.objective}</p>
+          </div>
+
+          {/* Condicionantes */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {guide.icons.map((iconKey) => {
+              const Icon = TASK_ICONS[iconKey];
+              const labels = {
+                space:     { label: "Espacio",    value: guide.conditions.space },
+                players:   { label: "Jugadores",  value: guide.conditions.players },
+                time:      { label: "Tiempo",     value: guide.conditions.time },
+                intensity: { label: "Intensidad", value: guide.conditions.intensity },
+              };
+              const item = labels[iconKey];
+              return (
+                <div key={iconKey} className="bg-depro-gray-light rounded-xl p-3 border border-depro-border">
+                  <Icon size={14} style={{ color: accentColor }} />
+                  <div className="text-[9px] font-bold text-depro-gray uppercase tracking-wide mt-1.5">{item.label}</div>
+                  <div className="text-xs font-bold text-depro-dark mt-0.5">{item.value}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Orientaciones */}
+          <div>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: accentColor }}>
+              <Info size={11} /> Orientaciones metodológicas
+            </div>
+            <ul className="space-y-1.5">
+              {guide.orientations.map((o, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-depro-dark">
+                  <span className="w-4 h-4 rounded-md flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5" style={{ backgroundColor: accentColor + "20", color: accentColor }}>
+                    {i + 1}
+                  </span>
+                  <span className="leading-relaxed">{o}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <AlertTriangle size={13} className="text-amber-600 mt-0.5 flex-shrink-0" />
+            <p className="text-[10px] text-depro-dark leading-relaxed">
+              <strong>Apoyo pedagógico:</strong> guía de referencia para diseñar tus tareas. No genera archivos.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
    CLUB — SESIÓN CERRADA con iconografía condicional
 ───────────────────────────────────────────── */
 function ClubSessionCard({ session, accentColor }) {
@@ -477,8 +590,11 @@ function ClubSessionCard({ session, accentColor }) {
             </div>
           </div>
 
+          {/* Diseñar tareas */}
+          <DisenarTareas accentColor={accentColor} />
+
           {/* Slider de cumplimiento */}
-          <div className="mt-5 bg-depro-gray-light/50 rounded-xl p-4 border border-depro-border">
+          <div className="mt-4 bg-depro-gray-light/50 rounded-xl p-4 border border-depro-border">
             <div className="flex items-center justify-between text-xs font-bold text-depro-dark mb-2">
               <span>Marca el % completado por el equipo</span>
               <span style={{ color: accentColor }}>{completion}%</span>
