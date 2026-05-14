@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Activity, Users, Save, TrendingUp, TrendingDown, Minus, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Activity, Users, TrendingUp, TrendingDown, Minus, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const TESTS = [
@@ -47,6 +47,102 @@ function getTrend(test, playerId) {
   const diff = parseFloat(h[h.length-1].value) - parseFloat(h[h.length-2].value);
   if (isNaN(diff) || diff === 0) return 0;
   return test.higher_is_better ? diff : -diff; // positivo = mejoró
+}
+
+/* ── Sparkline SVG ────────────────────────────────────────────── */
+function Sparkline({ history, color, width = 140, height = 44 }) {
+  const vals = history.map((e) => parseFloat(e.value)).filter((v) => !isNaN(v));
+  if (vals.length < 2) return (
+    <div className="flex items-center justify-center text-[10px] text-depro-gray/50" style={{ width, height }}>
+      Sin datos suficientes
+    </div>
+  );
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = max - min || 1;
+  const pad = 6;
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / (vals.length - 1)) * (width - pad * 2);
+    const y = pad + (1 - (v - min) / range) * (height - pad * 2);
+    return [x, y];
+  });
+  const pathD = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const areaD = `${pathD} L${pts[pts.length-1][0].toFixed(1)},${height} L${pts[0][0].toFixed(1)},${height} Z`;
+
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <defs>
+        <linearGradient id={`g-${color.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaD} fill={`url(#g-${color.replace("#","")})`} />
+      <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {pts.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r={i === pts.length - 1 ? 4 : 2.5} fill={color} />
+      ))}
+    </svg>
+  );
+}
+
+/* ── Panel expandible de gráficas de un jugador ─────────────── */
+function PlayerGraphs({ player, accent }) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 pb-5 pt-3 bg-depro-gray-light/40 border-t border-depro-border">
+      {TESTS.map((t) => {
+        const history = loadHistory(player.id, t.id);
+        const last = history[history.length - 1];
+        const range = last ? getRange(t, last.value) : null;
+        const vals = history.map((e) => parseFloat(e.value)).filter((v) => !isNaN(v));
+        const improved = vals.length >= 2
+          ? (t.higher_is_better ? vals[vals.length-1] > vals[vals.length-2] : vals[vals.length-1] < vals[vals.length-2])
+          : null;
+
+        return (
+          <div key={t.id} className="bg-white rounded-xl border border-depro-border p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
+                <span className="text-xs font-bold text-depro-dark">{t.name}</span>
+              </div>
+              {improved !== null && (
+                <span style={{ color: improved ? "#22C55E" : "#EF4444" }}>
+                  {improved ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                </span>
+              )}
+            </div>
+
+            <Sparkline history={history} color={t.color} width={120} height={40} />
+
+            {last ? (
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-sm font-black" style={{ color: range?.color || t.color }}>
+                  {last.value} <span className="text-[10px] font-medium">{t.unit}</span>
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: (range?.color || t.color) + "15", color: range?.color || t.color }}>
+                  {range?.label}
+                </span>
+              </div>
+            ) : (
+              <p className="text-[10px] text-depro-gray mt-2">Sin registros</p>
+            )}
+
+            {/* Mini historial */}
+            {history.length > 0 && (
+              <div className="mt-2 space-y-0.5 max-h-16 overflow-y-auto">
+                {[...history].reverse().slice(0, 4).map((e, i) => (
+                  <div key={i} className="flex justify-between text-[10px] text-depro-gray">
+                    <span>{e.date}</span>
+                    <span className="font-mono font-medium text-depro-dark">{e.value} {t.unit}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 /* ── Modal para registrar un valor de test ─────────────────── */
@@ -127,11 +223,12 @@ export default function TeamTestsPage() {
   const { user } = useAuth();
   const accent = safeAccent(user?.club?.primaryColor || "#0A36F7");
 
-  const [players, setPlayers] = useState([]);
-  const [data, setData]       = useState({}); // { playerId: { testId: lastEntry } }
-  const [modal, setModal]     = useState(null); // { player, test }
-  const [sortBy, setSortBy]   = useState(null); // { testId, dir: 'asc'|'desc' }
-  const [tick, setTick]       = useState(0);    // para forzar re-render tras guardar
+  const [players, setPlayers]         = useState([]);
+  const [data, setData]               = useState({}); // { playerId: { testId: lastEntry } }
+  const [modal, setModal]             = useState(null); // { player, test }
+  const [sortBy, setSortBy]           = useState(null); // { testId, dir: 'asc'|'desc' }
+  const [tick, setTick]               = useState(0);    // para forzar re-render tras guardar
+  const [expandedPlayer, setExpanded] = useState(null); // playerId con gráficas abiertas
 
   // Cargar plantilla
   useEffect(() => {
@@ -254,21 +351,29 @@ export default function TeamTestsPage() {
         </div>
 
         {/* Filas */}
-        {sortedPlayers.map((player, pi) => (
-          <div
-            key={player.id}
-            className={`grid grid-cols-[1fr_repeat(4,minmax(100px,1fr))] ${pi < sortedPlayers.length - 1 ? "border-b border-depro-border" : ""} hover:bg-depro-gray-light/30 transition-colors`}
-          >
-            {/* Nombre */}
+        {sortedPlayers.map((player, pi) => {
+          const isExpanded = expandedPlayer === player.id;
+          return (
+          <div key={player.id} className={pi < sortedPlayers.length - 1 ? "border-b border-depro-border" : ""}>
+            <div className="grid grid-cols-[1fr_repeat(4,minmax(100px,1fr))] hover:bg-depro-gray-light/30 transition-colors">
+            {/* Nombre + toggle gráficas */}
             <div className="px-5 py-4 flex items-center gap-3">
-              <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0"
+              <button
+                onClick={() => setExpanded(isExpanded ? null : player.id)}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 hover:opacity-80 transition-opacity"
                 style={{ backgroundColor: accent + "15", color: accent }}
+                title={isExpanded ? "Ocultar gráficas" : "Ver gráficas"}
               >
                 {(player.name || "?")[0].toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm font-bold text-depro-dark truncate">{player.name}</div>
+              </button>
+              <div className="min-w-0 flex-1">
+                <button
+                  onClick={() => setExpanded(isExpanded ? null : player.id)}
+                  className="text-sm font-bold text-depro-dark truncate hover:underline flex items-center gap-1"
+                >
+                  {player.name}
+                  {isExpanded ? <ChevronUp size={11} className="text-depro-gray flex-shrink-0" /> : <ChevronDown size={11} className="text-depro-gray flex-shrink-0" />}
+                </button>
                 {player.isRegistered && (
                   <div className="text-[10px] text-depro-gray">Plan individual</div>
                 )}
@@ -318,8 +423,12 @@ export default function TeamTestsPage() {
                 </button>
               );
             })}
+            </div>
+            {/* Panel gráficas expandible */}
+            {isExpanded && <PlayerGraphs player={player} accent={accent} />}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Resumen por test */}
