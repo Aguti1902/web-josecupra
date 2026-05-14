@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { distributeWeekSessions, getDayRationale, getSessionType as getPeriodizationSessionType } from "../../lib/periodization";
 import {
   Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
   Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
@@ -1221,6 +1222,7 @@ function getAgeBlock(category) {
   return null;
 }
 
+
 // Normaliza un plan del admin al formato que espera ClubMicrocycles
 function normalizePlan(m) {
   return {
@@ -1240,7 +1242,8 @@ function ClubMicrocycles({ accent }) {
   const isCoordinator = user?.team_role === "coordinador" || !user?.team;
   const userTeamId = user?.team?.id ?? null;
   const userTeamCategory = user?.team?.category ?? null;
-  const userAgeBlock = getAgeBlock(userTeamCategory); // "Bloque 1" / "Bloque 2" / "Bloque 3" / null
+  const userAgeBlock = getAgeBlock(userTeamCategory);
+  const trainingDays = user?.team?.trainingDays || []; // días del equipo
   const clubId = user?.club?.id ?? null;
 
   // Cargar planes globales: localStorage primero, luego API (cross-device)
@@ -1277,13 +1280,21 @@ function ClubMicrocycles({ accent }) {
 
   if (!micro) return (
     <div className="p-8 text-center text-depro-gray">
-      <p className="font-medium">No hay microciclos asignados a tu equipo todavía.</p>
+      <p className="font-medium">No hay mesociclos asignados a tu equipo todavía.</p>
       <p className="text-sm mt-1 opacity-60">El preparador los añadirá desde el panel de administración.</p>
     </div>
   );
 
+  // Distribuir sesiones según los días de entrenamiento del equipo
+  // Tomamos las primeras N sesiones (primera "semana" del mesociclo) para la vista semanal
+  const SESSIONS_PER_BASE_WEEK = 3;
+  const firstWeekSessions = (micro.sessions || []).slice(0, SESSIONS_PER_BASE_WEEK);
+  const distributedWeekSessions = !isCoordinator && trainingDays.length > 0
+    ? distributeWeekSessions(firstWeekSessions, trainingDays)
+    : firstWeekSessions;
+
   const totalCompletion = Math.round(
-    micro.sessions.reduce((acc, s) => acc + (s.completion ?? 0), 0) / Math.max(micro.sessions.length, 1)
+    distributedWeekSessions.reduce((acc, s) => acc + (s.completion ?? 0), 0) / Math.max(distributedWeekSessions.length, 1)
   );
 
   return (
@@ -1344,11 +1355,41 @@ function ClubMicrocycles({ accent }) {
         </div>
       </div>
 
-      {/* Sesiones */}
+      {/* Banner de periodización (solo entrenadores con días configurados) */}
+      {!isCoordinator && trainingDays.length > 0 && (
+        <div className="bg-depro-blue-light/30 border border-depro-blue/20 rounded-2xl p-3 mb-4 flex items-start gap-2">
+          <Info size={13} className="text-depro-blue flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-depro-dark/70">
+            <span className="font-bold text-depro-dark">Sesiones adaptadas a tu equipo · </span>
+            {trainingDays.join(", ")} · La carga se distribuye siguiendo lógica de periodización táctica
+            (recuperación → pico → activación pre-partido).
+          </p>
+        </div>
+      )}
+
+      {/* Sesiones distribuidas */}
       <div className="space-y-4">
-        {micro.sessions.map((s, idx) => (
-          <ClubSessionCard key={s.id} session={s} accentColor={accent} sessionNumber={idx + 1} />
-        ))}
+        {distributedWeekSessions.map((s, idx) => {
+          const sType = getPeriodizationSessionType(s.intensity);
+          const typeColors = { A: "#3B82F6", B: "#F59E0B", C: "#EF4444" };
+          return (
+            <div key={s.id || idx}>
+              {s.assignedDay && !isCoordinator && (
+                <div className="flex items-center gap-2 mb-1.5 px-1">
+                  <span className="text-xs font-black uppercase tracking-wide" style={{ color: typeColors[sType] ?? accent }}>
+                    {s.assignedDay}
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                    style={{ backgroundColor: (typeColors[sType] ?? accent) + "18", color: typeColors[sType] ?? accent }}>
+                    Sesión {sType}
+                  </span>
+                  <span className="text-[10px] text-depro-gray hidden sm:block">{getDayRationale(s.assignedDay, sType)}</span>
+                </div>
+              )}
+              <ClubSessionCard session={s} accentColor={accent} sessionNumber={idx + 1} />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

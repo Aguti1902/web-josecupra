@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import {
   ClipboardList, Calendar, ChevronDown, ChevronUp, CheckCircle,
-  Activity, Flame, Zap, Clock, Layers, PlayCircle, Shield,
+  Activity, Flame, Zap, Clock, Layers, PlayCircle, Shield, Info,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { distributeMesocycleForTeam, getDayRationale, getSessionType } from "../../lib/periodization";
 
 /* ── Helper: bloque de edad por categoría ─────────────────── */
 function getAgeBlock(category) {
@@ -17,6 +18,9 @@ function getAgeBlock(category) {
   }
   return null;
 }
+
+const SESSION_TYPE_COLOR = { A: "#3B82F6", B: "#F59E0B", C: "#EF4444" };
+const SESSION_TYPE_LABEL = { A: "Extensiva", B: "Intensiva", C: "Reactiva" };
 
 function getYouTubeId(url) {
   if (!url) return null;
@@ -181,14 +185,17 @@ export default function MesocyclePage() {
   /* Selección de mesociclo activo */
   const [selectedPlanIdx, setSelectedPlanIdx] = useState(0);
   const activePlan = blockPlans[selectedPlanIdx] ?? blockPlans[0];
-  const sessions = activePlan?.sessions || [];
+  const allSessions = activePlan?.sessions || [];
 
-  /* Agrupar sesiones por semanas (3–4 sesiones/semana) */
-  const SESSIONS_PER_WEEK = 3;
-  const weeks = [];
-  for (let i = 0; i < sessions.length; i += SESSIONS_PER_WEEK) {
-    weeks.push(sessions.slice(i, i + SESSIONS_PER_WEEK));
-  }
+  /* Días de entrenamiento del equipo (guardados al crear el equipo) */
+  const trainingDays = user?.team?.trainingDays || [];
+
+  /* Distribución inteligente de sesiones según periodicidad */
+  const { weeks, totalSessions, sessionsPerWeek } = distributeMesocycleForTeam(
+    allSessions,
+    trainingDays,
+    3 // base: Jose crea 3 sesiones/semana
+  );
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
@@ -275,16 +282,16 @@ export default function MesocyclePage() {
             </div>
           )}
 
-          {weeks.map((weekSessions, wi) => (
+          {weeks.map(({ weekNumber, sessions: weekSessions }, wi) => (
             <div key={wi} className="mb-6">
               {/* Cabecera semana */}
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center border text-xs font-black flex-shrink-0"
                   style={{ backgroundColor: accent + "15", borderColor: accent + "25", color: accent }}>
-                  {wi + 1}
+                  {weekNumber}
                 </div>
                 <div>
-                  <span className="text-sm font-black text-depro-dark">Semana {wi + 1}</span>
+                  <span className="text-sm font-black text-depro-dark">Semana {weekNumber}</span>
                   <span className="text-xs text-depro-gray ml-2">· {weekSessions.length} sesiones</span>
                 </div>
                 <div className="flex-1 h-px bg-depro-border" />
@@ -293,27 +300,62 @@ export default function MesocyclePage() {
               {/* Sesiones de la semana */}
               <div className="space-y-3 pl-2">
                 {weekSessions.map((session, si) => {
-                  const globalIdx = wi * SESSIONS_PER_WEEK + si + 1;
+                  const globalIdx = wi * sessionsPerWeek + si + 1;
+                  const sType = getSessionType(session.intensity);
+                  const rationale = getDayRationale(session.assignedDay, sType);
                   return (
-                    <SessionCard
-                      key={session.id || si}
-                      session={session}
-                      sessionNumber={globalIdx}
-                      accent={accent}
-                    />
+                    <div key={session.id || si}>
+                      {/* Etiqueta del día asignado con motivo */}
+                      {session.assignedDay && (
+                        <div className="flex items-center gap-2 mb-1.5 px-1">
+                          <span className="text-xs font-black uppercase tracking-wide"
+                            style={{ color: SESSION_TYPE_COLOR[sType] ?? accent }}>
+                            {session.assignedDay}
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                            style={{ backgroundColor: (SESSION_TYPE_COLOR[sType] ?? accent) + "18", color: SESSION_TYPE_COLOR[sType] ?? accent }}>
+                            Sesión {sType} · {SESSION_TYPE_LABEL[sType]}
+                          </span>
+                          {rationale && (
+                            <span className="text-[10px] text-depro-gray hidden sm:block">{rationale}</span>
+                          )}
+                        </div>
+                      )}
+                      <SessionCard
+                        session={session}
+                        sessionNumber={globalIdx}
+                        accent={accent}
+                      />
+                    </div>
                   );
                 })}
               </div>
             </div>
           ))}
 
+          {/* Leyenda de periodización */}
+          {trainingDays.length > 0 && (
+            <div className="mt-4 bg-depro-blue-light/30 border border-depro-blue/20 rounded-2xl p-4 flex items-start gap-3">
+              <Info size={14} className="text-depro-blue flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-depro-dark/70">
+                <span className="font-bold text-depro-dark">Distribución automática · </span>
+                Las sesiones se han adaptado a tus días de entrenamiento (
+                <span className="font-bold">{trainingDays.join(", ")}</span>
+                ) siguiendo la lógica de periodización táctica:
+                sesiones <span className="font-bold" style={{ color: "#3B82F6" }}>A · Extensivas</span> en días post-partido,{" "}
+                <span className="font-bold" style={{ color: "#F59E0B" }}>B · Intensivas</span> en el pico de carga semanal y{" "}
+                <span className="font-bold" style={{ color: "#EF4444" }}>C · Reactivas</span> en activación pre-partido.
+              </div>
+            </div>
+          )}
+
           {/* Resumen del mes */}
-          {sessions.length > 0 && (
-            <div className="mt-6 bg-depro-gray-light/40 border border-depro-border rounded-2xl p-5">
+          {allSessions.length > 0 && (
+            <div className="mt-4 bg-depro-gray-light/40 border border-depro-border rounded-2xl p-5">
               <h3 className="text-xs font-black text-depro-gray uppercase tracking-wide mb-3">Resumen del mes</h3>
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-white rounded-xl p-3 text-center border border-depro-border">
-                  <div className="text-2xl font-black text-depro-dark">{sessions.length}</div>
+                  <div className="text-2xl font-black text-depro-dark">{totalSessions}</div>
                   <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mt-0.5">Sesiones</div>
                 </div>
                 <div className="bg-white rounded-xl p-3 text-center border border-depro-border">
@@ -321,10 +363,8 @@ export default function MesocyclePage() {
                   <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mt-0.5">Semanas</div>
                 </div>
                 <div className="bg-white rounded-xl p-3 text-center border border-depro-border">
-                  <div className="text-2xl font-black" style={{ color: accent }}>
-                    {sessions.reduce((acc, s) => acc + (s.exercises?.length || s.blocks?.reduce((a,b) => a + (b.exercises?.length||0), 0) || 0), 0)}
-                  </div>
-                  <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mt-0.5">Ejercicios</div>
+                  <div className="text-2xl font-black" style={{ color: accent }}>{sessionsPerWeek}</div>
+                  <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mt-0.5">Días/semana</div>
                 </div>
               </div>
             </div>
