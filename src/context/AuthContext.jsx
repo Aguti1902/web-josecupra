@@ -6,36 +6,38 @@ const AuthContext = createContext(null);
 // Carga los datos completos del club (incluyendo identity: logo, colores, slogan)
 function loadClubDataFromStorage(meta) {
   try {
-    const clubId = meta?.clubId;
-    const teamId = meta?.teamId;
+    const clubId   = meta?.clubId;
+    const teamId   = meta?.teamId;
     const teamRole = meta?.teamRole;
     if (!clubId) return { club: null, team: null, teamRole: null };
 
-    const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+    const clubs    = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
     const baseClub = clubs.find((c) => c.id === clubId) || null;
 
-    // Cargar detalles enriquecidos (logo, colores, equipos, planes)
+    // Detalles enriquecidos: logo, colores, equipos, planes, status
     const clubDetail = JSON.parse(localStorage.getItem(`depro_club_${clubId}`) || "null");
 
-    // Unir datos base + identity desde clubDetail
-    const club = baseClub
-      ? {
-          ...baseClub,
-          logo:           clubDetail?.logo           ?? baseClub.logo,
-          banner:         clubDetail?.banner         ?? baseClub.banner,
-          primaryColor:   clubDetail?.primaryColor   ?? baseClub.primaryColor,
-          secondaryColor: clubDetail?.secondaryColor ?? baseClub.secondaryColor,
-          slogan:         clubDetail?.slogan          ?? baseClub.slogan,
-          plans:          clubDetail?.plans           ?? [],
-          teams:          clubDetail?.teams           ?? baseClub.teams ?? [],
-          status:         clubDetail?.status          ?? baseClub.status ?? "activo",
-        }
-      : null;
+    // Si no está en depro_clubs pero sí en el detalle, usamos el detalle como base
+    const effectiveBase = baseClub || (clubDetail ? { id: clubId, ...clubDetail } : null);
+    if (!effectiveBase) return { club: null, team: null, teamRole: null };
+
+    const club = {
+      ...effectiveBase,
+      // Identidad visual — siempre prioriza el detalle (más actualizado)
+      logo:           clubDetail?.logo           ?? effectiveBase.logo           ?? null,
+      banner:         clubDetail?.banner         ?? effectiveBase.banner         ?? null,
+      primaryColor:   clubDetail?.primaryColor   ?? effectiveBase.primaryColor   ?? "#0A36F7",
+      secondaryColor: clubDetail?.secondaryColor ?? effectiveBase.secondaryColor ?? "#ffffff",
+      slogan:         clubDetail?.slogan         ?? effectiveBase.slogan         ?? null,
+      plans:          clubDetail?.plans          ?? [],
+      teams:          clubDetail?.teams          ?? effectiveBase.teams          ?? [],
+      status:         clubDetail?.status         ?? effectiveBase.status         ?? "activo",
+    };
 
     // Buscar el equipo dentro de los datos combinados
-    const ext = JSON.parse(localStorage.getItem("depro_clubs_ext") || "{}");
-    const allTeams = club?.teams || (ext[clubId] || {}).teams || [];
-    const team = allTeams.find((t) => t.id === teamId) || null;
+    const ext      = JSON.parse(localStorage.getItem("depro_clubs_ext") || "{}");
+    const allTeams = club.teams.length > 0 ? club.teams : ((ext[clubId] || {}).teams || []);
+    const team     = allTeams.find((t) => t.id === teamId) || null;
 
     return { club, team, teamRole };
   } catch {
@@ -80,16 +82,32 @@ function buildUser(authUser, profile) {
   const email = authUser.email ?? "";
 
   if (profile) {
-    // Si el perfil de Supabase no tiene club vinculado, buscar en localStorage
-    let club = profile.club;
+    let club = profile.club;   // Supabase solo devuelve: id, name, abbreviation, login_code
     let team = profile.team;
     let teamRole = profile.team_role;
 
-    if (!club && meta.clubId) {
-      const stored = loadClubDataFromStorage(meta);
-      club = stored.club;
-      team = stored.team;
-      teamRole = stored.teamRole || teamRole;
+    // Siempre enriquecer con la identidad visual guardada en localStorage
+    // (logo, banner, primaryColor, secondaryColor, slogan, teams…)
+    const clubId = club?.id || meta.clubId;
+    if (clubId) {
+      const stored = loadClubDataFromStorage({
+        ...meta,
+        clubId,
+        teamId:   team?.id  || meta.teamId,
+        teamRole: teamRole  || meta.teamRole,
+      });
+      if (stored.club) {
+        // Prioridad: localStorage para identidad visual (logo, colores, banner, slogan, teams)
+        // Supabase para datos básicos (id, name, login_code, abbreviation)
+        club = {
+          ...club,       // base Supabase
+          ...stored.club, // identidad localStorage (sobrescribe si existe)
+          ...(club?.id   && { id:   club.id }),
+          ...(club?.name && { name: club.name }),
+        };
+        team     = stored.team  || team;
+        teamRole = stored.teamRole || teamRole;
+      }
     }
 
     return {
@@ -98,7 +116,6 @@ function buildUser(authUser, profile) {
       club,
       team,
       team_role: teamRole,
-      // Campos del formulario de onboarding — leer del metadata si el perfil no los tiene
       plan:      profile.plan      ?? meta.plan      ?? null,
       objetivo:  profile.objetivo  ?? meta.objetivo  ?? null,
       deporte:   profile.deporte   ?? meta.deporte   ?? null,
