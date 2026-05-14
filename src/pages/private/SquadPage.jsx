@@ -220,16 +220,43 @@ export default function SquadPage() {
       : myTeam ? [myTeam.id] : [];
     if (teamIds.length === 0) return;
 
-    // 1. Leer registro localStorage compartido (funciona en local inmediatamente)
+    // 1. Buscar en TODO el localStorage: cualquier key depro_player_club_* con teamId coincidente
+    const fromLS = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key?.startsWith("depro_player_club_")) continue;
+        const val = JSON.parse(localStorage.getItem(key) || "{}");
+        if (teamIds.includes(val.teamId)) {
+          // Buscar nombre del jugador en depro_player_photo o user sessions — usamos email si disponible
+          fromLS.push({
+            id:      key.replace("depro_player_club_", ""),
+            name:    val.name || "Jugador registrado",
+            plan:    val.plan || "Plan activo",
+            email:   val.email || "",
+            _teamId: val.teamId,
+            _reg:    true,
+          });
+        }
+      }
+    } catch { /* silencioso */ }
+
+    // 2. Registro compartido del equipo (guardado cuando el jugador se une)
     const fromRegistry = teamIds.flatMap((tid) => {
       try {
-        const raw = localStorage.getItem(`depro_team_registry_${tid}`);
-        return (JSON.parse(raw || "[]")).map((p) => ({ ...p, _teamId: tid, _reg: true }));
+        return (JSON.parse(localStorage.getItem(`depro_team_registry_${tid}`) || "[]"))
+          .map((p) => ({ ...p, _teamId: tid, _reg: true }));
       } catch { return []; }
     });
-    if (fromRegistry.length > 0) { setRegPlayers(fromRegistry); return; }
 
-    // 2. Intentar Supabase player_team_links (necesita SQL previo)
+    // Combinar ambas fuentes sin duplicados
+    const combined = [...fromRegistry];
+    fromLS.forEach((p) => {
+      if (!combined.find((c) => c.id === p.id)) combined.push(p);
+    });
+    if (combined.length > 0) { setRegPlayers(combined); return; }
+
+    // 3. Supabase player_team_links (necesita SQL previo) + API Vercel
     (async () => {
       try {
         const { data, error } = await supabase
@@ -240,7 +267,6 @@ export default function SquadPage() {
           setRegPlayers(data.map((p) => ({ id: p.player_id, name: p.name || "Jugador", plan: p.plan || "—", _teamId: p.team_id, _reg: true })));
           return;
         }
-        // 3. API Vercel como último recurso (solo funciona en producción)
         const res = await fetch(`/api/team-players?teamId=${teamIds[0]}`).catch(() => null);
         if (res?.ok) {
           const { players: list } = await res.json();

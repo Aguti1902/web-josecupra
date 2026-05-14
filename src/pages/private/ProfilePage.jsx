@@ -152,8 +152,13 @@ export default function ProfilePage() {
     const team = teams.find((t) => t.id === selectedTeam);
     const assoc = { clubId: foundClub.id, teamId: selectedTeam };
 
-    // Guardar en localStorage (asociación del jugador)
-    localStorage.setItem(`depro_player_club_${user.id}`, JSON.stringify(assoc));
+    // Guardar en localStorage con nombre y plan para que el entrenador pueda leerlo
+    localStorage.setItem(`depro_player_club_${user.id}`, JSON.stringify({
+      ...assoc,
+      name:  user.name  || user.email?.split("@")[0] || "Jugador",
+      plan:  user.plan  || "Plan activo",
+      email: user.email || "",
+    }));
 
     // Registrar en el registro compartido del equipo (localStorage — funciona en local inmediatamente)
     try {
