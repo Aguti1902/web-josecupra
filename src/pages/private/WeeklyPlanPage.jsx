@@ -79,14 +79,38 @@ function ExerciseModal({ exercise, onClose, accent }) {
         {exercise.description && (
           <p className="text-depro-gray leading-relaxed mb-5 text-sm">{exercise.description}</p>
         )}
+        {/* Tips técnicos (3-5 bullets) */}
         {exercise.tips && (
-          <div className="rounded-xl p-4 border text-sm mb-5" style={{ backgroundColor: accent + "08", borderColor: accent + "20" }}>
-            <div className="font-bold text-depro-dark mb-2 flex items-center gap-1.5">
-              <Target size={14} style={{ color: accent }} /> Tips del preparador
+          <div className="rounded-xl p-4 border mb-4" style={{ backgroundColor: accent + "08", borderColor: accent + "20" }}>
+            <div className="font-bold text-depro-dark mb-3 flex items-center gap-1.5 text-sm">
+              <Target size={14} style={{ color: accent }} /> Consejos técnicos
             </div>
-            <p className="text-depro-gray">{exercise.tips}</p>
+            {Array.isArray(exercise.tips) ? (
+              <ul className="space-y-1.5">
+                {exercise.tips.map((tip, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-depro-gray">
+                    <span className="w-4 h-4 rounded flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5"
+                      style={{ backgroundColor: accent + "20", color: accent }}>{i + 1}</span>
+                    <span className="leading-relaxed">{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-depro-gray leading-relaxed">{exercise.tips}</p>
+            )}
           </div>
         )}
+
+        {/* Errores a evitar */}
+        {exercise.errorsToAvoid && (
+          <div className="rounded-xl p-4 border border-amber-200 bg-amber-50 mb-5">
+            <div className="font-bold text-amber-800 mb-1.5 flex items-center gap-1.5 text-sm">
+              ⚠️ Errores a evitar
+            </div>
+            <p className="text-xs text-amber-700 leading-relaxed">{exercise.errorsToAvoid}</p>
+          </div>
+        )}
+
         <button
           onClick={onClose}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
@@ -99,121 +123,212 @@ function ExerciseModal({ exercise, onClose, accent }) {
   );
 }
 
-/* ─────────────────────────────────────────────
-   SESSION CARD (jugador)
-───────────────────────────────────────────── */
-function SessionCard({ session, accentColor }) {
-  const [expanded, setExpanded] = useState(session.status === "today");
-  const [selectedEx, setSelectedEx] = useState(null);
-  const [completion, setCompletion] = useState(session.status === "completed" ? 100 : session.status === "today" ? 0 : 0);
-  const color = typeColor[session.type] || accentColor;
+/* ═══════════════════════════════════════════════════════════
+   PLAYER — Lista de ejercicios de un bloque
+═══════════════════════════════════════════════════════════ */
+function BlockExerciseList({ exercises, accentColor, onSelect }) {
+  if (!exercises || exercises.length === 0)
+    return <p className="text-xs text-depro-gray italic py-4 text-center">Sin ejercicios en este bloque</p>;
+  return (
+    <div className="space-y-2">
+      {exercises.map((ex, i) => {
+        const ytId = getYouTubeId(ex.videoUrl);
+        return (
+          <button key={i} onClick={() => onSelect(ex)}
+            className="w-full flex items-center gap-3 p-3 rounded-xl bg-depro-gray-light hover:bg-depro-blue-light border border-transparent hover:border-blue-100 transition-all text-left group"
+          >
+            {ytId ? (
+              <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt=""
+                className="w-12 h-9 rounded-lg object-cover border border-depro-border shrink-0" />
+            ) : (
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
+                style={{ backgroundColor: accentColor + "15", color: accentColor }}>{i + 1}</div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-depro-dark">{ex.name}</div>
+              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                {ex.duration && <ConditionPill Icon={Clock} label={ex.duration} color={accentColor} />}
+                {ex.sets && <ConditionPill Icon={Gauge} label={`${ex.sets} series`} />}
+                {ex.reps && <ConditionPill Icon={Pause} label={ex.reps} />}
+              </div>
+            </div>
+            <span className="text-[10px] text-depro-gray opacity-0 group-hover:opacity-100 transition-opacity shrink-0 flex items-center gap-1">
+              <Info size={11} /> Ver
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PLAYER — SESSION CARD con 4 bloques (igual a Zona Club)
+═══════════════════════════════════════════════════════════ */
+const BLOCK_CONFIG = {
+  calentamiento:  { label: "Calentamiento",    emoji: "🔥", color: "#F59E0B" },
+  principal:      { label: "Bloque principal", emoji: "💪", color: "#3B82F6" },
+  complementario: { label: "Complementario",  emoji: "🎯", color: "#8B5CF6" },
+  vuelta_calma:   { label: "Vuelta a la calma", emoji: "😌", color: "#10B981" },
+};
+
+function SessionCard({ session, accentColor, sessionNumber, dayLabel }) {
+  const [expanded, setExpanded]       = useState(session.status === "today");
+  const [activeBlock, setActiveBlock] = useState("resumen");
+  const [selectedEx, setSelectedEx]   = useState(null);
+  const [completion, setCompletion]   = useState(session.status === "completed" ? 100 : 0);
+  const isToday = session.status === "today";
+  const isDone  = completion === 100;
+
+  const blocks = session.blocks || [
+    { type: "principal", label: "Ejercicios", exercises: session.exercises || [] },
+  ];
+
+  const TABS = [
+    { id: "resumen",        label: "Resumen" },
+    { id: "calentamiento",  label: "Calentamiento" },
+    { id: "principal",      label: "Principal" },
+    { id: "complementario", label: "Complementario" },
+    { id: "vuelta_calma",   label: "Vuelta a la calma" },
+  ];
+
+  const getBlock = (type) => blocks.find((b) => b.type === type) || { exercises: [] };
 
   return (
-    <div className={`bg-white border rounded-2xl overflow-hidden transition-all ${session.status === "today" ? "border-depro-blue shadow-depro" : "border-depro-border shadow-card"}`}>
-      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-4 p-5 text-left hover:bg-depro-gray-light/50 transition-colors">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + "15" }}>
-          {completion === 100 ? <CheckCircle size={20} style={{ color: "#3BC21D" }} /> :
-           session.status === "today" ? <Flame size={20} style={{ color }} /> :
-           <Play size={20} style={{ color }} />}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-0.5">
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: color + "15", color }}>{session.type}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: intensityColor[session.intensity] + "15", color: intensityColor[session.intensity] }}>{session.intensity}</span>
-            {completion === 100 && <span className="tag-green text-xs">Completada</span>}
-            {session.status === "today" && completion < 100 && <span className="text-xs font-bold px-2 py-0.5 rounded-full animate-pulse bg-depro-blue text-white">HOY</span>}
+    <div className={`bg-white border rounded-2xl overflow-hidden shadow-card ${isToday && !isDone ? "border-depro-blue" : "border-depro-border"}`}>
+      {/* ── Header ── */}
+      <button onClick={() => setExpanded(!expanded)} className="w-full text-left">
+        <div className="p-5 flex items-start gap-4 hover:bg-depro-gray-light/40 transition-colors">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl font-black"
+            style={{ backgroundColor: accentColor + "15", color: accentColor }}>
+            {sessionNumber || "•"}
           </div>
-          <div className="font-bold text-depro-dark">{session.title}</div>
-          <div className="text-xs text-depro-gray mt-0.5">{session.objective}</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              {dayLabel && <span className="text-[10px] font-bold uppercase tracking-wider text-depro-gray">{dayLabel}</span>}
+              {isToday && !isDone && <span className="text-xs font-bold px-2 py-0.5 rounded-full animate-pulse bg-depro-blue text-white">HOY</span>}
+              {isDone && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700">Completada ✓</span>}
+            </div>
+            <h3 className="font-black text-depro-dark text-base mb-1">{session.title}</h3>
+            <div className="flex flex-wrap gap-3 text-xs text-depro-gray">
+              <span>⏱ {session.duration}</span>
+              {session.type && <span>🏃 {session.type}</span>}
+              <span>📋 {blocks.reduce((a, b) => a + b.exercises.length, 0)} ejercicios</span>
+            </div>
+          </div>
+          <div className="flex-shrink-0 text-depro-gray">{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0 text-depro-gray text-xs">
-          <span className="flex items-center gap-1"><Clock size={12} /> {session.duration}</span>
-          {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        <div className="px-5 pb-4">
+          <div className="flex items-center justify-between text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-1.5">
+            <span>Cumplimiento</span>
+            <span style={{ color: isDone ? "#16A34A" : accentColor }}>{completion}%</span>
+          </div>
+          <div className="h-1.5 bg-depro-gray-light rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all"
+              style={{ width:`${completion}%`, backgroundColor: isDone ? "#16A34A" : accentColor }} />
+          </div>
         </div>
       </button>
 
-      {/* Barra de % cumplimiento */}
-      {completion > 0 && (
-        <div className="px-5 pb-3">
-          <div className="flex items-center justify-between text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-1">
-            <span>Cumplimiento</span>
-            <span style={{ color: completion === 100 ? "#3BC21D" : accentColor }}>{completion}%</span>
+      {/* ── Bloques expandidos ── */}
+      {expanded && (
+        <div className="border-t border-depro-border">
+          {/* Tabs */}
+          <div className="flex border-b border-depro-border bg-depro-gray-light/40 overflow-x-auto">
+            {TABS.map((tab) => (
+              <button key={tab.id} onClick={() => setActiveBlock(tab.id)}
+                className={`flex-shrink-0 px-4 py-3 text-xs font-bold transition-colors border-b-2 ${
+                  activeBlock === tab.id ? "border-current text-depro-blue bg-white" : "border-transparent text-depro-gray hover:text-depro-dark"
+                }`}>
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <div className="h-1.5 bg-depro-gray-light rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${completion}%`, backgroundColor: completion === 100 ? "#3BC21D" : accentColor }}
-            />
-          </div>
-        </div>
-      )}
 
-      {expanded && session.exercises && session.exercises.length > 0 && (
-        <div className="px-5 pb-5 border-t border-depro-border">
-          <div className="pt-4 space-y-2">
-            {session.exercises.map((ex, i) => {
-              const ytId = getYouTubeId(ex.videoUrl);
+          <div className="p-5">
+            {/* ── RESUMEN ── */}
+            {activeBlock === "resumen" && (
+              <div className="space-y-4">
+                <div className="rounded-2xl p-5 flex items-center gap-4"
+                  style={{ background:`linear-gradient(135deg,${accentColor}10 0%,white 100%)`, border:`1px solid ${accentColor}25` }}>
+                  <div className="text-5xl font-black leading-none" style={{ color: accentColor }}>{sessionNumber}</div>
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-0.5">Sesión del día</div>
+                    <div className="font-black text-depro-dark text-xl">Sesión {sessionNumber}</div>
+                    <p className="text-xs text-depro-gray mt-1 leading-relaxed">{session.objective}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label:"Duración",   value:session.duration  || "60 min", icon:"⏱️" },
+                    { label:"Tipo",       value:session.type       || "General", icon:"🏃" },
+                    { label:"Intensidad", value:session.intensity || "Media",   icon:"🔋" },
+                    { label:"Ejercicios", value:`${blocks.reduce((a,b)=>a+b.exercises.length,0)} tareas`, icon:"📋" },
+                  ].map(({ label, value, icon }) => (
+                    <div key={label} className="bg-depro-gray-light rounded-xl p-4 border border-depro-border">
+                      <div className="text-xl mb-1">{icon}</div>
+                      <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{label}</div>
+                      <div className="text-sm font-black text-depro-dark mt-0.5">{value}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Vista rápida de bloques */}
+                <div className="space-y-2">
+                  {blocks.map((b) => {
+                    const cfg = BLOCK_CONFIG[b.type] || { label: b.label, emoji: "📌", color: accentColor };
+                    return (
+                      <div key={b.type}
+                        onClick={() => setActiveBlock(b.type)}
+                        className="flex items-center justify-between p-3 rounded-xl border border-depro-border bg-depro-gray-light hover:bg-depro-blue-light cursor-pointer transition-colors">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{cfg.emoji}</span>
+                          <span className="text-sm font-bold text-depro-dark">{cfg.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-depro-gray">{b.exercises.length} ejercicios</span>
+                          <ChevronDown size={12} className="text-depro-gray" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="rounded-xl p-4 border border-depro-border space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-depro-dark">
+                    <span>% completado</span>
+                    <span style={{ color: accentColor }}>{completion}%</span>
+                  </div>
+                  <input type="range" min="0" max="100" step="5" value={completion}
+                    onChange={(e) => setCompletion(Number(e.target.value))}
+                    className="w-full" style={{ accentColor }} />
+                  <button onClick={() => setCompletion(100)}
+                    className="w-full py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: accentColor }}>
+                    <CheckCircle size={15} /> Marcar como completada (100%)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── BLOQUES: calentamiento / principal / complementario / vuelta_calma ── */}
+            {["calentamiento","principal","complementario","vuelta_calma"].map((blockType) => {
+              if (activeBlock !== blockType) return null;
+              const block = getBlock(blockType);
+              const cfg = BLOCK_CONFIG[blockType];
               return (
-                <button key={i} onClick={() => setSelectedEx(ex)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-depro-gray-light hover:bg-depro-blue-light border border-transparent hover:border-blue-100 transition-all text-left group"
-                >
-                  {ytId ? (
-                    <img
-                      src={`https://img.youtube.com/vi/${ytId}/default.jpg`}
-                      alt=""
-                      className="w-12 h-9 rounded-lg object-cover border border-depro-border shrink-0"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0" style={{ backgroundColor: color + "15", color }}>
-                      {i + 1}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-depro-dark">{ex.name}</div>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                      {ex.duration && <ConditionPill Icon={Clock} label={ex.duration} color={color} />}
-                      {ex.sets && <ConditionPill Icon={Gauge} label={`${ex.sets} series`} />}
-                      {ex.reps && <ConditionPill Icon={Pause} label={ex.reps} />}
+                <div key={blockType} className="space-y-4">
+                  <div className="flex items-center gap-2 p-4 rounded-2xl border"
+                    style={{ backgroundColor: cfg.color + "08", borderColor: cfg.color + "25" }}>
+                    <span className="text-3xl">{cfg.emoji}</span>
+                    <div>
+                      <div className="font-black text-depro-dark">{cfg.label}</div>
+                      {block.duration && <div className="text-xs text-depro-gray">⏱ {block.duration}</div>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-xs shrink-0">
-                    {ytId ? (
-                      <span className="flex items-center gap-1 text-red-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Youtube size={13} /> Ver
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-depro-gray opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Video size={13} /> Info
-                      </span>
-                    )}
-                  </div>
-                </button>
+                  <BlockExerciseList exercises={block.exercises} accentColor={cfg.color} onSelect={setSelectedEx} />
+                </div>
               );
             })}
           </div>
-
-          {/* Slider de cumplimiento + acciones */}
-          {completion < 100 && (
-            <div className="mt-5 bg-depro-gray-light/50 rounded-xl p-4 border border-depro-border">
-              <div className="flex items-center justify-between text-xs font-bold text-depro-dark mb-2">
-                <span>Marca el % completado</span>
-                <span style={{ color: accentColor }}>{completion}%</span>
-              </div>
-              <input
-                type="range" min="0" max="100" step="5" value={completion}
-                onChange={(e) => setCompletion(Number(e.target.value))}
-                className="w-full accent-current"
-                style={{ accentColor }}
-              />
-              <button
-                onClick={() => setCompletion(100)}
-                className="mt-3 w-full py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: accentColor }}
-              >
-                <CheckCircle size={15} /> Marcar como completada (100%)
-              </button>
-            </div>
-          )}
         </div>
       )}
       {selectedEx && <ExerciseModal exercise={selectedEx} onClose={() => setSelectedEx(null)} accent={accentColor} />}
@@ -225,6 +340,28 @@ function SessionCard({ session, accentColor }) {
    VISTA JUGADOR
 ───────────────────────────────────────────── */
 // ── Generador local de plan semanal (motor de reglas) ───────
+function makeExercise(ex, ei, blockType) {
+  return {
+    id:          `${ex.id}_${ei}`,
+    name:        ex.nombre,
+    duration:    blockType === "calentamiento" ? "8–10 min" : blockType === "vuelta_calma" ? "5 min" : "40\"",
+    sets:        blockType === "principal" ? 4 : 3,
+    reps:        ex.etiquetas.includes("isometrico") ? "25–30\"" : "10–12",
+    description: `Ejercicio de ${ex.etiquetas.slice(0,2).join(" y ").replace(/_/g," ")}. Material: ${ex.material.replace(/_/g," ")}.`,
+    tips: [
+      "Mantén la postura durante toda la serie",
+      "Controla el movimiento en las dos fases (concéntrica y excéntrica)",
+      "Respira con normalidad: exhala en el esfuerzo",
+      `Activa el core en todo momento`,
+      ...(ex.contraindicado.length > 0 ? [`Precaución con: ${ex.contraindicado.join(", ")}`] : []),
+    ].slice(0, 5),
+    errorsToAvoid: ex.contraindicado.length > 0
+      ? `Evita si tienes lesiones en: ${ex.contraindicado.join(", ")}. No compenses con otras zonas del cuerpo.`
+      : "Evita compensar el movimiento con otras zonas. No sacrifiques la técnica por añadir más peso o velocidad.",
+    videoUrl: "",
+  };
+}
+
 function buildLocalPlan(user) {
   const objetivo   = user?.objetivo  || "fuerza";
   const frecuencia = user?.frecuencia || "3";
@@ -237,37 +374,71 @@ function buildLocalPlan(user) {
   const diasSemana = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
   const shorts     = ["L","M","X","J","V","S","D"];
   const n = dayObjectives.length;
+  let sessionCount = 0;
 
   return diasSemana.map((nombre, i) => {
     if (i >= n) return { day: nombre, shortDay: shorts[i], date: `${nombre} ${i+1}`, sessions: [] };
+    sessionCount++;
 
     const dayObj = dayObjectives[i];
     const pool   = filterExercises({ etiquetas: dayObj.etiquetas, material, lesiones, edad, deporte });
+    const picked = pool.filter((_, idx) => idx % 2 === 0).slice(0, 10);
 
-    // Selección pseudoaleatoria pero determinista basada en índice
-    const picked = pool.filter((_, idx) => idx % 2 === 0).slice(0, 7);
+    const blocks = [
+      {
+        type: "calentamiento", label: "Calentamiento", duration: "10 min",
+        exercises: picked.slice(0, 2).map((ex, ei) => makeExercise(ex, ei, "calentamiento")),
+      },
+      {
+        type: "principal", label: "Bloque principal", duration: "30 min",
+        exercises: picked.slice(2, 6).map((ex, ei) => makeExercise(ex, ei+2, "principal")),
+      },
+      {
+        type: "complementario", label: "Complementario", duration: "15 min",
+        exercises: picked.slice(6, 8).map((ex, ei) => makeExercise(ex, ei+6, "complementario")),
+      },
+      {
+        type: "vuelta_calma", label: "Vuelta a la calma", duration: "5 min",
+        exercises: picked.slice(8, 10).map((ex, ei) => makeExercise(ex, ei+8, "vuelta_calma")),
+      },
+    ];
 
     const session = {
-      id:         `gen_${i}`,
-      type:       dayObj.tipo,
-      title:      `${dayObj.tipo} · Sesión ${i+1}`,
-      objective:  `Trabaja ${dayObj.etiquetas.slice(0,2).join(", ")} según tu objetivo de ${objetivo}.`,
-      duration:   "60 min",
-      intensity:  "Medium",
-      status:     "pending",
-      exercises:  picked.map((ex, ei) => ({
-        id:          `${ex.id}_${ei}`,
-        name:        ex.nombre,
-        duration:    "40\"",
-        sets:        3,
-        reps:        ex.etiquetas.includes("isometrico") ? "20-30\"" : "10-12",
-        description: `Ejecuta correctamente. Material: ${ex.material.replace(/_/g," ")}.`,
-        tips:        ex.contraindicado.length > 0 ? `Cuidado si tienes problemas en: ${ex.contraindicado.join(", ")}.` : "Mantén la técnica durante toda la serie.",
-      })),
+      id:        `gen_${i}`,
+      type:      dayObj.tipo,
+      title:     `Sesión ${sessionCount}`,
+      objective: `Trabaja ${dayObj.etiquetas.slice(0,2).join(" y ")} según tu objetivo de ${objetivo}.`,
+      duration:  "60 min",
+      intensity: "Medium",
+      status:    "pending",
+      blocks,
+      exercises: blocks.flatMap((b) => b.exercises),
     };
 
     return { day: nombre, shortDay: shorts[i], date: `${nombre} ${i+1}`, sessions: [session] };
   });
+}
+
+/* ── Mesociclo: genera 3 semanas con sesiones 1–9 ─────────── */
+function buildMesoSessions(user) {
+  const weeks = [];
+  let sessionCounter = 0;
+  for (let w = 0; w < 3; w++) {
+    const weekPlan = buildLocalPlan(user);
+    const sessionDays = weekPlan.filter((d) => d.sessions.length > 0);
+    weeks.push({
+      week: w + 1,
+      label: `Semana ${w + 1}`,
+      sessions: sessionDays.map((d) => ({
+        ...d.sessions[0],
+        id: `meso_w${w}_${d.sessions[0].id}`,
+        title: `Sesión ${++sessionCounter}`,
+        sessionNumber: sessionCounter,
+        dayName: d.day,
+      })),
+    });
+  }
+  return weeks;
 }
 
 function PlayerWeeklyPlan({ accent }) {
@@ -277,7 +448,7 @@ function PlayerWeeklyPlan({ accent }) {
 
   const [plan, setPlan]       = useState(null);
   const [generating, setGen]  = useState(false);
-  const [selectedDay, setDay] = useState(0);
+  const [view, setView]       = useState("micro"); // "micro" | "meso"
 
   useEffect(() => {
     try {
@@ -302,18 +473,6 @@ function PlayerWeeklyPlan({ accent }) {
     setPlan(null);
   };
 
-  // Marcar sesión como completada
-  const handleComplete = (dayIdx, sessionId) => {
-    if (!plan) return;
-    const updated = plan.map((d, di) =>
-      di === dayIdx
-        ? { ...d, sessions: d.sessions.map((s) => s.id === sessionId ? { ...s, status: "completed" } : s) }
-        : d
-    );
-    setPlan(updated);
-    localStorage.setItem(planKey, JSON.stringify(updated));
-  };
-
   // ── Sin plan generado ──────────────────────────────────────
   if (!plan) {
     const hasProfile = !!(user?.objetivo || user?.frecuencia);
@@ -321,7 +480,6 @@ function PlayerWeeklyPlan({ accent }) {
       <div className="p-4 md:p-8 max-w-3xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">{t("weekly_plan.title")}</h1>
         <p className="text-depro-gray text-sm mb-8">{t("weekly_plan.subtitle")}</p>
-
         <div className="bg-white border border-depro-border rounded-2xl p-8 text-center shadow-card">
           <div className="w-16 h-16 rounded-2xl bg-depro-blue/10 flex items-center justify-center mx-auto mb-5">
             <Sparkles size={30} className="text-depro-blue" />
@@ -332,17 +490,10 @@ function PlayerWeeklyPlan({ accent }) {
           {hasProfile ? (
             <>
               <p className="text-depro-gray text-sm mb-2">{t("weekly_plan.no_plan_desc")}</p>
-              {user?.lesion?.length > 0 && (
-                <p className="text-xs text-amber-600 mb-4">{user.lesion.join(", ")}</p>
-              )}
-              <button
-                onClick={handleGenerate}
-                disabled={generating}
-                className="inline-flex items-center gap-2 px-8 py-3.5 bg-depro-blue text-white font-bold rounded-xl hover:bg-depro-blue-dark transition-colors mt-4 disabled:opacity-60"
-              >
-                {generating
-                  ? <><RefreshCw size={16} className="animate-spin" /> {t("weekly_plan.generating")}</>
-                  : <><Zap size={16} /> {t("weekly_plan.generate")}</>}
+              {user?.lesion?.length > 0 && <p className="text-xs text-amber-600 mb-4">{user.lesion.join(", ")}</p>}
+              <button onClick={handleGenerate} disabled={generating}
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-depro-blue text-white font-bold rounded-xl hover:bg-depro-blue-dark transition-colors mt-4 disabled:opacity-60">
+                {generating ? <><RefreshCw size={16} className="animate-spin" /> {t("weekly_plan.generating")}</> : <><Zap size={16} /> {t("weekly_plan.generate")}</>}
               </button>
             </>
           ) : (
@@ -358,101 +509,118 @@ function PlayerWeeklyPlan({ accent }) {
     );
   }
 
-  const day = plan[selectedDay];
+  // ── Sesiones del microciclo (semana actual) ────────────────
+  const microSessions = plan
+    .filter((d) => d.sessions.length > 0)
+    .map((d, i) => ({ ...d.sessions[0], sessionNumber: i + 1, dayName: d.day }));
+
+  const completedMicro  = microSessions.filter((s) => s.status === "completed").length;
+  const pctMicro        = microSessions.length ? Math.round((completedMicro / microSessions.length) * 100) : 0;
+  const mesoWeeks       = view === "meso" ? buildMesoSessions(user) : [];
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
-      <div className="flex items-start justify-between mb-8 gap-4">
+      {/* Cabecera */}
+      <div className="flex items-start justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Plan semanal</h1>
-          <p className="text-depro-gray text-sm">Objetivo: <strong>{user?.objetivo}</strong> · {user?.frecuencia}</p>
+          <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Plan de entrenamiento</h1>
+          <p className="text-depro-gray text-sm">Objetivo: <strong>{user?.objetivo}</strong> · {user?.frecuencia} días/semana</p>
         </div>
-        <button
-          onClick={handleReset}
-          className="flex-shrink-0 flex items-center gap-1.5 text-xs text-depro-gray border border-depro-border px-3 py-2 rounded-xl hover:border-red-300 hover:text-red-500 transition-colors"
-        >
+        <button onClick={handleReset}
+          className="flex-shrink-0 flex items-center gap-1.5 text-xs text-depro-gray border border-depro-border px-3 py-2 rounded-xl hover:border-red-300 hover:text-red-500 transition-colors">
           <RefreshCw size={13} /> Regenerar
         </button>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-8">
-        {plan.map((d, i) => {
-          const s       = d.sessions[0];
-          const isDone  = s?.status === "completed";
-          const isRest  = d.sessions.length === 0;
-          const isSel   = selectedDay === i;
-          return (
-            <button key={d.shortDay} onClick={() => setDay(i)}
-              className={`flex-shrink-0 flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl border transition-all ${
-                isSel ? "border-depro-blue text-depro-blue bg-depro-blue-light" :
-                "border-depro-border text-depro-gray hover:text-depro-dark hover:border-depro-blue/30 bg-white"
-              }`}
-            >
-              <span className="text-xs font-bold">{d.shortDay}</span>
-              <div
-                className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${isRest ? "bg-depro-gray-light text-gray-400" : ""}`}
-                style={isDone ? { backgroundColor: "#3BC21D", color: "#fff" } : !isRest ? { backgroundColor: accent + "20", color: accent } : {}}
-              >
-                {isDone ? "✓" : isRest ? "–" : s?.sessions?.length || "▶"}
-              </div>
-              {d.sessions[0]?.type && <span className="text-[10px] text-depro-gray text-center leading-tight max-w-[52px] truncate">{d.sessions[0].type}</span>}
-            </button>
-          );
-        })}
+      {/* Toggle Microciclo / Mesociclo */}
+      <div className="inline-flex bg-depro-gray-light rounded-xl p-1 mb-6 border border-depro-border">
+        {[
+          { id:"micro", label:"Microciclo · Semana" },
+          { id:"meso",  label:"Mesociclo · Mes" },
+        ].map((v) => (
+          <button key={v.id} onClick={() => setView(v.id)}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+              view === v.id ? "bg-white text-depro-blue shadow-sm" : "text-depro-gray hover:text-depro-dark"
+            }`}>
+            {v.label}
+          </button>
+        ))}
       </div>
 
-      {day.sessions.length > 0 ? (
-        <div className="space-y-4">
-          {day.sessions.map((session) => (
-            <div key={session.id} className="bg-white border border-depro-border rounded-2xl overflow-hidden shadow-card">
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <div>
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: accent + "15", color: accent }}>{session.type}</span>
-                    <h3 className="text-lg font-bold text-depro-dark">{session.title}</h3>
-                    <p className="text-sm text-depro-gray mt-0.5">{session.objective}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-depro-gray flex-shrink-0">
-                    <Clock size={12} /> {session.duration}
-                  </div>
-                </div>
+      {/* ── MICROCICLO ── */}
+      {view === "micro" && (
+        <div className="space-y-6">
+          {/* Resumen semanal */}
+          <div className="rounded-2xl p-5 flex items-center gap-5"
+            style={{ background:`linear-gradient(135deg,${accent}14 0%,${accent}04 100%)`, border:`1px solid ${accent}25` }}>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black flex-shrink-0" style={{ backgroundColor: accent + "20", color: accent }}>
+              {pctMicro}%
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-0.5">Progreso semanal</div>
+              <div className="font-black text-depro-dark">{completedMicro} de {microSessions.length} sesiones completadas</div>
+              <div className="h-1.5 w-full bg-depro-gray-light rounded-full overflow-hidden mt-2">
+                <div className="h-full rounded-full transition-all" style={{ width:`${pctMicro}%`, backgroundColor: accent }} />
+              </div>
+            </div>
+          </div>
 
-                <div className="space-y-2 mb-5">
-                  {session.exercises.map((ex, ei) => (
-                    <div key={ex.id} className="flex items-center gap-3 py-2.5 px-3 bg-depro-gray-light rounded-xl">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: accent + "15", color: accent }}>{ei + 1}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-depro-dark">{ex.name}</div>
-                        <div className="text-xs text-depro-gray">{ex.duration} · {ex.sets} series · {ex.reps}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* Selector de sesiones (igual a Club Zone) */}
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {microSessions.map((s) => (
+              <div key={s.id}
+                className="flex-shrink-0 px-5 py-3.5 rounded-2xl border bg-white text-left"
+                style={{ borderColor: s.status === "completed" ? "#16A34A" : accent + "40" }}>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray">{s.dayName}</div>
+                <div className="text-base font-black text-depro-dark mt-0.5">{s.title}</div>
+                <div className="text-[11px] font-semibold mt-1 text-depro-gray">{s.type}</div>
+                <div className="text-[10px] text-depro-gray mt-0.5">⏱ {s.duration}</div>
+                {s.status === "completed" && <div className="text-[10px] text-green-700 font-bold mt-1">✓ Completada</div>}
+              </div>
+            ))}
+          </div>
 
-                {session.status === "completed" ? (
-                  <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 font-bold text-sm">
-                    <CheckCircle size={16} /> Sesión completada ✓
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleComplete(selectedDay, session.id)}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: accent, color: contrastText(accent) }}
-                  >
-                    <CheckCircle size={15} /> Marcar como completada
-                  </button>
-                )}
+          {/* Sesiones con los 4 bloques */}
+          <div className="space-y-4">
+            {microSessions.map((session) => (
+              <SessionCard key={session.id} session={session} accentColor={accent}
+                sessionNumber={session.sessionNumber} dayLabel={session.dayName} />
+            ))}
+            {microSessions.length === 0 && (
+              <div className="bg-white border border-depro-border rounded-2xl text-center py-16 shadow-card">
+                <div className="w-14 h-14 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
+                  <Moon size={26} className="text-depro-gray" />
+                </div>
+                <h3 className="text-lg font-bold text-depro-dark mb-2">Sin sesiones esta semana</h3>
+                <p className="text-depro-gray text-sm max-w-xs mx-auto">Ajusta tu frecuencia de entrenamiento en el perfil.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── MESOCICLO ── */}
+      {view === "meso" && (
+        <div className="space-y-8">
+          <p className="text-depro-gray text-sm">3 semanas · Sesiones 1 a 9 · Progresión mensual</p>
+          {mesoWeeks.map((week) => (
+            <div key={week.week}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm"
+                  style={{ backgroundColor: accent + "20", color: accent }}>{week.week}</div>
+                <div>
+                  <div className="font-black text-depro-dark">{week.label}</div>
+                  <div className="text-xs text-depro-gray">{week.sessions.length} sesiones</div>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {week.sessions.map((session) => (
+                  <SessionCard key={session.id} session={session} accentColor={accent}
+                    sessionNumber={session.sessionNumber} dayLabel={session.dayName} />
+                ))}
               </div>
             </div>
           ))}
-        </div>
-      ) : (
-        <div className="bg-white border border-depro-border rounded-2xl text-center py-16 shadow-card">
-          <div className="w-14 h-14 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
-            <Moon size={26} className="text-depro-gray" />
-          </div>
-          <h3 className="text-lg font-bold text-depro-dark mb-2">Día de descanso</h3>
-          <p className="text-depro-gray text-sm max-w-xs mx-auto">El descanso es parte del plan. Deja que tu cuerpo se adapte y crezca.</p>
         </div>
       )}
     </div>
