@@ -152,15 +152,24 @@ export default function ProfilePage() {
     const team = teams.find((t) => t.id === selectedTeam);
     const assoc = { clubId: foundClub.id, teamId: selectedTeam };
 
-    // Guardar en localStorage
+    // Guardar en localStorage (asociación del jugador)
     localStorage.setItem(`depro_player_club_${user.id}`, JSON.stringify(assoc));
 
-    // Actualizar Supabase user_metadata Y tabla profiles (para que el entrenador pueda ver al jugador)
+    // Registrar en el registro compartido del equipo (localStorage — funciona en local inmediatamente)
+    try {
+      const regKey  = `depro_team_registry_${selectedTeam}`;
+      const reg     = JSON.parse(localStorage.getItem(regKey) || "[]");
+      const entry   = { id: user.id, name: user.name || user.email?.split("@")[0] || "Jugador", plan: user.plan || "—", email: user.email };
+      const idx     = reg.findIndex((p) => p.id === user.id);
+      if (idx >= 0) reg[idx] = entry; else reg.push(entry);
+      localStorage.setItem(regKey, JSON.stringify(reg));
+    } catch {}
+
+    // Actualizar Supabase user_metadata + intentar tabla player_team_links (Vercel/producción)
     try {
       await supabase.auth.updateUser({
         data: { clubId: foundClub.id, teamId: selectedTeam, teamRole: "jugador" },
       });
-      // Registrar en player_team_links (tabla sin FK, legible por todos los autenticados)
       await supabase.from("player_team_links").upsert({
         player_id: user.id,
         team_id:   selectedTeam,
@@ -184,7 +193,17 @@ export default function ProfilePage() {
   // ── Salir del club ──────────────────────────────────────────
   const handleLeaveClub = async () => {
     if (!window.confirm("¿Seguro que quieres salir del club? Tu perfil personal seguirá activo.")) return;
+    // Leer teamId actual antes de borrar la asociación
+    const oldAssoc = JSON.parse(localStorage.getItem(`depro_player_club_${user.id}`) || "{}");
     localStorage.removeItem(`depro_player_club_${user.id}`);
+    // Eliminar del registro del equipo
+    try {
+      if (oldAssoc.teamId) {
+        const regKey = `depro_team_registry_${oldAssoc.teamId}`;
+        const reg    = JSON.parse(localStorage.getItem(regKey) || "[]");
+        localStorage.setItem(regKey, JSON.stringify(reg.filter((p) => p.id !== user.id)));
+      }
+    } catch {}
     try {
       await supabase.auth.updateUser({ data: { clubId: null, teamId: null, teamRole: null } });
       await supabase.from("player_team_links").delete().eq("player_id", user.id);

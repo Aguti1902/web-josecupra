@@ -220,24 +220,27 @@ export default function SquadPage() {
       : myTeam ? [myTeam.id] : [];
     if (teamIds.length === 0) return;
 
+    // 1. Leer registro localStorage compartido (funciona en local inmediatamente)
+    const fromRegistry = teamIds.flatMap((tid) => {
+      try {
+        const raw = localStorage.getItem(`depro_team_registry_${tid}`);
+        return (JSON.parse(raw || "[]")).map((p) => ({ ...p, _teamId: tid, _reg: true }));
+      } catch { return []; }
+    });
+    if (fromRegistry.length > 0) { setRegPlayers(fromRegistry); return; }
+
+    // 2. Intentar Supabase player_team_links (necesita SQL previo)
     (async () => {
       try {
-        // Consultar player_team_links — tabla sin FK, legible por todos los autenticados
         const { data, error } = await supabase
           .from("player_team_links")
           .select("player_id, name, plan, team_id")
           .in("team_id", teamIds);
         if (!error && data?.length > 0) {
-          setRegPlayers(data.map((p) => ({
-            id:      p.player_id,
-            name:    p.name || "Jugador",
-            plan:    p.plan || "—",
-            _teamId: p.team_id,
-            _reg:    true,
-          })));
+          setRegPlayers(data.map((p) => ({ id: p.player_id, name: p.name || "Jugador", plan: p.plan || "—", _teamId: p.team_id, _reg: true })));
           return;
         }
-        // Fallback: API Vercel (funciona en producción)
+        // 3. API Vercel como último recurso (solo funciona en producción)
         const res = await fetch(`/api/team-players?teamId=${teamIds[0]}`).catch(() => null);
         if (res?.ok) {
           const { players: list } = await res.json();
