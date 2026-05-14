@@ -50,11 +50,17 @@ const ROLES = [
   { id: "jugador", label: "Jugador", icon: Users, color: "text-depro-gray bg-depro-gray-light" },
 ];
 const AGE_BLOCKS = [
-  { label: "Bloque 1 · Fútbol Base",      ages: ["Sub-9","Sub-10","Sub-11","Sub-12"] },
-  { label: "Bloque 2 · Fútbol Formativo", ages: ["Sub-13","Sub-14","Sub-15"] },
-  { label: "Bloque 3 · Fútbol Juvenil",   ages: ["Sub-16","Sub-17","Sub-18","Sub-19"] },
+  { id: "Bloque 1", label: "Bloque 1 · Fútbol Base",      ages: ["Sub-9","Sub-10","Sub-11","Sub-12"], color: "#3B82F6" },
+  { id: "Bloque 2", label: "Bloque 2 · Fútbol Formativo", ages: ["Sub-13","Sub-14","Sub-15"],          color: "#8B5CF6" },
+  { id: "Bloque 3", label: "Bloque 3 · Fútbol Juvenil",   ages: ["Sub-16","Sub-17","Sub-18","Sub-19"], color: "#EF4444" },
 ];
 const CATEGORIES = AGE_BLOCKS.flatMap((b) => b.ages);
+
+/** Devuelve el id de bloque ("Bloque 1" / "Bloque 2" / "Bloque 3") para una categoría */
+function getAgeBlock(category) {
+  const found = AGE_BLOCKS.find((b) => b.ages.includes(category));
+  return found ? found.id : null;
+}
 
 function RoleBadge({ role }) {
   const found = ROLES.find((r) => r.id === role);
@@ -522,11 +528,11 @@ function NewUserModal({ teams, clubId, onClose, onCreate }) {
 const INTENSITIES = ["Baja", "Media-baja", "Media", "Media-alta", "Alta", "Máxima"];
 const SESSION_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-function NewMicrocycleModal({ teams, onClose, onCreate }) {
+function NewMicrocycleModal({ teams, onClose, onCreate, initialAgeBlock = "" }) {
   const [form, setForm] = useState({
     microcycle: "",
     label: "",
-    ageBlock: "",
+    ageBlock: initialAgeBlock,
     teamId: "",
     teamName: "",
     dateRange: "",
@@ -1110,6 +1116,133 @@ function NewSessionModal({ onClose, onCreate }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PlanificacionSection — 3 bloques de edad con auto-asignación
+   ═══════════════════════════════════════════════════════════════ */
+function PlanificacionSection({ plans, teams, onAddSession, onDeleteSession, onDeleteMicrocycle, onCreateMicrocycle }) {
+  const [activeMcModal, setActiveMcModal] = useState(null); // bloque id para abrir modal
+  const [expandedBloque, setExpandedBloque] = useState(null);
+
+  return (
+    <div className="space-y-5">
+      {/* Cabecera con leyenda */}
+      <div className="flex items-center gap-3 px-1">
+        <div className="flex-1">
+          <h2 className="font-black text-depro-dark text-base">Planificación por bloques</h2>
+          <p className="text-xs text-depro-gray mt-0.5">
+            Crea un microciclo por bloque. Todos los equipos de ese bloque lo recibirán automáticamente.
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-50 border border-green-200">
+          <CheckCircle size={12} className="text-green-600" />
+          <span className="text-xs font-bold text-green-700">Auto-asignación activa</span>
+        </div>
+      </div>
+
+      {/* Grid de 3 bloques */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {AGE_BLOCKS.map((bloque) => {
+          const blockPlans = plans.filter((p) => p.ageBlock === bloque.id);
+          const blockTeams = (teams || []).filter((t) => getAgeBlock(t.category) === bloque.id);
+          const isExpanded = expandedBloque === bloque.id;
+
+          return (
+            <div key={bloque.id} className="rounded-2xl border overflow-hidden flex flex-col"
+              style={{ borderColor: bloque.color + "30" }}>
+
+              {/* Header del bloque */}
+              <div className="px-4 py-4 flex items-start justify-between"
+                style={{ background: `linear-gradient(135deg, ${bloque.color}10 0%, white 100%)` }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: bloque.color + "18", border: `1.5px solid ${bloque.color}30` }}>
+                      <Shield size={13} style={{ color: bloque.color }} />
+                    </div>
+                    <span className="font-black text-depro-dark text-sm">{bloque.id}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: bloque.color + "15", color: bloque.color }}>
+                      {blockPlans.length} microciclo{blockPlans.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-depro-gray mt-1.5 font-medium">
+                    {bloque.ages.join(" · ")}
+                  </p>
+                </div>
+              </div>
+
+              {/* Equipos auto-asignados */}
+              <div className="px-4 py-3 border-t border-b" style={{ borderColor: bloque.color + "20", backgroundColor: bloque.color + "05" }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Users size={11} style={{ color: bloque.color }} />
+                  <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: bloque.color }}>
+                    Equipos asignados · {blockTeams.length}
+                  </span>
+                </div>
+                {blockTeams.length === 0 ? (
+                  <p className="text-[10px] text-depro-gray italic">Sin equipos en este bloque todavía</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {blockTeams.map((t) => (
+                      <span key={t.id} className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border bg-white"
+                        style={{ borderColor: bloque.color + "30", color: bloque.color }}>
+                        <CheckCircle size={8} />
+                        {t.name} <span className="opacity-60">({t.category})</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Lista de microciclos */}
+              <div className="flex-1 p-3 space-y-2 bg-white min-h-[80px]">
+                {blockPlans.length === 0 && (
+                  <div className="py-6 text-center text-depro-gray">
+                    <ClipboardList size={22} className="mx-auto mb-1.5 opacity-25" />
+                    <p className="text-xs">Sin microciclos</p>
+                    <p className="text-[10px] opacity-60 mt-0.5">Añade el primero para este bloque</p>
+                  </div>
+                )}
+                {blockPlans.map((mc) => (
+                  <MicrocycleCard
+                    key={mc.id}
+                    mc={mc}
+                    teams={blockTeams}
+                    onAddSession={onAddSession}
+                    onDeleteSession={onDeleteSession}
+                    onDelete={onDeleteMicrocycle}
+                  />
+                ))}
+              </div>
+
+              {/* Footer: añadir microciclo */}
+              <div className="px-3 pb-3 bg-white">
+                <button onClick={() => setActiveMcModal(bloque.id)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-dashed text-xs font-bold transition-colors hover:bg-opacity-10"
+                  style={{ borderColor: bloque.color + "40", color: bloque.color, backgroundColor: bloque.color + "05" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = bloque.color + "12")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = bloque.color + "05")}>
+                  <Plus size={13} /> Añadir microciclo a {bloque.id}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Modal de nuevo microciclo (con bloque pre-seleccionado) */}
+      {activeMcModal && (
+        <NewMicrocycleModal
+          teams={teams || []}
+          initialAgeBlock={activeMcModal}
+          onClose={() => setActiveMcModal(null)}
+          onCreate={(mc) => { onCreateMicrocycle(mc); setActiveMcModal(null); }}
+        />
+      )}
     </div>
   );
 }
@@ -1880,55 +2013,14 @@ export default function AdminClubDetailPage() {
 
       {/* PLANIFICACIÓN */}
       {activeTab === "planificacion" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-depro-gray">
-              Crea y gestiona los microciclos del plan para este club. Cada microciclo tiene sus sesiones con ejercicios y vídeos adjuntos.
-            </p>
-            <button
-              onClick={() => setShowNewMc(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm shrink-0 ml-4"
-            >
-              <Plus size={15} />
-              Nuevo microciclo
-            </button>
-          </div>
-
-          {plans.length === 0 ? (
-            <div className="text-center py-16 text-depro-gray border border-dashed border-depro-border rounded-2xl">
-              <ClipboardList size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium mb-1">Sin planificación todavía</p>
-              <p className="text-sm">Crea el primer microciclo para este club y añade sus sesiones de entrenamiento.</p>
-              <button
-                onClick={() => setShowNewMc(true)}
-                className="mt-4 px-4 py-2 bg-depro-blue text-white text-sm font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors"
-              >
-                Crear primer microciclo
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {plans.map((mc) => (
-                <MicrocycleCard
-                  key={mc.id}
-                  mc={mc}
-                  teams={club.teams}
-                  onAddSession={addSession}
-                  onDeleteSession={deleteSession}
-                  onDelete={deleteMicrocycle}
-                />
-              ))}
-            </div>
-          )}
-
-          {showNewMc && (
-            <NewMicrocycleModal
-              teams={club.teams}
-              onClose={() => setShowNewMc(false)}
-              onCreate={addMicrocycle}
-            />
-          )}
-        </div>
+        <PlanificacionSection
+          plans={plans}
+          teams={club.teams || []}
+          onAddSession={addSession}
+          onDeleteSession={deleteSession}
+          onDeleteMicrocycle={deleteMicrocycle}
+          onCreateMicrocycle={addMicrocycle}
+        />
       )}
 
       {/* EQUIPOS */}

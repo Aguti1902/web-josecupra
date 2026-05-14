@@ -1208,6 +1208,19 @@ function ClubSessionCard({ session, accentColor, sessionNumber }) {
   );
 }
 
+/** Devuelve el id de bloque para una categoría de equipo */
+function getAgeBlock(category) {
+  const blocks = {
+    "Bloque 1": ["Sub-9","Sub-10","Sub-11","Sub-12"],
+    "Bloque 2": ["Sub-13","Sub-14","Sub-15"],
+    "Bloque 3": ["Sub-16","Sub-17","Sub-18","Sub-19"],
+  };
+  for (const [blockId, ages] of Object.entries(blocks)) {
+    if (ages.includes(category)) return blockId;
+  }
+  return null;
+}
+
 // Normaliza un plan del admin al formato que espera ClubMicrocycles
 function normalizePlan(m) {
   return {
@@ -1226,6 +1239,8 @@ function ClubMicrocycles({ accent }) {
   const { user } = useAuth();
   const isCoordinator = user?.team_role === "coordinador" || !user?.team;
   const userTeamId = user?.team?.id ?? null;
+  const userTeamCategory = user?.team?.category ?? null;
+  const userAgeBlock = getAgeBlock(userTeamCategory); // "Bloque 1" / "Bloque 2" / "Bloque 3" / null
   const clubId = user?.club?.id ?? null;
 
   // Cargar planes: primero user.club.plans (localStorage), luego API si está vacío
@@ -1252,10 +1267,14 @@ function ClubMicrocycles({ accent }) {
       .catch(() => {});
   }, [clubId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Filtrar: coordinador ve todos, entrenador solo su equipo
+  // Filtrar: coordinador ve todos; entrenador ve planes de su bloque de edad
+  // Sistema nuevo: filtra por ageBlock. Sistema antiguo (fallback): filtra por teamId.
   const visiblePlans = isCoordinator
     ? allPlans
-    : allPlans.filter((m) => !m.teamId || m.teamId === userTeamId);
+    : allPlans.filter((m) => {
+        if (m.ageBlock && userAgeBlock) return m.ageBlock === userAgeBlock;
+        return !m.teamId || m.teamId === userTeamId;
+      });
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const micro = visiblePlans[selectedIdx] ?? visiblePlans[0];
@@ -1278,7 +1297,7 @@ function ClubMicrocycles({ accent }) {
         <p className="text-depro-gray text-sm">
           {isCoordinator
             ? "Todos los equipos · Filtra por microciclo"
-            : `Equipo: ${user?.team?.name} · Calendario cerrado por semanas`}
+            : `${user?.team?.name}${userTeamCategory ? ` (${userTeamCategory})` : ""}${userAgeBlock ? ` · ${userAgeBlock}` : ""}`}
         </p>
       </div>
 
