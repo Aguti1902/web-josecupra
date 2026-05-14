@@ -288,20 +288,7 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel }) {
                     );
                   })}
                 </div>
-                <div className="rounded-xl p-4 border border-depro-border space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold text-depro-dark">
-                    <span>% completado</span>
-                    <span style={{ color: accentColor }}>{completion}%</span>
-                  </div>
-                  <input type="range" min="0" max="100" step="5" value={completion}
-                    onChange={(e) => setCompletion(Number(e.target.value))}
-                    className="w-full" style={{ accentColor }} />
-                  <button onClick={() => setCompletion(100)}
-                    className="w-full py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: accentColor }}>
-                    <CheckCircle size={15} /> Marcar como completada (100%)
-                  </button>
-                </div>
+                <CompletionButton completion={completion} onComplete={() => setCompletion(100)} accentColor={accentColor} />
               </div>
             )}
 
@@ -905,6 +892,59 @@ function ExerciseCardClub({ ex, ytId, accentColor }) {
   );
 }
 
+/* ─────────────────────────────────────────────
+   BOTÓN DE COMPLETADO con animación
+───────────────────────────────────────────── */
+function CompletionButton({ completion, onComplete, accentColor }) {
+  const [animating, setAnimating] = useState(false);
+
+  const handleClick = () => {
+    if (completion === 100) return;
+    setAnimating(true);
+    setTimeout(() => {
+      onComplete();
+      setAnimating(false);
+    }, 700);
+  };
+
+  if (completion === 100) {
+    return (
+      <div className="rounded-xl p-4 border border-green-200 bg-green-50 flex items-center justify-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+          <CheckCircle size={18} className="text-green-600" />
+        </div>
+        <span className="text-sm font-bold text-green-700">Sesión completada</span>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={animating}
+      className="relative w-full overflow-hidden rounded-xl py-3.5 font-bold text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+      style={{ backgroundColor: animating ? "#16A34A" : accentColor }}
+    >
+      {animating ? (
+        <span className="flex items-center gap-2 animate-pulse">
+          <CheckCircle size={15} /> Completando…
+        </span>
+      ) : (
+        <span className="flex items-center gap-2">
+          <CheckCircle size={15} /> Marcar como completada
+        </span>
+      )}
+      {/* Ripple de color */}
+      {animating && (
+        <span
+          className="absolute inset-0 rounded-xl animate-ping opacity-30"
+          style={{ backgroundColor: "#16A34A" }}
+        />
+      )}
+    </button>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════
    CLUB — SESIÓN con 4 bloques (diseño profesional, sin emojis)
 ═══════════════════════════════════════════════════════════ */
@@ -1034,21 +1074,7 @@ function ClubSessionCard({ session, accentColor, sessionNumber }) {
                   ))}
                 </div>
 
-                {/* Slider cumplimiento */}
-                <div className="rounded-xl p-4 border border-depro-border space-y-3 bg-depro-gray-light/30">
-                  <div className="flex items-center justify-between text-xs font-bold text-depro-dark">
-                    <span className="flex items-center gap-1.5"><TrendingUp size={13} style={{ color: accentColor }} /> % completado por el equipo</span>
-                    <span style={{ color: accentColor }}>{completion}%</span>
-                  </div>
-                  <input type="range" min="0" max="100" step="5" value={completion}
-                    onChange={(e) => setCompletion(Number(e.target.value))}
-                    className="w-full" style={{ accentColor }} />
-                  <button onClick={() => setCompletion(100)}
-                    className="w-full py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: accentColor }}>
-                    <CheckCircle size={14} /> Marcar como completada (100%)
-                  </button>
-                </div>
+                <CompletionButton completion={completion} onComplete={() => setCompletion(100)} accentColor={accentColor} />
               </div>
             )}
 
