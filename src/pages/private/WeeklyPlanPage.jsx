@@ -220,16 +220,6 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel }) {
           </div>
           <div className="flex-shrink-0 text-depro-gray">{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
         </div>
-        <div className="px-5 pb-4">
-          <div className="flex items-center justify-between text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-1.5">
-            <span>Cumplimiento</span>
-            <span style={{ color: isDone ? "#16A34A" : accentColor }}>{completion}%</span>
-          </div>
-          <div className="h-1.5 bg-depro-gray-light rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all"
-              style={{ width:`${completion}%`, backgroundColor: isDone ? "#16A34A" : accentColor }} />
-          </div>
-        </div>
       </button>
 
       {/* ── Bloques expandidos ── */}
@@ -986,17 +976,6 @@ function ClubSessionCard({ session, accentColor, sessionNumber }) {
           </div>
         </div>
 
-        {/* Barra cumplimiento */}
-        <div className="px-5 pb-4">
-          <div className="flex items-center justify-between text-[10px] font-semibold text-depro-gray uppercase tracking-wide mb-1.5">
-            <span>Cumplimiento del equipo</span>
-            <span className="font-black" style={{ color: completion === 100 ? "#16A34A" : accentColor }}>{completion}%</span>
-          </div>
-          <div className="h-1 bg-depro-gray-light rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-300"
-              style={{ width:`${completion}%`, backgroundColor: completion === 100 ? "#16A34A" : accentColor }} />
-          </div>
-        </div>
       </button>
 
       {/* ── Expandido ── */}
