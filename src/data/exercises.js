@@ -166,17 +166,68 @@ export const TAGS = {
   material:  ["sin_material","gomas","mancuernas","barra","maquina","casa","campo","gimnasio"],
 };
 
+// ── Tags extra que añade el deporte al pool de búsqueda ──
+const SPORT_EXTRA_TAGS = {
+  fútbol:   ["velocidad","cod","fuerza_explosiva","pliometria"],
+  futbol:   ["velocidad","cod","fuerza_explosiva","pliometria"],
+  basket:   ["pliometria","fuerza_explosiva","saltos"],
+  natación: ["hombro","core","traccion"],
+  natacion: ["hombro","core","traccion"],
+  tenis:    ["hombro","cod","fuerza_explosiva"],
+  fitness:  ["fuerza","estetica"],
+};
+
 // ── Motor: filtrar ejercicios para un perfil ─────────────
-export function filterExercises({ etiquetas = [], material, lesiones = [] }) {
-  return EXERCISES.filter((ex) => {
-    // Excluir si tiene contraindicación activa
+// Parámetros:
+//   etiquetas  — tags del objetivo del día
+//   material   — material disponible del usuario
+//   lesiones   — array de lesiones (strings)
+//   edad       — número (aplica reglas <14, 14-17, +30)
+//   deporte    — string (añade tags extra según el deporte)
+export function filterExercises({ etiquetas = [], material, lesiones = [], edad, deporte }) {
+  const edadNum = parseInt(edad) || 20;
+
+  // Tags adicionales por deporte
+  const sportKey  = (deporte || "").toLowerCase().trim();
+  const extraTags = SPORT_EXTRA_TAGS[sportKey] || [];
+  const allTags   = extraTags.length > 0
+    ? [...new Set([...etiquetas, ...extraTags])]
+    : etiquetas;
+
+  // Etiquetas excluidas por edad
+  const excludeByAge = [];
+  if (edadNum < 14)  excludeByAge.push("fuerza_maxima", "barra", "pliometria");
+  if (edadNum < 18)  excludeByAge.push("fuerza_maxima");
+
+  // Material normalizado
+  const mat = material
+    ? material.toLowerCase().replace(/\s/g,"_").replace("/","_").replace("barra_gimnasio","barra")
+    : null;
+
+  let results = EXERCISES.filter((ex) => {
+    // Excluir contraindicaciones activas
     if (lesiones.some((l) => ex.contraindicado.includes(l.toLowerCase()))) return false;
-    // Material compatible
-    if (material && ex.material !== "sin_material" && ex.material !== material.toLowerCase().replace(/\s/g,"_").replace("/","_")) return false;
+    // Excluir etiquetas peligrosas por edad
+    if (excludeByAge.some((t) => ex.etiquetas.includes(t))) return false;
+    // Material compatible (sin_material siempre pasa)
+    if (mat && ex.material !== "sin_material" && ex.material !== mat) return false;
     // Al menos una etiqueta coincide
-    if (etiquetas.length > 0 && !etiquetas.some((t) => ex.etiquetas.includes(t))) return false;
+    if (allTags.length > 0 && !allTags.some((t) => ex.etiquetas.includes(t))) return false;
     return true;
   });
+
+  // +30 años: añadir ejercicios de movilidad extra si hay pocos resultados o siempre
+  if (edadNum >= 30) {
+    const movilidad = EXERCISES.filter(
+      (ex) =>
+        ex.etiquetas.includes("movilidad") &&
+        !lesiones.some((l) => ex.contraindicado.includes(l.toLowerCase())) &&
+        !results.find((r) => r.id === ex.id)
+    ).slice(0, 3);
+    results = [...results, ...movilidad];
+  }
+
+  return results;
 }
 
 // ── Motor: reglas de frecuencia (doc técnico) ─────────────

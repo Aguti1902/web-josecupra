@@ -180,6 +180,8 @@ function buildLocalPlan(user) {
   const frecuencia = user?.frecuencia || "3";
   const material   = (user?.material || "sin_material").toLowerCase().replace(/\s|\//g,"_").replace("barra_gimnasio","barra");
   const lesiones   = (user?.lesion   || []).map((l) => l.toLowerCase());
+  const edad       = parseInt(user?.edad) || 20;
+  const deporte    = user?.deporte || "";
 
   const dayObjectives = getDayObjectives(objetivo, frecuencia);
   const diasSemana = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -190,7 +192,7 @@ function buildLocalPlan(user) {
     if (i >= n) return { day: nombre, shortDay: shorts[i], date: `${nombre} ${i+1}`, sessions: [] };
 
     const dayObj = dayObjectives[i];
-    const pool   = filterExercises({ etiquetas: dayObj.etiquetas, material, lesiones });
+    const pool   = filterExercises({ etiquetas: dayObj.etiquetas, material, lesiones, edad, deporte });
 
     // Selección pseudoaleatoria pero determinista basada en índice
     const picked = pool.filter((_, idx) => idx % 2 === 0).slice(0, 7);

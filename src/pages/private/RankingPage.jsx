@@ -1,10 +1,151 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Trophy, Zap, CheckCircle, Flame, Star, Medal, Crown,
   TrendingUp, Users, Calendar, Activity,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { rankingData } from "../../data/mockData";
+
+// ── Utilidades de localStorage ─────────────────────────────
+function weekKey(offset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() - offset * 7);
+  const day = d.getDay() || 7;
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - day + 1);
+  return mon.toISOString().slice(0, 10);
+}
+
+function getCompletedDays(userId, wk) {
+  try { return JSON.parse(localStorage.getItem(`depro_progress_${userId}_${wk}`) || "[]").length; }
+  catch { return 0; }
+}
+
+function getTotalSessions(userId) {
+  try {
+    const plan = JSON.parse(localStorage.getItem(`depro_plan_${userId}`) || "null");
+    if (!plan) return { total: 0, completed: 0 };
+    const all = plan.flatMap((d) => d.sessions || []);
+    return { total: all.length, completed: all.filter((s) => s.status === "completed").length };
+  } catch { return { total: 0, completed: 0 }; }
+}
+
+const TESTS = ["resistencia","sprint","cod","cmj"];
+function getLastTests(userId) {
+  const out = {};
+  TESTS.forEach((t) => {
+    try {
+      const hist = JSON.parse(localStorage.getItem(`depro_test_${userId}_${t}`) || "[]");
+      if (hist.length >= 2) out[t] = { prev: hist[hist.length-2].value, last: hist[hist.length-1].value, date: hist[hist.length-1].date };
+    } catch {}
+  });
+  return out;
+}
+
+// ── Construir ranking real del usuario ─────────────────────
+function buildRealRanking(user) {
+  const uid   = user?.id;
+  const name  = user?.name || user?.email || "Tú";
+  const plan  = user?.plan || "básico";
+  const color = user?.club?.primaryColor || "#0A36F7";
+  const wk    = weekKey();
+  const wkPrev= weekKey(1);
+
+  // Sesiones esta semana y la anterior
+  const thisWeek = getCompletedDays(uid, wk);
+  const lastWeek = getCompletedDays(uid, wkPrev);
+  const { total, completed } = getTotalSessions(uid);
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  // Tests recientes (para el feed)
+  const tests = getLastTests(uid);
+
+  // Construir leaderboard con el jugador real + compañeros de equipo del registry
+  const teamId  = user?.team;
+  const registry = [];
+  try {
+    const reg = JSON.parse(localStorage.getItem(`depro_team_registry_${teamId}`) || "[]");
+    reg.forEach((p) => { if (p.id !== uid) registry.push(p); });
+  } catch {}
+
+  const myEntry = {
+    id:      uid,
+    name,
+    avatar:  name.split(" ").map((n) => n[0]).join("").slice(0,2).toUpperCase(),
+    plan,
+    club:    { primaryColor: color },
+    points:  {
+      daily:   thisWeek > 0 ? thisWeek * 20 : 0,
+      weekly:  thisWeek * 20 + pct,
+      monthly: completed * 15 + pct,
+    },
+    sessions: { thisWeek, lastWeek, total, completed },
+    streak:  thisWeek,
+  };
+
+  // Compañeros de equipo (datos parciales)
+  const teammates = registry.map((p) => {
+    const tw = getCompletedDays(p.id, wk);
+    const { total: t2, completed: c2 } = getTotalSessions(p.id);
+    const p2 = t2 > 0 ? Math.round((c2/t2)*100) : 0;
+    return {
+      id:      p.id,
+      name:    p.name || p.email || "Jugador",
+      avatar:  (p.name || "J").split(" ").map((n) => n[0]).join("").slice(0,2).toUpperCase(),
+      plan:    p.plan || "básico",
+      club:    { primaryColor: "#0A36F7" },
+      points:  { daily: tw*20, weekly: tw*20+p2, monthly: c2*15+p2 },
+      sessions: { thisWeek: tw, lastWeek: 0, total: t2, completed: c2 },
+      streak:  tw,
+    };
+  });
+
+  const leaderboard = [myEntry, ...teammates];
+
+  // Construir feed de actividad desde el historial real
+  const feed = [];
+  let feedId = 0;
+
+  // Sesiones completadas esta semana
+  if (thisWeek > 0) {
+    feed.push({
+      id: feedId++, userId: uid, type: "session", name,
+      action: `completaste ${thisWeek} sesión${thisWeek>1?"es":""} esta semana`,
+      detail: `${pct}% del plan completado`,
+      timeAgo: "Esta semana",
+    });
+  }
+
+  // Mejoras en tests físicos
+  const testLabels = { resistencia: "Resistencia", sprint: "Sprint", cod: "COD 5-10-5", cmj: "Salto CMJ" };
+  const testUnits  = { resistencia: "rectas", sprint: "seg", cod: "seg", cmj: "cm" };
+  Object.entries(tests).forEach(([key, data]) => {
+    const diff = parseFloat((data.last - data.prev).toFixed(2));
+    if (diff !== 0) {
+      const better = key === "sprint" || key === "cod" ? diff < 0 : diff > 0;
+      if (better) {
+        const absDiff = Math.abs(diff);
+        feed.push({
+          id: feedId++, userId: uid, type: "achievement", name,
+          action: `mejoraste ${testLabels[key]} en ${absDiff} ${testUnits[key]}`,
+          detail: `Nuevo valor: ${data.last} ${testUnits[key]}`,
+          timeAgo: data.date || "Reciente",
+        });
+      }
+    }
+  });
+
+  // Racha semanas anteriores
+  if (lastWeek > 0) {
+    feed.push({
+      id: feedId++, userId: uid, type: "streak", name,
+      action: `completaste ${lastWeek} sesión${lastWeek>1?"es":""} la semana pasada`,
+      detail: "Mantén la racha",
+      timeAgo: "Semana pasada",
+    });
+  }
+
+  return { leaderboard, activityFeed: feed, myEntry };
+}
 
 const TABS = ["Diario", "Semanal", "Mensual"];
 const TAB_KEY = { Diario: "daily", Semanal: "weekly", Mensual: "monthly" };
@@ -17,9 +158,10 @@ const BADGE_STYLE = {
 };
 
 const FEED_ICON = {
-  session:     { Icon: CheckCircle, color: "#3BC21D", bg: "#EAF9E6" },
-  streak:      { Icon: Flame,       color: "#FB2C39", bg: "#FEE8EA" },
-  achievement: { Icon: Trophy,      color: "#B8940A", bg: "#FEFAE7" },
+  session:     { Icon: CheckCircle,  color: "#3BC21D", bg: "#EAF9E6" },
+  streak:      { Icon: Flame,        color: "#FB2C39", bg: "#FEE8EA" },
+  achievement: { Icon: TrendingUp,   color: "#B8940A", bg: "#FEFAE7" },
+  test:        { Icon: Zap,          color: "#8B5CF6", bg: "#F3E8FF" },
 };
 
 function Avatar({ initials, color, size = "md" }) {
@@ -87,6 +229,8 @@ function lum(hex) {
 export default function RankingPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("Semanal");
+
+  const rankingData = useMemo(() => buildRealRanking(user), [user?.id]);
 
   const key     = TAB_KEY[activeTab];
   const sorted  = [...(rankingData.leaderboard || [])].sort((a, b) => b.points[key] - a.points[key]);
