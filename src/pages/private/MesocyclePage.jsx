@@ -10,6 +10,18 @@ import {
   getCurrentWeekIndex, formatDate, getWeekStartDate, isMesocicloActive, getMesocicloWeeks,
 } from "../../lib/periodization";
 
+/* ── Contraste seguro ───────────────────────────────────── */
+function lum(hex) {
+  try {
+    const h = (hex || "#000").replace("#", "");
+    return (0.299 * parseInt(h.slice(0,2),16) + 0.587 * parseInt(h.slice(2,4),16) + 0.114 * parseInt(h.slice(4,6),16)) / 255;
+  } catch { return 0; }
+}
+// Si el color es demasiado claro, usa el azul DEPRO
+function safeAccent(hex) { return lum(hex) > 0.75 ? "#0A36F7" : (hex || "#0A36F7"); }
+// Texto que contraste sobre un fondo de ese color
+function contrastText(hex) { return lum(hex) > 0.55 ? "#111827" : "#ffffff"; }
+
 /* ── Helpers ────────────────────────────────────────────── */
 function getAgeBlock(category) {
   const blocks = {
@@ -101,7 +113,7 @@ function MesocycleCalendar({ activePlan, weeks, trainingDays, accent }) {
   return (
     <div className="bg-white border border-depro-border rounded-2xl overflow-hidden mb-5">
       <div className="flex items-center gap-2 px-5 py-3.5 border-b border-depro-border/60 bg-[#F8F9FB]">
-        <Calendar size={15} style={{ color: accent }} />
+        <Calendar size={15} className="text-depro-blue" />
         <span className="font-black text-depro-dark text-sm">Calendario del mesociclo</span>
         <div className="ml-auto flex items-center gap-3 text-[10px] text-depro-gray">
           {Object.entries(SESSION_TYPE_COLOR).map(([type, color]) => (
@@ -149,18 +161,12 @@ function MesocycleCalendar({ activePlan, weeks, trainingDays, accent }) {
                           style={{ backgroundColor: SESSION_TYPE_COLOR[sessionInfo.sType] }} />
                       )}
                       {/* Número del día */}
-                      <div className={`relative z-10 w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all ${
-                        isToday
-                          ? "font-black text-white"
-                          : sessionInfo
-                          ? "font-black"
-                          : "text-depro-dark"
-                      }`}
+                      <div                       className={`relative z-10 w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all`}
                         style={isToday
-                          ? { backgroundColor: accent }
+                          ? { backgroundColor: accent, color: contrastText(accent) }
                           : sessionInfo
-                          ? { color: SESSION_TYPE_COLOR[sessionInfo.sType] }
-                          : {}}>
+                          ? { color: SESSION_TYPE_COLOR[sessionInfo.sType], fontWeight: 800 }
+                          : { color: "#333333" }}>
                         {day}
                       </div>
                       {/* Punto indicador de sesión */}
@@ -294,7 +300,7 @@ function SessionCard({ session, sessionNumber, accent }) {
    ════════════════════════════════════════════════════════════ */
 export default function MesocyclePage() {
   const { user } = useAuth();
-  const accent = user?.club?.primaryColor || "#0A36F7";
+  const accent = safeAccent(user?.club?.primaryColor || "#0A36F7");
   const teamCategory = user?.team?.category ?? null;
   const userAgeBlock = getAgeBlock(teamCategory);
 
@@ -341,7 +347,7 @@ export default function MesocyclePage() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-depro-gray text-xs font-bold uppercase tracking-wide mb-2">
-          <Calendar size={14} style={{ color: accent }} />
+          <Calendar size={14} className="text-depro-blue" />
           Plan mensual
           {userAgeBlock && (
             <span className="ml-1 px-2 py-0.5 rounded-full bg-[#F8F9FB] border border-depro-border text-depro-gray font-bold">
@@ -471,7 +477,7 @@ export default function MesocyclePage() {
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center border text-xs font-black flex-shrink-0`}
                     style={isCurrentWeek
-                      ? { backgroundColor: accent, borderColor: accent, color: "white" }
+                      ? { backgroundColor: accent, borderColor: accent, color: contrastText(accent) }
                       : { backgroundColor: accent + "15", borderColor: accent + "25", color: accent }}>
                     {weekNumber}
                   </div>
@@ -543,10 +549,10 @@ export default function MesocyclePage() {
                 {[
                   { value: totalSessions, label: "Sesiones" },
                   { value: weeks.length,  label: "Semanas" },
-                  { value: sessionsPerWeek, label: "Días/semana", accent: true },
-                ].map(({ value, label, accent: isAccent }) => (
+                  { value: sessionsPerWeek, label: "Días/semana", useAccent: true },
+                ].map(({ value, label, useAccent }) => (
                   <div key={label} className="bg-white rounded-xl p-3 text-center border border-depro-border">
-                    <div className="text-2xl font-black" style={isAccent ? { color: accent } : { color: "#333" }}>{value}</div>
+                    <div className="text-2xl font-black" style={{ color: useAccent ? accent : "#333333" }}>{value}</div>
                     <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mt-0.5">{label}</div>
                   </div>
                 ))}
