@@ -10,9 +10,31 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { weeklyPlan, coachFeedback } from "../../data/mockData";
+import {
+  distributeMesocycleForTeam, getCurrentWeekIndex, isMesocicloActive,
+} from "../../lib/periodization";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+/* ── Helper: bloque de edad por categoría ─────────────────── */
+function getAgeBlock(category) {
+  const map = {
+    "Bloque 1": ["Sub-9","Sub-10","Sub-11","Sub-12"],
+    "Bloque 2": ["Sub-13","Sub-14","Sub-15"],
+    "Bloque 3": ["Sub-16","Juvenil"],
+  };
+  for (const [id, ages] of Object.entries(map)) {
+    if (ages.includes(category)) return id;
+  }
+  return null;
+}
+
+/* ── Carga planes globales desde localStorage + API ─────── */
+function loadGlobalPlans() {
+  try { return JSON.parse(localStorage.getItem("depro_global_plans") || "[]"); }
+  catch { return []; }
+}
 
 // Luminancia 0–1
 function lum(hex) {
@@ -458,6 +480,7 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
 function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack }) {
   const [squadPlayers, setSquadPlayers]  = useState([]); // añadidos manualmente
   const [regPlayers, setRegPlayers]      = useState([]); // jugadores registrados (Stripe)
+  const [globalPlans, setGlobalPlans]    = useState(() => loadGlobalPlans());
   const players = [...squadPlayers, ...regPlayers.map((p) => ({ ...p, _registered: true }))];
 
   // Color seguro sobre fondo blanco
@@ -500,12 +523,55 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
       });
   }, [team?.id]);
 
-  const allPlans = club?.plans || [];
-  const myPlans = team
-    ? allPlans.filter((mc) => !mc.teamId || mc.teamId === team.id)
-    : allPlans;
+  // Cargar planes globales desde la nube (cross-device)
+  useEffect(() => {
+    fetch("/api/admin-clubs")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data) return;
+        const entry = (data.clubs || []).find((c) => c.id === "GLOBAL_PLANS");
+        if (entry?.plans?.length > 0) {
+          localStorage.setItem("depro_global_plans", JSON.stringify(entry.plans));
+          setGlobalPlans(entry.plans);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
-  const nextSession = myPlans.flatMap((mc) => mc.sessions || [])[0] || null;
+  // Determinar la próxima sesión: buscar en planes globales por bloque de edad
+  const teamCategory = team?.category ?? null;
+  const ageBlock = getAgeBlock(teamCategory);
+  const trainingDays = team?.trainingDays || [];
+
+  // Filtrar planes por bloque del equipo
+  const blockPlans = globalPlans.filter((p) => {
+    if (p.ageBlock && ageBlock) return p.ageBlock === ageBlock;
+    return true;
+  });
+
+  // Encontrar el mesociclo activo
+  const activePlan = blockPlans.find((p) => isMesocicloActive(p.startDate, p.endDate))
+    || blockPlans[0];
+
+  // Obtener sesiones de la semana actual
+  let nextSession = null;
+  if (activePlan?.sessions?.length > 0) {
+    const { weeks } = distributeMesocycleForTeam(activePlan.sessions, trainingDays, 3);
+    const weekIdx = getCurrentWeekIndex(activePlan.startDate, activePlan.endDate);
+    const currentWeekSessions = weeks[weekIdx >= 0 ? weekIdx : 0]?.sessions || [];
+    nextSession = currentWeekSessions[0] || activePlan.sessions[0] || null;
+  }
+
+  // Fallback: planes del club (sistema antiguo)
+  const allClubPlans = club?.plans || [];
+  const myClubPlans = team
+    ? allClubPlans.filter((mc) => !mc.teamId || mc.teamId === team.id)
+    : allClubPlans;
+  if (!nextSession) {
+    nextSession = myClubPlans.flatMap((mc) => mc.sessions || [])[0] || null;
+  }
+
+  const myPlans = blockPlans.length > 0 ? blockPlans : myClubPlans;
 
   const quickLinks = [
     { to: "/dashboard/plan",      label: "Planificación semanal", icon: ClipboardList },
