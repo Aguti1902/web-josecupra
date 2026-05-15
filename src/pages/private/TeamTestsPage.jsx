@@ -1,9 +1,31 @@
 import { useState, useEffect } from "react";
 import {
   Activity, Users, TrendingUp, TrendingDown, Minus,
-  Plus, X, ChevronDown, ChevronUp, Pencil, Save,
+  Plus, X, ChevronDown, ChevronUp, Pencil, Save, PlayCircle, BookOpen,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+
+/* ── Helper: cargar config de tests del admin ─────────────── */
+function loadAdminTests() {
+  try {
+    const stored = localStorage.getItem("depro_global_tests");
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+}
+async function fetchAdminTestsFromCloud() {
+  try {
+    const r = await fetch("/api/admin-clubs");
+    if (!r.ok) return null;
+    const data = await r.json();
+    const entry = (data.clubs || []).find((c) => c.id === "GLOBAL_TESTS");
+    return entry?.tests ?? null;
+  } catch { return null; }
+}
+function getYouTubeId(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtu\.be\/|v=|\/embed\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
 
 /* ── Definición de tests ───────────────────────────────────── */
 const TESTS = [
@@ -336,6 +358,18 @@ export default function TeamTestsPage() {
   const [expandedPlayer,  setExpanded]   = useState(null);
   const [editingPlayer,   setEditing]    = useState(null);
   const [tick,            setTick]       = useState(0);
+  const [adminTests,      setAdminTests] = useState(() => loadAdminTests());
+  const [showProtocols,   setShowProtocols] = useState(false);
+
+  /* Carga tests del admin desde la nube */
+  useEffect(() => {
+    fetchAdminTestsFromCloud().then((cloud) => {
+      if (cloud?.length) {
+        setAdminTests(cloud);
+        localStorage.setItem("depro_global_tests", JSON.stringify(cloud));
+      }
+    });
+  }, []);
 
   /* Carga plantilla */
   useEffect(() => {
@@ -573,6 +607,84 @@ export default function TeamTestsPage() {
           );
         })}
       </div>
+
+      {/* Protocolos y vídeos de los tests (del admin) */}
+      {adminTests.length > 0 && adminTests.some((t) => t.videoUrl || t.description) && (
+        <div className="mt-6 bg-white border border-depro-border rounded-2xl overflow-hidden">
+          <button
+            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-[#F8F9FB] transition-colors text-left"
+            onClick={() => setShowProtocols((v) => !v)}>
+            <div className="w-9 h-9 rounded-xl bg-depro-blue/10 border border-depro-blue/20 flex items-center justify-center flex-shrink-0">
+              <BookOpen size={16} className="text-depro-blue" />
+            </div>
+            <div className="flex-1">
+              <div className="font-black text-depro-dark">Protocolos de evaluación</div>
+              <div className="text-xs text-depro-gray">Cómo se realiza cada test · Vídeos explicativos</div>
+            </div>
+            {showProtocols
+              ? <ChevronUp size={16} className="text-depro-gray flex-shrink-0" />
+              : <ChevronDown size={16} className="text-depro-gray flex-shrink-0" />}
+          </button>
+
+          {showProtocols && (
+            <div className="border-t border-depro-border">
+              {adminTests.map((adminTest, i) => {
+                // Buscar el TESTS local que coincida por id
+                const testDef = TESTS.find((t) => t.id === adminTest.id) || {};
+                const ytId = getYouTubeId(adminTest.videoUrl);
+                const hasContent = adminTest.videoUrl || adminTest.description;
+                if (!hasContent) return null;
+
+                return (
+                  <div key={adminTest.id || i}
+                    className={i < adminTests.length - 1 ? "border-b border-depro-border/60" : ""}>
+                    {/* Header del test */}
+                    <div className="flex items-center gap-3 px-5 py-3.5 bg-[#F8F9FB]/60">
+                      <div className="w-7 h-7 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0"
+                        style={{ backgroundColor: (testDef.color || "#3B82F6") + "20", color: testDef.color || "#3B82F6" }}>
+                        {i + 1}
+                      </div>
+                      <div>
+                        <div className="font-black text-depro-dark text-sm">{adminTest.label || testDef.name}</div>
+                        <div className="text-[10px] text-depro-gray">Unidad: {adminTest.unit || testDef.unit}</div>
+                      </div>
+                    </div>
+
+                    <div className="px-5 pb-5 pt-3 grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* Vídeo */}
+                      {ytId && (
+                        <div>
+                          <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1">
+                            <PlayCircle size={10} className="text-depro-blue" /> Vídeo explicativo
+                          </div>
+                          <div className="relative w-full rounded-xl overflow-hidden bg-black" style={{ paddingBottom: "56.25%" }}>
+                            <iframe src={`https://www.youtube.com/embed/${ytId}`}
+                              className="absolute inset-0 w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen title={adminTest.label} />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Protocolo */}
+                      {adminTest.description && (
+                        <div>
+                          <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2">
+                            Protocolo de ejecución
+                          </div>
+                          <div className="bg-[#F8F9FB] border border-depro-border rounded-xl px-4 py-3 text-sm text-depro-dark/80 whitespace-pre-line leading-relaxed">
+                            {adminTest.description}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modal edición de marcas */}
       {editingPlayer && (
