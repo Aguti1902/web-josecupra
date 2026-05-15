@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminProvider } from "./context/AdminContext";
+import { ViewProvider } from "./context/ViewContext";
 import PWAInstallBanner from "./components/PWAInstallBanner";
 
 // Public
@@ -137,8 +138,10 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <AdminProvider>
-          <AppRoutes />
-          <PWAInstallBanner />
+          <ViewProvider>
+            <AppRoutes />
+            <PWAInstallBanner />
+          </ViewProvider>
         </AdminProvider>
       </AuthProvider>
     </BrowserRouter>

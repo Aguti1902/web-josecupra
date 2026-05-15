@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 import { weeklyPlan, coachFeedback } from "../../data/mockData";
 import {
@@ -1038,12 +1039,22 @@ function JugadorDashboard({ user, club }) {
 export default function DashboardPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const [selectedTeam, setSelectedTeam] = useState(null);
+  const { viewingTeam, setViewingTeam } = useView();
+  const [selectedTeam, setSelectedTeam] = useState(viewingTeam);
   const club = user?.club;
   const team = user?.team;
   const teamRole = user?.team_role;
   const accent = club?.primaryColor || "#0A36F7";
   const secondColor = club?.secondaryColor || "#FFFFFF";
+
+  const handleViewTeam = (t) => {
+    setSelectedTeam(t);
+    setViewingTeam(t);
+  };
+  const handleBack = () => {
+    setSelectedTeam(null);
+    setViewingTeam(null);
+  };
 
   if (user?.role === "club") {
     // Cuando el coordinador hace click en un equipo, muestra la vista del entrenador
@@ -1064,7 +1075,7 @@ export default function DashboardPage() {
               club={club}
               accent={accent}
               secondColor={secondColor}
-              onViewTeam={(t) => setSelectedTeam(t)}
+              onViewTeam={handleViewTeam}
             />
           : <EntrenadorDashboard
               club={club}
@@ -1072,7 +1083,7 @@ export default function DashboardPage() {
               teamRole={viewRole}
               accent={accent}
               secondColor={secondColor}
-              onBack={selectedTeam ? () => setSelectedTeam(null) : null}
+              onBack={selectedTeam ? handleBack : null}
             />
         }
       </div>

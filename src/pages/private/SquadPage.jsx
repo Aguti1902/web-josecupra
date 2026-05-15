@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 
 // ── Constantes ───────────────────────────────────────────────
@@ -361,12 +362,14 @@ function PlayerStatsModal({ player, onClose, sa }) {
 // ════════════════════════════════════════════════════════════
 export default function SquadPage() {
   const { user } = useAuth();
+  const { viewingTeam } = useView();
 
   const club      = user?.club;
   const teamRole  = user?.team_role;
   const clubId    = club?.id;
-  const isCoord   = teamRole === "coordinador";
-  const canEdit   = !isCoord;
+  // Si el coordinador está viendo un equipo específico → no es "coordinador general"
+  const isCoord   = teamRole === "coordinador" && !viewingTeam;
+  const canEdit   = teamRole !== "coordinador"; // coordinador nunca puede editar
 
   const rawAccent = club?.primaryColor   || "#0A36F7";
   const rawSec    = club?.secondaryColor || "#ffffff";
@@ -375,14 +378,15 @@ export default function SquadPage() {
   // Todos los equipos del club (para coordinador)
   const allTeams  = club?.teams || [];
 
-  // Resolver equipo del entrenador: user.team directo, o búsqueda por email en los equipos del club
+  // Resolver equipo activo: viewingTeam (coord viendo equipo) → user.team → búsqueda por email
   const myTeam = useMemo(() => {
+    if (viewingTeam) return viewingTeam;
     if (user?.team) return user.team;
     if (!user?.email || isCoord) return null;
     return allTeams.find(
       (t) => t.coach?.email?.toLowerCase() === user.email?.toLowerCase()
     ) || null;
-  }, [user?.team, user?.email, isCoord, allTeams]);
+  }, [viewingTeam, user?.team, user?.email, isCoord, allTeams]);
 
   const { t } = useTranslation();
 

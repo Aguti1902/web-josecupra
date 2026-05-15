@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import { useView } from "../../context/ViewContext";
 import LanguageSwitcher from "../shared/LanguageSwitcher";
 
 // Luminancia 0-1 de un color hex
@@ -35,6 +36,7 @@ export default function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const { user, logout } = useAuth();
+  const { viewingTeam } = useView();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -76,8 +78,10 @@ export default function AppLayout({ children }) {
   const accent        = rawAccent;
   const secondary     = rawSecondary;
   const activeTextColor = contrastText(sidebarAccent);
+  // Coordinador viendo equipo → muestra nav completo (read-only a nivel de UI en cada página)
+  const isCoordViewingTeam = user?.team_role === "coordinador" && viewingTeam;
   const navItems = user?.role === "club"
-    ? (user?.team_role === "coordinador" ? coordinadorNav : entrenadorNav)
+    ? (user?.team_role === "coordinador" && !isCoordViewingTeam ? coordinadorNav : entrenadorNav)
     : playerNav;
 
   // Cargar foto de perfil desde localStorage
@@ -159,7 +163,9 @@ export default function AppLayout({ children }) {
                   className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
                   style={{ backgroundColor: sidebarAccent, color: contrastText(sidebarAccent) }}
                 >
-                  {user?.team_role === "coordinador" ? "Coordinador"
+                  {user?.team_role === "coordinador" && viewingTeam
+                    ? viewingTeam.name || "Equipo"
+                    : user?.team_role === "coordinador" ? "Coordinador"
                     : user?.team_role === "entrenador" ? `${user.team?.name || "Entrenador"}`
                     : user?.team_role || "Club"}
                 </span>

@@ -4,6 +4,7 @@ import {
   Plus, X, ChevronDown, ChevronUp, Pencil, Save, PlayCircle, BookOpen,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
 
 /* ── Helper: cargar config de tests del admin ─────────────── */
 function loadAdminTests() {
@@ -183,12 +184,14 @@ function PlayerEvolutionPanel({ player, accent, onEdit }) {
     <div className="border-t border-depro-border bg-gray-50/60 px-5 py-4">
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs font-bold text-depro-gray uppercase tracking-wide">Evolución por test · {player.name}</p>
-        <button
-          onClick={() => onEdit(player)}
-          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
-        >
-          <Pencil size={11} /> Editar marcas
-        </button>
+        {onEdit && (
+          <button
+            onClick={() => onEdit(player)}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
+          >
+            <Pencil size={11} /> Editar marcas
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -351,6 +354,8 @@ function EditMarksModal({ player, accent, onClose, onSave }) {
 /* ── Página principal ────────────────────────────────────── */
 export default function TeamTestsPage() {
   const { user }  = useAuth();
+  const activeTeam = useActiveTeam();
+  const isReadOnly = useIsReadOnly();
   const accent    = safeAccent(user?.club?.primaryColor || "#0A36F7");
 
   const [players,         setPlayers]    = useState([]);
@@ -373,7 +378,7 @@ export default function TeamTestsPage() {
 
   /* Carga plantilla */
   useEffect(() => {
-    const clubId = user?.club?.id, teamId = user?.team?.id;
+    const clubId = user?.club?.id, teamId = activeTeam?.id;
     if (!clubId || !teamId) return;
     const manual = JSON.parse(localStorage.getItem(`depro_squad_${clubId}_${teamId}`) || "[]");
     const registered = [];
@@ -392,7 +397,7 @@ export default function TeamTestsPage() {
     }
     const ids = new Set(manual.map((p) => p.id));
     setPlayers([...manual, ...registered.filter((p) => !ids.has(p.id))]);
-  }, [user?.club?.id, user?.team?.id]);
+  }, [user?.club?.id, activeTeam?.id]);
 
   /* Ordenar */
   const sortedPlayers = [...players].sort((a, b) => {
@@ -426,6 +431,12 @@ export default function TeamTestsPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
+      {isReadOnly && (
+        <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs font-medium text-amber-700">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Modo visualización · {activeTeam?.name || "Equipo"} — Solo lectura
+        </div>
+      )}
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-depro-gray mb-1">
@@ -512,8 +523,8 @@ export default function TeamTestsPage() {
                   return (
                     <button
                       key={t.id}
-                      onClick={() => setEditing(player)}
-                      className="px-3 py-3.5 border-l border-depro-border text-left hover:bg-depro-gray-light/50 group transition-colors"
+                      onClick={isReadOnly ? undefined : () => setEditing(player)}
+                      className={`px-3 py-3.5 border-l border-depro-border text-left transition-colors ${isReadOnly ? "cursor-default" : "hover:bg-depro-gray-light/50 group"}`}
                     >
                       {lastVal ? (
                         <>
@@ -562,7 +573,7 @@ export default function TeamTestsPage() {
                 <PlayerEvolutionPanel
                   player={player}
                   accent={accent}
-                  onEdit={(p) => setEditing(p)}
+                  onEdit={isReadOnly ? null : (p) => setEditing(p)}
                 />
               )}
             </div>
