@@ -176,6 +176,19 @@ export default function AppLayout({ children }) {
           </div>
         </div>
 
+        {/* Volver (solo cuando coordinador está viendo un equipo) */}
+        {isCoordViewingTeam && (
+          <div className="px-4 pt-3 pb-1">
+            <button
+              onClick={() => { setViewingTeam(null); navigate("/dashboard"); setSidebarOpen(false); }}
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-bold text-depro-gray hover:text-depro-dark hover:bg-depro-gray-light transition-colors border border-depro-border"
+            >
+              <ChevronRight size={13} className="rotate-180 flex-shrink-0" />
+              Todos los equipos
+            </button>
+          </div>
+        )}
+
         {/* Nav */}
         <nav className="flex-1 p-4 overflow-y-auto">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">{t("nav.dashboard")}</p>
