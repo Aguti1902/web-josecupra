@@ -35,6 +35,7 @@ import AdminPlanBuilderPage from "./pages/admin/AdminPlanBuilderPage";
 import AdminClubsManagerPage from "./pages/admin/AdminClubsManagerPage";
 import AdminClubDetailPage from "./pages/admin/AdminClubDetailPage";
 import AdminPlanificacionPage from "./pages/admin/AdminPlanificacionPage";
+import AdminTestsPage from "./pages/admin/AdminTestsPage";
 
 /* ── Guards ───────────────────────────────────────────────────────── */
 function LoadingScreen() {
@@ -119,6 +120,7 @@ function AppRoutes() {
       <Route path="/admin/clubs" element={<AdminRoute><AdminLayout><AdminClubsManagerPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clubs/:id" element={<AdminRoute><AdminLayout><AdminClubDetailPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/planificacion" element={<AdminRoute><AdminLayout><AdminPlanificacionPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/tests" element={<AdminRoute><AdminLayout><AdminTestsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/settings" element={<AdminRoute><AdminLayout><AdminSettingsPage /></AdminLayout></AdminRoute>} />
 
       {/* ── Fallback ───────────────────────────────────────────── */}

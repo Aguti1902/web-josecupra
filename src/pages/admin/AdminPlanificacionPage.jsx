@@ -68,12 +68,16 @@ function loadGlobalPlans() {
 async function saveGlobalPlans(plans) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
   try {
-    await fetch("/api/admin-clubs", {
+    const res = await fetch("/api/admin-clubs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clubId: GLOBAL_CLUB_ID, data: { plans } }),
+      body: JSON.stringify({
+        club: { id: GLOBAL_CLUB_ID, name: "Global Plans" },
+        detail: { plans },
+      }),
     });
-  } catch {}
+    if (!res.ok) console.warn("[DEPRO] saveGlobalPlans API error", await res.text());
+  } catch (e) { console.warn("[DEPRO] saveGlobalPlans fetch error", e); }
 }
 
 async function fetchGlobalPlansFromAPI() {
@@ -529,166 +533,33 @@ function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete }) {
   );
 }
 
-/* ── Tests por bloque: storage ──────────────────────────────── */
-const TESTS_STORAGE_KEY = "depro_block_tests";
-const DEFAULT_TESTS = PHYSICAL_TEST_FIELDS.map((t) => ({ ...t, description: "", reference: "", videoUrl: "" }));
-
-function loadBlockTests() {
-  try { return JSON.parse(localStorage.getItem(TESTS_STORAGE_KEY) || "{}"); }
-  catch { return {}; }
-}
-async function saveBlockTests(tests) {
-  localStorage.setItem(TESTS_STORAGE_KEY, JSON.stringify(tests));
-  try {
-    await fetch("/api/admin-clubs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clubId: "BLOCK_TESTS", data: { tests } }),
-    });
-  } catch {}
-}
-
-/* ── Modal editor de tests por bloque ─────────────────────── */
-function TestsEditorModal({ bloque, tests, onClose, onSave }) {
-  const [form, setForm] = useState(
-    tests?.length ? tests : DEFAULT_TESTS.map((t) => ({ ...t }))
-  );
-  const update = (i, field, val) =>
-    setForm((f) => f.map((t, ti) => ti === i ? { ...t, [field]: val } : t));
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-stretch bg-black/50">
-      <div className="relative bg-white w-full max-w-2xl mx-auto my-6 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-depro-border flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0"
-              style={{ backgroundColor: bloque.color + "18", borderColor: bloque.color + "25" }}>
-              <ClipboardList size={16} style={{ color: bloque.color }} />
-            </div>
-            <div>
-              <div className="font-black text-depro-dark leading-none">Tests físicos · {bloque.id}</div>
-              <div className="text-[10px] text-depro-gray mt-0.5">{bloque.ages.join(" · ")} · Se configuran una sola vez</div>
-            </div>
-          </div>
-          <button onClick={onClose} className="text-depro-gray hover:text-depro-dark p-1 rounded-lg hover:bg-depro-gray-light transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Info */}
-        <div className="px-6 py-3 border-b border-depro-border bg-depro-blue-light/20 flex items-center gap-2">
-          <CheckCircle size={13} className="text-depro-blue flex-shrink-0" />
-          <p className="text-xs text-depro-dark/70">
-            Estos 4 tests se aplican a todos los equipos del <strong>{bloque.id}</strong>.
-            Añade el protocolo, valores de referencia y un vídeo explicativo para cada test.
-          </p>
-        </div>
-
-        {/* Tests */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {form.map((test, i) => {
-            const ytId = getYouTubeId(test.videoUrl);
-            return (
-              <div key={test.id} className="border border-depro-border rounded-2xl overflow-hidden bg-white">
-                {/* Cabecera del test */}
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-depro-border/50"
-                  style={{ backgroundColor: bloque.color + "08" }}>
-                  <div className="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0"
-                    style={{ backgroundColor: bloque.color + "20", color: bloque.color }}>
-                    {i + 1}
-                  </div>
-                  <div>
-                    <div className="font-black text-depro-dark text-sm">{test.label}</div>
-                    <div className="text-[10px] text-depro-gray">Unidad: {test.unit}</div>
-                  </div>
-                </div>
-
-                <div className="p-4 space-y-3">
-                  {/* Vídeo YouTube */}
-                  <div>
-                    <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-1.5 flex items-center gap-1 block">
-                      <PlayCircle size={10} /> URL vídeo explicativo (YouTube)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        className="flex-1 border border-depro-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                        placeholder="https://youtu.be/…"
-                        value={test.videoUrl || ""}
-                        onChange={(e) => update(i, "videoUrl", e.target.value)}
-                      />
-                      {ytId && (
-                        <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt=""
-                          className="w-16 h-12 rounded-xl object-cover border border-depro-border flex-shrink-0" />
-                      )}
-                    </div>
-                    {ytId && (
-                      <div className="relative w-full rounded-xl overflow-hidden bg-black mt-2" style={{ paddingBottom: "30%" }}>
-                        <iframe src={`https://www.youtube.com/embed/${ytId}`}
-                          className="absolute inset-0 w-full h-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen title={test.label} />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Protocolo + Referencia */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide block mb-1">Protocolo de ejecución</label>
-                      <textarea rows={3} className="w-full border border-depro-border rounded-xl px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                        placeholder="Cómo se realiza el test paso a paso…"
-                        value={test.description || ""}
-                        onChange={(e) => update(i, "description", e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide block mb-1">Valores de referencia</label>
-                      <textarea rows={3} className="w-full border border-depro-border rounded-xl px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                        placeholder={`Ej. Bueno: ≥1200m\nRegular: 900-1199m\nMejorable: <900m`}
-                        value={test.reference || ""}
-                        onChange={(e) => update(i, "reference", e.target.value)} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Footer */}
-        <div className="flex gap-3 px-5 py-4 border-t border-depro-border flex-shrink-0 bg-white">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">
-            Cancelar
-          </button>
-          <button onClick={() => { onSave(form); onClose(); }}
-            className="flex-1 py-2.5 rounded-xl text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
-            style={{ backgroundColor: bloque.color }}>
-            <Save size={14} /> Guardar tests del {bloque.id}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ════════════════════════════════════════════════════════════
    PÁGINA PRINCIPAL
    ════════════════════════════════════════════════════════════ */
 export default function AdminPlanificacionPage() {
   const [plans, setPlans] = useState(() => loadGlobalPlans());
-  const [activeMcModal, setActiveMcModal] = useState(null); // ageBlock id para nuevo mesociclo
-  const [activeTestsModal, setActiveTestsModal] = useState(null); // bloque para editar tests
-  const [blockTests, setBlockTests] = useState(() => loadBlockTests()); // { "Bloque 1": [...], ... }
+  const [activeMcModal, setActiveMcModal] = useState(null);
   const [syncing, setSyncing] = useState(false);
 
-  // Cargar desde API al montar (cross-device)
+  // Cargar desde API al montar (cross-device) — Supabase es fuente de verdad
   useEffect(() => {
-    fetchGlobalPlansFromAPI().then((apiPlans) => {
-      if (apiPlans && apiPlans.length > 0) {
-        setPlans(apiPlans);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(apiPlans));
-      }
-    });
+    async function loadFromCloud() {
+      try {
+        const r = await fetch("/api/admin-clubs");
+        if (!r.ok) return;
+        const data = await r.json();
+        const clubs = data.clubs || [];
+
+        // Plans globales
+        const globalEntry = clubs.find((c) => c.id === GLOBAL_CLUB_ID);
+        if (globalEntry?.plans && globalEntry.plans.length > 0) {
+          setPlans(globalEntry.plans);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(globalEntry.plans));
+        }
+      } catch (e) { console.warn("[DEPRO] loadFromCloud error", e); }
+    }
+    loadFromCloud();
   }, []);
 
   const persist = (newPlans) => {
@@ -706,14 +577,7 @@ export default function AdminPlanificacionPage() {
   const handleSyncNow = async () => {
     setSyncing(true);
     await saveGlobalPlans(plans);
-    await saveBlockTests(blockTests);
     setSyncing(false);
-  };
-
-  const handleSaveTests = (bloqueId, testsData) => {
-    const updated = { ...blockTests, [bloqueId]: testsData };
-    setBlockTests(updated);
-    saveBlockTests(updated);
   };
 
   return (
@@ -815,21 +679,13 @@ export default function AdminPlanificacionPage() {
               </div>
 
               {/* Botón añadir */}
-              <div className="px-3 pb-3 bg-white space-y-2">
+              <div className="px-3 pb-3 bg-white">
                 <button onClick={() => setActiveMcModal(bloque.id)}
                   className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-dashed text-xs font-bold transition-all"
                   style={{ borderColor: bloque.color + "40", color: bloque.color }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = bloque.color + "10")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
                   <Plus size={13} /> Añadir mesociclo
-                </button>
-                <button onClick={() => setActiveTestsModal(bloque)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border text-xs font-bold transition-colors hover:bg-depro-gray-light/40"
-                  style={{ borderColor: bloque.color + "30", color: bloque.color }}>
-                  <ClipboardList size={12} />
-                  {blockTests[bloque.id]?.some(t => t.videoUrl || t.description)
-                    ? "✓ Tests configurados"
-                    : "Configurar tests físicos"}
                 </button>
               </div>
             </div>
@@ -838,16 +694,6 @@ export default function AdminPlanificacionPage() {
       </div>
 
       {/* Modal nuevo microciclo */}
-      {/* Modal tests por bloque */}
-      {activeTestsModal && (
-        <TestsEditorModal
-          bloque={activeTestsModal}
-          tests={blockTests[activeTestsModal.id]}
-          onClose={() => setActiveTestsModal(null)}
-          onSave={(data) => handleSaveTests(activeTestsModal.id, data)}
-        />
-      )}
-
       {activeMcModal && (
         <NewMicrocycleModal
           initialAgeBlock={activeMcModal}
