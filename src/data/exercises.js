@@ -276,6 +276,44 @@ export function getDayObjectives(objetivo, frecuencia) {
   return sequence.slice(0, n);
 }
 
+// ── Fusionar ejercicios con overrides del admin (videoUrl, description, tips) ──
+export function getExercisesWithOverrides() {
+  try {
+    const raw = localStorage.getItem("depro_catalog_overrides");
+    const overrides = raw ? JSON.parse(raw) : {};
+    return EXERCISES.map((e) => ({ ...e, ...(overrides[e.id] || {}) }));
+  } catch {
+    return EXERCISES;
+  }
+}
+
+// ── Versión enriquecida de filterExercises (con overrides) ──
+export function filterExercisesEnriched(params) {
+  const enriched = getExercisesWithOverrides();
+  const { etiquetas = [], material, lesiones = [], edad, deporte } = params;
+  const edadNum = parseInt(edad) || 20;
+  const sportKey = (deporte || "").toLowerCase().trim();
+  const SPORT_EXTRA = { fútbol:["velocidad","cod","fuerza_explosiva","pliometria"], futbol:["velocidad","cod","fuerza_explosiva","pliometria"], basket:["pliometria","fuerza_explosiva","saltos"], natación:["hombro","core","traccion"], natacion:["hombro","core","traccion"], tenis:["hombro","cod","fuerza_explosiva"], fitness:["fuerza","estetica"] };
+  const extraTags = SPORT_EXTRA[sportKey] || [];
+  const allTags = extraTags.length > 0 ? [...new Set([...etiquetas, ...extraTags])] : etiquetas;
+  const excludeByAge = [];
+  if (edadNum < 14) excludeByAge.push("fuerza_maxima","barra","pliometria");
+  if (edadNum < 18) excludeByAge.push("fuerza_maxima");
+  const mat = material ? material.toLowerCase().replace(/\s/g,"_").replace("/","_").replace("barra_gimnasio","barra") : null;
+  let results = enriched.filter((ex) => {
+    if (lesiones.some((l) => ex.contraindicado.includes(l.toLowerCase()))) return false;
+    if (excludeByAge.some((t) => ex.etiquetas.includes(t))) return false;
+    if (mat && ex.material !== "sin_material" && ex.material !== mat) return false;
+    if (allTags.length > 0 && !allTags.some((t) => ex.etiquetas.includes(t))) return false;
+    return true;
+  });
+  if (edadNum >= 30) {
+    const movilidad = enriched.filter((ex) => ex.etiquetas.includes("movilidad") && !lesiones.some((l) => ex.contraindicado.includes(l.toLowerCase())) && !results.find((r) => r.id === ex.id)).slice(0, 3);
+    results = [...results, ...movilidad];
+  }
+  return results;
+}
+
 // ── Motor: generar prompt para IA ────────────────────────
 export function buildAIPrompt({ edad, objetivo, deporte, frecuencia, material, lesion, exercises, plantilla }) {
   const lesionStr = (lesion?.length > 0 ? lesion.join(", ") : "ninguna");

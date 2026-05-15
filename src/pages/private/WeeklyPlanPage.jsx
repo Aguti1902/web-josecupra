@@ -22,7 +22,7 @@ function getYouTubeId(url) {
   return m ? m[1] : null;
 }
 import { clubWeeklyPlan } from "../../data/mockData";
-import { getDayObjectives, filterExercises } from "../../data/exercises";
+import { getDayObjectives, filterExercisesEnriched as filterExercises } from "../../data/exercises";
 
 const intensityColor = { Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
 const typeColor      = { Technical: "#0A36F7", Physical: "#F6CC12", Recovery: "#3BC21D", Tactical: "#a855f7", Match: "#FB2C39" };
