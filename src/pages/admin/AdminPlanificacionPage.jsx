@@ -196,9 +196,18 @@ function BlockExerciseEditor({ block, onUpdate }) {
 }
 
 /* ── Modal editor de sesión ──────────────────────────────── */
-function SessionEditorModal({ onClose, onCreate }) {
+function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = null }) {
+  const isEditing = !!initialData;
   const [tab, setTab] = useState("resumen");
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => initialData ? {
+    title: initialData.title || "",
+    duration: initialData.duration || "75 min",
+    intensity: initialData.intensity || "Media",
+    objective: initialData.objective || "",
+    space: initialData.space || "",
+    blocks: initialData.blocks?.length ? initialData.blocks : defaultBlocks(),
+    exercises: initialData.exercises || [],
+  } : {
     title: "", duration: "75 min", intensity: "Media",
     objective: "", space: "",
     blocks: defaultBlocks(),
@@ -224,7 +233,11 @@ function SessionEditorModal({ onClose, onCreate }) {
     const allExercises = form.blocks.flatMap((b) => b.exercises.map((ex) => ({
       ...ex, tips: ex.tips ? ex.tips.split("\n").filter(Boolean) : [],
     })));
-    onCreate({ ...form, id: `s${Date.now()}`, exercises: allExercises });
+    if (isEditing && onUpdate) {
+      onUpdate({ ...initialData, ...form, exercises: allExercises });
+    } else {
+      onCreate({ ...form, id: `s${Date.now()}`, exercises: allExercises });
+    }
     onClose();
   };
 
@@ -238,10 +251,10 @@ function SessionEditorModal({ onClose, onCreate }) {
               <ClipboardList size={16} style={{ color: sessionTypeMeta.color }} />
             </div>
             <div>
-              <div className="font-black text-depro-dark leading-none">{form.title || "Nueva sesión"}</div>
+              <div className="font-black text-depro-dark leading-none">{form.title || (isEditing ? "Editar sesión" : "Nueva sesión")}</div>
               <div className="text-[10px] text-depro-gray mt-0.5">
                 <span className="font-bold" style={{ color: sessionTypeMeta.color }}>{sessionTypeMeta.label}</span>
-                <span className="ml-2 opacity-60">· El día se asigna automáticamente</span>
+                <span className="ml-2 opacity-60">{isEditing ? "· Editando sesión" : "· El día se asigna automáticamente"}</span>
               </div>
             </div>
           </div>
@@ -360,7 +373,7 @@ function SessionEditorModal({ onClose, onCreate }) {
           </button>
           <button onClick={handleSave} disabled={!form.title.trim()}
             className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-bold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
-            <Save size={14} /> Guardar sesión
+            <Save size={14} /> {isEditing ? "Guardar cambios" : "Guardar sesión"}
           </button>
         </div>
       </div>
@@ -369,8 +382,15 @@ function SessionEditorModal({ onClose, onCreate }) {
 }
 
 /* ── Modal nuevo microciclo ──────────────────────────────── */
-function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
-  const [form, setForm] = useState({
+function NewMicrocycleModal({ onClose, onCreate, onUpdate = null, initialAgeBlock = "", initialData = null }) {
+  const isEditing = !!initialData;
+  const [form, setForm] = useState(() => initialData ? {
+    label: initialData.label || "",
+    ageBlock: initialData.ageBlock || initialAgeBlock,
+    startDate: initialData.startDate || "",
+    endDate: initialData.endDate || "",
+    status: initialData.status || "borrador",
+  } : {
     label: "", ageBlock: initialAgeBlock,
     startDate: "", endDate: "",
     status: "borrador",
@@ -380,7 +400,7 @@ function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-depro w-full max-w-lg">
         <div className="flex items-center justify-between p-6 border-b border-depro-border">
-          <h2 className="font-bold text-depro-dark text-lg">Nuevo mesociclo</h2>
+          <h2 className="font-bold text-depro-dark text-lg">{isEditing ? "Editar mesociclo" : "Nuevo mesociclo"}</h2>
           <button onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-4">
@@ -442,13 +462,17 @@ function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
           <button
             onClick={() => {
               if (!form.label || !form.ageBlock || !form.startDate || !form.endDate) return;
-              onCreate({ ...form, id: `mc${Date.now()}`, sessions: [] });
+              if (isEditing && onUpdate) {
+                onUpdate({ ...initialData, ...form });
+              } else {
+                onCreate({ ...form, id: `mc${Date.now()}`, sessions: [] });
+              }
               onClose();
             }}
             disabled={!form.label || !form.ageBlock || !form.startDate || !form.endDate}
             className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40"
           >
-            Crear mesociclo
+            {isEditing ? "Guardar cambios" : "Crear mesociclo"}
           </button>
         </div>
       </div>
@@ -457,9 +481,11 @@ function NewMicrocycleModal({ onClose, onCreate, initialAgeBlock = "" }) {
 }
 
 /* ── Card de microciclo ──────────────────────────────────── */
-function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete }) {
+function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete, onUpdateMc, onUpdateSession }) {
   const [expanded, setExpanded] = useState(false);
   const [showNewSession, setShowNewSession] = useState(false);
+  const [editingSession, setEditingSession] = useState(null);
+  const [showEditMc, setShowEditMc] = useState(false);
 
   const bloque = AGE_BLOCKS.find((b) => b.id === mc.ageBlock);
   const statusStyle = {
@@ -490,7 +516,10 @@ function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete }) {
             <button onClick={() => setExpanded((e) => !e)} className="text-depro-gray hover:text-depro-dark p-1.5 rounded-lg hover:bg-depro-gray-light transition-colors">
               {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
-            <button onClick={() => onDelete(mc.id)} className="text-depro-gray hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors">
+            <button onClick={() => setShowEditMc(true)} className="text-depro-gray hover:text-depro-blue p-1.5 rounded-lg hover:bg-depro-blue-light/30 transition-colors" title="Editar mesociclo">
+              <Edit3 size={14} />
+            </button>
+            <button onClick={() => onDelete(mc.id)} className="text-depro-gray hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors" title="Eliminar mesociclo">
               <Trash2 size={14} />
             </button>
           </div>
@@ -502,6 +531,14 @@ function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete }) {
             {(mc.sessions || []).length === 0 && (
               <p className="text-xs text-depro-gray italic">Sin sesiones — añade la primera</p>
             )}
+            {(mc.sessions || []).length > 0 && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-depro-blue-light/30 border border-depro-blue/15 mb-1">
+                <Calendar size={11} className="text-depro-blue mt-0.5 flex-shrink-0" />
+                <p className="text-[10px] text-depro-blue font-medium leading-tight">
+                  Estas {(mc.sessions || []).length} sesiones son la <strong>plantilla semanal</strong> — se repiten automáticamente cada semana durante el mes.
+                </p>
+              </div>
+            )}
             {(mc.sessions || []).map((s, si) => (
               <div key={s.id || si} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-depro-gray-light/50 border border-depro-border">
                 <div className="w-6 h-6 rounded-lg bg-depro-blue/10 flex items-center justify-center flex-shrink-0">
@@ -509,9 +546,12 @@ function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-depro-dark truncate">{s.title || s.day}</p>
-                  <p className="text-[10px] text-depro-gray">{s.day} · {s.duration} · {s.intensity}</p>
+                  <p className="text-[10px] text-depro-gray">{s.duration} · {s.intensity}</p>
                 </div>
-                <button onClick={() => onDeleteSession(mc.id, s.id)} className="text-depro-gray hover:text-red-500 p-1 transition-colors">
+                <button onClick={() => setEditingSession(s)} className="text-depro-gray hover:text-depro-blue p-1 rounded transition-colors" title="Editar sesión">
+                  <Edit3 size={12} />
+                </button>
+                <button onClick={() => onDeleteSession(mc.id, s.id)} className="text-depro-gray hover:text-red-500 p-1 transition-colors" title="Eliminar sesión">
                   <X size={12} />
                 </button>
               </div>
@@ -527,6 +567,22 @@ function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete }) {
         <SessionEditorModal
           onClose={() => setShowNewSession(false)}
           onCreate={(session) => { onAddSession(mc.id, session); setShowNewSession(false); }}
+        />
+      )}
+      {editingSession && (
+        <SessionEditorModal
+          initialData={editingSession}
+          onClose={() => setEditingSession(null)}
+          onCreate={() => {}}
+          onUpdate={(updated) => { onUpdateSession(mc.id, updated); setEditingSession(null); }}
+        />
+      )}
+      {showEditMc && (
+        <NewMicrocycleModal
+          initialData={mc}
+          onClose={() => setShowEditMc(false)}
+          onCreate={() => {}}
+          onUpdate={(updated) => { onUpdateMc(updated); setShowEditMc(false); }}
         />
       )}
     </div>
@@ -569,10 +625,15 @@ export default function AdminPlanificacionPage() {
 
   const addMicrocycle = (mc) => persist([...plans, mc]);
   const deleteMicrocycle = (id) => persist(plans.filter((p) => p.id !== id));
+  const updateMicrocycle = (updated) => persist(plans.map((p) => p.id === updated.id ? { ...p, ...updated } : p));
   const addSession = (mcId, session) =>
     persist(plans.map((p) => p.id === mcId ? { ...p, sessions: [...(p.sessions || []), session] } : p));
   const deleteSession = (mcId, sessionId) =>
     persist(plans.map((p) => p.id === mcId ? { ...p, sessions: (p.sessions || []).filter((s) => s.id !== sessionId) } : p));
+  const updateSession = (mcId, updated) =>
+    persist(plans.map((p) => p.id === mcId ? {
+      ...p, sessions: (p.sessions || []).map((s) => s.id === updated.id ? { ...s, ...updated } : s)
+    } : p));
 
   const handleSyncNow = async () => {
     setSyncing(true);
@@ -674,6 +735,8 @@ export default function AdminPlanificacionPage() {
                     onAddSession={addSession}
                     onDeleteSession={deleteSession}
                     onDelete={deleteMicrocycle}
+                    onUpdateMc={updateMicrocycle}
+                    onUpdateSession={updateSession}
                   />
                 ))}
               </div>

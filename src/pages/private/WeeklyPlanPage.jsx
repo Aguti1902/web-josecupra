@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   distributeWeekSessions, getDayRationale, getSessionType as getPeriodizationSessionType,
-  getCurrentWeekIndex, formatDate,
+  getCurrentWeekIndex, formatDate, getMesocicloWeeks,
 } from "../../lib/periodization";
 import {
   Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
@@ -1296,10 +1296,13 @@ function ClubMicrocycles({ accent }) {
 
   // Detectar semana actual según el calendario real del mesociclo
   const SESSIONS_PER_BASE_WEEK = 3;
+  const totalCalendarWeeks = getMesocicloWeeks(micro.startDate, micro.endDate);
   const currentWeekIdx = getCurrentWeekIndex(micro.startDate, micro.endDate);
-  const safeWeekIdx = currentWeekIdx < 0 ? 0 : currentWeekIdx; // si terminó, mostrar última semana
-  const weekStart = safeWeekIdx * SESSIONS_PER_BASE_WEEK;
-  const currentWeekSessions = (micro.sessions || []).slice(weekStart, weekStart + SESSIONS_PER_BASE_WEEK);
+  const safeWeekIdx = currentWeekIdx < 0 ? 0 : currentWeekIdx;
+
+  // Las sesiones del admin son la plantilla semanal — se repiten cada semana
+  const template = (micro.sessions || []).slice(0, SESSIONS_PER_BASE_WEEK);
+  const currentWeekSessions = template; // misma plantilla siempre
 
   // Distribuir sesiones de la semana actual según los días del equipo
   const distributedWeekSessions = !isCoordinator && trainingDays.length > 0

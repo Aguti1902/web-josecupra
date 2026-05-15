@@ -337,13 +337,14 @@ export default function MesocyclePage() {
   const allSessions = activePlan?.sessions || [];
   const trainingDays = activeTeam?.trainingDays || [];
 
-  const { weeks, totalSessions, sessionsPerWeek } = distributeMesocycleForTeam(
-    allSessions, trainingDays, 3
-  );
-
   const currentWeekIdx = getCurrentWeekIndex(activePlan?.startDate, activePlan?.endDate);
   const mesocicloActive = isMesocicloActive(activePlan?.startDate, activePlan?.endDate);
   const totalCalendarWeeks = getMesocicloWeeks(activePlan?.startDate, activePlan?.endDate);
+
+  // Pasar totalCalendarWeeks para que las sesiones plantilla se repitan cada semana
+  const { weeks, totalSessions, sessionsPerWeek } = distributeMesocycleForTeam(
+    allSessions, trainingDays, 3, totalCalendarWeeks
+  );
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">

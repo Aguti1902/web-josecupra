@@ -99,13 +99,27 @@ export function distributeWeekSessions(weekSessions, trainingDays) {
  * @param {number} baseWeekSize    - Sesiones por semana del plan original (por defecto 3)
  * @returns {{ weeks: Array, totalSessions: number }}
  */
-export function distributeMesocycleForTeam(allSessions, trainingDays, baseWeekSize = 3) {
+export function distributeMesocycleForTeam(allSessions, trainingDays, baseWeekSize = 3, totalCalendarWeeks = null) {
   const teamDays = (trainingDays || []).filter((d) => DAY_ORDER.includes(d));
   const sessionsPerTeamWeek = teamDays.length || baseWeekSize;
 
+  if (!allSessions || allSessions.length === 0) return { weeks: [], totalSessions: 0, sessionsPerWeek: sessionsPerTeamWeek };
+
+  // Las sesiones definidas por el admin son la PLANTILLA SEMANAL que se repite.
+  // Si hay totalCalendarWeeks, expandimos la plantilla para cubrir todas las semanas.
+  const templateSize = Math.min(allSessions.length, baseWeekSize);
+  const template = allSessions.slice(0, templateSize);
+  const numWeeks = totalCalendarWeeks ?? Math.max(1, Math.ceil(allSessions.length / baseWeekSize));
+
+  // Expandir la plantilla para cubrir todas las semanas del mesociclo
+  const expandedSessions = [];
+  for (let w = 0; w < numWeeks; w++) {
+    template.forEach((s) => expandedSessions.push({ ...s, id: `${s.id}_w${w}`, _weekIdx: w }));
+  }
+
   const weeks = [];
-  for (let i = 0; i < allSessions.length; i += baseWeekSize) {
-    const chunk = allSessions.slice(i, i + baseWeekSize);
+  for (let i = 0; i < expandedSessions.length; i += templateSize) {
+    const chunk = expandedSessions.slice(i, i + templateSize);
     const distributed = distributeWeekSessions(chunk, teamDays);
     if (distributed.length > 0) {
       weeks.push({
