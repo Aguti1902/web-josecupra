@@ -614,8 +614,8 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
                   >
                     {nextSession.type || "Sesión"}
                   </span>
-                  <h4 className="font-bold text-depro-dark text-lg">{nextSession.title || nextSession.name}</h4>
-                  <p className="text-sm text-depro-gray mt-0.5">{nextSession.objective || nextSession.description}</p>
+                  <h4 className="font-bold text-depro-dark text-lg">{nextSession.title || nextSession.name || "Próxima sesión"}</h4>
+                  <p className="text-sm text-depro-gray mt-0.5">{nextSession.objective || nextSession.description || nextSession.intensity}</p>
                 </div>
                 {nextSession.duration && (
                   <div className="flex items-center gap-1 text-sm flex-shrink-0 font-medium" style={{ color: sa }}>
@@ -677,15 +677,26 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
               </div>
             ) : (
               <div className="space-y-2">
-                {myPlans.slice(0, 4).map((mc) => (
+                {myPlans.slice(0, 4).map((mc) => {
+                  const isActive = isMesocicloActive(mc.startDate, mc.endDate);
+                  return (
                   <div key={mc.id} className="bg-white border border-depro-border rounded-xl p-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sa }} />
-                      <span className="text-sm font-medium text-depro-dark truncate">{mc.name}</span>
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: isActive ? "#22C55E" : sa }} />
+                      <span className="text-sm font-semibold text-depro-dark truncate">{mc.label || mc.name || "Mesociclo"}</span>
+                      {isActive && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 flex-shrink-0">Activo</span>
+                      )}
                       <span className="ml-auto text-xs text-depro-gray flex-shrink-0">{(mc.sessions || []).length} ses.</span>
                     </div>
+                    {mc.startDate && (
+                      <div className="text-[10px] text-depro-gray mt-1 pl-4">
+                        {mc.startDate} → {mc.endDate}
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
