@@ -1041,6 +1041,8 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const { viewingTeam, setViewingTeam } = useView();
   const [selectedTeam, setSelectedTeam] = useState(viewingTeam);
+  // Sincronizar cuando el contexto cambia desde fuera (p.ej. botón "Todos los equipos" del sidebar)
+  useEffect(() => { setSelectedTeam(viewingTeam); }, [viewingTeam]);
   const club = user?.club;
   const team = user?.team;
   const teamRole = user?.team_role;
