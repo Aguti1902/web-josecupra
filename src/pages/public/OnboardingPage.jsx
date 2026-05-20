@@ -55,6 +55,7 @@ const SPORTS     = ["Fútbol", "Basket", "Natación", "Tenis", "Fitness", "Otro"
 const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem"];
 const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio"];
 const INJURIES   = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda"];
+const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
 const STEPS      = ["Plan", "Tus datos", "Tu entrenamiento", "Pago"];
 
 /* ─────────────────────────────────────────────
@@ -312,7 +313,7 @@ function StepDatos({ form, setForm, onNext, onBack }) {
    STEP 3 — Datos de fútbol
 ───────────────────────────────────────────── */
 function StepFutbol({ form, setForm, onNext, onBack }) {
-  const valid = form.objetivo && form.deporte && form.frecuencia && form.material;
+  const valid = form.objetivo && form.deporte && form.frecuencia && form.material && form.experiencia;
 
   return (
     <div>
@@ -360,6 +361,14 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           value={form.frecuencia}
           options={FREQUENCY}
           onChange={(v) => setForm({ ...form, frecuencia: v })}
+        />
+
+        {/* Experiencia entrenando */}
+        <Toggle
+          label="Experiencia entrenando *"
+          value={form.experiencia}
+          options={EXPERIENCE}
+          onChange={(v) => setForm({ ...form, experiencia: v })}
         />
 
         {/* Material */}

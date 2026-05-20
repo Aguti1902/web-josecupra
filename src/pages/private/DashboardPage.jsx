@@ -18,6 +18,21 @@ import {
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
+/* Devuelve el nombre del día de hoy en español (Lunes, Martes…) */
+function getTodayName() {
+  const idx = (new Date().getDay() + 6) % 7; // 0=Lunes … 6=Domingo
+  return DAYS_FULL[idx];
+}
+
+/* Mapea intensidad → tipo A/B/C */
+function getSessionTypeLetter(intensity) {
+  if (!intensity) return null;
+  const low = intensity.toLowerCase();
+  if (low.includes("max") || low.includes("alta") || low === "alta") return "C";
+  if (low.includes("media-alta") || low.includes("media alta")) return "B";
+  return "A";
+}
+
 /* ── Helper: bloque de edad por categoría ─────────────────── */
 function getAgeBlock(category) {
   const map = {
@@ -289,7 +304,13 @@ function CoachAvatar({ coach, safeAccent }) {
 // COORDINADOR DASHBOARD
 // ════════════════════════════════════════════════════════════
 function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
-  const teams = club?.teams || [];
+  const { user } = useAuth();
+  const allTeams = club?.teams || [];
+  const managedTeamIds = user?.managedTeamIds || [];
+  // Si el coordinador tiene equipos asignados, filtra; si no, muestra todos
+  const teams = managedTeamIds.length > 0
+    ? allTeams.filter((t) => managedTeamIds.includes(t.id))
+    : allTeams;
   const totalSessions = (club?.plans || []).reduce((sum, mc) => sum + (mc.sessions?.length || 0), 0);
 
   // Contar jugadores reales desde localStorage (depro_squad_{clubId}_{teamId})
@@ -556,11 +577,24 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
 
   // Obtener sesiones de la semana actual
   let nextSession = null;
+  let todaySession = null;   // sesión que corresponde a HOY
+  let hasTodayTraining = false;
+
+  const todayName = getTodayName();
+  const trainingToday = trainingDays.includes(todayName);
+
   if (activePlan?.sessions?.length > 0) {
     const { weeks } = distributeMesocycleForTeam(activePlan.sessions, trainingDays, 3);
     const weekIdx = getCurrentWeekIndex(activePlan.startDate, activePlan.endDate);
     const currentWeekSessions = weeks[weekIdx >= 0 ? weekIdx : 0]?.sessions || [];
     nextSession = currentWeekSessions[0] || activePlan.sessions[0] || null;
+
+    // Buscar la sesión asignada a hoy
+    if (trainingToday && currentWeekSessions.length > 0) {
+      todaySession = currentWeekSessions.find((s) => s.assignedDay === todayName)
+        || currentWeekSessions[0];
+      hasTodayTraining = true;
+    }
   }
 
   // Fallback: planes del club (sistema antiguo)
@@ -570,6 +604,7 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
     : allClubPlans;
   if (!nextSession) {
     nextSession = myClubPlans.flatMap((mc) => mc.sessions || [])[0] || null;
+    if (trainingToday && nextSession) { todaySession = nextSession; hasTodayTraining = true; }
   }
 
   const myPlans = blockPlans.length > 0 ? blockPlans : myClubPlans;
@@ -602,21 +637,79 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Próxima sesión */}
+        {/* Sesión de hoy / Descanso + Próxima sesión */}
         <div className="lg:col-span-2 space-y-4">
-          <SectionHeading title="Próxima sesión" safeAccent={sa} />
-          {nextSession ? (
+          {/* ── Tarjeta principal: HOY ── */}
+          {hasTodayTraining && todaySession ? (
+            <div className="rounded-2xl overflow-hidden shadow-card" style={{ background: `linear-gradient(135deg, ${accent}F0 0%, ${accent} 100%)` }}>
+              <div className="p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-black uppercase tracking-widest" style={{ color: contrastText(accent) + "AA" }}>HOY · {todayName}</span>
+                      {getSessionTypeLetter(todaySession.intensity) && (
+                        <span className="text-xs font-black px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.25)", color: contrastText(accent) }}>
+                          Tipo {getSessionTypeLetter(todaySession.intensity)}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-xl font-black leading-tight" style={{ color: contrastText(accent) }}>
+                      {todaySession.title || "Sesión de hoy"}
+                    </h3>
+                    {(todaySession.objective || todaySession.intensity) && (
+                      <p className="text-sm mt-1 opacity-80" style={{ color: contrastText(accent) }}>
+                        {todaySession.objective || todaySession.intensity}
+                      </p>
+                    )}
+                  </div>
+                  {todaySession.duration && (
+                    <div className="flex items-center gap-1 text-sm font-bold flex-shrink-0 px-3 py-1 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.2)", color: contrastText(accent) }}>
+                      <Clock size={13} /> {todaySession.duration}
+                    </div>
+                  )}
+                </div>
+                <Link
+                  to="/dashboard/plan"
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all hover:opacity-90 mt-2"
+                  style={{ backgroundColor: "rgba(255,255,255,0.2)", color: contrastText(accent), backdropFilter: "blur(4px)" }}
+                >
+                  <Flame size={15} /> Entrar a sesión <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white border border-depro-border rounded-2xl p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-depro-gray-light flex items-center justify-center flex-shrink-0">
+                <span className="text-2xl">😴</span>
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-black uppercase tracking-widest text-depro-gray mb-0.5">HOY · {todayName}</div>
+                <h3 className="font-bold text-depro-dark text-base">
+                  {nextSession ? "Hoy no hay entrenamiento" : "Sin sesiones planificadas"}
+                </h3>
+                <p className="text-sm text-depro-gray mt-0.5">
+                  {nextSession ? "Día de descanso · Recuperación activa recomendada" : `El administrador aún no ha creado sesiones para ${team?.name || "este equipo"}.`}
+                </p>
+              </div>
+              {nextSession && (
+                <Link to="/dashboard/plan" className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-depro-border text-depro-gray hover:text-depro-dark transition-colors">
+                  Ver plan <ArrowRight size={12} />
+                </Link>
+              )}
+            </div>
+          )}
+
+          {/* ── Próxima sesión (si hoy no es día de entreno) ── */}
+          {!hasTodayTraining && nextSession && (
             <div className="bg-white border rounded-xl p-5" style={{ borderColor: accent + "25", borderTopWidth: "3px", borderTopColor: accent }}>
-              <div className="flex items-start justify-between mb-3">
+              <SectionHeading title="Próxima sesión" safeAccent={sa} />
+              <div className="flex items-start justify-between mt-3 mb-3">
                 <div>
-                  <span
-                    className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full mb-2"
-                    style={{ backgroundColor: sa, color: contrastText(sa) }}
-                  >
-                    {nextSession.type || "Sesión"}
+                  <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full mb-2" style={{ backgroundColor: sa, color: contrastText(sa) }}>
+                    {nextSession.type || (getSessionTypeLetter(nextSession.intensity) ? `Tipo ${getSessionTypeLetter(nextSession.intensity)}` : "Sesión")}
                   </span>
-                  <h4 className="font-bold text-depro-dark text-lg">{nextSession.title || nextSession.name || "Próxima sesión"}</h4>
-                  <p className="text-sm text-depro-gray mt-0.5">{nextSession.objective || nextSession.description || nextSession.intensity}</p>
+                  <h4 className="font-bold text-depro-dark text-base">{nextSession.title || nextSession.name || "Próxima sesión"}</h4>
+                  <p className="text-sm text-depro-gray mt-0.5">{nextSession.objective || nextSession.intensity}</p>
                 </div>
                 {nextSession.duration && (
                   <div className="flex items-center gap-1 text-sm flex-shrink-0 font-medium" style={{ color: sa }}>
@@ -625,34 +718,15 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
                 )}
               </div>
               {(nextSession.exercises || []).slice(0, 3).map((ex, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 py-2 px-3 rounded-xl mb-2"
-                  style={{ backgroundColor: sa + "0D" }}
-                >
-                  <div
-                    className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: sa, color: contrastText(sa) }}
-                  >
-                    {i + 1}
-                  </div>
+                <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-xl mb-2" style={{ backgroundColor: sa + "0D" }}>
+                  <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: sa, color: contrastText(sa) }}>{i + 1}</div>
                   <span className="text-sm font-medium text-depro-dark">{ex.name}</span>
                   {ex.sets && <span className="ml-auto text-xs text-depro-gray">{ex.sets} series</span>}
                 </div>
               ))}
-              <Link
-                to="/dashboard/plan"
-                className="mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
-                style={{ backgroundColor: sa, color: contrastText(sa) }}
-              >
+              <Link to="/dashboard/plan" className="mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90" style={{ backgroundColor: sa, color: contrastText(sa) }}>
                 <Flame size={14} /> Ver plan completo <ArrowRight size={13} />
               </Link>
-            </div>
-          ) : (
-            <div className="text-center py-14 border-2 border-dashed rounded-2xl" style={{ borderColor: sa + "30" }}>
-              <ClipboardList size={36} className="mx-auto mb-3" style={{ color: sa + "50" }} />
-              <p className="font-medium text-depro-dark">Sin sesiones planificadas todavía</p>
-              <p className="text-sm mt-1 text-depro-gray">El administrador aún no ha creado sesiones para {team?.name || "tu equipo"}.</p>
             </div>
           )}
 

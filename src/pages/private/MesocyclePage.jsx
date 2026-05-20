@@ -36,8 +36,8 @@ function getAgeBlock(category) {
   return null;
 }
 
-const SESSION_TYPE_COLOR = { A: "#3B82F6", B: "#F59E0B", C: "#EF4444" };
-const SESSION_TYPE_LABEL = { A: "Extensiva", B: "Intensiva", C: "Reactiva" };
+const SESSION_TYPE_COLOR = { A: "#3B82F6", B: "#F59E0B", C: "#EF4444", D: "#10B981" };
+const SESSION_TYPE_LABEL = { A: "Extensiva", B: "Intensiva", C: "Reactiva", D: "Complementaria" };
 
 function getYouTubeId(url) {
   if (!url) return null;
@@ -46,11 +46,12 @@ function getYouTubeId(url) {
 }
 
 const SESSION_TYPE_OPTIONS = [
-  { value: "Baja",       label: "A · Extensiva",  color: "#3B82F6" },
-  { value: "Media",      label: "A · Extensiva",  color: "#3B82F6" },
-  { value: "Media-alta", label: "B · Intensiva",  color: "#F59E0B" },
-  { value: "Alta",       label: "B · Intensiva",  color: "#F59E0B" },
-  { value: "Máxima",     label: "C · Reactiva",   color: "#EF4444" },
+  { value: "Baja",             label: "A · Extensiva",       color: "#3B82F6" },
+  { value: "Media",            label: "A · Extensiva",       color: "#3B82F6" },
+  { value: "Media-alta",       label: "B · Intensiva",       color: "#F59E0B" },
+  { value: "Alta",             label: "B · Intensiva",       color: "#F59E0B" },
+  { value: "Máxima",           label: "C · Reactiva",        color: "#EF4444" },
+  { value: "Complementaria-D", label: "D · Complementaria",  color: "#10B981" },
 ];
 
 /* ── Calendar View ─────────────────────────────────────── */

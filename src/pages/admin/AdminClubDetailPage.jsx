@@ -8,6 +8,7 @@ import {
   Plus,
   Trash2,
   Edit3,
+  Pencil,
   Copy,
   CheckCircle,
   X,
@@ -339,11 +340,20 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
 }
 
 function NewUserModal({ teams, clubId, onClose, onCreate }) {
-  const [form, setForm] = useState({ name: "", email: "", role: "entrenador", teamId: "", password: generatePassword() });
+  const [form, setForm] = useState({ name: "", email: "", role: "entrenador", teamId: "", managedTeamIds: [], password: generatePassword() });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null); // { ok, email, password, error }
 
   const selectedTeam = teams.find((t) => t.id === form.teamId) || null;
+
+  const toggleManagedTeam = (teamId) => {
+    setForm((f) => ({
+      ...f,
+      managedTeamIds: f.managedTeamIds.includes(teamId)
+        ? f.managedTeamIds.filter((id) => id !== teamId)
+        : [...f.managedTeamIds, teamId],
+    }));
+  };
 
   const handleCreate = async () => {
     if (!form.email) return;
@@ -355,8 +365,9 @@ function NewUserModal({ teams, clubId, onClose, onCreate }) {
       name: form.name || form.email,
       role: "club",
       clubId,
-      teamId: form.teamId || undefined,
+      teamId: form.role === "coordinador" ? undefined : (form.teamId || undefined),
       teamRole: form.role,
+      managedTeamIds: form.role === "coordinador" ? form.managedTeamIds : undefined,
     });
 
     onCreate({
@@ -365,7 +376,8 @@ function NewUserModal({ teams, clubId, onClose, onCreate }) {
       email: form.email,
       role: form.role,
       team: selectedTeam?.name || null,
-      teamId: form.teamId || null,
+      teamId: form.role === "coordinador" ? null : (form.teamId || null),
+      managedTeamIds: form.role === "coordinador" ? form.managedTeamIds : [],
       active: true,
       lastLogin: "nunca",
       password: form.password,
@@ -467,18 +479,41 @@ function NewUserModal({ teams, clubId, onClose, onCreate }) {
               })}
             </div>
           </div>
-          {form.role !== "coordinador" && teams.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-depro-dark mb-1">Equipo asignado</label>
-              <select
-                className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                value={form.teamId}
-                onChange={(e) => setForm((f) => ({ ...f, teamId: e.target.value }))}
-              >
-                <option value="">— Sin equipo —</option>
-                {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </div>
+          {/* Equipo(s) asignado(s) */}
+          {teams.length > 0 && (
+            form.role === "coordinador" ? (
+              <div>
+                <label className="block text-sm font-medium text-depro-dark mb-1">
+                  Equipos que coordina <span className="text-depro-gray font-normal text-xs">(multiselección)</span>
+                </label>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto border border-depro-border rounded-lg p-2">
+                  {teams.map((t) => (
+                    <label key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-depro-gray-light/50 cursor-pointer">
+                      <input type="checkbox" className="accent-depro-blue"
+                        checked={form.managedTeamIds.includes(t.id)}
+                        onChange={() => toggleManagedTeam(t.id)} />
+                      <span className="text-sm text-depro-dark">{t.name}</span>
+                      <span className="text-xs text-depro-gray ml-auto">{t.category}</span>
+                    </label>
+                  ))}
+                </div>
+                {form.managedTeamIds.length === 0 && (
+                  <p className="text-xs text-depro-gray mt-1">Si no seleccionas ninguno, verá todos los equipos del club.</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-depro-dark mb-1">Equipo asignado</label>
+                <select
+                  className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                  value={form.teamId}
+                  onChange={(e) => setForm((f) => ({ ...f, teamId: e.target.value }))}
+                >
+                  <option value="">— Sin equipo —</option>
+                  {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+            )
           )}
           <div>
             <label className="block text-sm font-medium text-depro-dark mb-1 flex items-center gap-1">
@@ -1469,6 +1504,9 @@ function IdentidadTab({ club, onSave }) {
   const [primaryColor, setPrimary]  = useState(club.primaryColor || "#1E3A8A");
   const [secondaryColor, setSecond] = useState(club.secondaryColor || "#FFFFFF");
   const [slogan, setSlogan]         = useState(club.slogan || "");
+  const [name, setName]             = useState(club.name || "");
+  const [city, setCity]             = useState(club.city || "");
+  const [country, setCountry]       = useState(club.country || "");
   const [saved, setSaved]           = useState(false);
   const logoRef   = useRef();
   const bannerRef = useRef();
@@ -1499,7 +1537,7 @@ function IdentidadTab({ club, onSave }) {
   })();
 
   const handleSave = () => {
-    onSave({ logo, banner, primaryColor, secondaryColor, slogan });
+    onSave({ logo, banner, primaryColor, secondaryColor, slogan, name: name.trim() || club.name, city, country });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -1559,6 +1597,40 @@ function IdentidadTab({ club, onSave }) {
         <p className="text-xs text-depro-gray text-center py-2 border-t border-depro-border">Vista previa del banner</p>
       </div>
       <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+
+      {/* Datos básicos del club */}
+      <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
+        <h3 className="font-semibold text-depro-dark flex items-center gap-2">
+          <Pencil size={16} className="text-depro-blue" />
+          Datos del club
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-1">
+            <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1">Nombre del club *</label>
+            <input
+              className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+              placeholder="Ej. FC Barcelona" value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1">Ciudad</label>
+            <input
+              className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+              placeholder="Barcelona" value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1">País</label>
+            <input
+              className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+              placeholder="España" value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Logo + Eslogan */}

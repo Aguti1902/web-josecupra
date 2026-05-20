@@ -23,11 +23,12 @@ const SESSION_BLOCK_CONFIG = {
 };
 
 const SESSION_TYPE_OPTIONS = [
-  { value: "Baja",       label: "A · Extensiva",  color: "#3B82F6" },
-  { value: "Media",      label: "A · Extensiva",  color: "#3B82F6" },
-  { value: "Media-alta", label: "B · Intensiva",  color: "#F59E0B" },
-  { value: "Alta",       label: "B · Intensiva",  color: "#F59E0B" },
-  { value: "Máxima",     label: "C · Reactiva",   color: "#EF4444" },
+  { value: "Baja",             label: "A · Extensiva",       color: "#3B82F6" },
+  { value: "Media",            label: "A · Extensiva",       color: "#3B82F6" },
+  { value: "Media-alta",       label: "B · Intensiva",       color: "#F59E0B" },
+  { value: "Alta",             label: "B · Intensiva",       color: "#F59E0B" },
+  { value: "Máxima",           label: "C · Reactiva",        color: "#EF4444" },
+  { value: "Complementaria-D", label: "D · Complementaria",  color: "#10B981" },
 ];
 
 const PHYSICAL_TEST_FIELDS = [

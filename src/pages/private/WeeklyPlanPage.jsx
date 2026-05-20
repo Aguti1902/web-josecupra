@@ -628,14 +628,16 @@ function PlayerWeeklyPlan({ accent }) {
 ══════════════════════════════════════════════ */
 function getSessionType(intensity) {
   const i = (intensity || "").toLowerCase();
+  if (i.includes("complementaria-d") || i === "d") return "D";
   if (i.includes("máxima") || i.includes("maxima")) return "C";
   if (i.includes("alta") || i.includes("media-alta")) return "B";
   return "A";
 }
 const ST = {
-  A: { label: "Extensiva",  color: "#3B82F6", bg: "#EFF6FF", Icon: Activity },
-  B: { label: "Intensiva",  color: "#F59E0B", bg: "#FFFBEB", Icon: Flame },
-  C: { label: "Reactiva",   color: "#EF4444", bg: "#FEF2F2", Icon: Zap },
+  A: { label: "Extensiva",       color: "#3B82F6", bg: "#EFF6FF", Icon: Activity },
+  B: { label: "Intensiva",       color: "#F59E0B", bg: "#FFFBEB", Icon: Flame },
+  C: { label: "Reactiva",        color: "#EF4444", bg: "#FEF2F2", Icon: Zap },
+  D: { label: "Complementaria",  color: "#10B981", bg: "#F0FDF4", Icon: Dumbbell },
 };
 const WARMUP_GUIDE_ITEMS = [
   { Icon: Activity,  title: "Con balón",       text: "Posesión simple, rueda o rondo de activación" },

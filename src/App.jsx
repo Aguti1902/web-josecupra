@@ -26,6 +26,7 @@ import MesocyclePage from "./pages/private/MesocyclePage";
 import ProfilePage from "./pages/private/ProfilePage";
 import ClubProfilePage from "./pages/private/ClubProfilePage";
 import TeamTestsPage from "./pages/private/TeamTestsPage";
+import CargasPage from "./pages/private/CargasPage";
 
 // Admin panel
 import AdminLayout from "./components/admin/AdminLayout";
@@ -113,6 +114,7 @@ function AppRoutes() {
       <Route path="/dashboard/mesocycle" element={<ClientRoute><AppLayout><MesocyclePage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/profile"      element={<ClientRoute><AppLayout><ProfilePage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/team-tests"   element={<ClientRoute><AppLayout><TeamTestsPage /></AppLayout></ClientRoute>} />
+      <Route path="/dashboard/cargas"       element={<ClientRoute><AppLayout><CargasPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/club-profile" element={<ClientRoute><AppLayout><ClubProfilePage /></AppLayout></ClientRoute>} />
 
       {/* ── Admin Panel ────────────────────────────────────────── */}

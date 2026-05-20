@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, Zap, Activity,
   MessageSquare, LogOut, Menu, X, ChevronRight, Trophy,
-  ClipboardList, Users as UsersIcon, BookOpen, User,
+  ClipboardList, Users as UsersIcon, BookOpen, User, TrendingUp,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
@@ -63,10 +63,16 @@ export default function AppLayout({ children }) {
     { to: "/dashboard/mesocycle",    icon: ClipboardList,   label: t("nav.mesocycle") },
     { to: "/dashboard/squad",        icon: UsersIcon,       label: t("nav.squad") },
     { to: "/dashboard/team-tests",   icon: Activity,        label: t("nav.tests") },
+    ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Cargas" }] : []),
     { to: "/dashboard/club-profile", icon: User,            label: t("nav.my_profile") },
   ];
 
   const handleLogout = () => { logout(); navigate("/"); };
+
+  // Detectar bloque de edad del equipo activo (para mostrar Cargas solo B2/B3)
+  const activeTeamForNav = viewingTeam || user?.team;
+  const activeCategory = activeTeamForNav?.category;
+  const isBlock2or3 = ["Sub-13","Sub-14","Sub-15","Sub-16","Juvenil"].includes(activeCategory);
 
   const club = user?.club;
   // Colores del club
