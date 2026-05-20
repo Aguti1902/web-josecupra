@@ -221,15 +221,44 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
-          // No hacemos await de fetchProfile aquí para no bloquear el evento;
-          // primero ponemos el usuario básico y luego enriquecemos con el perfil.
+          // Primero ponemos el usuario básico sin bloquear la UI
           const basic = buildUser(session.user, null);
           setUser(basic);
           setLoading(false);
 
-          // Enriquecer con datos de la tabla profiles (no bloquea la UI)
-          fetchProfile(session.user.id).then((profile) => {
-            if (profile) setUser(buildUser(session.user, profile));
+          // Enriquecer con perfil de Supabase
+          fetchProfile(session.user.id).then(async (profile) => {
+            const builtUser = buildUser(session.user, profile || null);
+            setUser(builtUser);
+
+            // Si es usuario de club, sincronizar datos del club desde la API
+            // para garantizar que teams/sesiones estén siempre actualizados (cross-device)
+            const isClubUser = builtUser.role === "club" ||
+              (session.user.user_metadata?.role === "club");
+            if (isClubUser) {
+              try {
+                const res = await fetch("/api/admin-clubs");
+                if (!res.ok) return;
+                const data = await res.json();
+                const clubs = (data.clubs || []).filter(
+                  (c) => c.id && !["GLOBAL_PLANS","GLOBAL_TESTS","CATALOG_OVERRIDES"].includes(c.id)
+                );
+                if (!clubs.length) return;
+
+                // Guardar en localStorage con las claves que usa AuthContext
+                const summaries = clubs.map(({ id, name, abbreviation, login_code, coordinator, status, plan, city, country, primaryColor, secondaryColor, slogan, logo, banner }) =>
+                  ({ id, name, abbreviation, login_code, coordinator, status, plan, city, country, primaryColor, secondaryColor, slogan, logo: logo ?? null, banner: banner ?? null })
+                );
+                localStorage.setItem("depro_clubs", JSON.stringify(summaries));
+                for (const c of clubs) {
+                  localStorage.setItem(`depro_club_${c.id}`, JSON.stringify(c));
+                }
+
+                // Reconstruir el usuario con los datos frescos
+                const freshUser = buildUser(session.user, profile || null);
+                setUser(freshUser);
+              } catch { /* silencioso */ }
+            }
           });
         } else {
           setUser(null);
@@ -282,13 +311,11 @@ export function AuthProvider({ children }) {
   const refreshUser = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const basic = buildUser(session.user, null);
-        setUser(basic);
-        fetchProfile(session.user.id).then((profile) => {
-          if (profile) setUser(buildUser(session.user, profile));
-        });
-      }
+      if (!session?.user) return;
+      const basic = buildUser(session.user, null);
+      setUser(basic);
+      const profile = await fetchProfile(session.user.id);
+      if (profile) setUser(buildUser(session.user, profile));
     } catch {}
   };
 
