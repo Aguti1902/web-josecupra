@@ -308,6 +308,7 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
   const allTeams = club?.teams || [];
   const managedTeamIds = user?.managedTeamIds || [];
   // Si el coordinador tiene equipos asignados, filtra; si no, muestra todos
+  const managedKey = managedTeamIds.join(",");
   const teams = managedTeamIds.length > 0
     ? allTeams.filter((t) => managedTeamIds.includes(t.id))
     : allTeams;
@@ -318,14 +319,15 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
   useEffect(() => {
     if (!club?.id) return;
     const counts = {};
-    teams.forEach((t) => {
+    (club?.teams || []).forEach((t) => {
       try {
         const raw = localStorage.getItem(`depro_squad_${club.id}_${t.id}`);
         counts[t.id] = (JSON.parse(raw || "[]")).length;
       } catch { counts[t.id] = 0; }
     });
     setSquadCounts(counts);
-  }, [club?.id, teams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [club?.id, managedKey]);
 
   const playerCount = (teamId) => squadCounts[teamId] ?? 0;
   const totalPlayers = Object.values(squadCounts).reduce((a, b) => a + b, 0);
