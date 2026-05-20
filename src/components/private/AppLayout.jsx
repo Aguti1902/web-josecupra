@@ -41,6 +41,12 @@ export default function AppLayout({ children }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  // Detectar bloque de edad del equipo activo (para mostrar Cargas solo B2/B3)
+  // DEBE ir antes de entrenadorNav para evitar TDZ
+  const activeTeamForNav = viewingTeam || user?.team;
+  const activeCategory = activeTeamForNav?.category;
+  const isBlock2or3 = ["Sub-13","Sub-14","Sub-15","Sub-16","Juvenil"].includes(activeCategory);
+
   // Nav items built with translations
   const playerNav = [
     { to: "/dashboard",          icon: LayoutDashboard, label: t("nav.dashboard") },
@@ -68,11 +74,6 @@ export default function AppLayout({ children }) {
   ];
 
   const handleLogout = () => { logout(); navigate("/"); };
-
-  // Detectar bloque de edad del equipo activo (para mostrar Cargas solo B2/B3)
-  const activeTeamForNav = viewingTeam || user?.team;
-  const activeCategory = activeTeamForNav?.category;
-  const isBlock2or3 = ["Sub-13","Sub-14","Sub-15","Sub-16","Juvenil"].includes(activeCategory);
 
   const club = user?.club;
   // Colores del club
