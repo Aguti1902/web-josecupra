@@ -238,25 +238,65 @@ export function AuthProvider({ children }) {
             if (isClubUser) {
               try {
                 const res = await fetch("/api/admin-clubs");
-                if (!res.ok) return;
-                const data = await res.json();
-                const clubs = (data.clubs || []).filter(
-                  (c) => c.id && !["GLOBAL_PLANS","GLOBAL_TESTS","CATALOG_OVERRIDES"].includes(c.id)
-                );
-                if (!clubs.length) return;
-
-                // Guardar en localStorage con las claves que usa AuthContext
-                const summaries = clubs.map(({ id, name, abbreviation, login_code, coordinator, status, plan, city, country, primaryColor, secondaryColor, slogan, logo, banner }) =>
-                  ({ id, name, abbreviation, login_code, coordinator, status, plan, city, country, primaryColor, secondaryColor, slogan, logo: logo ?? null, banner: banner ?? null })
-                );
-                localStorage.setItem("depro_clubs", JSON.stringify(summaries));
-                for (const c of clubs) {
-                  localStorage.setItem(`depro_club_${c.id}`, JSON.stringify(c));
+                if (res.ok) {
+                  const data = await res.json();
+                  const clubs = (data.clubs || []).filter(
+                    (c) => c.id && !["GLOBAL_PLANS","GLOBAL_TESTS","CATALOG_OVERRIDES"].includes(c.id)
+                  );
+                  if (clubs.length > 0) {
+                    // Fusionar con localStorage preservando logo/colores locales si la API no los tiene
+                    const existingLocal = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+                    const mergedSummaries = clubs.map((remote) => {
+                      const local = existingLocal.find((c) => c.id === remote.id);
+                      const base = local ? { ...local, ...remote } : remote;
+                      return {
+                        id: base.id, name: base.name, abbreviation: base.abbreviation,
+                        login_code: base.login_code, coordinator: base.coordinator,
+                        status: base.status, plan: base.plan, city: base.city,
+                        country: base.country,
+                        primaryColor:   remote.primaryColor   ?? local?.primaryColor   ?? null,
+                        secondaryColor: remote.secondaryColor ?? local?.secondaryColor ?? null,
+                        slogan:         remote.slogan         ?? local?.slogan         ?? null,
+                        logo:           remote.logo           ?? local?.logo           ?? null,
+                        banner:         remote.banner         ?? local?.banner         ?? null,
+                      };
+                    });
+                    localStorage.setItem("depro_clubs", JSON.stringify(mergedSummaries));
+                    for (const c of clubs) {
+                      const localDetail = JSON.parse(localStorage.getItem(`depro_club_${c.id}`) || "null");
+                      // Fusionar: la API es fuente de verdad, pero preservar logo/banner/colores locales
+                      const merged = localDetail
+                        ? {
+                            ...localDetail, ...c,
+                            logo:           c.logo           ?? localDetail.logo           ?? null,
+                            banner:         c.banner         ?? localDetail.banner         ?? null,
+                            primaryColor:   c.primaryColor   ?? localDetail.primaryColor   ?? null,
+                            secondaryColor: c.secondaryColor ?? localDetail.secondaryColor ?? null,
+                            slogan:         c.slogan         ?? localDetail.slogan         ?? null,
+                            teams:          (c.teams?.length > 0 ? c.teams : null) ?? localDetail.teams ?? [],
+                          }
+                        : c;
+                      localStorage.setItem(`depro_club_${c.id}`, JSON.stringify(merged));
+                    }
+                    const freshUser = buildUser(session.user, profile || null);
+                    setUser(freshUser);
+                    return;
+                  }
                 }
-
-                // Reconstruir el usuario con los datos frescos
-                const freshUser = buildUser(session.user, profile || null);
-                setUser(freshUser);
+                // Si la API falla o está vacía, intentar construir usuario con meta.clubId aunque
+                // no haya datos en localStorage (muestra UI sin datos pero con rol correcto)
+                const meta = session.user.user_metadata ?? {};
+                if (meta.clubId && !builtUser.club) {
+                  const minimalClub = { id: meta.clubId, name: "Mi Club", teams: [], plans: [] };
+                  localStorage.setItem(`depro_club_${meta.clubId}`, JSON.stringify(minimalClub));
+                  const local = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+                  if (!local.find((c) => c.id === meta.clubId)) {
+                    local.unshift(minimalClub);
+                    localStorage.setItem("depro_clubs", JSON.stringify(local));
+                  }
+                  const fallbackUser = buildUser(session.user, profile || null);
+                  setUser(fallbackUser);
+                }
               } catch { /* silencioso */ }
             }
           });

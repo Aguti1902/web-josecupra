@@ -37,6 +37,11 @@ create table if not exists clubs_detail (
 -- Acceso libre para service role (sin RLS)
 alter table clubs_detail disable row level security;
 
+-- Permitir que usuarios autenticados lean los datos de su club
+-- (necesario para la sincronización cross-device del coordinador)
+grant select on clubs_detail to authenticated;
+grant select on clubs to authenticated;
+
 -- ============================================================
 -- TEAMS (equipos dentro de un club)
 -- ============================================================
@@ -65,18 +70,32 @@ create table profiles (
   training_days int,
   objective     text,
   age           int,
-  -- Club
-  club_id       uuid references clubs(id),
+  -- Club (club_id es text para coincidir con clubs.id que usa formato "club{timestamp}")
+  club_id       text references clubs(id),
   team_id       uuid references teams(id),
   created_at    timestamptz default now()
 );
 
 -- Trigger: crear perfil automáticamente al registrarse
+-- También copia club_id y team_role desde user_metadata para usuarios de club
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, name, role)
-  values (new.id, new.raw_user_meta_data->>'name', coalesce(new.raw_user_meta_data->>'role','player'));
+  insert into public.profiles (id, name, role, club_id, team_id, team_role)
+  values (
+    new.id,
+    new.raw_user_meta_data->>'name',
+    coalesce(new.raw_user_meta_data->>'role','player'),
+    -- club_id: extraer solo si existe y NO es uuid (clubs usan text IDs como "club1234567890")
+    case when new.raw_user_meta_data->>'clubId' is not null
+         then new.raw_user_meta_data->>'clubId'
+         else null end,
+    -- team_id: solo si es un uuid válido
+    case when (new.raw_user_meta_data->>'teamId') ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+         then (new.raw_user_meta_data->>'teamId')::uuid
+         else null end,
+    new.raw_user_meta_data->>'teamRole'
+  );
   return new;
 end;
 $$ language plpgsql security definer;

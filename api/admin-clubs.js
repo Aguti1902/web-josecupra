@@ -42,17 +42,36 @@ export default async function handler(req, res) {
 
   // ── GET → listar todos los clubs ─────────────────────────────────────────
   if (req.method === "GET") {
+    // Intentar primero clubs_detail (fuente principal con datos completos)
     const { data: details, error: detErr } = await admin
       .from("clubs_detail")
       .select("club_id, data");
 
-    if (detErr) {
-      return res.status(400).json({ error: detErr.message, hint: "clubs_detail table may not exist or be inaccessible" });
+    if (!detErr && details) {
+      const clubs = details.map((d) => ({ ...(d.data || {}), id: d.club_id }));
+      return res.status(200).json({ clubs });
     }
 
-    // Siempre devolver desde clubs_detail — incluso si está vacío
-    const clubs = (details || []).map((d) => ({ ...(d.data || {}), id: d.club_id }));
-    return res.status(200).json({ clubs });
+    // Fallback: tabla clubs básica (puede no tener teams/logo/colores pero al menos devuelve algo)
+    console.warn("[admin-clubs] clubs_detail error, fallback to clubs table:", detErr?.message);
+    const { data: basicClubs, error: basicErr } = await admin
+      .from("clubs")
+      .select("*");
+
+    if (!basicErr && basicClubs?.length > 0) {
+      const clubs = basicClubs.map((c) => ({
+        id: c.id, name: c.name, abbreviation: c.abbreviation,
+        city: c.city, country: c.country, status: c.status, plan: c.plan,
+        login_code: c.login_code, coordinator: c.coordinator,
+        created_at: c.created_at, teams: [], users: [], plans: [],
+      }));
+      return res.status(200).json({ clubs, _source: "clubs_table_fallback" });
+    }
+
+    return res.status(400).json({
+      error: detErr?.message || basicErr?.message,
+      hint: "Ejecuta el SQL de supabase_schema.sql en Supabase → SQL Editor para crear las tablas necesarias."
+    });
   }
 
   // ── POST → crear o actualizar club ───────────────────────────────────────
@@ -63,27 +82,32 @@ export default async function handler(req, res) {
     const clubId = club.id;
     if (!clubId) return res.status(400).json({ error: "club.id requerido" });
 
-    // 1. Intento de upsert en clubs registry (solo columnas seguras)
+    // 1. Upsert en clubs registry (solo columnas seguras del schema)
     const registryRow = {
-      id:         clubId,
-      name:       club.name       || "Sin nombre",
-      city:       club.city       || null,
-      status:     club.status     || "Activo",
-      plan:       club.plan       || "personalizado",
-      created_at: club.created_at || new Date().toISOString(),
+      id:           clubId,
+      name:         club.name         || "Sin nombre",
+      abbreviation: club.abbreviation || null,
+      city:         club.city         || null,
+      status:       club.status       || "activo",
+      plan:         club.plan         || "personalizado",
+      login_code:   club.loginCode    || club.login_code || null,
+      coordinator:  club.coordinator  || null,
+      created_at:   club.created_at   || new Date().toISOString(),
     };
     try {
       await admin.from("clubs").upsert(registryRow, { onConflict: "id" });
-    } catch (_) { /* non-fatal — tabla puede tener schema diferente */ }
+    } catch (_) { /* non-fatal */ }
 
     // 2. Guardar el objeto COMPLETO en clubs_detail (JSONB flexible)
     const fullDetail = detail ? { ...club, ...detail } : club;
     const result = await upsertClubDetail(admin, clubId, fullDetail);
 
     if (!result.ok) {
+      // clubs_detail no existe: el registro básico ya está en clubs, al menos
+      console.warn("[admin-clubs] clubs_detail upsert failed:", result.error);
       return res.status(400).json({
         error: result.error,
-        hint: "Ejecuta en Supabase SQL Editor: CREATE TABLE IF NOT EXISTS clubs_detail (club_id text primary key, data jsonb not null default \\'{}\\', updated_at timestamptz default now()); ALTER TABLE clubs_detail DISABLE ROW LEVEL SECURITY;"
+        hint: "Ejecuta en Supabase SQL Editor:\n\nCREATE TABLE IF NOT EXISTS clubs_detail (club_id text primary key, data jsonb not null default '{}', updated_at timestamptz default now());\nALTER TABLE clubs_detail DISABLE ROW LEVEL SECURITY;\nGRANT SELECT ON clubs_detail TO authenticated;\nGRANT SELECT ON clubs TO authenticated;"
       });
     }
 

@@ -402,6 +402,7 @@ export default function SquadPage() {
   const [statsPlayer, setStatsPlayer]   = useState(null);
 
   // ── Cargar plantillas (localStorage + Supabase) ────────────
+  // allTeams.length y myTeam?.id en deps para re-ejecutar cuando lleguen los datos asíncronos del club
   useEffect(() => {
     if (!clubId) return;
     const teamsToLoad = isCoord ? allTeams : (myTeam ? [myTeam] : []);
@@ -417,7 +418,6 @@ export default function SquadPage() {
       teamsToLoad.map(async (t) => {
         const remote = await loadSquadFromSupabase(clubId, t.id);
         if (remote && remote.length > 0) {
-          // Guardar en localStorage y actualizar estado
           localStorage.setItem(squadKey(clubId, t.id), JSON.stringify(remote));
           return { id: t.id, squad: remote };
         }
@@ -433,7 +433,7 @@ export default function SquadPage() {
         });
       }
     }).catch(() => {});
-  }, [clubId, isCoord]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clubId, isCoord, allTeams.length, myTeam?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cargar jugadores registrados desde Supabase ───────────
   useEffect(() => {

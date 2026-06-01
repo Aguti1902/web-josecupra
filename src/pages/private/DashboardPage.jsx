@@ -326,8 +326,9 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
       } catch { counts[t.id] = 0; }
     });
     setSquadCounts(counts);
+  // teams.length en deps para re-ejecutar cuando los equipos lleguen asíncronamente
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [club?.id, managedKey]);
+  }, [club?.id, managedKey, (club?.teams || []).length]);
 
   const playerCount = (teamId) => squadCounts[teamId] ?? 0;
   const totalPlayers = Object.values(squadCounts).reduce((a, b) => a + b, 0);

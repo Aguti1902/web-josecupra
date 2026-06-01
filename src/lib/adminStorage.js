@@ -77,15 +77,33 @@ export async function loadClubs() {
   try {
     const { ok, data } = await apiClubs("GET");
     if (ok && data?.clubs?.length > 0) {
-      // Actualizar caché local
-      lsSet("depro_clubs", data.clubs);
-      data.clubs.forEach((c) => { if (c.id) lsSet(`depro_club_${c.id}`, c); });
-      return data.clubs;
+      // Actualizar caché local — fusionar con datos locales para preservar campos (logo, colores)
+      // que pudieran existir solo en localStorage si el último save a Supabase falló
+      const local = lsGet("depro_clubs", []);
+      const merged = data.clubs.map((remote) => {
+        const localClub = local.find((c) => c.id === remote.id);
+        // Prioridad: API (fuente de verdad), pero preservar logo/banner/colores locales si API no los tiene
+        if (localClub) {
+          return {
+            ...localClub,
+            ...remote,
+            logo:           remote.logo           ?? localClub.logo           ?? null,
+            banner:         remote.banner         ?? localClub.banner         ?? null,
+            primaryColor:   remote.primaryColor   ?? localClub.primaryColor   ?? null,
+            secondaryColor: remote.secondaryColor ?? localClub.secondaryColor ?? null,
+            slogan:         remote.slogan         ?? localClub.slogan         ?? null,
+            teams:          (remote.teams?.length > 0 ? remote.teams : null)  ?? localClub.teams ?? [],
+          };
+        }
+        return remote;
+      });
+      lsSet("depro_clubs", merged);
+      merged.forEach((c) => { if (c.id) lsSet(`depro_club_${c.id}`, c); });
+      return merged;
     }
-    // API disponible pero sin clubs → devolver vacío (no usar localStorage de otro dispositivo)
+    // API disponible pero sin clubs → NO borrar localStorage (puede haber datos locales no sincronizados aún)
     if (ok && data?.clubs) {
-      lsSet("depro_clubs", []);
-      return [];
+      return lsGet("depro_clubs", []);
     }
   } catch (e) {
     console.warn("[adminStorage] loadClubs API error:", e.message);
@@ -101,18 +119,25 @@ export async function saveClub(clubData) {
   }
   const { id } = clubData;
 
-  // 1. Guardar en Supabase PRIMERO (fuente de verdad)
-  const { ok, data } = await apiClubs("POST", { club: clubData });
-  if (!ok) {
-    console.error("[adminStorage] saveClub falló en Supabase:", data?.error);
-  }
-
-  // 2. Actualizar caché local
+  // 1. Actualizar caché local inmediatamente (offline-first)
   const clubs = lsGet("depro_clubs", []);
   const idx = clubs.findIndex((c) => c.id === id);
   if (idx >= 0) clubs[idx] = clubData; else clubs.unshift(clubData);
   lsSet("depro_clubs", clubs);
   lsSet(`depro_club_${id}`, clubData);
+
+  // 2. Guardar en Supabase (fuente de verdad)
+  const { ok, data } = await apiClubs("POST", { club: clubData });
+  if (!ok) {
+    console.error("[adminStorage] saveClub falló en Supabase:", data?.error);
+    // Marcar que este club tiene cambios pendientes de sincronizar
+    const pending = lsGet("depro_sync_pending", []);
+    if (!pending.includes(id)) { pending.push(id); lsSet("depro_sync_pending", pending); }
+  } else {
+    // Sincronización exitosa: eliminar de pendientes si estaba
+    const pending = lsGet("depro_sync_pending", []).filter((x) => x !== id);
+    lsSet("depro_sync_pending", pending);
+  }
 
   return clubData;
 }
@@ -135,7 +160,7 @@ export function loadClubDetail(clubId) {
 }
 
 export async function saveClubDetail(clubId, data) {
-  // 1. localStorage — caché local
+  // 1. localStorage — caché local inmediata (siempre funciona, offline-first)
   lsSet(`depro_club_${clubId}`, data);
 
   // 2. Actualizar caché de lista principal
@@ -149,7 +174,17 @@ export async function saveClubDetail(clubId, data) {
   }
 
   // 3. Persistir en Supabase via API (fuente de verdad)
-  await apiClubs("POST", { club: merged });
+  const { ok, data: apiResult } = await apiClubs("POST", { club: merged });
+  if (!ok) {
+    console.warn("[adminStorage] saveClubDetail falló en Supabase:", apiResult?.error);
+    const pending = lsGet("depro_sync_pending", []);
+    if (!pending.includes(clubId)) { pending.push(clubId); lsSet("depro_sync_pending", pending); }
+    return { ok: false, error: apiResult?.error, hint: apiResult?.hint };
+  }
+  // Sincronización exitosa
+  const pending = lsGet("depro_sync_pending", []).filter((x) => x !== clubId);
+  lsSet("depro_sync_pending", pending);
+  return { ok: true };
 }
 
 // ════════════════════════════════════════════════════════════

@@ -1507,7 +1507,8 @@ function IdentidadTab({ club, onSave }) {
   const [name, setName]             = useState(club.name || "");
   const [city, setCity]             = useState(club.city || "");
   const [country, setCountry]       = useState(club.country || "");
-  const [saved, setSaved]           = useState(false);
+  const [saved, setSaved]           = useState(false);   // "idle" | "saving" | "ok" | "warn"
+  const [syncWarn, setSyncWarn]     = useState(null);    // mensaje de aviso si Supabase falla
   const logoRef   = useRef();
   const bannerRef = useRef();
 
@@ -1536,10 +1537,18 @@ function IdentidadTab({ club, onSave }) {
     } catch { return "#fff"; }
   })();
 
-  const handleSave = () => {
-    onSave({ logo, banner, primaryColor, secondaryColor, slogan, name: name.trim() || club.name, city, country });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleSave = async () => {
+    setSaved("saving");
+    setSyncWarn(null);
+    const result = await onSave({ logo, banner, primaryColor, secondaryColor, slogan, name: name.trim() || club.name, city, country });
+    if (result && !result.ok) {
+      setSaved("warn");
+      setSyncWarn(result.hint || "Los datos se guardaron localmente pero no se sincronizaron con la nube. Ejecuta el SQL de supabase_schema.sql en Supabase → SQL Editor.");
+      setTimeout(() => setSaved("idle"), 4000);
+    } else {
+      setSaved("ok");
+      setTimeout(() => setSaved("idle"), 2000);
+    }
   };
 
   return (
@@ -1696,16 +1705,30 @@ function IdentidadTab({ club, onSave }) {
         </div>
       </div>
 
+      {syncWarn && (
+        <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-800">
+          <Clock size={16} className="mt-0.5 shrink-0 text-yellow-600" />
+          <div>
+            <p className="font-semibold mb-0.5">Guardado localmente · Sincronización pendiente</p>
+            <p className="text-xs text-yellow-700">{syncWarn}</p>
+          </div>
+        </div>
+      )}
       <div className="flex justify-end">
         <button
           onClick={handleSave}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all ${
-            saved
-              ? "bg-green-500 text-white"
-              : "bg-depro-blue text-white hover:bg-depro-blue-dark"
+          disabled={saved === "saving"}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 ${
+            saved === "ok"   ? "bg-green-500 text-white" :
+            saved === "warn" ? "bg-yellow-500 text-white" :
+            saved === "saving" ? "bg-depro-blue/70 text-white" :
+            "bg-depro-blue text-white hover:bg-depro-blue-dark"
           }`}
         >
-          {saved ? <><CheckCircle size={15} /> Guardado</> : <><Save size={15} /> Guardar identidad</>}
+          {saved === "ok"     ? <><CheckCircle size={15} /> Guardado</> :
+           saved === "warn"   ? <><Clock size={15} /> Solo local</> :
+           saved === "saving" ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando…</> :
+           <><Save size={15} /> Guardar identidad</>}
         </button>
       </div>
     </div>
@@ -1750,9 +1773,9 @@ export default function AdminClubDetailPage() {
     }).catch(() => setLoading(false));
   }, [id]);
 
-  // Persistir cambios del club cuando cambia
+  // Persistir cambios del club cuando cambia — devuelve promesa con { ok, error }
   const persistClub = useCallback((updatedClub, updatedPlans) => {
-    saveClubDetail(id, { ...updatedClub, plans: updatedPlans });
+    return saveClubDetail(id, { ...updatedClub, plans: updatedPlans });
   }, [id]);
 
   if (loading) {
@@ -2066,7 +2089,13 @@ export default function AdminClubDetailPage() {
 
       {/* IDENTIDAD */}
       {activeTab === "identidad" && (
-        <IdentidadTab club={club} onSave={(patch) => { updateClub((c) => ({ ...c, ...patch })); }} />
+        <IdentidadTab club={club} onSave={async (patch) => {
+          // Actualizar estado local
+          const updated = { ...club, ...patch };
+          setClub(updated);
+          // Persistir y devolver resultado para que IdentidadTab muestre feedback
+          return await persistClub(updated, plans);
+        }} />
       )}
 
       {/* EQUIPOS */}
