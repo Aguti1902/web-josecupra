@@ -9,13 +9,13 @@ import {
   flattenBlocksToExercises, BLOCK_LABELS, ADMIN_BLOCK_TYPES,
 } from "../../lib/sessionBlocks";
 import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
-import { getMesocicloWeeks } from "../../lib/periodization";
+import { getMesocicloWeeks, formatWeekRangeLabel } from "../../lib/periodization";
 import {
   FRAMEWORKS, FRAMEWORK_LABELS, FRAMEWORK_COLORS,
   groupSessionsByFramework, ensureWeekSchedule, suggestTemplateKey,
   prepareSessionPayload, normalizeMesocycle, formatWeekCombination,
   intensityFromFramework, buildTemplateKeyOptions,
-  ensureSessionTemplateFields,
+  ensureSessionTemplateFields, filterSessionsByFramework,
 } from "../../lib/mesocycleTemplates";
 
 /* ── Constantes globales ─────────────────────────────────── */
@@ -430,8 +430,8 @@ function NewMicrocycleModal({ onClose, onCreate, onUpdate = null, initialAgeBloc
 /* ── Combinación semanal A1/B1/C1 ─────────────────────────── */
 function WeekScheduleEditor({ mc, onUpdateSchedule }) {
   const numWeeks = getMesocicloWeeks(mc.startDate, mc.endDate) || 1;
-  const groups = groupSessionsByFramework(mc.sessions);
   const schedule = ensureWeekSchedule(mc, numWeeks);
+  const sessions = (mc.sessions || []).map(ensureSessionTemplateFields);
 
   const updateCell = (weekIdx, fw, sessionId) => {
     const next = schedule.map((row, i) =>
@@ -460,7 +460,7 @@ function WeekScheduleEditor({ mc, onUpdateSchedule }) {
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-white border-b border-depro-border">
-              <th className="text-left px-3 py-2 font-bold text-depro-gray">Semana</th>
+              <th className="text-left px-3 py-2 font-bold text-depro-gray">Fechas</th>
               {FRAMEWORKS.map((fw) => (
                 <th key={fw} className="px-2 py-2 font-bold text-center" style={{ color: FRAMEWORK_COLORS[fw] }}>
                   {fw} · {FRAMEWORK_LABELS[fw]}
@@ -472,21 +472,28 @@ function WeekScheduleEditor({ mc, onUpdateSchedule }) {
           <tbody>
             {schedule.map((row, wi) => (
               <tr key={wi} className="border-b border-depro-border/60 hover:bg-depro-gray-light/20">
-                <td className="px-3 py-2 font-black text-depro-dark whitespace-nowrap">{wi + 1}</td>
-                {FRAMEWORKS.map((fw) => (
+                <td className="px-3 py-2 font-bold text-depro-dark whitespace-nowrap text-[11px]">
+                  {formatWeekRangeLabel(mc.startDate, wi)}
+                </td>
+                {FRAMEWORKS.map((fw) => {
+                  const fwTemplates = filterSessionsByFramework(sessions, fw);
+                  const selectedId = row[fw] || "";
+                  const selectedValid = !selectedId || fwTemplates.some((t) => t.id === selectedId);
+                  return (
                   <td key={fw} className="px-2 py-2">
                     <select
                       className="w-full min-w-[88px] border border-depro-border rounded-lg px-2 py-1.5 text-xs bg-white"
-                      value={row[fw] || ""}
+                      value={selectedValid ? selectedId : ""}
                       onChange={(e) => updateCell(wi, fw, e.target.value || null)}
                     >
                       <option value="">—</option>
-                      {(groups[fw] || []).map((t) => (
+                      {fwTemplates.map((t) => (
                         <option key={t.id} value={t.id}>{t.templateKey} · {t.title || "Sin título"}</option>
                       ))}
                     </select>
                   </td>
-                ))}
+                  );
+                })}
                 <td className="px-3 py-2 font-bold text-depro-blue whitespace-nowrap">
                   {formatWeekCombination(row, mc.sessions) || "—"}
                 </td>

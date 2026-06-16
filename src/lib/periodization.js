@@ -218,6 +218,22 @@ export function getWeekDateRange(startDate, weekIndex = 0) {
   return { start: fmt(weekStart), end: fmt(weekEnd) };
 }
 
+/** Etiqueta compacta de semana: "1 al 7 jun" */
+export function formatWeekRangeLabel(startDate, weekIndex = 0) {
+  const { start, end } = getWeekDateRange(startDate, weekIndex);
+  if (!start || !end) return `Sem. ${weekIndex + 1}`;
+  const s = new Date(start + "T00:00:00");
+  const e = new Date(end + "T00:00:00");
+  const sd = s.getDate();
+  const ed = e.getDate();
+  const sm = s.toLocaleDateString("es-ES", { month: "short" });
+  const em = e.toLocaleDateString("es-ES", { month: "short" });
+  if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
+    return `${sd} al ${ed} ${sm}`;
+  }
+  return `${sd} ${sm} al ${ed} ${em}`;
+}
+
 /**
  * Devuelve si el mesociclo está activo hoy.
  */

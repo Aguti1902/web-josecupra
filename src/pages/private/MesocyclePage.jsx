@@ -10,6 +10,7 @@ import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
 import {
   distributeMesocycleForTeam, getDayRationale, getSessionType,
   getCurrentWeekIndex, formatDate, getWeekStartDate, isMesocicloActive, getMesocicloWeeks,
+  formatWeekRangeLabel,
 } from "../../lib/periodization";
 import { sessionPlanUrl } from "../../lib/sessionBlocks";
 import { getSessionDisplayKey } from "../../lib/mesocycleTemplates";
@@ -322,6 +323,7 @@ function SessionCard({ session, sessionNumber, accent }) {
    PÁGINA MESOCICLO
    ════════════════════════════════════════════════════════════ */
 export default function MesocyclePage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const activeTeam = useActiveTeam();
   const isReadOnly = useIsReadOnly();
@@ -514,8 +516,8 @@ export default function MesocyclePage() {
                     {weekNumber}
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-black text-depro-dark">Semana {weekNumber}</span>
-                    {weekStart && <span className="text-[10px] text-depro-gray">{weekStart}</span>}
+                    <span className="text-sm font-black text-depro-dark">{formatWeekRangeLabel(activePlan?.startDate, wi)}</span>
+                    {weekStart && <span className="text-[10px] text-depro-gray">({weekStart})</span>}
                     {combination && (
                       <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-depro-blue/10 text-depro-blue border border-depro-blue/20">
                         {combination}
@@ -555,6 +557,11 @@ export default function MesocyclePage() {
                           </div>
                         )}
                         <SessionCard session={session} sessionNumber={globalIdx} accent={accent} />
+                        <button type="button"
+                          onClick={() => navigate(sessionPlanUrl(session, { tab: "resumen", week: wi }))}
+                          className="mt-2 w-full py-2 rounded-xl border border-depro-blue/30 text-xs font-bold text-depro-blue hover:bg-depro-blue-light/30 transition-colors">
+                          Abrir sesión en microciclo
+                        </button>
                       </div>
                     );
                   })}

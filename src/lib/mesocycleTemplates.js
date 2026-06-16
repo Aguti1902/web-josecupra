@@ -82,13 +82,41 @@ export function getSessionDisplayKey(session) {
 
 export function ensureSessionTemplateFields(session) {
   if (!session) return session;
-  const framework = session.framework || frameworkFromIntensity(session.intensity);
   let templateKey = session.templateKey;
   if (!templateKey) {
-    const num = (session.title || "").match(/\b([ABC])\s*(\d+)\b/i);
-    templateKey = num ? `${num[1].toUpperCase()}${num[2]}` : `${framework}1`;
+    const num = (session.title || "").match(/\b([ABCD])\s*[- ]?\s*(\d+)\b/i);
+    templateKey = num ? `${num[1].toUpperCase()}${num[2]}` : null;
   }
+  const keyFw = templateKey ? String(templateKey).charAt(0).toUpperCase() : null;
+  const framework = (keyFw && FRAMEWORKS.includes(keyFw))
+    ? keyFw
+    : (session.framework || frameworkFromIntensity(session.intensity));
+  if (!templateKey) templateKey = `${framework}1`;
   return { ...session, framework, templateKey };
+}
+
+/** Plantillas que pertenecen a un marco (A/B/C/D) — filtra por framework y prefijo de templateKey */
+export function filterSessionsByFramework(sessions, framework) {
+  return (sessions || [])
+    .map(ensureSessionTemplateFields)
+    .filter((s) => s.framework === framework && String(s.templateKey || "").toUpperCase().startsWith(framework));
+}
+
+export function sanitizeWeekSchedule(weekSchedule, sessions) {
+  const byId = Object.fromEntries((sessions || []).map((s) => {
+    const norm = ensureSessionTemplateFields(s);
+    return [s.id, norm];
+  }));
+  return (weekSchedule || []).map((row) => {
+    const next = { ...row };
+    for (const fw of FRAMEWORKS) {
+      const id = next[fw];
+      if (!id) continue;
+      const t = byId[id];
+      if (!t || t.framework !== fw) next[fw] = null;
+    }
+    return next;
+  });
 }
 
 export function groupSessionsByFramework(sessions) {
@@ -212,10 +240,14 @@ export function normalizeMesocycle(mc) {
   if (!mc) return mc;
   const sessions = (mc.sessions || []).map(ensureSessionTemplateFields);
   const numWeeks = mesocicloWeekCount(mc.startDate, mc.endDate);
+  const weekSchedule = sanitizeWeekSchedule(
+    ensureWeekSchedule({ ...mc, sessions }, numWeeks),
+    sessions
+  );
   return {
     ...mc,
     sessions,
-    weekSchedule: ensureWeekSchedule({ ...mc, sessions }, numWeeks),
+    weekSchedule,
   };
 }
 

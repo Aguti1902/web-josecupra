@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import {
   distributeWeekSessions, distributeMesocycleForTeam, getDayRationale, getSessionType as getPeriodizationSessionType,
-  getCurrentWeekIndex, formatDate, getMesocicloWeeks, getWeekDateRange,
+  getCurrentWeekIndex, formatDate, getMesocicloWeeks, getWeekDateRange, formatWeekRangeLabel,
 } from "../../lib/periodization";
 import { getSessionDisplayKey } from "../../lib/mesocycleTemplates";
 import {
-  Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
+  Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, Video,
   Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
   PencilRuler, Info, AlertTriangle, PlayCircle,
   Activity, Dumbbell, Wind, Layers, TrendingUp, BarChart2, ShieldCheck,
@@ -202,8 +202,6 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
     { id: "resumen",        label: "Resumen" },
     { id: "calentamiento",  label: "Calentamiento" },
     { id: "principal",      label: "Principal" },
-    { id: "complementario", label: "Complementario" },
-    { id: "vuelta_calma",   label: "Vuelta a la calma" },
   ];
 
   const getBlock = (type) => blocks.find((b) => b.type === type) || { exercises: [] };
@@ -315,7 +313,7 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
             )}
 
             {/* ── BLOQUES: calentamiento / principal / complementario / vuelta_calma ── */}
-            {["calentamiento","principal","complementario","vuelta_calma"].map((blockType) => {
+            {ADMIN_BLOCK_TYPES.map((blockType) => {
               if (activeBlock !== blockType) return null;
               const block = getBlock(blockType);
               const cfg = BLOCK_CONFIG[blockType] || { label: blockType, Icon: Layers, color: accentColor };
@@ -1070,17 +1068,20 @@ function BlockTwoColumnLayout({ block, accentColor, panelTitle, panelIcon: Panel
   );
 }
 
+const CLUB_VISIBLE_TABS = ["resumen", "calentamiento", "principal", "tareas"];
+
 function ClubSessionCard({
   session, accentColor, sessionNumber, readOnly = false, taskStorageKey,
   initialExpanded = false, initialTab = "resumen", cardRef,
 }) {
+  const safeInitialTab = CLUB_VISIBLE_TABS.includes(initialTab) ? initialTab : "resumen";
   const [expanded, setExpanded]       = useState(initialExpanded);
-  const [activeBlock, setActiveBlock] = useState(initialTab);
+  const [activeBlock, setActiveBlock] = useState(safeInitialTab);
   const [completion, setCompletion]   = useState(session.completion ?? 0);
 
   useEffect(() => {
     if (initialExpanded) setExpanded(true);
-    if (initialTab) setActiveBlock(initialTab);
+    if (initialTab) setActiveBlock(CLUB_VISIBLE_TABS.includes(initialTab) ? initialTab : "resumen");
   }, [initialExpanded, initialTab]);
 
   const sessionType = session.framework || getSessionType(session.intensity);
@@ -1325,7 +1326,7 @@ function ClubMicrocycles({ accent }) {
   const { user } = useAuth();
   const activeTeam = useActiveTeam();
   const isReadOnly = useIsReadOnly();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const targetSessionId = searchParams.get("session");
   const targetTab = searchParams.get("tab") || "resumen";
   const targetWeekParam = searchParams.get("week");
@@ -1394,12 +1395,39 @@ function ClubMicrocycles({ accent }) {
     : [];
 
   const weekDateRange = micro?.startDate ? getWeekDateRange(micro.startDate, viewWeekIdx) : null;
-  const isViewingOtherWeek = parsedWeek != null && viewWeekIdx !== Math.min(defaultWeekIdx, maxWeekIdx);
+  const defaultViewWeek = Math.min(defaultWeekIdx, maxWeekIdx);
+
+  const changeWeek = (nextIdx) => {
+    const clamped = Math.min(Math.max(nextIdx, 0), maxWeekIdx);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (clamped === defaultViewWeek) next.delete("week");
+      else next.set("week", String(clamped));
+      return next;
+    }, { replace: true });
+  };
+
+  const changeMesocycle = (nextIdx) => {
+    const clamped = Math.min(Math.max(nextIdx, 0), visiblePlans.length - 1);
+    setSelectedIdx(clamped);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("week");
+      next.delete("session");
+      next.delete("tab");
+      next.delete("day");
+      next.delete("date");
+      return next;
+    }, { replace: true });
+  };
 
   useEffect(() => {
     if (!targetSessionId || !distributedWeekSessions.length) return;
-    const el = sessionRefs.current[targetSessionId];
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    const timer = setTimeout(() => {
+      const el = sessionRefs.current[targetSessionId];
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+    return () => clearTimeout(timer);
   }, [targetSessionId, distributedWeekSessions, viewWeekIdx]);
 
   if (!micro) return (
@@ -1434,24 +1462,37 @@ function ClubMicrocycles({ accent }) {
         {!isCoordinator && micro.startDate && weekDateRange?.start && (
           <div className="mt-2 inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-xl bg-depro-blue-light/40 border border-depro-blue/20 text-xs">
             <Calendar size={11} className="text-depro-blue" />
-            <span className="text-depro-dark font-bold">Semana {viewWeekIdx + 1}</span>
+            <span className="text-depro-dark font-bold">{formatWeekRangeLabel(micro.startDate, viewWeekIdx)}</span>
             {currentWeekCombination && (
               <span className="font-black text-depro-blue">{currentWeekCombination}</span>
             )}
-            <span className="text-depro-gray">{formatDate(weekDateRange.start)} → {formatDate(weekDateRange.end)}</span>
             <span className="text-depro-gray">· {micro.label}</span>
-          </div>
-        )}
-        {isViewingOtherWeek && (
-          <div className="mt-2">
-            <Link to="/dashboard/plan" className="text-xs font-bold text-depro-blue hover:underline">
-              ← Volver a la semana actual
-            </Link>
           </div>
         )}
       </div>
 
-      {/* Selector de microciclos */}
+      {/* Navegación mesociclos */}
+      {visiblePlans.length > 0 && (
+        <div className="flex items-center gap-2 mb-4">
+          <button type="button" disabled={selectedIdx <= 0} onClick={() => changeMesocycle(selectedIdx - 1)}
+            className="p-2 rounded-xl border border-depro-border bg-white text-depro-gray hover:text-depro-dark disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            <ChevronLeft size={16} />
+          </button>
+          <div className="flex-1 min-w-0 text-center">
+            <div className="text-xs font-bold text-depro-gray uppercase tracking-wide">Mesociclo</div>
+            <div className="font-black text-depro-dark truncate">{micro.label || micro.code}</div>
+            {micro.startDate && (
+              <div className="text-[10px] text-depro-gray">{formatDate(micro.startDate)} → {formatDate(micro.endDate)}</div>
+            )}
+          </div>
+          <button type="button" disabled={selectedIdx >= visiblePlans.length - 1} onClick={() => changeMesocycle(selectedIdx + 1)}
+            className="p-2 rounded-xl border border-depro-border bg-white text-depro-gray hover:text-depro-dark disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Selector de mesociclos (acceso rápido) */}
       <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
         {visiblePlans.map((m, i) => {
           const isSelected = selectedIdx === i;
@@ -1476,6 +1517,32 @@ function ClubMicrocycles({ accent }) {
         })}
       </div>
 
+      {/* Navegación semanal */}
+      {mesoWeeksDistributed.length > 0 && micro?.startDate && (
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-2xl border border-depro-border bg-white">
+          <button type="button" disabled={viewWeekIdx <= 0} onClick={() => changeWeek(viewWeekIdx - 1)}
+            className="p-2 rounded-xl border border-depro-border bg-depro-gray-light/50 text-depro-dark hover:bg-depro-gray-light disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            <ChevronLeft size={18} />
+          </button>
+          <div className="flex-1 text-center min-w-0">
+            <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">
+              Semana {viewWeekIdx + 1} de {mesoWeeksDistributed.length}
+            </div>
+            <div className="font-black text-depro-dark">{formatWeekRangeLabel(micro.startDate, viewWeekIdx)}</div>
+            {currentWeekCombination && (
+              <div className="text-xs font-bold text-depro-blue mt-0.5">{currentWeekCombination}</div>
+            )}
+            {viewWeekIdx === defaultViewWeek && (
+              <div className="text-[10px] text-green-700 font-bold mt-1">Semana en curso</div>
+            )}
+          </div>
+          <button type="button" disabled={viewWeekIdx >= maxWeekIdx} onClick={() => changeWeek(viewWeekIdx + 1)}
+            className="p-2 rounded-xl border border-depro-border bg-depro-gray-light/50 text-depro-dark hover:bg-depro-gray-light disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+
       {/* Resumen semanal (solo esta semana) */}
       <div
         className="rounded-2xl p-5 mb-6 flex items-center gap-5"
@@ -1485,10 +1552,10 @@ function ClubMicrocycles({ accent }) {
           S{viewWeekIdx + 1}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-bold text-depro-gray uppercase tracking-wide">Semana {viewWeekIdx + 1} del mesociclo</div>
-          <div className="font-black text-depro-dark">{micro.label}</div>
+          <div className="text-xs font-bold text-depro-gray uppercase tracking-wide">Semana {viewWeekIdx + 1}</div>
+          <div className="font-black text-depro-dark">{formatWeekRangeLabel(micro.startDate, viewWeekIdx)}</div>
           <div className="text-xs text-depro-gray">
-            {weekDateRange?.start ? `${formatDate(weekDateRange.start)} → ${formatDate(weekDateRange.end)}` : micro.range}
+            {micro.label}
             {currentWeekCombination ? ` · ${currentWeekCombination}` : ""}
           </div>
         </div>
@@ -1536,6 +1603,7 @@ function ClubMicrocycles({ accent }) {
                 </div>
               )}
               <ClubSessionCard
+                key={`${s.id}-${viewWeekIdx}-${matchesTarget ? targetSessionId : ""}`}
                 session={s}
                 accentColor={accent}
                 sessionNumber={idx + 1}
