@@ -356,7 +356,7 @@ export default function MesocyclePage() {
 
   // Pasar totalCalendarWeeks para que las sesiones plantilla se repitan cada semana
   const { weeks, totalSessions, sessionsPerWeek } = distributeMesocycleForTeam(
-    allSessions, trainingDays, 3, totalCalendarWeeks
+    activePlan, trainingDays, 3, totalCalendarWeeks
   );
 
   return (
@@ -492,7 +492,7 @@ export default function MesocyclePage() {
           )}
 
           {/* ── VISTA LISTA (semanas) ── */}
-          {(viewMode === "list" || !activePlan?.startDate) && weeks.length > 0 && weeks.map(({ weekNumber, sessions: weekSessions }, wi) => {
+          {(viewMode === "list" || !activePlan?.startDate) && weeks.length > 0 && weeks.map(({ weekNumber, sessions: weekSessions, combination }, wi) => {
             const isCurrentWeek = wi === currentWeekIdx;
             const weekStart = getWeekStartDate(activePlan?.startDate, wi);
             return (
@@ -507,6 +507,11 @@ export default function MesocyclePage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-black text-depro-dark">Semana {weekNumber}</span>
                     {weekStart && <span className="text-[10px] text-depro-gray">{weekStart}</span>}
+                    {combination && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-depro-blue/10 text-depro-blue border border-depro-blue/20">
+                        {combination}
+                      </span>
+                    )}
                     <span className="text-xs text-depro-gray">· {weekSessions.length} sesiones</span>
                     {isCurrentWeek && (
                       <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 flex items-center gap-1">
@@ -532,7 +537,7 @@ export default function MesocyclePage() {
                             </span>
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
                               style={{ backgroundColor: (SESSION_TYPE_COLOR[sType] ?? accent) + "18", color: SESSION_TYPE_COLOR[sType] ?? accent }}>
-                              Sesión {sType} · {SESSION_TYPE_LABEL[sType]}
+                              {session.templateKey || `Sesión ${sType}`} · {SESSION_TYPE_LABEL[sType]}
                             </span>
                             {rationale && (
                               <span className="text-[10px] text-depro-gray hidden sm:block">{rationale}</span>

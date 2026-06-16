@@ -1031,6 +1031,44 @@ function BlockExercisesPanel({ block, accentColor, showBlockVideo = false }) {
   );
 }
 
+function BlockTwoColumnLayout({ block, accentColor, panelTitle, panelIcon: PanelIcon, panelColor, infoItems }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <BlockExercisesPanel block={block} accentColor={accentColor} showBlockVideo />
+        <div>
+          <div className="bg-white border border-depro-border rounded-xl p-4 space-y-2.5">
+            <div className="flex items-center gap-2 pb-2 border-b border-depro-border">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: panelColor + "15" }}>
+                <PanelIcon size={14} style={{ color: panelColor }} />
+              </div>
+              <span className="text-xs font-bold text-depro-dark">{panelTitle}</span>
+            </div>
+            {infoItems.map((item) => {
+              const PIcon = item.Icon;
+              const label = item.label || item.title;
+              const value = item.value || item.text;
+              return (
+                <div key={label} className="flex items-start gap-3 p-3 rounded-xl bg-depro-gray-light border border-depro-border">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: panelColor + "15" }}>
+                    <PIcon size={13} style={{ color: panelColor }} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{label}</div>
+                    <div className="text-sm font-semibold text-depro-dark mt-0.5">{value}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ClubSessionCard({
   session, accentColor, sessionNumber, readOnly = false, taskStorageKey,
   initialExpanded = false, initialTab = "resumen", cardRef,
@@ -1218,66 +1256,26 @@ function ClubSessionCard({
 
             {/* ── CALENTAMIENTO ── */}
             {activeBlock === "calentamiento" && (
-              <div className="space-y-4">
-                <BlockExercisesPanel block={blockByType("calentamiento")} accentColor={accentColor} showBlockVideo />
-                <div className="bg-white border border-depro-border rounded-xl p-4">
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide mb-3" style={{ color: accentColor }}>
-                    <BookOpen size={10} /> Guía calentamiento integrado
-                  </div>
-                  <div className="space-y-2.5">
-                    {WARMUP_GUIDE_ITEMS.map((item) => {
-                      const WIcon = item.Icon;
-                      return (
-                        <div key={item.title} className="flex items-start gap-2.5">
-                          <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                            style={{ backgroundColor: accentColor + "12" }}>
-                            <WIcon size={11} style={{ color: accentColor }} />
-                          </div>
-                          <div>
-                            <span className="text-xs font-bold text-depro-dark">{item.title}: </span>
-                            <span className="text-xs text-depro-gray">{item.text}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+              <BlockTwoColumnLayout
+                block={blockByType("calentamiento")}
+                accentColor={accentColor}
+                panelTitle={`Calentamiento · Sesión ${st.label}`}
+                panelIcon={Flame}
+                panelColor="#F59E0B"
+                infoItems={WARMUP_GUIDE_ITEMS}
+              />
             )}
 
             {/* ── PRINCIPAL ── */}
             {activeBlock === "principal" && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <BlockExercisesPanel block={blockByType("principal")} accentColor={accentColor} showBlockVideo />
-                  <div>
-                    <div className="bg-white border border-depro-border rounded-xl p-4 space-y-2.5">
-                      <div className="flex items-center gap-2 pb-2 border-b border-depro-border">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                          style={{ backgroundColor: st.color + "15" }}>
-                          <StIcon size={14} style={{ color: st.color }} />
-                        </div>
-                        <span className="text-xs font-bold text-depro-dark">Principal · Sesión {st.label}</span>
-                      </div>
-                      {PROTOCOL_INFO[sessionType].map((item) => {
-                        const PIcon = item.Icon;
-                        return (
-                          <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-depro-gray-light border border-depro-border">
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                              style={{ backgroundColor: st.color + "15" }}>
-                              <PIcon size={13} style={{ color: st.color }} />
-                            </div>
-                            <div>
-                              <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{item.label}</div>
-                              <div className="text-sm font-semibold text-depro-dark mt-0.5">{item.value}</div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <BlockTwoColumnLayout
+                block={blockByType("principal")}
+                accentColor={accentColor}
+                panelTitle={`Principal · Sesión ${st.label}`}
+                panelIcon={StIcon}
+                panelColor={st.color}
+                infoItems={PROTOCOL_INFO[sessionType]}
+              />
             )}
 
             {/* ── COMPLEMENTARIO ── */}
@@ -1381,7 +1379,7 @@ function ClubMicrocycles({ accent }) {
   const totalCalendarWeeks = micro ? getMesocicloWeeks(micro.startDate, micro.endDate) : 1;
   const baseWeekSize = Math.max(trainingDays.length || 3, 3);
   const { weeks: mesoWeeksDistributed } = micro
-    ? distributeMesocycleForTeam(template, trainingDays, baseWeekSize, totalCalendarWeeks)
+    ? distributeMesocycleForTeam(micro, trainingDays, baseWeekSize, totalCalendarWeeks)
     : { weeks: [] };
 
   const currentWeekIdx = micro ? getCurrentWeekIndex(micro.startDate, micro.endDate) : 0;
@@ -1409,6 +1407,8 @@ function ClubMicrocycles({ accent }) {
   );
 
 
+  const currentWeekCombination = mesoWeeksDistributed[safeWeekIdx]?.combination || "";
+
   const totalCompletion = Math.round(
     distributedWeekSessions.reduce((acc, s) => acc + (s.completion ?? 0), 0) / Math.max(distributedWeekSessions.length, 1)
   );
@@ -1432,6 +1432,9 @@ function ClubMicrocycles({ accent }) {
           <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-depro-blue-light/40 border border-depro-blue/20 text-xs">
             <Calendar size={11} className="text-depro-blue" />
             <span className="text-depro-dark font-bold">Semana {safeWeekIdx + 1}</span>
+            {currentWeekCombination && (
+              <span className="font-black text-depro-blue">{currentWeekCombination}</span>
+            )}
             <span className="text-depro-gray">· {micro.label}</span>
             <span className="text-depro-gray">· {formatDate(micro.startDate)} → {formatDate(micro.endDate)}</span>
           </div>

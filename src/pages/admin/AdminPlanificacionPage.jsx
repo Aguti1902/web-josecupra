@@ -9,6 +9,12 @@ import {
   flattenBlocksToExercises, BLOCK_LABELS,
 } from "../../lib/sessionBlocks";
 import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
+import { getMesocicloWeeks, getSessionType } from "../../lib/periodization";
+import {
+  FRAMEWORKS, FRAMEWORK_LABELS, FRAMEWORK_COLORS,
+  groupSessionsByFramework, ensureWeekSchedule, suggestTemplateKey,
+  prepareSessionPayload, normalizeMesocycle, formatWeekCombination,
+} from "../../lib/mesocycleTemplates";
 
 /* ── Constantes globales ─────────────────────────────────── */
 const AGE_BLOCKS = [
@@ -84,24 +90,36 @@ async function fetchGlobalPlansFromAPI() {
 }
 
 /* ── Modal editor de sesión ──────────────────────────────── */
-function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = null }) {
+function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = null, existingSessions = [], defaultFramework = null }) {
   const isEditing = !!initialData;
   const [tab, setTab] = useState("resumen");
-  const [form, setForm] = useState(() => initialData ? {
-    title: initialData.title || "",
-    duration: initialData.duration || "75 min",
-    intensity: initialData.intensity || "Media",
-    objective: initialData.objective || "",
-    space: initialData.space || "",
-    blocks: initialData.blocks?.length
-      ? initialData.blocks.map((b) => normalizeBlock(b))
-      : defaultBlocks(),
-    exercises: initialData.exercises || [],
-  } : {
-    title: "", duration: "75 min", intensity: "Media",
-    objective: "", space: "",
-    blocks: defaultBlocks(),
-    exercises: [],
+  const [form, setForm] = useState(() => {
+    if (initialData) {
+      return {
+        title: initialData.title || "",
+        duration: initialData.duration || "75 min",
+        intensity: initialData.intensity || "Media",
+        templateKey: initialData.templateKey || "",
+        objective: initialData.objective || "",
+        space: initialData.space || "",
+        blocks: initialData.blocks?.length
+          ? initialData.blocks.map((b) => normalizeBlock(b))
+          : defaultBlocks(),
+        exercises: initialData.exercises || [],
+      };
+    }
+    const fw = defaultFramework || "A";
+    const defaultIntensity = fw === "A" ? "Media" : fw === "B" ? "Media-alta" : fw === "C" ? "Máxima" : "Complementaria-D";
+    return {
+      title: "",
+      duration: "75 min",
+      intensity: defaultIntensity,
+      templateKey: suggestTemplateKey(existingSessions, fw),
+      objective: "",
+      space: "",
+      blocks: defaultBlocks(),
+      exercises: [],
+    };
   });
 
   const getBlock = (type) => normalizeBlock(form.blocks.find((b) => b.type === type) || { type, exercises: [] });
@@ -125,7 +143,7 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
     if (!form.title.trim()) return;
     const blocks = form.blocks.map((b) => normalizeBlock(b));
     const allExercises = flattenBlocksToExercises(blocks);
-    const payload = { ...form, blocks, exercises: allExercises };
+    const payload = prepareSessionPayload({ ...form, blocks, exercises: allExercises }, existingSessions);
     if (isEditing && onUpdate) {
       onUpdate({ ...initialData, ...payload });
     } else {
@@ -147,7 +165,10 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
               <div className="font-black text-depro-dark leading-none">{form.title || (isEditing ? "Editar sesión" : "Nueva sesión")}</div>
               <div className="text-[10px] text-depro-gray mt-0.5">
                 <span className="font-bold" style={{ color: sessionTypeMeta.color }}>{sessionTypeMeta.label}</span>
-                <span className="ml-2 opacity-60">{isEditing ? "· Editando sesión" : "· El día se asigna automáticamente"}</span>
+                {form.templateKey && (
+                  <span className="ml-2 font-black" style={{ color: sessionTypeMeta.color }}>{form.templateKey}</span>
+                )}
+                <span className="ml-2 opacity-60">{isEditing ? "· Plantilla del marco" : "· El día se asigna en el mesociclo"}</span>
               </div>
             </div>
           </div>
@@ -177,7 +198,9 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
                 <div className="flex-1">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-0.5">Vista previa</div>
                   <div className="font-black text-depro-dark text-lg leading-none">{form.title || "Sin título"}</div>
-                  <div className="text-xs font-semibold mt-1" style={{ color: sessionTypeMeta.color }}>{sessionTypeMeta.label}</div>
+                  <div className="text-xs font-semibold mt-1" style={{ color: sessionTypeMeta.color }}>
+                    {sessionTypeMeta.label}{form.templateKey ? ` · ${form.templateKey}` : ""}
+                  </div>
                 </div>
               </div>
               <div>
@@ -198,9 +221,29 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
                     Intensidad <span className="font-semibold" style={{ color: sessionTypeMeta.color }}>({sessionTypeMeta.label})</span>
                   </label>
                   <select className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    value={form.intensity} onChange={(e) => setForm((f) => ({ ...f, intensity: e.target.value }))}>
-                    {INTENSITIES.map((i) => <option key={i}>{i}</option>)}
+                    value={form.intensity}
+                    onChange={(e) => {
+                      const intensity = e.target.value;
+                      const fw = getSessionType(intensity);
+                      setForm((f) => ({
+                        ...f,
+                        intensity,
+                        templateKey: isEditing && f.templateKey
+                          ? f.templateKey
+                          : suggestTemplateKey(existingSessions, fw),
+                      }));
+                    }}>
+                    {INTENSITIES.map((i) => {
+                      const opt = SESSION_TYPE_OPTIONS.find((o) => o.value === i);
+                      return <option key={i} value={i}>{opt ? opt.label : i}</option>;
+                    })}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Plantilla</label>
+                  <input className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm font-black focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    placeholder="A1" value={form.templateKey}
+                    onChange={(e) => setForm((f) => ({ ...f, templateKey: e.target.value.toUpperCase() }))} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Espacio</label>
@@ -378,12 +421,88 @@ function NewMicrocycleModal({ onClose, onCreate, onUpdate = null, initialAgeBloc
   );
 }
 
+/* ── Combinación semanal A1/B1/C1 ─────────────────────────── */
+function WeekScheduleEditor({ mc, onUpdateSchedule }) {
+  const numWeeks = getMesocicloWeeks(mc.startDate, mc.endDate) || 1;
+  const groups = groupSessionsByFramework(mc.sessions);
+  const schedule = ensureWeekSchedule(mc, numWeeks);
+
+  const updateCell = (weekIdx, fw, sessionId) => {
+    const next = schedule.map((row, i) =>
+      i === weekIdx ? { ...row, week: i + 1, [fw]: sessionId || null } : row
+    );
+    onUpdateSchedule(next);
+  };
+
+  if (!mc.startDate || !mc.endDate) {
+    return (
+      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+        Define fechas de inicio y fin del mesociclo para configurar la combinación semanal.
+      </p>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-depro-border overflow-hidden">
+      <div className="px-3 py-2 bg-depro-gray-light/40 border-b border-depro-border">
+        <p className="text-xs font-bold text-depro-dark">Combinación por semana</p>
+        <p className="text-[10px] text-depro-gray mt-0.5">
+          Elige qué plantilla (A1, A2, B1…) usa cada marco en cada semana del mesociclo.
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-white border-b border-depro-border">
+              <th className="text-left px-3 py-2 font-bold text-depro-gray">Semana</th>
+              {FRAMEWORKS.map((fw) => (
+                <th key={fw} className="px-2 py-2 font-bold text-center" style={{ color: FRAMEWORK_COLORS[fw] }}>
+                  {fw} · {FRAMEWORK_LABELS[fw]}
+                </th>
+              ))}
+              <th className="px-3 py-2 font-bold text-depro-gray text-left">Combinación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {schedule.map((row, wi) => (
+              <tr key={wi} className="border-b border-depro-border/60 hover:bg-depro-gray-light/20">
+                <td className="px-3 py-2 font-black text-depro-dark whitespace-nowrap">{wi + 1}</td>
+                {FRAMEWORKS.map((fw) => (
+                  <td key={fw} className="px-2 py-2">
+                    <select
+                      className="w-full min-w-[88px] border border-depro-border rounded-lg px-2 py-1.5 text-xs bg-white"
+                      value={row[fw] || ""}
+                      onChange={(e) => updateCell(wi, fw, e.target.value || null)}
+                    >
+                      <option value="">—</option>
+                      {(groups[fw] || []).map((t) => (
+                        <option key={t.id} value={t.id}>{t.templateKey} · {t.title || "Sin título"}</option>
+                      ))}
+                    </select>
+                  </td>
+                ))}
+                <td className="px-3 py-2 font-bold text-depro-blue whitespace-nowrap">
+                  {formatWeekCombination(row, mc.sessions) || "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 /* ── Card de microciclo ──────────────────────────────────── */
-function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete, onUpdateMc, onUpdateSession }) {
+function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete, onUpdateMc, onUpdateSession, onUpdateSchedule }) {
   const [expanded, setExpanded] = useState(false);
   const [showNewSession, setShowNewSession] = useState(false);
+  const [newSessionFramework, setNewSessionFramework] = useState("A");
   const [editingSession, setEditingSession] = useState(null);
   const [showEditMc, setShowEditMc] = useState(false);
+  const [frameworkTab, setFrameworkTab] = useState("A");
+
+  const grouped = groupSessionsByFramework(mc.sessions);
 
   const bloque = AGE_BLOCKS.find((b) => b.id === mc.ageBlock);
   const statusStyle = {
@@ -425,51 +544,76 @@ function MicrocycleCard({ mc, onAddSession, onDeleteSession, onDelete, onUpdateM
 
         {/* Sesiones */}
         {expanded && (
-          <div className="mt-3 pt-3 border-t border-depro-border space-y-2">
-            {(mc.sessions || []).length === 0 && (
-              <p className="text-xs text-depro-gray italic">Sin sesiones — añade la primera</p>
-            )}
-            {(mc.sessions || []).length > 0 && (
-              <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-depro-blue-light/30 border border-depro-blue/15 mb-1">
-                <Calendar size={11} className="text-depro-blue mt-0.5 flex-shrink-0" />
-                <p className="text-[10px] text-depro-blue font-medium leading-tight">
-                  Estas {(mc.sessions || []).length} sesiones son la <strong>plantilla semanal</strong> — se repiten automáticamente cada semana durante el mes.
-                </p>
+          <div className="mt-3 pt-3 border-t border-depro-border space-y-4">
+            <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-depro-blue-light/30 border border-depro-blue/15">
+              <Calendar size={11} className="text-depro-blue mt-0.5 flex-shrink-0" />
+              <p className="text-[10px] text-depro-blue font-medium leading-tight">
+                <strong>A, B, C son marcos condicionales.</strong> Crea varias plantillas por marco (A1, A2, B1…) y combínalas por semana abajo.
+              </p>
+            </div>
+
+            {/* Plantillas por marco */}
+            <div>
+              <div className="flex gap-1 mb-2 overflow-x-auto">
+                {FRAMEWORKS.map((fw) => (
+                  <button key={fw} type="button" onClick={() => setFrameworkTab(fw)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                      frameworkTab === fw ? "text-white border-transparent" : "bg-white text-depro-gray border-depro-border"
+                    }`}
+                    style={frameworkTab === fw ? { backgroundColor: FRAMEWORK_COLORS[fw] } : {}}>
+                    {fw} · {FRAMEWORK_LABELS[fw]} ({grouped[fw]?.length || 0})
+                  </button>
+                ))}
               </div>
-            )}
-            {(mc.sessions || []).map((s, si) => (
-              <div key={s.id || si} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-depro-gray-light/50 border border-depro-border">
-                <div className="w-6 h-6 rounded-lg bg-depro-blue/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-[10px] font-black text-depro-blue">{si + 1}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-depro-dark truncate">{s.title || s.day}</p>
-                  <p className="text-[10px] text-depro-gray">{s.duration} · {s.intensity}</p>
-                </div>
-                <button onClick={() => setEditingSession(s)} className="text-depro-gray hover:text-depro-blue p-1 rounded transition-colors" title="Editar sesión">
-                  <Edit3 size={12} />
-                </button>
-                <button onClick={() => onDeleteSession(mc.id, s.id)} className="text-depro-gray hover:text-red-500 p-1 transition-colors" title="Eliminar sesión">
-                  <X size={12} />
+              <div className="space-y-2">
+                {(grouped[frameworkTab] || []).length === 0 && (
+                  <p className="text-xs text-depro-gray italic px-1">Sin plantillas {frameworkTab} — añade la primera</p>
+                )}
+                {(grouped[frameworkTab] || []).map((s) => (
+                  <div key={s.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-depro-gray-light/50 border border-depro-border">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-black text-xs"
+                      style={{ backgroundColor: FRAMEWORK_COLORS[frameworkTab] + "18", color: FRAMEWORK_COLORS[frameworkTab] }}>
+                      {s.templateKey}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-depro-dark truncate">{s.title || "Sin título"}</p>
+                      <p className="text-[10px] text-depro-gray">{s.duration} · {s.intensity}</p>
+                    </div>
+                    <button onClick={() => setEditingSession(s)} className="text-depro-gray hover:text-depro-blue p-1 rounded transition-colors" title="Editar">
+                      <Edit3 size={12} />
+                    </button>
+                    <button onClick={() => onDeleteSession(mc.id, s.id)} className="text-depro-gray hover:text-red-500 p-1 transition-colors" title="Eliminar">
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => { setNewSessionFramework(frameworkTab); setShowNewSession(true); }}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed text-xs font-bold transition-colors"
+                  style={{ borderColor: FRAMEWORK_COLORS[frameworkTab] + "50", color: FRAMEWORK_COLORS[frameworkTab] }}>
+                  <Plus size={11} /> Añadir plantilla {frameworkTab}
                 </button>
               </div>
-            ))}
-            <button onClick={() => setShowNewSession(true)}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-depro-blue/30 text-xs font-bold text-depro-blue hover:bg-depro-blue-light/30 transition-colors">
-              <Plus size={11} /> Añadir sesión
-            </button>
+            </div>
+
+            {/* Combinación semanal */}
+            <WeekScheduleEditor mc={mc} onUpdateSchedule={(weekSchedule) => onUpdateSchedule(mc.id, weekSchedule)} />
           </div>
         )}
       </div>
       {showNewSession && (
         <SessionEditorModal
           onClose={() => setShowNewSession(false)}
+          existingSessions={mc.sessions || []}
+          defaultFramework={newSessionFramework}
           onCreate={(session) => { onAddSession(mc.id, session); setShowNewSession(false); }}
         />
       )}
       {editingSession && (
         <SessionEditorModal
           initialData={editingSession}
+          existingSessions={(mc.sessions || []).filter((s) => s.id !== editingSession.id)}
           onClose={() => setEditingSession(null)}
           onCreate={() => {}}
           onUpdate={(updated) => { onUpdateSession(mc.id, updated); setEditingSession(null); }}
@@ -521,17 +665,38 @@ export default function AdminPlanificacionPage() {
     saveGlobalPlans(newPlans);
   };
 
-  const addMicrocycle = (mc) => persist([...plans, mc]);
+  const addMicrocycle = (mc) => persist([...plans, normalizeMesocycle({ ...mc, sessions: mc.sessions || [] })]);
   const deleteMicrocycle = (id) => persist(plans.filter((p) => p.id !== id));
-  const updateMicrocycle = (updated) => persist(plans.map((p) => p.id === updated.id ? { ...p, ...updated } : p));
+  const updateMicrocycle = (updated) => persist(plans.map((p) => p.id === updated.id ? normalizeMesocycle({ ...p, ...updated }) : p));
   const addSession = (mcId, session) =>
-    persist(plans.map((p) => p.id === mcId ? { ...p, sessions: [...(p.sessions || []), session] } : p));
+    persist(plans.map((p) => {
+      if (p.id !== mcId) return p;
+      const prepared = prepareSessionPayload(session, p.sessions || []);
+      return normalizeMesocycle({ ...p, sessions: [...(p.sessions || []), prepared] });
+    }));
   const deleteSession = (mcId, sessionId) =>
-    persist(plans.map((p) => p.id === mcId ? { ...p, sessions: (p.sessions || []).filter((s) => s.id !== sessionId) } : p));
+    persist(plans.map((p) => {
+      if (p.id !== mcId) return p;
+      const sessions = (p.sessions || []).filter((s) => s.id !== sessionId);
+      const weekSchedule = (p.weekSchedule || []).map((row) => {
+        const next = { ...row };
+        for (const fw of FRAMEWORKS) {
+          if (next[fw] === sessionId) next[fw] = null;
+        }
+        return next;
+      });
+      return normalizeMesocycle({ ...p, sessions, weekSchedule });
+    }));
   const updateSession = (mcId, updated) =>
-    persist(plans.map((p) => p.id === mcId ? {
-      ...p, sessions: (p.sessions || []).map((s) => s.id === updated.id ? { ...s, ...updated } : s)
-    } : p));
+    persist(plans.map((p) => {
+      if (p.id !== mcId) return p;
+      const sessions = (p.sessions || []).map((s) =>
+        s.id === updated.id ? prepareSessionPayload(updated, (p.sessions || []).filter((x) => x.id !== updated.id)) : s
+      );
+      return normalizeMesocycle({ ...p, sessions });
+    }));
+  const updateWeekSchedule = (mcId, weekSchedule) =>
+    persist(plans.map((p) => p.id === mcId ? normalizeMesocycle({ ...p, weekSchedule }) : p));
 
   const handleSyncNow = async () => {
     setSyncing(true);
@@ -635,6 +800,7 @@ export default function AdminPlanificacionPage() {
                     onDelete={deleteMicrocycle}
                     onUpdateMc={updateMicrocycle}
                     onUpdateSession={updateSession}
+                    onUpdateSchedule={updateWeekSchedule}
                   />
                 ))}
               </div>

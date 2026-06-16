@@ -14,7 +14,7 @@ import { supabase } from "../../lib/supabase";
 import { coachFeedback } from "../../data/mockData";
 import { ensurePlayerPlan, DAY_ORDER, buildMinimalSession } from "../../lib/playerPlanEngine";
 import {
-  distributeMesocycleForTeam, getCurrentWeekIndex, isMesocicloActive,
+  distributeMesocycleForTeam, getCurrentWeekIndex, isMesocicloActive, getMesocicloWeeks,
 } from "../../lib/periodization";
 import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/sessionBlocks";
 
@@ -590,7 +590,8 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
   const trainingToday = trainingDays.includes(todayName);
 
   if (activePlan?.sessions?.length > 0) {
-    const { weeks } = distributeMesocycleForTeam(activePlan.sessions, trainingDays, 3);
+    const totalCalendarWeeks = getMesocicloWeeks(activePlan.startDate, activePlan.endDate);
+    const { weeks } = distributeMesocycleForTeam(activePlan, trainingDays, 3, totalCalendarWeeks);
     const weekIdx = getCurrentWeekIndex(activePlan.startDate, activePlan.endDate);
     const currentWeekSessions = weeks[weekIdx >= 0 ? weekIdx : 0]?.sessions || [];
     nextSession = findNextSession(currentWeekSessions, trainingDays) || activePlan.sessions[0] || null;

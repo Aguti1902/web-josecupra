@@ -4,17 +4,15 @@
  * Motor de distribución de sesiones basado en periodización táctica (JPP).
  * Partidos en domingo → el algoritmo adapta la carga según distancia al partido.
  *
- * Lógica de asignación por día:
- *   Lunes / Martes  → Sesión A  (Extensiva  · recuperación post-partido)
- *   Miércoles / Jueves → Sesión B  (Intensiva   · pico de carga mid-week)
- *   Viernes / Sábado → Sesión C  (Reactiva    · activación pre-partido)
- *
- * Si el equipo entrena 3 días (L/X/V) ve A + B + C.
- * Si el equipo entrena 2 días (L/J)   ve A + B (sin C).
- * Si el equipo entrena 2 días (X/V)   ve B + C (sin A).
- * → Las sesiones que "sobran" no se suprimen de la planificación global,
- *   solo no se asignan a ese equipo esa semana.
+ * Marcos condicionales A / B / C / D con plantillas múltiples (A1, A2, B1…).
+ * El mesociclo define qué plantilla usa cada marco en cada semana (weekSchedule).
  */
+import {
+  ensureWeekSchedule,
+  resolveWeekSessions,
+  formatWeekCombination,
+  ensureSessionTemplateFields,
+} from "./mesocycleTemplates";
 
 /** Orden canónico de los días */
 export const DAY_ORDER = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -101,51 +99,44 @@ export function distributeWeekSessions(weekSessions, trainingDays) {
 }
 
 /**
- * Distribuye todas las sesiones de un mesociclo para un equipo.
- * Agrupa las sesiones en semanas (N sesiones/semana según sessionsPerWeek),
- * y aplica distributeWeekSessions a cada semana.
+ * Distribuye un mesociclo para un equipo combinando plantillas A/B/C/D por semana.
  *
- * @param {Array}  allSessions     - Todas las sesiones del mesociclo (de Jose)
- * @param {Array}  trainingDays    - Días de entrenamiento del equipo
- * @param {number} baseWeekSize    - Sesiones por semana del plan original (por defecto 3)
- * @returns {{ weeks: Array, totalSessions: number }}
+ * @param {Object|Array} mesocycleOrSessions - Mesociclo { sessions, weekSchedule, startDate, endDate } o array legacy
+ * @param {Array}  trainingDays
+ * @param {number} baseWeekSize
+ * @param {number|null} totalCalendarWeeks
  */
-export function distributeMesocycleForTeam(allSessions, trainingDays, baseWeekSize = 3, totalCalendarWeeks = null) {
+export function distributeMesocycleForTeam(mesocycleOrSessions, trainingDays, baseWeekSize = 3, totalCalendarWeeks = null) {
+  const mesocycle = Array.isArray(mesocycleOrSessions)
+    ? { sessions: mesocycleOrSessions.map(ensureSessionTemplateFields) }
+    : {
+        ...mesocycleOrSessions,
+        sessions: (mesocycleOrSessions?.sessions || []).map(ensureSessionTemplateFields),
+      };
+
   const teamDays = (trainingDays || []).filter((d) => DAY_ORDER.includes(d));
   const sessionsPerTeamWeek = teamDays.length || baseWeekSize;
 
-  if (!allSessions || allSessions.length === 0) return { weeks: [], totalSessions: 0, sessionsPerWeek: sessionsPerTeamWeek };
-
-  // Las sesiones definidas por el admin son la PLANTILLA SEMANAL que se repite.
-  // Si hay totalCalendarWeeks, expandimos la plantilla para cubrir todas las semanas.
-  const templateSize = Math.min(allSessions.length, baseWeekSize);
-  const template = allSessions.slice(0, templateSize);
-  const VARIANTS = ["A1", "A2", "B1", "B2", "C1", "C2"];
-  const numWeeks = totalCalendarWeeks ?? Math.max(1, Math.ceil(allSessions.length / baseWeekSize));
-
-  // Expandir la plantilla para cubrir todas las semanas del mesociclo (rotación A1/A2…)
-  const expandedSessions = [];
-  for (let w = 0; w < numWeeks; w++) {
-    const variant = VARIANTS[w % VARIANTS.length];
-    template.forEach((s, idx) => {
-      expandedSessions.push({
-        ...s,
-        id: `${s.id}_w${w}`,
-        _weekIdx: w,
-        templateVariant: variant,
-        title: s.title ? `${s.title} · ${variant}` : `Sesión ${idx + 1} · ${variant}`,
-      });
-    });
+  if (!mesocycle.sessions?.length) {
+    return { weeks: [], totalSessions: 0, sessionsPerWeek: sessionsPerTeamWeek };
   }
 
+  const numWeeks = totalCalendarWeeks
+    ?? Math.max(1, Math.ceil(mesocycle.sessions.length / Math.max(baseWeekSize, 1)));
+
+  const schedule = ensureWeekSchedule(mesocycle, numWeeks);
+  const mesoWithSchedule = { ...mesocycle, weekSchedule: schedule };
+
   const weeks = [];
-  for (let i = 0; i < expandedSessions.length; i += templateSize) {
-    const chunk = expandedSessions.slice(i, i + templateSize);
-    const distributed = distributeWeekSessions(chunk, teamDays);
+  for (let w = 0; w < numWeeks; w++) {
+    const weekSessions = resolveWeekSessions(mesoWithSchedule, w, numWeeks);
+    const distributed = distributeWeekSessions(weekSessions, teamDays);
     if (distributed.length > 0) {
       weeks.push({
-        weekNumber: weeks.length + 1,
+        weekNumber: w + 1,
         sessions: distributed,
+        combination: formatWeekCombination(schedule[w], mesocycle.sessions),
+        schedule: schedule[w],
       });
     }
   }
