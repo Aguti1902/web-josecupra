@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from "react";
 import {
   ClipboardList, Plus, X, Save, Shield, CheckCircle, Users,
-  Flame, Dumbbell, Target, Wind, BarChart2, ChevronDown, ChevronUp,
+  Flame, Dumbbell, BarChart2, ChevronDown, ChevronUp,
   Trash2, Calendar, PlayCircle, Edit3, Copy, RefreshCw,
 } from "lucide-react";
 import {
-  emptyExercise, emptySubSession, normalizeBlock, defaultBlocks,
-  flattenBlocksToExercises, BLOCK_LABELS,
+  emptyExercise, emptySubSession, normalizeBlock, adminDefaultBlocks, adminSessionBlocks,
+  flattenBlocksToExercises, BLOCK_LABELS, ADMIN_BLOCK_TYPES,
 } from "../../lib/sessionBlocks";
 import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
-import { getMesocicloWeeks, getSessionType } from "../../lib/periodization";
+import { getMesocicloWeeks } from "../../lib/periodization";
 import {
   FRAMEWORKS, FRAMEWORK_LABELS, FRAMEWORK_COLORS,
   groupSessionsByFramework, ensureWeekSchedule, suggestTemplateKey,
   prepareSessionPayload, normalizeMesocycle, formatWeekCombination,
+  intensityFromFramework, buildTemplateKeyOptions,
+  ensureSessionTemplateFields,
 } from "../../lib/mesocycleTemplates";
 
 /* ── Constantes globales ─────────────────────────────────── */
@@ -23,24 +25,12 @@ const AGE_BLOCKS = [
   { id: "Bloque 3", label: "Bloque 3 · Fútbol Juvenil",   ages: ["Sub-16","Juvenil"],                  color: "#EF4444" },
 ];
 
-const INTENSITIES   = ["Baja","Media","Media-alta","Alta","Máxima","Complementaria-D"];
 const SESSION_DAYS  = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 
 const SESSION_BLOCK_CONFIG = {
   calentamiento:  { label: "Calentamiento",    color: "#F59E0B", hasVideo: true },
   principal:      { label: "Bloque principal", color: "#3B82F6", hasVideo: false },
-  complementario: { label: "Complementario",   color: "#8B5CF6", hasVideo: false },
-  vuelta_calma:   { label: "Vuelta a la calma", color: "#10B981", hasVideo: true },
 };
-
-const SESSION_TYPE_OPTIONS = [
-  { value: "Baja",             label: "A · Extensiva",       color: "#3B82F6" },
-  { value: "Media",            label: "A · Extensiva",       color: "#3B82F6" },
-  { value: "Media-alta",       label: "B · Intensiva",       color: "#F59E0B" },
-  { value: "Alta",             label: "B · Intensiva",       color: "#F59E0B" },
-  { value: "Máxima",           label: "C · Reactiva",        color: "#EF4444" },
-  { value: "Complementaria-D", label: "D · Complementaria",  color: "#10B981" },
-];
 
 const PHYSICAL_TEST_FIELDS = [
   { id: "resistencia", label: "Resistencia aeróbica", unit: "m / min" },
@@ -95,29 +85,31 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
   const [tab, setTab] = useState("resumen");
   const [form, setForm] = useState(() => {
     if (initialData) {
+      const normalized = ensureSessionTemplateFields(initialData);
       return {
         title: initialData.title || "",
         duration: initialData.duration || "75 min",
-        intensity: initialData.intensity || "Media",
-        templateKey: initialData.templateKey || "",
+        framework: normalized.framework,
+        intensity: initialData.intensity || intensityFromFramework(normalized.framework),
+        templateKey: normalized.templateKey || "",
         objective: initialData.objective || "",
         space: initialData.space || "",
         blocks: initialData.blocks?.length
-          ? initialData.blocks.map((b) => normalizeBlock(b))
-          : defaultBlocks(),
+          ? adminSessionBlocks(initialData.blocks)
+          : adminDefaultBlocks(),
         exercises: initialData.exercises || [],
       };
     }
     const fw = defaultFramework || "A";
-    const defaultIntensity = fw === "A" ? "Media" : fw === "B" ? "Media-alta" : fw === "C" ? "Máxima" : "Complementaria-D";
     return {
       title: "",
       duration: "75 min",
-      intensity: defaultIntensity,
+      framework: fw,
+      intensity: intensityFromFramework(fw),
       templateKey: suggestTemplateKey(existingSessions, fw),
       objective: "",
       space: "",
-      blocks: defaultBlocks(),
+      blocks: adminDefaultBlocks(),
       exercises: [],
     };
   });
@@ -129,21 +121,30 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
       blocks: f.blocks.map((b) => (b.type === type ? normalizeBlock({ ...b, ...changes, type }) : b)),
     }));
 
-  const sessionTypeMeta = SESSION_TYPE_OPTIONS.find((o) => o.value === form.intensity) || SESSION_TYPE_OPTIONS[1];
+  const fw = form.framework || "A";
+  const sessionTypeMeta = {
+    label: `${fw} · ${FRAMEWORK_LABELS[fw]}`,
+    color: FRAMEWORK_COLORS[fw],
+  };
+  const templateKeyOptions = buildTemplateKeyOptions(fw, existingSessions, {
+    excludeId: initialData?.id,
+    isEditing,
+  });
 
   const TABS = [
     { id:"resumen",        label:"Resumen",          icon: BarChart2 },
     { id:"calentamiento",  label:"Calentamiento",    icon: Flame },
     { id:"principal",      label:"Principal",        icon: Dumbbell },
-    { id:"complementario", label:"Complementario",   icon: Target },
-    { id:"vuelta_calma",   label:"Vuelta a la calma", icon: Wind },
   ];
 
   const handleSave = () => {
     if (!form.title.trim()) return;
-    const blocks = form.blocks.map((b) => normalizeBlock(b));
+    const blocks = adminSessionBlocks(form.blocks).map((b) => normalizeBlock(b));
     const allExercises = flattenBlocksToExercises(blocks);
-    const payload = prepareSessionPayload({ ...form, blocks, exercises: allExercises }, existingSessions);
+    const payload = prepareSessionPayload(
+      { ...form, framework: fw, intensity: intensityFromFramework(fw), blocks, exercises: allExercises },
+      existingSessions
+    );
     if (isEditing && onUpdate) {
       onUpdate({ ...initialData, ...payload });
     } else {
@@ -218,32 +219,37 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">
-                    Intensidad <span className="font-semibold" style={{ color: sessionTypeMeta.color }}>({sessionTypeMeta.label})</span>
+                    Marco <span className="font-semibold" style={{ color: sessionTypeMeta.color }}>({sessionTypeMeta.label})</span>
                   </label>
                   <select className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    value={form.intensity}
+                    value={form.framework}
                     onChange={(e) => {
-                      const intensity = e.target.value;
-                      const fw = getSessionType(intensity);
+                      const nextFw = e.target.value;
                       setForm((f) => ({
                         ...f,
-                        intensity,
-                        templateKey: isEditing && f.templateKey
+                        framework: nextFw,
+                        intensity: intensityFromFramework(nextFw),
+                        templateKey: isEditing && f.framework === nextFw
                           ? f.templateKey
-                          : suggestTemplateKey(existingSessions, fw),
+                          : suggestTemplateKey(existingSessions, nextFw),
                       }));
                     }}>
-                    {INTENSITIES.map((i) => {
-                      const opt = SESSION_TYPE_OPTIONS.find((o) => o.value === i);
-                      return <option key={i} value={i}>{opt ? opt.label : i}</option>;
-                    })}
+                    {FRAMEWORKS.map((f) => (
+                      <option key={f} value={f}>{f} · {FRAMEWORK_LABELS[f]}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Plantilla</label>
-                  <input className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm font-black focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="A1" value={form.templateKey}
-                    onChange={(e) => setForm((f) => ({ ...f, templateKey: e.target.value.toUpperCase() }))} />
+                  <select className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm font-black focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                    value={form.templateKey}
+                    onChange={(e) => setForm((f) => ({ ...f, templateKey: e.target.value }))}>
+                    {templateKeyOptions.map(({ key, used, disabled }) => (
+                      <option key={key} value={key} disabled={disabled}>
+                        {key}{used && !isEditing ? " (en uso)" : ""}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">Espacio</label>
@@ -279,7 +285,7 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
             </div>
           )}
 
-          {["calentamiento","principal","complementario","vuelta_calma"].map((blockType) => {
+          {ADMIN_BLOCK_TYPES.map((blockType) => {
             if (tab !== blockType) return null;
             const block = getBlock(blockType);
             const cfg = SESSION_BLOCK_CONFIG[blockType];

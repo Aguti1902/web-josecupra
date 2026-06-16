@@ -40,9 +40,9 @@ export const DAY_PREFERRED_TYPE_4D = {
 export function getSessionType(intensity) {
   const i = (intensity || "").toLowerCase();
   if (i.includes("complementaria") || i === "d") return "D";
-  if (["Baja", "Media"].includes(intensity)) return "A";
-  if (["Media-alta", "Alta"].includes(intensity)) return "B";
-  return "C"; // Máxima
+  if (["baja", "media", "media-baja"].includes(i)) return "A";
+  if (["media-alta", "alta"].includes(i)) return "B";
+  return "C";
 }
 
 /**

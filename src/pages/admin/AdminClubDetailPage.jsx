@@ -36,11 +36,10 @@ import {
   ImagePlus,
   MapPin,
   PlayCircle,
-  Wind,
   BarChart2,
 } from "lucide-react";
 import { loadClubs, saveClubDetail, loadClubDetail, createClubUser } from "../../lib/adminStorage";
-import { normalizeBlock, defaultBlocks, flattenBlocksToExercises } from "../../lib/sessionBlocks";
+import { normalizeBlock, adminDefaultBlocks, adminSessionBlocks, flattenBlocksToExercises, ADMIN_BLOCK_TYPES } from "../../lib/sessionBlocks";
 import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
 
 
@@ -930,8 +929,6 @@ function getYouTubeId(url) {
 const SESSION_BLOCK_CONFIG = {
   calentamiento:  { label: "Calentamiento",    color: "#F59E0B", hasVideo: true },
   principal:      { label: "Bloque principal", color: "#3B82F6", hasVideo: false },
-  complementario: { label: "Complementario",   color: "#8B5CF6", hasVideo: false },
-  vuelta_calma:   { label: "Vuelta a la calma", color: "#10B981", hasVideo: true },
 };
 const SESSION_TYPE_OPTIONS = [
   { value: "Baja",       type: "A", label: "A · Extensiva",  color: "#3B82F6" },
@@ -957,7 +954,7 @@ function NewSessionModal({ onClose, onCreate }) {
     objective: "",
     space: "",
     players: "",
-    blocks: defaultBlocks(),
+    blocks: adminDefaultBlocks(),
     tests: PHYSICAL_TEST_FIELDS.map((t) => ({ ...t, description: "", reference: "" })),
     exercises: [],
   });
@@ -975,14 +972,12 @@ function NewSessionModal({ onClose, onCreate }) {
     { id:"resumen",        label:"Resumen",          icon: BarChart2 },
     { id:"calentamiento",  label:"Calentamiento",    icon: Flame },
     { id:"principal",      label:"Principal",        icon: Dumbbell },
-    { id:"complementario", label:"Complementario",   icon: Target },
-    { id:"vuelta_calma",   label:"Vuelta a la calma", icon: Wind },
     { id:"tests",          label:"Tests",            icon: ClipboardList },
   ];
 
   const handleSave = () => {
     if (!form.title.trim()) return;
-    const blocks = form.blocks.map((b) => normalizeBlock(b));
+    const blocks = adminSessionBlocks(form.blocks).map((b) => normalizeBlock(b));
     const allExercises = flattenBlocksToExercises(blocks);
     onCreate({ ...form, id: `s${Date.now()}`, blocks, exercises: allExercises });
     onClose();
@@ -1119,7 +1114,7 @@ function NewSessionModal({ onClose, onCreate }) {
           )}
 
           {/* ── BLOQUES DE EJERCICIOS ── */}
-          {["calentamiento","principal","complementario","vuelta_calma"].map((blockType) => {
+          {ADMIN_BLOCK_TYPES.map((blockType) => {
             if (tab !== blockType) return null;
             const block = getBlock(blockType);
             const cfg = SESSION_BLOCK_CONFIG[blockType];

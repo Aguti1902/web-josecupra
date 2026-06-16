@@ -2,6 +2,9 @@
 
 export const BLOCK_TYPES = ["calentamiento", "principal", "complementario", "vuelta_calma"];
 
+/** Bloques editables en el panel admin (sin complementario ni vuelta a la calma) */
+export const ADMIN_BLOCK_TYPES = ["calentamiento", "principal"];
+
 export const BLOCK_LABELS = {
   calentamiento:  "Calentamiento",
   principal:      "Principal",
@@ -67,6 +70,27 @@ export function defaultBlocks() {
     subSessions: type === "principal" ? [emptySubSession("Parte 1")] : [emptySubSession("Parte 1")],
     exercises: type === "principal" ? [emptyExercise()] : [],
   })).map(normalizeBlock);
+}
+
+export function adminDefaultBlocks() {
+  return ADMIN_BLOCK_TYPES.map((type) => ({
+    type,
+    label: BLOCK_LABELS[type],
+    duration: DEFAULT_DURATIONS[type],
+    videoUrl: type === "calentamiento" ? "" : undefined,
+    subSessions: [emptySubSession("Parte 1")],
+    exercises: type === "principal" ? [emptyExercise()] : [],
+  })).map(normalizeBlock);
+}
+
+/** Normaliza bloques de sesión para el editor admin (solo calentamiento + principal) */
+export function adminSessionBlocks(existingBlocks) {
+  return ADMIN_BLOCK_TYPES.map((type) => {
+    const found = (existingBlocks || []).find((b) => b.type === type);
+    return found
+      ? normalizeBlock(found)
+      : normalizeBlock({ type, exercises: [], subSessions: [emptySubSession("Parte 1")] });
+  });
 }
 
 /** Obtiene bloques de una sesión guardada (blocks o legacy exercises) */

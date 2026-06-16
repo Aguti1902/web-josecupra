@@ -10,8 +10,6 @@ function getYouTubeId(url) {
 const SESSION_BLOCK_CONFIG = {
   calentamiento:  { label: "Calentamiento",    color: "#F59E0B", hasVideo: true },
   principal:      { label: "Bloque principal", color: "#3B82F6", hasVideo: false },
-  complementario: { label: "Complementario",   color: "#8B5CF6", hasVideo: false },
-  vuelta_calma:   { label: "Vuelta a la calma", color: "#10B981", hasVideo: true },
 };
 
 export default function BlockExerciseEditor({ blockType, block, onUpdate }) {

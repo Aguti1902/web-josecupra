@@ -21,9 +21,50 @@ export const FRAMEWORK_COLORS = {
 function frameworkFromIntensity(intensity) {
   const i = (intensity || "").toLowerCase();
   if (i.includes("complementaria") || i === "d") return "D";
-  if (["baja", "media"].includes(intensity)) return "A";
-  if (["media-alta", "alta"].includes(intensity)) return "B";
+  if (["baja", "media", "media-baja"].includes(i)) return "A";
+  if (["media-alta", "alta"].includes(i)) return "B";
   return "C";
+}
+
+export function getFrameworkFromIntensity(intensity) {
+  return frameworkFromIntensity(intensity);
+}
+
+export const FRAMEWORK_DEFAULT_INTENSITY = {
+  A: "Media",
+  B: "Media-alta",
+  C: "Máxima",
+  D: "Complementaria-D",
+};
+
+export function intensityFromFramework(framework) {
+  return FRAMEWORK_DEFAULT_INTENSITY[framework] || "Media";
+}
+
+/** Opciones A1, A2… para el selector de plantilla (marca las ya usadas) */
+export function buildTemplateKeyOptions(framework, sessions, { excludeId = null, isEditing = false } = {}) {
+  const usedKeys = new Set(
+    (sessions || [])
+      .filter((s) => {
+        if (excludeId && s.id === excludeId) return false;
+        const sfw = s.framework || frameworkFromIntensity(s.intensity);
+        return sfw === framework;
+      })
+      .map((s) => s.templateKey)
+      .filter(Boolean)
+  );
+  const maxUsed = [...usedKeys].reduce(
+    (m, k) => Math.max(m, parseInt(String(k).replace(/\D/g, ""), 10) || 0),
+    0
+  );
+  const limit = Math.max(maxUsed + 2, 5);
+  const options = [];
+  for (let n = 1; n <= limit; n++) {
+    const key = `${framework}${n}`;
+    const used = usedKeys.has(key);
+    options.push({ key, used, disabled: used && !isEditing });
+  }
+  return options;
 }
 
 function mesocicloWeekCount(startDate, endDate) {
@@ -174,8 +215,9 @@ export function normalizeMesocycle(mc) {
 }
 
 export function prepareSessionPayload(session, existingSessions = []) {
-  const base = ensureSessionTemplateFields(session);
-  const framework = base.framework || frameworkFromIntensity(base.intensity);
+  const framework = session.framework || frameworkFromIntensity(session.intensity);
+  const intensity = session.intensity || intensityFromFramework(framework);
+  const base = ensureSessionTemplateFields({ ...session, framework, intensity });
   const templateKey = base.templateKey || suggestTemplateKey(existingSessions, framework);
-  return { ...base, framework, templateKey };
+  return { ...base, framework, templateKey, intensity };
 }
