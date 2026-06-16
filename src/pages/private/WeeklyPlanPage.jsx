@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   distributeWeekSessions, getDayRationale, getSessionType as getPeriodizationSessionType,
   getCurrentWeekIndex, formatDate, getMesocicloWeeks,
@@ -19,6 +20,7 @@ import { markSessionComplete, touchLastTrain } from "../../lib/sessionProgress";
 import { downloadSessionPdf } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
+import { getSessionBlocks, BLOCK_LABELS, BLOCK_COLORS } from "../../lib/sessionBlocks";
 
 const Youtube = PlayCircle;
 
@@ -941,29 +943,73 @@ function CompletionButton({ completion, onComplete, accentColor }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   CLUB — SESIÓN con 4 bloques (diseño profesional, sin emojis)
+   CLUB — SESIÓN con bloques alineados al admin
 ═══════════════════════════════════════════════════════════ */
-function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false, taskStorageKey }) {
-  const [expanded, setExpanded]       = useState(false);
-  const [activeBlock, setActiveBlock] = useState("resumen");
+function BlockExercisesPanel({ block, accentColor, showBlockVideo = false }) {
+  const exercises = block?.exercises || [];
+  const blockYt = getYouTubeId(block?.videoUrl);
+  const subSessions = block?.subSessions?.length ? block.subSessions : [{ title: block?.label, exercises }];
+
+  return (
+    <div className="space-y-4">
+      {showBlockVideo && blockYt && (
+        <div className="rounded-2xl overflow-hidden border border-depro-border">
+          <iframe src={`https://www.youtube.com/embed/${blockYt}?rel=0&modestbranding=1`}
+            title={block.label} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen className="w-full aspect-video" />
+        </div>
+      )}
+      {subSessions.map((sub) => (
+        <div key={sub.id || sub.title} className="space-y-2">
+          {subSessions.length > 1 && (
+            <h4 className="text-xs font-black uppercase tracking-wide text-depro-gray">{sub.title}</h4>
+          )}
+          {(sub.exercises || []).length === 0 ? (
+            <p className="text-xs text-depro-gray italic py-4 text-center border border-dashed border-depro-border rounded-xl">
+              Sin ejercicios en este bloque
+            </p>
+          ) : (
+            (sub.exercises || []).map((ex, i) => (
+              <ExerciseCardClub key={ex.id || i} ex={ex} ytId={getYouTubeId(ex.videoUrl)} accentColor={accentColor} />
+            ))
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ClubSessionCard({
+  session, accentColor, sessionNumber, readOnly = false, taskStorageKey,
+  initialExpanded = false, initialTab = "resumen", cardRef,
+}) {
+  const [expanded, setExpanded]       = useState(initialExpanded);
+  const [activeBlock, setActiveBlock] = useState(initialTab);
   const [completion, setCompletion]   = useState(session.completion ?? 0);
+
+  useEffect(() => {
+    if (initialExpanded) setExpanded(true);
+    if (initialTab) setActiveBlock(initialTab);
+  }, [initialExpanded, initialTab]);
 
   const sessionType = getSessionType(session.intensity);
   const st          = ST[sessionType];
   const StIcon      = st.Icon;
-  const exercises   = session.exercises || [];
-  const warmupYtId  = getYouTubeId(session.warmupVideoUrl)   || getYouTubeId(exercises[0]?.videoUrl) || null;
-  const protoYtId   = getYouTubeId(session.protocolVideoUrl) || getYouTubeId(exercises[1]?.videoUrl) || warmupYtId;
+  const blocks      = getSessionBlocks(session);
+  const allExercises = blocks.flatMap((b) => b.exercises || []);
+  const blockByType = (type) => blocks.find((b) => b.type === type) || { exercises: [], subSessions: [] };
 
   const BLOCKS = [
-    { id:"resumen",       label:"Resumen",        Icon: BarChart2 },
-    { id:"calentamiento", label:"Calentamiento",  Icon: Flame },
-    { id:"protocolo",     label:"Protocolo",      Icon: ListChecks },
-    { id:"tareas",        label:"Diseñar tareas", Icon: PencilRuler },
+    { id: "resumen",       label: "Resumen",                 Icon: BarChart2 },
+    { id: "calentamiento", label: BLOCK_LABELS.calentamiento, Icon: Flame,       blockType: "calentamiento" },
+    { id: "principal",     label: BLOCK_LABELS.principal,     Icon: ListChecks,  blockType: "principal" },
+    { id: "complementario",label: BLOCK_LABELS.complementario,Icon: Layers,      blockType: "complementario" },
+    { id: "vuelta_calma",  label: BLOCK_LABELS.vuelta_calma,  Icon: Wind,        blockType: "vuelta_calma" },
+    { id: "tareas",        label: "Diseñar tareas",           Icon: PencilRuler },
   ];
 
   return (
-    <div className="bg-white border border-depro-border rounded-2xl overflow-hidden shadow-card">
+    <div ref={cardRef} className="bg-white border border-depro-border rounded-2xl overflow-hidden shadow-card scroll-mt-24">
       {/* ── Header cerrado ── */}
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left">
         <div className="p-5 flex items-center gap-4 hover:bg-depro-gray-light/30 transition-colors">
@@ -998,9 +1044,9 @@ function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false
                   <Activity size={11} className="text-depro-gray" /> {session.intensity}
                 </span>
               )}
-              {exercises.length > 0 && (
+              {allExercises.length > 0 && (
                 <span className="inline-flex items-center gap-1 text-xs text-depro-gray">
-                  <Layers size={11} className="text-depro-gray" /> {exercises.length} ejercicio{exercises.length !== 1 ? "s" : ""}
+                  <Layers size={11} className="text-depro-gray" /> {allExercises.length} ejercicio{allExercises.length !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
@@ -1059,7 +1105,7 @@ function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false
                     { label:"Duración",   value:session.duration   || "—", Icon: Clock },
                     { label:"Intensidad", value:session.intensity  || "—", Icon: Activity },
                     { label:"Dinámica",   value:st.label,                   Icon: StIcon },
-                    { label:"Ejercicios", value:`${exercises.length} tareas`, Icon: Layers },
+                    { label:"Ejercicios", value:`${allExercises.length} tareas`, Icon: Layers },
                   ].map(({ label, value, Icon: MIcon }) => (
                     <div key={label} className="bg-depro-gray-light rounded-xl p-4 border border-depro-border">
                       <MIcon size={16} className="mb-2" style={{ color: accentColor }} />
@@ -1080,7 +1126,10 @@ function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false
                       onClick={() => downloadSessionPdf({
                         title: `Sesión ${sessionNumber}`,
                         subtitle: session.objective || session.title,
-                        blocks: [{ label: "Ejercicios", exercises: exercises.map((e) => ({ name: e.name })) }],
+                        blocks: blocks.map((b) => ({
+                          label: b.label || BLOCK_LABELS[b.type],
+                          exercises: (b.exercises || []).map((e) => ({ name: e.name })),
+                        })),
                         meta: { duration: session.duration, type: st.label, intensity: session.intensity },
                         brandColor: accentColor,
                       })}
@@ -1095,92 +1144,37 @@ function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false
             {/* ── CALENTAMIENTO ── */}
             {activeBlock === "calentamiento" && (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Video */}
-                  <div>
-                    {warmupYtId ? (
-                      <div className="rounded-2xl overflow-hidden border border-depro-border">
-                        <iframe src={`https://www.youtube.com/embed/${warmupYtId}?rel=0&modestbranding=1`}
-                          title="Calentamiento" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen className="w-full aspect-video" />
-                      </div>
-                    ) : (
-                      <div className="aspect-video rounded-2xl bg-depro-gray-light border border-dashed border-depro-border flex flex-col items-center justify-center gap-2">
-                        <Video size={28} className="text-depro-gray opacity-40" />
-                        <p className="text-xs text-depro-gray">Sin vídeo de calentamiento</p>
-                      </div>
-                    )}
+                <BlockExercisesPanel block={blockByType("calentamiento")} accentColor={accentColor} showBlockVideo />
+                <div className="bg-white border border-depro-border rounded-xl p-4">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide mb-3" style={{ color: accentColor }}>
+                    <BookOpen size={10} /> Guía calentamiento integrado
                   </div>
-                  {/* Guía */}
-                  <div className="space-y-3">
-                    {exercises[0] && (
-                      <div className="bg-white border border-depro-border rounded-xl p-4">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-depro-blue mb-2">
-                          <Flame size={10} /> A · Propuesto por el preparador
+                  <div className="space-y-2.5">
+                    {WARMUP_GUIDE_ITEMS.map((item) => {
+                      const WIcon = item.Icon;
+                      return (
+                        <div key={item.title} className="flex items-start gap-2.5">
+                          <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                            style={{ backgroundColor: accentColor + "12" }}>
+                            <WIcon size={11} style={{ color: accentColor }} />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-depro-dark">{item.title}: </span>
+                            <span className="text-xs text-depro-gray">{item.text}</span>
+                          </div>
                         </div>
-                        <div className="font-bold text-depro-dark text-sm">{exercises[0].name}</div>
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {exercises[0].sets && <span className="inline-flex items-center gap-1 text-[10px] bg-depro-gray-light px-2 py-1 rounded-md"><Layers size={9} /> {exercises[0].sets} series</span>}
-                          {exercises[0].reps && <span className="inline-flex items-center gap-1 text-[10px] bg-depro-gray-light px-2 py-1 rounded-md"><Repeat2 size={9} /> {exercises[0].reps}</span>}
-                          {exercises[0].rest && <span className="inline-flex items-center gap-1 text-[10px] bg-depro-gray-light px-2 py-1 rounded-md"><Timer size={9} /> {exercises[0].rest}</span>}
-                        </div>
-                      </div>
-                    )}
-                    <div className="bg-white border border-depro-border rounded-xl p-4">
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide mb-3" style={{ color: accentColor }}>
-                        <BookOpen size={10} /> B · Guía calentamiento integrado
-                      </div>
-                      <div className="space-y-2.5">
-                        {WARMUP_GUIDE_ITEMS.map((item) => {
-                          const WIcon = item.Icon;
-                          return (
-                            <div key={item.title} className="flex items-start gap-2.5">
-                              <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                                style={{ backgroundColor: accentColor + "12" }}>
-                                <WIcon size={11} style={{ color: accentColor }} />
-                              </div>
-                              <div>
-                                <span className="text-xs font-bold text-depro-dark">{item.title}: </span>
-                                <span className="text-xs text-depro-gray">{item.text}</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ── PROTOCOLO ── */}
-            {activeBlock === "protocolo" && (
+            {/* ── PRINCIPAL ── */}
+            {activeBlock === "principal" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-3">
-                    {protoYtId ? (
-                      <div className="rounded-2xl overflow-hidden border border-depro-border">
-                        <iframe src={`https://www.youtube.com/embed/${protoYtId}?rel=0&modestbranding=1`}
-                          title="Protocolo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen className="w-full aspect-video" />
-                      </div>
-                    ) : (
-                      <div className="aspect-video rounded-2xl bg-depro-gray-light border border-dashed border-depro-border flex flex-col items-center justify-center gap-2">
-                        <Video size={28} className="text-depro-gray opacity-40" />
-                        <p className="text-xs text-depro-gray">Sin vídeo de protocolo</p>
-                      </div>
-                    )}
-                    {exercises.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-depro-gray">
-                          <Layers size={10} /> Ejercicios de la sesión
-                        </div>
-                        {exercises.map((ex, i) => (
-                          <ExerciseCardClub key={i} ex={ex} ytId={getYouTubeId(ex.videoUrl)} accentColor={accentColor} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <BlockExercisesPanel block={blockByType("principal")} accentColor={accentColor} showBlockVideo />
                   <div>
                     <div className="bg-white border border-depro-border rounded-xl p-4 space-y-2.5">
                       <div className="flex items-center gap-2 pb-2 border-b border-depro-border">
@@ -1188,7 +1182,7 @@ function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false
                           style={{ backgroundColor: st.color + "15" }}>
                           <StIcon size={14} style={{ color: st.color }} />
                         </div>
-                        <span className="text-xs font-bold text-depro-dark">Protocolo · Sesión {st.label}</span>
+                        <span className="text-xs font-bold text-depro-dark">Principal · Sesión {st.label}</span>
                       </div>
                       {PROTOCOL_INFO[sessionType].map((item) => {
                         const PIcon = item.Icon;
@@ -1209,6 +1203,16 @@ function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* ── COMPLEMENTARIO ── */}
+            {activeBlock === "complementario" && (
+              <BlockExercisesPanel block={blockByType("complementario")} accentColor={accentColor} showBlockVideo />
+            )}
+
+            {/* ── VUELTA A LA CALMA ── */}
+            {activeBlock === "vuelta_calma" && (
+              <BlockExercisesPanel block={blockByType("vuelta_calma")} accentColor={accentColor} showBlockVideo />
             )}
 
             {/* ── DISEÑAR TAREAS ── */}
@@ -1254,6 +1258,10 @@ function ClubMicrocycles({ accent }) {
   const { user } = useAuth();
   const activeTeam = useActiveTeam();
   const isReadOnly = useIsReadOnly();
+  const [searchParams] = useSearchParams();
+  const targetSessionId = searchParams.get("session");
+  const targetTab = searchParams.get("tab") || "resumen";
+  const sessionRefs = useRef({});
   // Coordinador viendo equipo → tratar como entrenador de ese equipo
   const isCoordinator = !isReadOnly && (user?.team_role === "coordinador" || !user?.team);
   const userTeamId = activeTeam?.id ?? null;
@@ -1294,6 +1302,19 @@ function ClubMicrocycles({ accent }) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const micro = visiblePlans[selectedIdx] ?? visiblePlans[0];
 
+  const template = micro?.sessions || [];
+  const distributedWeekSessions = micro
+    ? (!isCoordinator && trainingDays.length > 0
+        ? distributeWeekSessions(template, trainingDays)
+        : template)
+    : [];
+
+  useEffect(() => {
+    if (!targetSessionId || !distributedWeekSessions.length) return;
+    const el = sessionRefs.current[targetSessionId];
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [targetSessionId, distributedWeekSessions]);
+
   if (!micro) return (
     <div className="p-8 text-center text-depro-gray">
       <p className="font-medium">No hay mesociclos asignados a tu equipo todavía.</p>
@@ -1302,19 +1323,8 @@ function ClubMicrocycles({ accent }) {
   );
 
   // Detectar semana actual según el calendario real del mesociclo
-  const SESSIONS_PER_BASE_WEEK = 3;
-  const totalCalendarWeeks = getMesocicloWeeks(micro.startDate, micro.endDate);
   const currentWeekIdx = getCurrentWeekIndex(micro.startDate, micro.endDate);
   const safeWeekIdx = currentWeekIdx < 0 ? 0 : currentWeekIdx;
-
-  // Las sesiones del admin son la plantilla semanal — se repiten cada semana
-  const template = (micro.sessions || []).slice(0, SESSIONS_PER_BASE_WEEK);
-  const currentWeekSessions = template; // misma plantilla siempre
-
-  // Distribuir sesiones de la semana actual según los días del equipo
-  const distributedWeekSessions = !isCoordinator && trainingDays.length > 0
-    ? distributeWeekSessions(currentWeekSessions, trainingDays)
-    : currentWeekSessions;
 
   const totalCompletion = Math.round(
     distributedWeekSessions.reduce((acc, s) => acc + (s.completion ?? 0), 0) / Math.max(distributedWeekSessions.length, 1)
@@ -1424,7 +1434,16 @@ function ClubMicrocycles({ accent }) {
                   <span className="text-[10px] text-depro-gray hidden sm:block">{getDayRationale(s.assignedDay, sType)}</span>
                 </div>
               )}
-              <ClubSessionCard session={s} accentColor={accent} sessionNumber={idx + 1} readOnly={isReadOnly} taskStorageKey={taskKey} />
+              <ClubSessionCard
+                session={s}
+                accentColor={accent}
+                sessionNumber={idx + 1}
+                readOnly={isReadOnly}
+                taskStorageKey={taskKey}
+                initialExpanded={targetSessionId === String(s.id)}
+                initialTab={targetSessionId === String(s.id) ? targetTab : "resumen"}
+                cardRef={(el) => { if (s.id) sessionRefs.current[s.id] = el; }}
+              />
             </div>
           );
         })}

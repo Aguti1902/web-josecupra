@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ClipboardList, Calendar, ChevronDown, ChevronUp, CheckCircle,
   Activity, Flame, Zap, Clock, Layers, PlayCircle, Shield, Info,
@@ -10,6 +11,7 @@ import {
   distributeMesocycleForTeam, getDayRationale, getSessionType,
   getCurrentWeekIndex, formatDate, getWeekStartDate, isMesocicloActive, getMesocicloWeeks,
 } from "../../lib/periodization";
+import { sessionPlanUrl } from "../../lib/sessionBlocks";
 
 /* ── Contraste seguro ───────────────────────────────────── */
 function lum(hex) {
@@ -75,6 +77,7 @@ function buildCalendarGrid(year, month) {
 }
 
 function MesocycleCalendar({ activePlan, weeks, trainingDays, accent }) {
+  const navigate = useNavigate();
   if (!activePlan?.startDate) return null;
 
   const start = new Date(activePlan.startDate);
@@ -153,10 +156,19 @@ function MesocycleCalendar({ activePlan, weeks, trainingDays, accent }) {
                   const isInRange = dateStr >= activePlan.startDate && dateStr <= (activePlan.endDate || activePlan.startDate);
 
                   return (
-                    <div key={dateStr}
+                    <button
+                      type="button"
+                      key={dateStr}
+                      disabled={!sessionInfo || !isInRange}
+                      onClick={() => {
+                        if (!sessionInfo?.session) return;
+                        navigate(sessionPlanUrl(sessionInfo.session, { tab: "resumen", date: dateStr }));
+                      }}
                       className={`bg-white relative flex flex-col items-center justify-center h-10 transition-colors ${
                         !isInRange ? "opacity-30" : ""
-                      }`}>
+                      } ${sessionInfo && isInRange ? "cursor-pointer hover:bg-depro-gray-light/50" : "cursor-default"}`}
+                      title={sessionInfo ? `Ver sesión del ${dateStr}` : undefined}
+                    >
                       {/* Fondo de sesión */}
                       {sessionInfo && (
                         <div className="absolute inset-1 rounded-lg opacity-20"
@@ -176,7 +188,7 @@ function MesocycleCalendar({ activePlan, weeks, trainingDays, accent }) {
                         <div className="absolute bottom-1 w-1 h-1 rounded-full"
                           style={{ backgroundColor: SESSION_TYPE_COLOR[sessionInfo.sType] }} />
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>

@@ -40,6 +40,8 @@ import {
   BarChart2,
 } from "lucide-react";
 import { loadClubs, saveClubDetail, loadClubDetail, createClubUser } from "../../lib/adminStorage";
+import { normalizeBlock, defaultBlocks, flattenBlocksToExercises } from "../../lib/sessionBlocks";
+import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
 
 
 const Youtube = PlayCircle;
@@ -847,149 +849,6 @@ const PHYSICAL_TEST_FIELDS = [
   { id: "cod",         label: "Cambio de dirección",  unit: "seg" },
   { id: "cmj",         label: "Salto CMJ",            unit: "cm" },
 ];
-const emptyExercise = () => ({ id: `ex_${Date.now()}_${Math.random().toString(36).slice(2)}`, name: "", sets: "3", reps: "10-12", rest: "60s", duration: "", videoUrl: "", description: "", tips: "" });
-const defaultBlocks = () => [
-  { type: "calentamiento",  label: "Calentamiento",    duration: "10 min", videoUrl: "", exercises: [] },
-  { type: "principal",      label: "Bloque principal", duration: "30 min", videoUrl: "", exercises: [emptyExercise()] },
-  { type: "complementario", label: "Complementario",   duration: "15 min", videoUrl: "", exercises: [] },
-  { type: "vuelta_calma",   label: "Vuelta a la calma", duration: "5 min", videoUrl: "", exercises: [] },
-];
-
-/* ── Editor de ejercicios de un bloque ───────────────────── */
-function BlockExerciseEditor({ block, onUpdate }) {
-  const exercises = block.exercises || [];
-  const cfg = SESSION_BLOCK_CONFIG[block.type] || { color: "#3B82F6" };
-
-  const add = () => onUpdate({ exercises: [...exercises, emptyExercise()] });
-  const remove = (i) => onUpdate({ exercises: exercises.filter((_, idx) => idx !== i) });
-  const update = (i, field, val) =>
-    onUpdate({ exercises: exercises.map((ex, idx) => idx === i ? { ...ex, [field]: val } : ex) });
-
-  return (
-    <div className="space-y-3">
-      {/* Duración del bloque */}
-      <div className="flex items-center gap-3">
-        <label className="text-xs font-bold text-depro-gray uppercase tracking-wide w-20 flex-shrink-0">Duración</label>
-        <input
-          className="border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30 w-28"
-          placeholder="10 min"
-          value={block.duration || ""}
-          onChange={(e) => onUpdate({ duration: e.target.value })}
-        />
-      </div>
-
-      {/* Vídeo del bloque (si aplica) */}
-      {SESSION_BLOCK_CONFIG[block.type]?.hasVideo && (
-        <div>
-          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block flex items-center gap-1">
-            <PlayCircle size={11} /> URL vídeo YouTube
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              className="flex-1 border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-              placeholder="https://youtu.be/…"
-              value={block.videoUrl || ""}
-              onChange={(e) => onUpdate({ videoUrl: e.target.value })}
-            />
-            {getYouTubeId(block.videoUrl) && (
-              <img src={`https://img.youtube.com/vi/${getYouTubeId(block.videoUrl)}/default.jpg`}
-                alt="" className="w-16 h-12 rounded-lg object-cover border border-depro-border flex-shrink-0" />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Ejercicios */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold text-depro-gray uppercase tracking-wide">Ejercicios · {exercises.length}</span>
-          <button onClick={add}
-            className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg border transition-colors hover:bg-depro-blue-light"
-            style={{ color: cfg.color, borderColor: cfg.color + "40" }}>
-            <Plus size={11} /> Añadir ejercicio
-          </button>
-        </div>
-        {exercises.length === 0 && (
-          <div className="py-8 border border-dashed border-depro-border rounded-xl flex flex-col items-center gap-2 text-depro-gray">
-            <ClipboardList size={22} className="opacity-30" />
-            <p className="text-xs">Sin ejercicios · haz clic en "Añadir ejercicio"</p>
-          </div>
-        )}
-        <div className="space-y-3">
-          {exercises.map((ex, i) => {
-            const ytId = getYouTubeId(ex.videoUrl);
-            return (
-              <div key={ex.id || i} className="border border-depro-border rounded-xl overflow-hidden bg-white">
-                {/* Fila 1: nombre + parámetros */}
-                <div className="p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-black flex-shrink-0"
-                      style={{ backgroundColor: cfg.color + "18", color: cfg.color }}>{i + 1}</div>
-                    <input
-                      className="flex-1 border border-depro-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                      placeholder="Nombre del ejercicio"
-                      value={ex.name}
-                      onChange={(e) => update(i, "name", e.target.value)}
-                    />
-                    <button onClick={() => remove(i)} className="text-depro-gray hover:text-red-500 transition-colors p-1">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { field:"sets",     placeholder:"Series", label:"Series" },
-                      { field:"reps",     placeholder:"10-12",  label:"Reps/T." },
-                      { field:"rest",     placeholder:"60s",    label:"Descanso" },
-                      { field:"duration", placeholder:"40\"",   label:"Duración" },
-                    ].map(({ field, placeholder, label }) => (
-                      <div key={field}>
-                        <div className="text-[9px] font-bold text-depro-gray uppercase tracking-wide mb-0.5">{label}</div>
-                        <input
-                          className="w-full border border-depro-border rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                          placeholder={placeholder}
-                          value={ex[field] || ""}
-                          onChange={(e) => update(i, field, e.target.value)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {/* Fila 2: video */}
-                <div className="px-3 pb-3 flex items-center gap-2 border-t border-depro-border/50 pt-2">
-                  <PlayCircle size={13} className={ytId ? "text-red-500" : "text-depro-gray"} />
-                  <input
-                    className="flex-1 border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="URL YouTube del ejercicio (opcional)"
-                    value={ex.videoUrl || ""}
-                    onChange={(e) => update(i, "videoUrl", e.target.value)}
-                  />
-                  {ytId && <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt=""
-                    className="w-14 h-10 rounded-lg object-cover border border-depro-border flex-shrink-0" />}
-                </div>
-                {/* Fila 3: descripción + tips */}
-                <div className="px-3 pb-3 space-y-2 border-t border-depro-border/50 pt-2">
-                  <input
-                    className="w-full border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    placeholder="Descripción breve (opcional)"
-                    value={ex.description || ""}
-                    onChange={(e) => update(i, "description", e.target.value)}
-                  />
-                  <textarea
-                    rows={2}
-                    className="w-full border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30 resize-none"
-                    placeholder="Consejos técnicos: una línea por consejo (3–5)"
-                    value={ex.tips || ""}
-                    onChange={(e) => update(i, "tips", e.target.value)}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ── Modal editor de sesión (diseño igual al entrenador) ─── */
 function NewSessionModal({ onClose, onCreate }) {
@@ -1006,9 +865,12 @@ function NewSessionModal({ onClose, onCreate }) {
     exercises: [],
   });
 
-  const getBlock = (type) => form.blocks.find((b) => b.type === type) || { exercises: [] };
+  const getBlock = (type) => normalizeBlock(form.blocks.find((b) => b.type === type) || { type, exercises: [] });
   const updateBlock = (type, changes) =>
-    setForm((f) => ({ ...f, blocks: f.blocks.map((b) => b.type === type ? { ...b, ...changes } : b) }));
+    setForm((f) => ({
+      ...f,
+      blocks: f.blocks.map((b) => (b.type === type ? normalizeBlock({ ...b, ...changes, type }) : b)),
+    }));
 
   const sessionTypeMeta = SESSION_TYPE_OPTIONS.find((o) => o.value === form.intensity) || SESSION_TYPE_OPTIONS[1];
 
@@ -1023,11 +885,9 @@ function NewSessionModal({ onClose, onCreate }) {
 
   const handleSave = () => {
     if (!form.title.trim()) return;
-    const allExercises = form.blocks.flatMap((b) => b.exercises.map((ex) => ({
-      ...ex,
-      tips: ex.tips ? ex.tips.split("\n").filter(Boolean) : [],
-    })));
-    onCreate({ ...form, id: `s${Date.now()}`, exercises: allExercises });
+    const blocks = form.blocks.map((b) => normalizeBlock(b));
+    const allExercises = flattenBlocksToExercises(blocks);
+    onCreate({ ...form, id: `s${Date.now()}`, blocks, exercises: allExercises });
     onClose();
   };
 
@@ -1180,6 +1040,8 @@ function NewSessionModal({ onClose, onCreate }) {
                   </div>
                 </div>
                 <BlockExerciseEditor
+                  key={blockType}
+                  blockType={blockType}
                   block={block}
                   onUpdate={(changes) => updateBlock(blockType, changes)}
                 />

@@ -15,6 +15,7 @@ import { weeklyPlan, coachFeedback } from "../../data/mockData";
 import {
   distributeMesocycleForTeam, getCurrentWeekIndex, isMesocicloActive,
 } from "../../lib/periodization";
+import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/sessionBlocks";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -591,13 +592,13 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
     const { weeks } = distributeMesocycleForTeam(activePlan.sessions, trainingDays, 3);
     const weekIdx = getCurrentWeekIndex(activePlan.startDate, activePlan.endDate);
     const currentWeekSessions = weeks[weekIdx >= 0 ? weekIdx : 0]?.sessions || [];
-    nextSession = currentWeekSessions[0] || activePlan.sessions[0] || null;
+    nextSession = findNextSession(currentWeekSessions, trainingDays) || activePlan.sessions[0] || null;
 
     // Buscar la sesión asignada a hoy
     if (trainingToday && currentWeekSessions.length > 0) {
       todaySession = currentWeekSessions.find((s) => s.assignedDay === todayName)
         || currentWeekSessions[0];
-      hasTodayTraining = true;
+      hasTodayTraining = !!todaySession;
     }
   }
 
@@ -612,6 +613,10 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
   }
 
   const myPlans = blockPlans.length > 0 ? blockPlans : myClubPlans;
+
+  const nextSessionUrl = nextSession ? sessionPlanUrl(nextSession, { tab: "resumen" }) : "/dashboard/plan";
+  const todaySessionUrl = todaySession ? sessionPlanUrl(todaySession, { tab: "resumen" }) : "/dashboard/plan";
+  const previewItems = nextSession ? previewExercises(nextSession, 3) : [];
 
   const quickLinks = [
     { to: "/dashboard/plan",      label: "Planificación semanal", icon: ClipboardList },
@@ -673,7 +678,7 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
                   )}
                 </div>
                 <Link
-                  to="/dashboard/plan"
+                  to={todaySessionUrl}
                   className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all hover:opacity-90 mt-2"
                   style={{ backgroundColor: "rgba(255,255,255,0.2)", color: contrastText(accent), backdropFilter: "blur(4px)" }}
                 >
@@ -696,7 +701,7 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
                 </p>
               </div>
               {nextSession && (
-                <Link to="/dashboard/plan" className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-depro-border text-depro-gray hover:text-depro-dark transition-colors">
+                <Link to={nextSessionUrl} className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-depro-border text-depro-gray hover:text-depro-dark transition-colors">
                   Ver plan <ArrowRight size={12} />
                 </Link>
               )}
@@ -721,14 +726,14 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
                   </div>
                 )}
               </div>
-              {(nextSession.exercises || []).slice(0, 3).map((ex, i) => (
-                <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-xl mb-2" style={{ backgroundColor: sa + "0D" }}>
+              {previewItems.map((ex, i) => (
+                <div key={ex.id || i} className="flex items-center gap-3 py-2 px-3 rounded-xl mb-2" style={{ backgroundColor: sa + "0D" }}>
                   <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: sa, color: contrastText(sa) }}>{i + 1}</div>
                   <span className="text-sm font-medium text-depro-dark">{ex.name}</span>
                   {ex.sets && <span className="ml-auto text-xs text-depro-gray">{ex.sets} series</span>}
                 </div>
               ))}
-              <Link to="/dashboard/plan" className="mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90" style={{ backgroundColor: sa, color: contrastText(sa) }}>
+              <Link to={nextSessionUrl} className="mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90" style={{ backgroundColor: sa, color: contrastText(sa) }}>
                 <Flame size={14} /> Ver plan completo <ArrowRight size={13} />
               </Link>
             </div>
