@@ -61,6 +61,22 @@ function loadSelectedTasks(storageKey, taskDesigner) {
   }
 }
 
+function normalizeTips(tips) {
+  if (Array.isArray(tips)) return tips.filter(Boolean);
+  if (tips) return String(tips).split("\n").map((s) => s.trim()).filter(Boolean);
+  return [];
+}
+
+function safeHexColor(hex, fallback = DEPRO_BLUE) {
+  if (!hex || typeof hex !== "string") return fallback;
+  const h = hex.replace("#", "").trim();
+  if (h.length === 3 && /^[0-9a-fA-F]{3}$/.test(h)) {
+    return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`;
+  }
+  if (h.length >= 6 && /^[0-9a-fA-F]{6}/.test(h)) return `#${h.slice(0, 6)}`;
+  return fallback;
+}
+
 function exerciseMeta(ex) {
   const parts = [];
   if (ex.sets && ex.reps) parts.push(`${ex.sets}×${ex.reps}`);
@@ -84,8 +100,9 @@ function flattenExercises(block) {
 
 function renderExerciseCard(ex, accent) {
   const meta = exerciseMeta(ex);
-  const tips = ex.tips?.filter(Boolean)?.length
-    ? `<ul class="tips">${ex.tips.filter(Boolean).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`
+  const tipsList = normalizeTips(ex.tips);
+  const tips = tipsList.length
+    ? `<ul class="tips">${tipsList.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`
     : "";
   const link = ex.videoUrl
     ? `<div class="field"><span class="field-label">Enlace</span><a class="field-link" href="${esc(ex.videoUrl)}">${esc(ex.videoUrl)}</a></div>`
@@ -449,7 +466,7 @@ function renderPageFooter(pageNum, totalPages, dateStr) {
 
 function buildDocumentHtml(data) {
   const brand = DEPRO_BLUE;
-  const accent = data.brandColor || brand;
+  const accent = safeHexColor(data.brandColor, brand);
   const logoUrl = data.logoUrl || `${typeof window !== "undefined" ? window.location.origin : ""}/logo.png`;
   const dateStr = new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
   const meta = data.meta || {};
@@ -623,9 +640,23 @@ async function resolveLogoDataUri(logoUrl) {
 }
 
 function writeToPrintWindow(targetWindow, html) {
-  targetWindow.document.open();
-  targetWindow.document.write(html);
-  targetWindow.document.close();
+  if (!targetWindow?.document) throw new Error("Ventana de impresión no disponible");
+  const doc = targetWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+}
+
+function openPreviewWindow(html) {
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, "_blank", "noopener,noreferrer");
+  if (w) {
+    w.addEventListener("load", () => setTimeout(() => URL.revokeObjectURL(url), 60_000));
+    return true;
+  }
+  URL.revokeObjectURL(url);
+  return false;
 }
 
 function openPrintViaIframe(html) {
@@ -658,24 +689,35 @@ function openPrintViaIframe(html) {
 }
 
 export async function downloadSessionPdf(data) {
-  // Abrir ventana en el mismo gesto del click (evita bloqueo de popups)
   const popup = window.open("about:blank", "_blank");
 
   try {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const logoUrl = data.logoUrl || `${origin}/logo.png`;
-    const logoDataUri = await resolveLogoDataUri(logoUrl);
+    let logoDataUri = logoUrl;
+    try {
+      logoDataUri = await resolveLogoDataUri(logoUrl);
+    } catch {
+      /* usar URL directa */
+    }
+
     const html = buildDocumentHtml({ ...data, logoUrl: logoDataUri });
 
     if (popup && !popup.closed) {
-      writeToPrintWindow(popup, html);
-      return;
+      try {
+        writeToPrintWindow(popup, html);
+        return;
+      } catch {
+        try { popup.close(); } catch { /* ignore */ }
+      }
     }
+
+    if (openPreviewWindow(html)) return;
 
     openPrintViaIframe(html);
   } catch (err) {
     console.error("[DEPRO PDF]", err);
-    popup?.close();
+    try { popup?.close(); } catch { /* ignore */ }
     alert("No se pudo generar el PDF. Inténtalo de nuevo.");
   }
 }
