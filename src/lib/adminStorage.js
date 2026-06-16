@@ -14,13 +14,13 @@ import { supabase } from "./supabase";
  * Llama al endpoint serverless /api/create-user que usa la service role key.
  * Returns { ok: true } o { ok: false, error }
  */
-export async function createClubUser({ email, password, name, role = "club", clubId, teamId, teamRole }) {
+export async function createClubUser({ email, password, name, role = "club", clubId, teamId, teamRole, managedTeamIds }) {
   // 1. Intentar con el endpoint serverless (no envía email de confirmación)
   try {
     const res = await fetch("/api/create-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name, role, clubId, teamId, teamRole }),
+      body: JSON.stringify({ email, password, name, role, clubId, teamId, teamRole, managedTeamIds }),
     });
     if (res.ok) {
       const data = await res.json();
@@ -33,7 +33,7 @@ export async function createClubUser({ email, password, name, role = "club", clu
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name, role, clubId, teamId, teamRole } },
+      options: { data: { name, role, clubId, teamId, teamRole, managedTeamIds } },
     });
     if (error) return { ok: false, error: error.message };
     return { ok: true, userId: data.user?.id, via: "signUp" };

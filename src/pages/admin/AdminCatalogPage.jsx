@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Search, PlayCircle, Save, CheckCircle, RefreshCw, X,
   Flame, Zap, Target, Shield, Dumbbell, ChevronDown, ChevronUp,
-  Edit3, Info,
+  Edit3, Info, Activity, TrendingUp,
 } from "lucide-react";
 import { EXERCISES, TAGS } from "../../data/exercises";
 
@@ -62,6 +62,11 @@ const SECTION_LABELS = [
   { key: "isometrico",  label: "Isométricos",                icon: Target,   color: "#10B981",  match: (e) => e.etiquetas.includes("isometrico") },
   { key: "core",        label: "Core / Prevención",          icon: Shield,   color: "#6366F1",  match: (e) => (e.etiquetas.includes("core") || e.etiquetas.includes("prevencion")) && !e.etiquetas.includes("velocidad") && !e.etiquetas.includes("pliometria") && !e.etiquetas.includes("isometrico") },
   { key: "movilidad",   label: "Movilidad",                  icon: RefreshCw,color: "#059669",  match: (e) => e.etiquetas.includes("movilidad") && !e.etiquetas.includes("core") && !e.etiquetas.includes("prevencion") },
+  { key: "res_aerobica", label: "Resistencia aeróbica",    icon: Activity, color: "#0EA5E9",  match: (e) => e.etiquetas.includes("resistencia_aerobica") },
+  { key: "res_anaerobica", label: "Resistencia anaeróbica", icon: Flame,    color: "#F97316",  match: (e) => e.etiquetas.includes("resistencia_anaerobica") },
+  { key: "res_umbral",  label: "Resistencia umbral",         icon: TrendingUp,color: "#8B5CF6", match: (e) => e.etiquetas.includes("resistencia_umbral") },
+  { key: "lesion",      label: "Lesión / compensatorio",     icon: Shield,   color: "#EC4899",  match: (e) => e.etiquetas.some((t) => t.startsWith("lesion_")) },
+  { key: "core_av",     label: "Core avanzado",              icon: Target,   color: "#6366F1",  match: (e) => e.etiquetas.includes("core_avanzado") },
 ];
 
 function getSection(exercise) {

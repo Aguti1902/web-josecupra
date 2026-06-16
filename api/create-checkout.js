@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -6,6 +7,30 @@ const PRICES = {
   basic:   { amount: 4900,  name: "DEPRO Plan Básico",   description: "Plan mensual completo + acceso al panel privado" },
   premium: { amount: 11900, name: "DEPRO Plan Premium",  description: "Plan revisado por el preparador + seguimiento continuo" },
 };
+
+const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function generatePassword() {
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
+async function validateClubCode(code) {
+  if (!code || !SERVICE_ROLE_KEY) return { valid: false };
+  try {
+    const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+    const { data: clubs } = await sb.from("clubs").select("id, login_code").eq("login_code", code.toUpperCase()).limit(1);
+    if (clubs?.length) return { valid: true, clubId: clubs[0].id };
+    const { data: details } = await sb.from("clubs_detail").select("id, data");
+    const found = (details || []).find((d) => {
+      const lc = d.data?.loginCode || d.data?.login_code;
+      return lc && String(lc).toUpperCase() === code.toUpperCase();
+    });
+    if (found) return { valid: true, clubId: found.id };
+  } catch { /* ignore */ }
+  return { valid: false };
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -19,9 +44,20 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Plan no válido" });
   }
 
-  // Aplicar descuento de club si hay código (15%)
-  const hasDiscount = !!formData?.clubCode;
+  const clubCode = (formData?.clubCode || "").trim().toUpperCase();
+  let clubId = "";
+  let hasDiscount = false;
+  if (clubCode) {
+    const v = await validateClubCode(clubCode);
+    hasDiscount = v.valid;
+    clubId = v.clubId || "";
+  }
+
   const finalAmount = hasDiscount ? Math.round(price.amount * 0.85) : price.amount;
+  const tempPassword = generatePassword();
+  const lesionArr = formData?.lesion || [];
+  const subArr = formData?.lesionSubtipo || [];
+  const dispArr = formData?.disponibles || [];
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -43,16 +79,22 @@ export default async function handler(req, res) {
       ],
       customer_email: formData?.email || undefined,
       metadata: {
-        plan:      planId,
-        name:      formData?.name      || "",
-        email:     formData?.email     || "",
-        edad:      formData?.edad      || "",
-        posicion:  formData?.posicion  || "",
-        nivel:     formData?.nivel     || "",
-        frecuencia: formData?.frecuencia || "",
-        clubCode:  formData?.clubCode  || "",
-        objetivos: (formData?.objetivos || []).join(", "),
-        lesiones:  formData?.lesiones  || "",
+        plan:         planId,
+        nombre:       formData?.nombre      || "",
+        email:        formData?.email       || "",
+        edad:         String(formData?.edad || ""),
+        posicion:     formData?.posicion    || "",
+        objetivo:     formData?.objetivo    || "",
+        deporte:      formData?.deporte     || "",
+        frecuencia:   formData?.frecuencia  || "",
+        material:     formData?.material    || "",
+        experiencia:  formData?.experiencia || "",
+        lesion:       lesionArr.join("|"),
+        lesionSubtipo: subArr.join("|"),
+        disponibles:  dispArr.join("|"),
+        clubCode:     clubCode,
+        clubId:       clubId,
+        tempPassword,
       },
       success_url: `${origin}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${origin}/comprar?cancelled=1`,

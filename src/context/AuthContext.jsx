@@ -161,6 +161,9 @@ function buildUser(authUser, profile) {
       frecuencia: profile.frecuencia ?? meta.frecuencia ?? null,
       material:  profile.material  ?? meta.material  ?? null,
       lesion:    profile.lesion    ?? meta.lesion    ?? [],
+      experiencia: profile.experiencia ?? meta.experiencia ?? null,
+      disponibles: profile.disponibles ?? meta.disponibles ?? [],
+      managedTeamIds: meta.managedTeamIds ?? profile.managedTeamIds ?? [],
     };
   }
 
@@ -186,6 +189,10 @@ function buildUser(authUser, profile) {
     frecuencia: meta.frecuencia ?? null,
     material:  meta.material  ?? null,
     lesion:    meta.lesion    ?? [],
+    experiencia: meta.experiencia ?? null,
+    disponibles: meta.disponibles ?? [],
+    edad:      meta.edad      ?? null,
+    managedTeamIds: meta.managedTeamIds ?? [],
     // Club
     team_role: meta.teamRole  ?? null,
     club:      club ?? playerClub,

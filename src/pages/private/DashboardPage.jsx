@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import { getAdherenceReminder } from "../../lib/sessionProgress";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 import { weeklyPlan, coachFeedback } from "../../data/mockData";
@@ -861,17 +862,31 @@ function weekKey() {
 
 function JugadorDashboard({ user, club }) {
   const accent    = club?.primaryColor || "#0A36F7";
-  // Siempre un color visible sobre fondo blanco (si el club tiene color claro usamos el azul DEPRO)
   const safeAccent = visibleOnWhite(accent, "#0A36F7");
   const isPremium = user?.plan === "Premium" || user?.plan === "Pro";
   const today = weeklyPlan.find((d) => d.sessions.some((s) => s.status === "today"));
   const todaySession = today?.sessions[0];
   const lastFeedback = coachFeedback[0];
 
-  // ── Progreso real (localStorage) ───────────────────────────
-  const freqNum = parseInt(
-    String(user?.frecuencia || user?.training_days || 3).replace(/\D/g, "")
-  ) || 3;
+  const planKey = `depro_plan_${user?.id}`;
+  const [planProgress, setPlanProgress] = useState({ completed: 0, total: 0 });
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(planKey);
+      if (!raw) return;
+      const plan = JSON.parse(raw);
+      const sessions = plan.flatMap((d) => d.sessions || []).filter((s) => s.blocks?.length || s.exercises?.length);
+      setPlanProgress({
+        total: sessions.length,
+        completed: sessions.filter((s) => s.status === "completed" || s.completion === 100).length,
+      });
+    } catch { /* ignore */ }
+  }, [planKey, user?.id]);
+
+  const freqNum = parseInt(String(user?.frecuencia || user?.training_days || 3).replace(/\D/g, "")) || 3;
+  const progressTotal = planProgress.total || freqNum;
+  const progressPct = progressTotal ? Math.min(100, Math.round((planProgress.completed / progressTotal) * 100)) : 0;
 
   const [completedIds, setCompletedIds] = useState(() => {
     try {
@@ -880,9 +895,6 @@ function JugadorDashboard({ user, club }) {
     } catch { return []; }
   });
 
-  const completedDays = completedIds.length;
-  const progressPct   = Math.min(100, Math.round((completedDays / freqNum) * 100));
-
   const markDayDone = (label) => {
     if (completedIds.includes(label)) return;
     const updated = [...completedIds, label];
@@ -890,11 +902,20 @@ function JugadorDashboard({ user, club }) {
     localStorage.setItem(`depro_progress_${user?.id}_${weekKey()}`, JSON.stringify(updated));
   };
 
+  const completedDays = planProgress.completed || completedIds.length;
+  const displayTotal = progressTotal;
+
   const days7 = ["L", "M", "X", "J", "V", "S", "D"];
-  const todayIdx = (new Date().getDay() + 6) % 7; // 0=lunes
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const adherenceReminder = getAdherenceReminder(user?.id, displayTotal);
 
   return (
     <div className="space-y-6">
+      {adherenceReminder && (
+        <div className="rounded-2xl p-4 border border-amber-200 bg-amber-50 text-sm text-amber-800">
+          {adherenceReminder}
+        </div>
+      )}
       {/* Banner del club si el jugador está asociado */}
       {club && (
         <div
@@ -975,11 +996,11 @@ function JugadorDashboard({ user, club }) {
           </Link>
         </div>
       )}
-      {completedDays > 0 && completedDays < freqNum && (
+      {completedDays > 0 && completedDays < displayTotal && (
         <div className="rounded-2xl border p-4 flex items-center gap-3" style={{ borderColor: "#3BC21D30", backgroundColor: "#3BC21D06" }}>
           <div className="text-2xl">🔥</div>
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-depro-dark text-sm">{completedDays} de {freqNum} sesiones completadas esta semana</div>
+            <div className="font-bold text-depro-dark text-sm">{completedDays} de {displayTotal} sesiones completadas esta semana</div>
             <div className="mt-1.5 h-2 bg-gray-100 rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-green-400 transition-all" style={{ width: `${progressPct}%` }} />
             </div>
@@ -987,7 +1008,7 @@ function JugadorDashboard({ user, club }) {
           <span className="text-lg font-black text-green-500 flex-shrink-0">{progressPct}%</span>
         </div>
       )}
-      {completedDays >= freqNum && (
+      {completedDays >= displayTotal && displayTotal > 0 && (
         <div className="rounded-2xl border p-4 flex items-center gap-3 bg-green-50 border-green-200">
           <div className="text-2xl">🏆</div>
           <div className="flex-1">
@@ -998,7 +1019,7 @@ function JugadorDashboard({ user, club }) {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Sesiones esta semana" value={`${completedDays}/${freqNum}`} sub={`${progressPct}% completado`} icon={CheckCircle} accent="#3BC21D" />
+        <StatCard label="Sesiones esta semana" value={`${completedDays}/${displayTotal}`} sub={`${progressPct}% completado`} icon={CheckCircle} accent="#3BC21D" />
         <StatCard label="Frecuencia semanal" value={freqNum} sub="días de entreno" icon={Calendar} accent={safeAccent} />
         <StatCard label="Valoración coach" value={`${lastFeedback.rating}/10`} sub="última revisión" icon={Trophy} accent="#F6CC12" />
         <StatCard label="Plan actual" value={user?.plan || "—"} sub="activo" icon={Zap} accent="#0A36F7" />
@@ -1078,7 +1099,7 @@ function JugadorDashboard({ user, club }) {
                 <div className="flex-1 h-1.5 bg-depro-gray-light rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, backgroundColor: "#3BC21D" }} />
                 </div>
-                <span className="text-xs text-depro-gray font-medium">{completedDays}/{freqNum}</span>
+                <span className="text-xs text-depro-gray font-medium">{completedDays}/{displayTotal}</span>
               </div>
               <div className="flex items-center gap-3 mt-2">
                 <span className="flex items-center gap-1 text-[10px] text-depro-gray"><span className="w-2.5 h-2.5 rounded-sm bg-green-400 inline-block" /> Completado</span>

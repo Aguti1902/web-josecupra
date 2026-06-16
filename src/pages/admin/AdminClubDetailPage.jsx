@@ -103,6 +103,10 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
 
   const handleCreate = async () => {
     if (!form.name) return;
+    if (![2, 3, 4].includes(form.trainingDays.length)) {
+      alert("Selecciona exactamente 2, 3 o 4 días de entrenamiento.");
+      return;
+    }
     setLoading(true);
 
     const teamId = `t${Date.now()}`;
@@ -332,6 +336,111 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
             className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creando…</> : "Crear equipo"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditTeamModal({ team, onClose, onSave, clubId }) {
+  const [form, setForm] = useState({
+    name: team.name,
+    category: team.category,
+    season: team.season || "2025/26",
+    trainingDays: [...(team.trainingDays || [])],
+    coachName: team.coach?.name || "",
+    coachEmail: team.coach?.email || "",
+    coachPassword: "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const toggleDay = (day) => {
+    setForm((f) => ({
+      ...f,
+      trainingDays: f.trainingDays.includes(day)
+        ? f.trainingDays.filter((d) => d !== day)
+        : [...f.trainingDays, day],
+    }));
+  };
+
+  const validDays = [2, 3, 4].includes(form.trainingDays.length);
+
+  const handleSave = async () => {
+    if (!form.name || !validDays) return;
+    setSaving(true);
+    if (form.coachEmail && form.coachPassword.length >= 6) {
+      await createClubUser({
+        email: form.coachEmail,
+        password: form.coachPassword,
+        name: form.coachName || form.coachEmail,
+        role: "club",
+        clubId,
+        teamId: team.id,
+        teamRole: "entrenador",
+      });
+    }
+    onSave({
+      ...team,
+      name: form.name,
+      category: form.category,
+      season: form.season,
+      trainingDays: form.trainingDays,
+      coach: form.coachEmail ? {
+        ...team.coach,
+        name: form.coachName,
+        email: form.coachEmail,
+        ...(form.coachPassword ? { password: form.coachPassword } : {}),
+      } : team.coach,
+    });
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-depro w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-depro-border">
+          <h2 className="font-bold text-depro-dark text-lg">Editar equipo</h2>
+          <button onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase mb-1 block">Nombre</label>
+            <input className="admin-input w-full" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase mb-1 block">Categoría</label>
+            <select className="admin-input w-full" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase mb-2 block">Días de entrenamiento (2, 3 o 4) *</label>
+            <div className="flex flex-wrap gap-2">
+              {DAYS.map((day) => (
+                <button key={day} type="button" onClick={() => toggleDay(day)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${form.trainingDays.includes(day) ? "bg-depro-blue text-white border-depro-blue" : "border-depro-border text-depro-gray"}`}>
+                  {day.slice(0, 3)}
+                </button>
+              ))}
+            </div>
+            {!validDays && <p className="text-xs text-red-500 mt-1">Selecciona exactamente 2, 3 o 4 días.</p>}
+          </div>
+          {team.coach && (
+            <div className="border-t border-depro-border pt-4 space-y-3">
+              <p className="text-xs font-bold text-depro-gray uppercase">Entrenador</p>
+              <input className="admin-input w-full" placeholder="Nombre" value={form.coachName} onChange={(e) => setForm({ ...form, coachName: e.target.value })} />
+              <input className="admin-input w-full" placeholder="Email" value={form.coachEmail} onChange={(e) => setForm({ ...form, coachEmail: e.target.value })} />
+              <input className="admin-input w-full" placeholder="Nueva contraseña (opcional)" type="password" value={form.coachPassword} onChange={(e) => setForm({ ...form, coachPassword: e.target.value })} />
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3 p-6 border-t border-depro-border">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm">Cancelar</button>
+          <button onClick={handleSave} disabled={!form.name || !validDays || saving}
+            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold disabled:opacity-40">
+            {saving ? "Guardando…" : "Guardar"}
           </button>
         </div>
       </div>
@@ -1745,6 +1854,7 @@ export default function AdminClubDetailPage() {
   const [activeTab, setActiveTab]   = useState("identidad");
   const [showNewTeam, setShowNewTeam] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
+  const [editingTeam, setEditingTeam] = useState(null);
   const [showNewMc, setShowNewMc]   = useState(false);
   const [plans, setPlans]           = useState([]);
   const [copied, setCopied]         = useState(false);
@@ -1841,7 +1951,16 @@ export default function AdminClubDetailPage() {
   };
 
   const addTeam = (team) => updateClub((c) => ({ ...c, teams: [...(c.teams || []), team] }));
+  const updateTeam = (team) => updateClub((c) => ({
+    ...c,
+    teams: (c.teams || []).map((t) => (t.id === team.id ? team : t)),
+  }));
   const removeTeam = (tid) => updateClub((c) => ({ ...c, teams: (c.teams || []).filter((t) => t.id !== tid) }));
+
+  const handleViewAsCoach = (team) => {
+    sessionStorage.setItem("depro_view_as", JSON.stringify({ clubId: club.id, team }));
+    navigate("/dashboard/plan");
+  };
   const addUser = (user) => updateClub((c) => ({ ...c, users: [...(c.users || []), user] }));
   const removeUser = (uid) => updateClub((c) => ({ ...c, users: (c.users || []).filter((u) => u.id !== uid) }));
   const toggleUserActive = (uid) =>
@@ -2127,12 +2246,28 @@ export default function AdminClubDetailPage() {
                         {team.category} · {team.season} · {team.players} jugadores
                       </p>
                     </div>
-                    <button
-                      onClick={() => removeTeam(team.id)}
-                      className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-red-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleViewAsCoach(team)}
+                        className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
+                        title="Ver como entrenador"
+                      >
+                        <Play size={14} />
+                      </button>
+                      <button
+                        onClick={() => setEditingTeam(team)}
+                        className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
+                        title="Editar equipo"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeTeam(team.id)}
+                        className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-red-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Días de entrenamiento */}
@@ -2263,6 +2398,14 @@ export default function AdminClubDetailPage() {
 
 
       {showNewTeam && <NewTeamModal onClose={() => setShowNewTeam(false)} onCreate={addTeam} clubId={club.id} />}
+      {editingTeam && (
+        <EditTeamModal
+          team={editingTeam}
+          clubId={club.id}
+          onClose={() => setEditingTeam(null)}
+          onSave={updateTeam}
+        />
+      )}
       {showNewUser && <NewUserModal teams={club.teams} clubId={club.id} onClose={() => setShowNewUser(false)} onCreate={addUser} />}
     </div>
     </>

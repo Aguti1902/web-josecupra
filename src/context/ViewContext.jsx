@@ -20,7 +20,15 @@ export function useIsReadOnly() {
 }
 
 export function ViewProvider({ children }) {
-  const [viewingTeam, setViewingTeam] = useState(null);
+  const [viewingTeam, setViewingTeam] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem("depro_view_as");
+      if (!raw) return null;
+      const { team } = JSON.parse(raw);
+      sessionStorage.removeItem("depro_view_as");
+      return team || null;
+    } catch { return null; }
+  });
   return (
     <ViewContext.Provider value={{ viewingTeam, setViewingTeam }}>
       {children}

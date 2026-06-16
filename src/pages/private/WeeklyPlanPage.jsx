@@ -14,6 +14,11 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
+import { buildPlayerPlan, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
+import { markSessionComplete, touchLastTrain } from "../../lib/sessionProgress";
+import { downloadSessionPdf } from "../../lib/sessionPdf";
+import { filterExercisesEnriched } from "../../data/exercises";
+import { getTemplate } from "../../lib/planTemplates";
 
 const Youtube = PlayCircle;
 
@@ -23,7 +28,6 @@ function getYouTubeId(url) {
   return m ? m[1] : null;
 }
 import { clubWeeklyPlan } from "../../data/mockData";
-import { getDayObjectives, filterExercisesEnriched as filterExercises } from "../../data/exercises";
 
 const intensityColor = { Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
 const typeColor      = { Technical: "#0A36F7", Physical: "#F6CC12", Recovery: "#3BC21D", Tactical: "#a855f7", Match: "#FB2C39" };
@@ -179,11 +183,11 @@ const BLOCK_CONFIG = {
   vuelta_calma:   { label: "Vuelta a la calma", Icon: Wind,   color: "#10B981" },
 };
 
-function SessionCard({ session, accentColor, sessionNumber, dayLabel }) {
+function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete, onDownloadPdf }) {
   const [expanded, setExpanded]       = useState(session.status === "today");
   const [activeBlock, setActiveBlock] = useState("resumen");
   const [selectedEx, setSelectedEx]   = useState(null);
-  const [completion, setCompletion]   = useState(session.status === "completed" ? 100 : 0);
+  const [completion, setCompletion]   = useState(session.status === "completed" || session.completion === 100 ? 100 : 0);
   const isToday = session.status === "today";
   const isDone  = completion === 100;
 
@@ -293,7 +297,17 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel }) {
                     );
                   })}
                 </div>
-                <CompletionButton completion={completion} onComplete={() => setCompletion(100)} accentColor={accentColor} />
+                <CompletionButton
+                  completion={completion}
+                  onComplete={() => { setCompletion(100); onComplete?.(); }}
+                  accentColor={accentColor}
+                />
+                {onDownloadPdf && (
+                  <button type="button" onClick={onDownloadPdf}
+                    className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
+                    <FileText size={14} /> Descargar PDF
+                  </button>
+                )}
               </div>
             )}
 
@@ -335,107 +349,7 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel }) {
 /* ─────────────────────────────────────────────
    VISTA JUGADOR
 ───────────────────────────────────────────── */
-// ── Generador local de plan semanal (motor de reglas) ───────
-function makeExercise(ex, ei, blockType) {
-  return {
-    id:          `${ex.id}_${ei}`,
-    name:        ex.nombre,
-    duration:    blockType === "calentamiento" ? "8–10 min" : blockType === "vuelta_calma" ? "5 min" : "40\"",
-    sets:        blockType === "principal" ? 4 : 3,
-    reps:        ex.etiquetas.includes("isometrico") ? "25–30\"" : "10–12",
-    description: `Ejercicio de ${ex.etiquetas.slice(0,2).join(" y ").replace(/_/g," ")}. Material: ${ex.material.replace(/_/g," ")}.`,
-    tips: [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en las dos fases (concéntrica y excéntrica)",
-      "Respira con normalidad: exhala en el esfuerzo",
-      `Activa el core en todo momento`,
-      ...(ex.contraindicado.length > 0 ? [`Precaución con: ${ex.contraindicado.join(", ")}`] : []),
-    ].slice(0, 5),
-    errorsToAvoid: ex.contraindicado.length > 0
-      ? `Evita si tienes lesiones en: ${ex.contraindicado.join(", ")}. No compenses con otras zonas del cuerpo.`
-      : "Evita compensar el movimiento con otras zonas. No sacrifiques la técnica por añadir más peso o velocidad.",
-    videoUrl: "",
-  };
-}
-
-function buildLocalPlan(user) {
-  const objetivo   = user?.objetivo  || "fuerza";
-  const frecuencia = user?.frecuencia || "3";
-  const material   = (user?.material || "sin_material").toLowerCase().replace(/\s|\//g,"_").replace("barra_gimnasio","barra");
-  const lesiones   = (user?.lesion   || []).map((l) => l.toLowerCase());
-  const edad       = parseInt(user?.edad) || 20;
-  const deporte    = user?.deporte || "";
-
-  const dayObjectives = getDayObjectives(objetivo, frecuencia);
-  const diasSemana = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
-  const shorts     = ["L","M","X","J","V","S","D"];
-  const n = dayObjectives.length;
-  let sessionCount = 0;
-
-  return diasSemana.map((nombre, i) => {
-    if (i >= n) return { day: nombre, shortDay: shorts[i], date: `${nombre} ${i+1}`, sessions: [] };
-    sessionCount++;
-
-    const dayObj = dayObjectives[i];
-    const pool   = filterExercises({ etiquetas: dayObj.etiquetas, material, lesiones, edad, deporte });
-    const picked = pool.filter((_, idx) => idx % 2 === 0).slice(0, 10);
-
-    const blocks = [
-      {
-        type: "calentamiento", label: "Calentamiento", duration: "10 min",
-        exercises: picked.slice(0, 2).map((ex, ei) => makeExercise(ex, ei, "calentamiento")),
-      },
-      {
-        type: "principal", label: "Bloque principal", duration: "30 min",
-        exercises: picked.slice(2, 6).map((ex, ei) => makeExercise(ex, ei+2, "principal")),
-      },
-      {
-        type: "complementario", label: "Complementario", duration: "15 min",
-        exercises: picked.slice(6, 8).map((ex, ei) => makeExercise(ex, ei+6, "complementario")),
-      },
-      {
-        type: "vuelta_calma", label: "Vuelta a la calma", duration: "5 min",
-        exercises: picked.slice(8, 10).map((ex, ei) => makeExercise(ex, ei+8, "vuelta_calma")),
-      },
-    ];
-
-    const session = {
-      id:        `gen_${i}`,
-      type:      dayObj.tipo,
-      title:     `Sesión ${sessionCount}`,
-      objective: `Trabaja ${dayObj.etiquetas.slice(0,2).join(" y ")} según tu objetivo de ${objetivo}.`,
-      duration:  "60 min",
-      intensity: "Medium",
-      status:    "pending",
-      blocks,
-      exercises: blocks.flatMap((b) => b.exercises),
-    };
-
-    return { day: nombre, shortDay: shorts[i], date: `${nombre} ${i+1}`, sessions: [session] };
-  });
-}
-
-/* ── Mesociclo: genera 3 semanas con sesiones 1–9 ─────────── */
-function buildMesoSessions(user) {
-  const weeks = [];
-  let sessionCounter = 0;
-  for (let w = 0; w < 3; w++) {
-    const weekPlan = buildLocalPlan(user);
-    const sessionDays = weekPlan.filter((d) => d.sessions.length > 0);
-    weeks.push({
-      week: w + 1,
-      label: `Semana ${w + 1}`,
-      sessions: sessionDays.map((d) => ({
-        ...d.sessions[0],
-        id: `meso_w${w}_${d.sessions[0].id}`,
-        title: `Sesión ${++sessionCounter}`,
-        sessionNumber: sessionCounter,
-        dayName: d.day,
-      })),
-    });
-  }
-  return weeks;
-}
+/* ── Generador de plan: ver playerPlanEngine.js ── */
 
 function PlayerWeeklyPlan({ accent }) {
   const { user } = useAuth();
@@ -453,14 +367,44 @@ function PlayerWeeklyPlan({ accent }) {
     } catch { /* ignore */ }
   }, [planKey]);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setGen(true);
-    setTimeout(() => {
-      const generated = buildLocalPlan(user);
+    try {
+      let generated = buildPlayerPlan(user);
+      // Intentar enriquecer con IA si está configurada
+      try {
+        const firstSession = generated.flatMap((d) => d.sessions)[0];
+        if (firstSession) {
+          const pool = filterExercisesEnriched({
+            material: user?.material,
+            lesiones: user?.lesion,
+            edad: user?.edad,
+            deporte: user?.deporte,
+            etiquetas: [],
+          });
+          await fetch("/api/generate-plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user,
+              sessionType: firstSession.type,
+              exercises: pool.slice(0, 30),
+              plantilla: getTemplate(firstSession.type).blocks.map((b) => b.label).join(", "),
+            }),
+          });
+        }
+      } catch { /* motor local como fallback */ }
       setPlan(generated);
       localStorage.setItem(planKey, JSON.stringify(generated));
+    } finally {
       setGen(false);
-    }, 1400);
+    }
+  };
+
+  const handleSessionComplete = (sessionId, dayLabel) => {
+    const updated = markSessionComplete({ userId: user?.id, planKey, sessionId, dayLabel });
+    if (updated) setPlan(updated);
+    touchLastTrain(user?.id);
   };
 
   const handleReset = () => {
@@ -512,7 +456,7 @@ function PlayerWeeklyPlan({ accent }) {
 
   const completedMicro  = microSessions.filter((s) => s.status === "completed").length;
   const pctMicro        = microSessions.length ? Math.round((completedMicro / microSessions.length) * 100) : 0;
-  const mesoWeeks       = view === "meso" ? buildMesoSessions(user) : [];
+  const mesoWeeks       = view === "meso" ? buildMesoPlayerPlan(user) : [];
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
@@ -580,7 +524,16 @@ function PlayerWeeklyPlan({ accent }) {
           <div className="space-y-4">
             {microSessions.map((session) => (
               <SessionCard key={session.id} session={session} accentColor={accent}
-                sessionNumber={session.sessionNumber} dayLabel={session.dayName} />
+                sessionNumber={session.sessionNumber} dayLabel={session.dayName}
+                onComplete={() => handleSessionComplete(session.id, session.dayName)}
+                onDownloadPdf={() => downloadSessionPdf({
+                  title: session.title,
+                  subtitle: session.objective,
+                  blocks: session.blocks,
+                  meta: { duration: session.duration, type: session.type, intensity: session.intensity },
+                  brandColor: accent,
+                })}
+              />
             ))}
             {microSessions.length === 0 && (
               <div className="bg-white border border-depro-border rounded-2xl text-center py-16 shadow-card">
@@ -612,7 +565,16 @@ function PlayerWeeklyPlan({ accent }) {
               <div className="space-y-3">
                 {week.sessions.map((session) => (
                   <SessionCard key={session.id} session={session} accentColor={accent}
-                    sessionNumber={session.sessionNumber} dayLabel={session.dayName} />
+                    sessionNumber={session.sessionNumber} dayLabel={session.dayName}
+                    onComplete={() => handleSessionComplete(session.id, session.dayName)}
+                    onDownloadPdf={() => downloadSessionPdf({
+                      title: session.title,
+                      subtitle: session.objective,
+                      blocks: session.blocks,
+                      meta: { duration: session.duration, type: session.type },
+                      brandColor: accent,
+                    })}
+                  />
                 ))}
               </div>
             </div>
@@ -669,6 +631,13 @@ const PROTOCOL_INFO = {
     { Icon: Zap,          label: "Intensidad",    value: "100% · Sin reservas · Máximo esfuerzo" },
     { Icon: ShieldCheck,  label: "Sub-16",        value: "Calentamiento mínimo 15 min · Riesgo lesional" },
   ],
+  D: [
+    { Icon: Target,       label: "Qué haremos",  value: "Trabajo complementario de movilidad y activación" },
+    { Icon: BookOpen,     label: "Por qué",       value: "Completar la semana sin acumular fatiga" },
+    { Icon: Clock,        label: "Duración",      value: "Bloques medios · 6–8 min" },
+    { Icon: Activity,     label: "Intensidad",    value: "50–60% · Carga baja" },
+    { Icon: ShieldCheck,  label: "4 días/sem",    value: "Sesión ideal para equipos con 4 entrenos semanales" },
+  ],
 };
 const DAY_RECS = {
   A: [
@@ -689,6 +658,12 @@ const DAY_RECS = {
     { Icon: Activity,   text: "Cambios de dirección y velocidad al máximo" },
     { Icon: Sun,        text: "El descanso define la calidad de cada acción" },
   ],
+  D: [
+    { Icon: Dumbbell,   text: "Trabajo complementario de baja carga articular" },
+    { Icon: Wind,       text: "Movilidad y activación sin fatiga acumulada" },
+    { Icon: ShieldCheck,text: "Ideal tras sesiones intensas de la semana" },
+    { Icon: Users,      text: "Participación total con foco en calidad técnica" },
+  ],
 };
 const TASK_TYPES = [
   "Automatismos","Ruedas de pase","Posesiones","Juegos de posición",
@@ -704,6 +679,7 @@ const BASE_PARAMS = {
   A: { space:"Amplio", grouping:"Todo el equipo", balls:"1 c/2–3 jug.", work:"8–12 min", rest:"3–4 min", intensity:"60–70%" },
   B: { space:"Reducido", grouping:"Grupos de 4–8", balls:"1 por grupo", work:"4–6 min", rest:"1–2 min", intensity:"80–90%" },
   C: { space:"Direccional", grouping:"Grupos de 4–6", balls:"1 por acción", work:"2–4 min", rest:"3–5 min", intensity:"Máxima" },
+  D: { space:"Medio", grouping:"Grupos de 6–10", balls:"1 por grupo", work:"6–8 min", rest:"2–3 min", intensity:"50–60%" },
 };
 const TASK_CUES = {
   "Posesiones":             { A:["Espacio grande, baja presión","Circulación sin urgencia","Fútbol asociativo"],               B:["Espacio reducido, ritmo alto","Presión inmediata en pérdida","Superioridades cambiantes"],         C:["Acciones rápidas y transiciones veloces","Presión total","Máx. 2–3 min por serie"] },
@@ -724,14 +700,26 @@ const DEFAULT_CUES = {
    DISEÑADOR DE TAREAS — 28 tipos + parámetros A/B/C
 ───────────────────────────────────────────── */
 
-function DisenarTareas({ accentColor, sessionType = "A" }) {
+function DisenarTareas({ accentColor, sessionType = "A", storageKey }) {
   const [dropOpen, setDropOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(TASK_TYPES[0]);
-  const st = ST[sessionType];
+  const [selectedTask, setSelectedTask] = useState(() => {
+    if (!storageKey) return TASK_TYPES[0];
+    try {
+      const raw = localStorage.getItem(storageKey);
+      return raw ? JSON.parse(raw).task : TASK_TYPES[0];
+    } catch { return TASK_TYPES[0]; }
+  });
+
+  useEffect(() => {
+    if (!storageKey) return;
+    localStorage.setItem(storageKey, JSON.stringify({ task: selectedTask, sessionType, savedAt: Date.now() }));
+  }, [selectedTask, storageKey, sessionType]);
+
+  const st = ST[sessionType] || ST.A;
   const StIcon = st.Icon;
   const params = BASE_PARAMS[sessionType];
-  const cues = (TASK_CUES[selectedTask] || DEFAULT_CUES)[sessionType];
-  const recs = DAY_RECS[sessionType];
+  const cues = ((TASK_CUES[selectedTask] || DEFAULT_CUES)[sessionType] || DEFAULT_CUES.A);
+  const recs = DAY_RECS[sessionType] || DAY_RECS.A;
 
   return (
     <div className="space-y-5">
@@ -955,7 +943,7 @@ function CompletionButton({ completion, onComplete, accentColor }) {
 /* ═══════════════════════════════════════════════════════════
    CLUB — SESIÓN con 4 bloques (diseño profesional, sin emojis)
 ═══════════════════════════════════════════════════════════ */
-function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false }) {
+function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false, taskStorageKey }) {
   const [expanded, setExpanded]       = useState(false);
   const [activeBlock, setActiveBlock] = useState("resumen");
   const [completion, setCompletion]   = useState(session.completion ?? 0);
@@ -1082,7 +1070,24 @@ function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false
                 </div>
 
                 {!readOnly && (
-                  <CompletionButton completion={completion} onComplete={() => setCompletion(100)} accentColor={accentColor} />
+                  <>
+                    <CompletionButton
+                      completion={completion}
+                      onComplete={() => setCompletion(100)}
+                      accentColor={accentColor}
+                    />
+                    <button type="button"
+                      onClick={() => downloadSessionPdf({
+                        title: `Sesión ${sessionNumber}`,
+                        subtitle: session.objective || session.title,
+                        blocks: [{ label: "Ejercicios", exercises: exercises.map((e) => ({ name: e.name })) }],
+                        meta: { duration: session.duration, type: st.label, intensity: session.intensity },
+                        brandColor: accentColor,
+                      })}
+                      className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
+                      <FileText size={14} /> Descargar PDF
+                    </button>
+                  </>
                 )}
               </div>
             )}
@@ -1208,7 +1213,7 @@ function ClubSessionCard({ session, accentColor, sessionNumber, readOnly = false
 
             {/* ── DISEÑAR TAREAS ── */}
             {activeBlock === "tareas" && (
-              <DisenarTareas accentColor={accentColor} sessionType={sessionType} />
+              <DisenarTareas accentColor={accentColor} sessionType={sessionType} storageKey={taskStorageKey} />
             )}
           </div>
         </div>
@@ -1403,7 +1408,8 @@ function ClubMicrocycles({ accent }) {
       <div className="space-y-4">
         {distributedWeekSessions.map((s, idx) => {
           const sType = getPeriodizationSessionType(s.intensity);
-          const typeColors = { A: "#3B82F6", B: "#F59E0B", C: "#EF4444" };
+          const typeColors = { A: "#3B82F6", B: "#F59E0B", C: "#EF4444", D: "#10B981" };
+          const taskKey = clubId && userTeamId ? `depro_club_tasks_${clubId}_${userTeamId}_${s.id || idx}` : null;
           return (
             <div key={s.id || idx}>
               {s.assignedDay && !isCoordinator && (
@@ -1418,7 +1424,7 @@ function ClubMicrocycles({ accent }) {
                   <span className="text-[10px] text-depro-gray hidden sm:block">{getDayRationale(s.assignedDay, sType)}</span>
                 </div>
               )}
-              <ClubSessionCard session={s} accentColor={accent} sessionNumber={idx + 1} readOnly={isReadOnly} />
+              <ClubSessionCard session={s} accentColor={accent} sessionNumber={idx + 1} readOnly={isReadOnly} taskStorageKey={taskKey} />
             </div>
           );
         })}

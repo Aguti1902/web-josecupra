@@ -32,8 +32,16 @@ export const DAY_PREFERRED_TYPE = {
   "Sábado":     "C",   // D+6  → activación ligera
 };
 
-/** Mapeo intensidad → tipo de sesión (A / B / C) */
+/** Tipo D para equipos de 4 días (complementaria) */
+export const DAY_PREFERRED_TYPE_4D = {
+  ...DAY_PREFERRED_TYPE,
+  "Jueves": "D",
+};
+
+/** Mapeo intensidad → tipo de sesión (A / B / C / D) */
 export function getSessionType(intensity) {
+  const i = (intensity || "").toLowerCase();
+  if (i.includes("complementaria") || i === "d") return "D";
   if (["Baja", "Media"].includes(intensity)) return "A";
   if (["Media-alta", "Alta"].includes(intensity)) return "B";
   return "C"; // Máxima
@@ -55,21 +63,24 @@ export function distributeWeekSessions(weekSessions, trainingDays) {
     .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
 
   // Agrupar sesiones disponibles por tipo
-  const byType = { A: [], B: [], C: [] };
+  const byType = { A: [], B: [], C: [], D: [] };
   weekSessions.forEach((s) => {
     const t = getSessionType(s.intensity);
-    byType[t].push(s);
+    if (byType[t]) byType[t].push(s);
+    else byType.C.push(s);
   });
 
   const used = new Set();
   const result = [];
+  const use4D = sortedDays.length >= 4;
 
   for (const day of sortedDays) {
-    const preferred = DAY_PREFERRED_TYPE[day] || "B";
+    const preferred = (use4D ? DAY_PREFERRED_TYPE_4D : DAY_PREFERRED_TYPE)[day] || "B";
     // Orden de fallback: primero el tipo correcto, luego los adyacentes
-    const fallbackOrder = preferred === "A" ? ["A", "B", "C"]
-                        : preferred === "B" ? ["B", "A", "C"]
-                        :                    ["C", "B", "A"];
+    const fallbackOrder = preferred === "A" ? ["A", "B", "C", "D"]
+                        : preferred === "B" ? ["B", "A", "C", "D"]
+                        : preferred === "D" ? ["D", "C", "B", "A"]
+                        :                    ["C", "B", "A", "D"];
 
     let assigned = null;
     for (const t of fallbackOrder) {
@@ -109,12 +120,22 @@ export function distributeMesocycleForTeam(allSessions, trainingDays, baseWeekSi
   // Si hay totalCalendarWeeks, expandimos la plantilla para cubrir todas las semanas.
   const templateSize = Math.min(allSessions.length, baseWeekSize);
   const template = allSessions.slice(0, templateSize);
+  const VARIANTS = ["A1", "A2", "B1", "B2", "C1", "C2"];
   const numWeeks = totalCalendarWeeks ?? Math.max(1, Math.ceil(allSessions.length / baseWeekSize));
 
-  // Expandir la plantilla para cubrir todas las semanas del mesociclo
+  // Expandir la plantilla para cubrir todas las semanas del mesociclo (rotación A1/A2…)
   const expandedSessions = [];
   for (let w = 0; w < numWeeks; w++) {
-    template.forEach((s) => expandedSessions.push({ ...s, id: `${s.id}_w${w}`, _weekIdx: w }));
+    const variant = VARIANTS[w % VARIANTS.length];
+    template.forEach((s, idx) => {
+      expandedSessions.push({
+        ...s,
+        id: `${s.id}_w${w}`,
+        _weekIdx: w,
+        templateVariant: variant,
+        title: s.title ? `${s.title} · ${variant}` : `Sesión ${idx + 1} · ${variant}`,
+      });
+    });
   }
 
   const weeks = [];

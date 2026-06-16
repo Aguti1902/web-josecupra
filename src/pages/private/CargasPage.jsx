@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam } from "../../context/ViewContext";
+import { saveClubDetail, loadClubDetail } from "../../lib/adminStorage";
 import { supabase } from "../../lib/supabase";
 
 /* ── Helpers ──────────────────────────────────────────────── */
@@ -45,6 +46,7 @@ const SESSIONS = [
   { key: "a",       label: "Entreno A · Extensivo",  isPartido: false },
   { key: "b",       label: "Entreno B · Intensivo",  isPartido: false },
   { key: "c",       label: "Entreno C · Reactivo",   isPartido: false },
+  { key: "d",       label: "Entreno D · Complementaria", isPartido: false },
 ];
 
 function getMonthWeeks(year, month) {
@@ -343,8 +345,15 @@ export default function CargasPage() {
 
   // ── Datos ────────────────────────────────────────────────
   const [allData, setAllData] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); }
-    catch { return {}; }
+    try {
+      const local = JSON.parse(localStorage.getItem(storageKey) || "null");
+      if (local) return local;
+      if (club?.id && team?.id) {
+        const detail = loadClubDetail(club.id);
+        return detail?.teamCargas?.[team.id] || {};
+      }
+      return {};
+    } catch { return {}; }
   });
 
   // Semana activa
@@ -360,6 +369,13 @@ export default function CargasPage() {
     const updated = { ...allData, [activeWeekKey]: newData };
     setAllData(updated);
     try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
+    if (club?.id && team?.id) {
+      const detail = loadClubDetail(club.id) || {};
+      saveClubDetail(club.id, {
+        ...detail,
+        teamCargas: { ...(detail.teamCargas || {}), [team.id]: updated },
+      });
+    }
   }
 
   function updateSession(key, entry) {

@@ -1,9 +1,10 @@
 // ═══════════════════════════════════════════════════════
-// CATÁLOGO OFICIAL DE 120 EJERCICIOS — DEPRO (doc técnico)
+// CATÁLOGO OFICIAL DE EJERCICIOS — DEPRO (doc técnico)
 // Etiquetas, material y contraindicaciones según spec.
 // ═══════════════════════════════════════════════════════
+import { EXTRA_EXERCISES } from "./extraExercises.js";
 
-export const EXERCISES = [
+const BASE_EXERCISES = [
   // ── 1. FUERZA – TREN INFERIOR ──────────────────────────
   // Sin material
   { id:"fi01", nombre:"Sentadilla clásica",          etiquetas:["fuerza","tren_inferior"],          material:"sin_material", contraindicado:["rodilla"] },
@@ -159,9 +160,11 @@ export const EXERCISES = [
   { id:"m120", nombre:"Flow movilidad completa 5'",   etiquetas:["movilidad"],                      material:"sin_material", contraindicado:[] },
 ];
 
+export const EXERCISES = [...BASE_EXERCISES, ...EXTRA_EXERCISES];
+
 // ── Etiquetas oficiales ───────────────────────────────────
 export const TAGS = {
-  objetivo:  ["fuerza","fuerza_maxima","fuerza_explosiva","resistencia","velocidad","pliometria","core","prevencion","movilidad","estetica","isometrico"],
+  objetivo:  ["fuerza","fuerza_maxima","fuerza_explosiva","resistencia","resistencia_aerobica","resistencia_anaerobica","resistencia_umbral","velocidad","pliometria","core","core_avanzado","prevencion","movilidad","estetica","isometrico","lesion_rodilla","lesion_tobillo","lesion_hombro","lesion_espalda"],
   zona:      ["tren_inferior","tren_superior","core","gluteo","rodilla","tobillo","hombro","empuje","traccion"],
   material:  ["sin_material","gomas","mancuernas","barra","maquina","casa","campo","gimnasio"],
 };
@@ -236,8 +239,8 @@ export function getDayObjectives(objetivo, frecuencia) {
   const n = parseInt(String(frecuencia).replace(/\D/g, "")) || 3;
   const obj = objetivo?.toLowerCase();
 
-  // Caso especial estética
-  if (obj === "estética" || obj === "estetica") {
+  // Caso especial estética / hipertrofia
+  if (obj === "estética" || obj === "estetica" || obj === "hipertrofia") {
     if (n === 1) return [{ tipo: "Full Body",       etiquetas: ["fuerza","estetica","tren_inferior","tren_superior"] }];
     if (n === 2) return [
       { tipo: "Cadena Anterior",  etiquetas: ["fuerza","estetica","tren_inferior","empuje"] },
@@ -261,6 +264,7 @@ export function getDayObjectives(objetivo, frecuencia) {
     fuerza:     ["fuerza","tren_inferior","tren_superior"],
     velocidad:  ["velocidad","fuerza_explosiva","pliometria"],
     resistencia:["resistencia"],
+    hipertrofia: ["fuerza","estetica","tren_inferior","tren_superior"],
     prevención: ["prevencion","movilidad"],
     movilidad:  ["movilidad","prevencion"],
   };

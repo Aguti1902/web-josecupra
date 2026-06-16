@@ -50,11 +50,18 @@ const PLANS = {
 
 const POSITIONS  = ["Portero", "Defensa", "Lateral", "Pivote", "Centro", "Mediapunta", "Extremo", "Delantero"];
 // Preguntas del motor de planes (doc técnico)
-const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Estética", "Prevención", "Movilidad"];
+const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
 const SPORTS     = ["Fútbol", "Basket", "Natación", "Tenis", "Fitness", "Otro"];
 const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem"];
 const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio"];
 const INJURIES   = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda"];
+const INJURY_SUBTYPES = {
+  Rodilla: ["ACL", "Menisco", "Condromalacia", "Tendón rotuliano"],
+  Tobillo: ["Esguince", "Inestabilidad", "Tendinitis Aquiles"],
+  Hombro: ["Manguito rotador", "Inestabilidad", "Tendinitis"],
+  Espalda: ["Lumbalgia", "Ciática", "Pubalgia"],
+};
+const WEEK_DAYS  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
 const STEPS      = ["Plan", "Tus datos", "Tu entrenamiento", "Pago"];
 
@@ -313,7 +320,9 @@ function StepDatos({ form, setForm, onNext, onBack }) {
    STEP 3 — Datos de fútbol
 ───────────────────────────────────────────── */
 function StepFutbol({ form, setForm, onNext, onBack }) {
-  const valid = form.objetivo && form.deporte && form.frecuencia && form.material && form.experiencia;
+  const freqN = parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3;
+  const valid = form.objetivo && form.deporte && form.frecuencia && form.material && form.experiencia
+    && (form.disponibles?.length || 0) >= freqN;
 
   return (
     <div>
@@ -339,7 +348,7 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
                 }`}
               >
                 <span className="text-lg">
-                  {obj === "Fuerza" ? "💪" : obj === "Velocidad" ? "⚡" : obj === "Resistencia" ? "🫀" : obj === "Estética" ? "✨" : obj === "Prevención" ? "🛡️" : "🧘"}
+                  {obj === "Fuerza" ? "💪" : obj === "Velocidad" ? "⚡" : obj === "Resistencia" ? "🫀" : obj === "Hipertrofia" ? "🏋️" : obj === "Prevención" ? "🛡️" : "🧘"}
                 </span>
                 {obj}
               </button>
@@ -408,6 +417,54 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
             })}
           </div>
           <p className="text-xs text-depro-gray mt-2">El plan excluirá ejercicios contraindicados para tus lesiones.</p>
+          {(form.lesion || []).filter((x) => x !== "Ninguna").map((inj) => (
+            <div key={inj} className="mt-3">
+              <p className="text-[10px] font-bold text-depro-gray uppercase mb-2">Subtipo · {inj}</p>
+              <div className="flex flex-wrap gap-2">
+                {(INJURY_SUBTYPES[inj] || []).map((sub) => {
+                  const sel = (form.lesionSubtipo || []).includes(sub);
+                  return (
+                    <button key={sub} type="button"
+                      onClick={() => {
+                        const cur = form.lesionSubtipo || [];
+                        const next = sel ? cur.filter((x) => x !== sub) : [...cur, sub];
+                        setForm({ ...form, lesionSubtipo: next });
+                      }}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${sel ? "bg-amber-500 border-amber-500 text-white" : "bg-white border-depro-border text-depro-gray"}`}
+                    >
+                      {sub}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Días disponibles */}
+        <div>
+          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-3 block">
+            Días en los que puedes entrenar *
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {WEEK_DAYS.map((day) => {
+              const sel = (form.disponibles || []).includes(day);
+              const freqN = parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3;
+              return (
+                <button key={day} type="button"
+                  onClick={() => {
+                    const cur = form.disponibles || [];
+                    const next = sel ? cur.filter((d) => d !== day) : [...cur, day];
+                    setForm({ ...form, disponibles: next });
+                  }}
+                  className={`text-xs font-bold px-3 py-2 rounded-xl border ${sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray"}`}
+                >
+                  {day.slice(0, 3)}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-depro-gray mt-2">Selecciona al menos tantos días como tu frecuencia ({parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3}).</p>
         </div>
       </div>
 
@@ -486,7 +543,9 @@ function StepPago({ form, plan, onBack }) {
                 ["Objetivo",  form.objetivo],
                 ["Deporte",   form.deporte],
                 ["Frecuencia",form.frecuencia],
+                ["Experiencia", form.experiencia],
                 ["Material",  form.material],
+                ["Días",      (form.disponibles || []).join(", ")],
                 ["Lesiones",  (form.lesion?.length > 0 ? form.lesion.join(", ") : "Ninguna")],
               ].filter(([, v]) => v).map(([label, val]) => (
                 <div key={label}>
@@ -644,12 +703,14 @@ export default function OnboardingPage() {
     club: "",
     posicion: "",
     clubCode: "",
-    // Campos del motor de planes (doc técnico)
-    objetivo:  "",   // fuerza | velocidad | resistencia | estética | prevención | movilidad
-    deporte:   "",   // fútbol | basket | natación | tenis | fitness | otro
-    frecuencia: "",  // 1 | 2 | 3 | 4 días/sem
-    material:  "",   // sin material | gomas | mancuernas | barra/gimnasio
-    lesion:    [],   // ninguna | rodilla | tobillo | hombro | espalda
+    objetivo:  "",
+    deporte:   "",
+    frecuencia: "",
+    material:  "",
+    experiencia: "",
+    lesion:    [],
+    lesionSubtipo: [],
+    disponibles: ["Lunes", "Miércoles", "Viernes"],
   });
 
   const plan = PLANS[planId] || PLANS.basic;

@@ -14,16 +14,28 @@ export default async function handler(req, res) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { email, password, name, role = "club", clubId, teamId, teamRole } = req.body || {};
+  const {
+    email, password, name, role = "club",
+    clubId, teamId, teamRole, managedTeamIds,
+  } = req.body || {};
 
   if (!email || !password) {
     return res.status(400).json({ error: "email y password son obligatorios" });
   }
 
+  const userMeta = {
+    name,
+    role,
+    clubId: clubId || undefined,
+    teamId: teamId || undefined,
+    teamRole: teamRole || undefined,
+    managedTeamIds: Array.isArray(managedTeamIds) ? managedTeamIds : undefined,
+  };
+
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    user_metadata: { name, role, clubId, teamId, teamRole },
+    user_metadata: userMeta,
     email_confirm: true,
   });
 
