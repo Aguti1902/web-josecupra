@@ -129,14 +129,21 @@ export function flattenBlocksToExercises(blocks) {
   );
 }
 
-export function sessionPlanUrl(session, { tab = "resumen", date } = {}) {
+export function sessionPlanUrl(session, { tab = "resumen", date, week } = {}) {
   const params = new URLSearchParams();
   if (session?.id) params.set("session", session.id);
   if (tab) params.set("tab", tab);
   if (date) params.set("date", date);
+  if (week != null && week !== "") params.set("week", String(week));
   if (session?.assignedDay) params.set("day", session.assignedDay);
   const qs = params.toString();
   return `/dashboard/plan${qs ? `?${qs}` : ""}`;
+}
+
+export function sessionMatchesTarget(session, targetId) {
+  if (!targetId || !session) return false;
+  const tid = String(targetId);
+  return tid === String(session.id) || tid === String(session._sourceTemplateId);
 }
 
 export function getExercisesForBlock(session, blockType) {

@@ -12,6 +12,7 @@ import {
   getCurrentWeekIndex, formatDate, getWeekStartDate, isMesocicloActive, getMesocicloWeeks,
 } from "../../lib/periodization";
 import { sessionPlanUrl } from "../../lib/sessionBlocks";
+import { getSessionDisplayKey } from "../../lib/mesocycleTemplates";
 
 /* ── Contraste seguro ───────────────────────────────────── */
 function lum(hex) {
@@ -110,8 +111,9 @@ function MesocycleCalendar({ activePlan, weeks, trainingDays, accent }) {
       const sessionDate = new Date(weekBase);
       sessionDate.setDate(sessionDate.getDate() + diff);
       const key = sessionDate.toISOString().slice(0, 10);
-      const sType = getSessionType(session.intensity);
-      sessionDateMap[key] = { session, weekIdx: wi, sType, sessionNumber: wi * 3 + si + 1 };
+      const sType = session.framework || getSessionType(session.intensity);
+      const templateKey = getSessionDisplayKey(session);
+      sessionDateMap[key] = { session, weekIdx: wi, sType, templateKey, sessionNumber: wi * 3 + si + 1 };
     });
   });
 
@@ -148,7 +150,7 @@ function MesocycleCalendar({ activePlan, weeks, trainingDays, accent }) {
                 {/* Celdas */}
                 {rows.flat().map((day, ci) => {
                   if (!day) return (
-                    <div key={`e-${ci}`} className="bg-[#F8F9FB] h-10" />
+                    <div key={`e-${ci}`} className="bg-[#F8F9FB] h-14" />
                   );
                   const dateStr = `${year}-${String(month + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
                   const sessionInfo = sessionDateMap[dateStr];
@@ -162,32 +164,39 @@ function MesocycleCalendar({ activePlan, weeks, trainingDays, accent }) {
                       disabled={!sessionInfo || !isInRange}
                       onClick={() => {
                         if (!sessionInfo?.session) return;
-                        navigate(sessionPlanUrl(sessionInfo.session, { tab: "resumen", date: dateStr }));
+                        navigate(sessionPlanUrl(sessionInfo.session, {
+                          tab: "resumen",
+                          date: dateStr,
+                          week: sessionInfo.weekIdx,
+                        }));
                       }}
-                      className={`bg-white relative flex flex-col items-center justify-center h-10 transition-colors ${
+                      className={`bg-white relative flex flex-col items-center justify-center h-14 transition-colors ${
                         !isInRange ? "opacity-30" : ""
                       } ${sessionInfo && isInRange ? "cursor-pointer hover:bg-depro-gray-light/50" : "cursor-default"}`}
-                      title={sessionInfo ? `Ver sesión del ${dateStr}` : undefined}
+                      title={sessionInfo ? `${sessionInfo.templateKey} · ${dateStr}` : undefined}
                     >
                       {/* Fondo de sesión */}
                       {sessionInfo && (
                         <div className="absolute inset-1 rounded-lg opacity-20"
                           style={{ backgroundColor: SESSION_TYPE_COLOR[sessionInfo.sType] }} />
                       )}
-                      {/* Número del día */}
-                      <div                       className={`relative z-10 w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all`}
-                        style={isToday
-                          ? { backgroundColor: accent, color: contrastText(accent) }
-                          : sessionInfo
-                          ? { color: SESSION_TYPE_COLOR[sessionInfo.sType], fontWeight: 800 }
-                          : { color: "#333333" }}>
-                        {day}
+                      {/* Número del día + plantilla (A1, B2…) */}
+                      <div className="relative z-10 flex flex-col items-center justify-center gap-0.5">
+                        <div className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all`}
+                          style={isToday
+                            ? { backgroundColor: accent, color: contrastText(accent) }
+                            : sessionInfo
+                            ? { color: SESSION_TYPE_COLOR[sessionInfo.sType], fontWeight: 800 }
+                            : { color: "#333333" }}>
+                          {day}
+                        </div>
+                        {sessionInfo && (
+                          <span className="text-[9px] font-black leading-none"
+                            style={{ color: SESSION_TYPE_COLOR[sessionInfo.sType] }}>
+                            {sessionInfo.templateKey}
+                          </span>
+                        )}
                       </div>
-                      {/* Punto indicador de sesión */}
-                      {sessionInfo && (
-                        <div className="absolute bottom-1 w-1 h-1 rounded-full"
-                          style={{ backgroundColor: SESSION_TYPE_COLOR[sessionInfo.sType] }} />
-                      )}
                     </button>
                   );
                 })}
@@ -525,7 +534,8 @@ export default function MesocyclePage() {
                 <div className="space-y-3 pl-2">
                   {weekSessions.map((session, si) => {
                     const globalIdx = wi * sessionsPerWeek + si + 1;
-                    const sType = getSessionType(session.intensity);
+                    const sType = session.framework || getSessionType(session.intensity);
+                    const displayKey = getSessionDisplayKey(session);
                     const rationale = getDayRationale(session.assignedDay, sType);
                     return (
                       <div key={session.id || si}>
@@ -537,7 +547,7 @@ export default function MesocyclePage() {
                             </span>
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
                               style={{ backgroundColor: (SESSION_TYPE_COLOR[sType] ?? accent) + "18", color: SESSION_TYPE_COLOR[sType] ?? accent }}>
-                              {session.templateKey || `Sesión ${sType}`} · {SESSION_TYPE_LABEL[sType]}
+                              {displayKey} · {SESSION_TYPE_LABEL[sType]}
                             </span>
                             {rationale && (
                               <span className="text-[10px] text-depro-gray hidden sm:block">{rationale}</span>

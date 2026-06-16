@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import {
   distributeWeekSessions, distributeMesocycleForTeam, getDayRationale, getSessionType as getPeriodizationSessionType,
-  getCurrentWeekIndex, formatDate, getMesocicloWeeks,
+  getCurrentWeekIndex, formatDate, getMesocicloWeeks, getWeekDateRange,
 } from "../../lib/periodization";
+import { getSessionDisplayKey } from "../../lib/mesocycleTemplates";
 import {
   Clock, Flame, CheckCircle, Play, ChevronDown, ChevronUp, FileText, Video,
   Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
@@ -20,7 +21,7 @@ import { markSessionComplete, touchLastTrain } from "../../lib/sessionProgress";
 import { downloadSessionPdf } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
-import { getSessionBlocks, BLOCK_LABELS, BLOCK_COLORS } from "../../lib/sessionBlocks";
+import { getSessionBlocks, BLOCK_LABELS, BLOCK_COLORS, ADMIN_BLOCK_TYPES, sessionMatchesTarget } from "../../lib/sessionBlocks";
 
 const Youtube = PlayCircle;
 
@@ -1082,20 +1083,21 @@ function ClubSessionCard({
     if (initialTab) setActiveBlock(initialTab);
   }, [initialExpanded, initialTab]);
 
-  const sessionType = getSessionType(session.intensity);
-  const st          = ST[sessionType];
+  const sessionType = session.framework || getSessionType(session.intensity);
+  const displayKey  = getSessionDisplayKey(session);
+  const st          = ST[sessionType] || ST.A;
   const StIcon      = st.Icon;
   const blocks      = getSessionBlocks(session);
-  const allExercises = blocks.flatMap((b) => b.exercises || []);
+  const allExercises = blocks
+    .filter((b) => ADMIN_BLOCK_TYPES.includes(b.type))
+    .flatMap((b) => b.exercises || []);
   const blockByType = (type) => blocks.find((b) => b.type === type) || { exercises: [], subSessions: [] };
 
   const BLOCKS = [
-    { id: "resumen",       label: "Resumen",                 Icon: BarChart2 },
-    { id: "calentamiento", label: BLOCK_LABELS.calentamiento, Icon: Flame,       blockType: "calentamiento" },
-    { id: "principal",     label: BLOCK_LABELS.principal,     Icon: ListChecks,  blockType: "principal" },
-    { id: "complementario",label: BLOCK_LABELS.complementario,Icon: Layers,      blockType: "complementario" },
-    { id: "vuelta_calma",  label: BLOCK_LABELS.vuelta_calma,  Icon: Wind,        blockType: "vuelta_calma" },
-    { id: "tareas",        label: "Diseñar tareas",           Icon: PencilRuler },
+    { id: "resumen",       label: "Resumen",                  Icon: BarChart2 },
+    { id: "calentamiento", label: BLOCK_LABELS.calentamiento, Icon: Flame,      blockType: "calentamiento" },
+    { id: "principal",     label: BLOCK_LABELS.principal,     Icon: ListChecks, blockType: "principal" },
+    { id: "tareas",        label: "Diseñar tareas",             Icon: PencilRuler },
   ];
 
   return (
@@ -1104,17 +1106,17 @@ function ClubSessionCard({
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left">
         <div className="p-5 flex items-center gap-4 hover:bg-depro-gray-light/30 transition-colors">
           {/* Chip sesión */}
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl font-black border"
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-sm font-black border"
             style={{ backgroundColor: st.bg, color: st.color, borderColor: st.color + "30" }}>
-            {sessionNumber || "•"}
+            {displayKey}
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-1">
-              {session.day && <span className="text-[10px] font-bold uppercase tracking-wider text-depro-gray">{session.day}</span>}
+              {session.assignedDay && <span className="text-[10px] font-bold uppercase tracking-wider text-depro-gray">{session.assignedDay}</span>}
               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border"
                 style={{ backgroundColor: st.bg, color: st.color, borderColor: st.color + "30" }}>
-                <StIcon size={9} /> {st.label}
+                <StIcon size={9} /> {displayKey} · {st.label}
               </span>
               {completion === 100 && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">
@@ -1122,7 +1124,7 @@ function ClubSessionCard({
                 </span>
               )}
             </div>
-            <h3 className="font-black text-depro-dark text-base leading-none mb-2">Sesión {sessionNumber}</h3>
+            <h3 className="font-black text-depro-dark text-base leading-none mb-2">{session.title || `Sesión ${displayKey}`}</h3>
             <div className="flex flex-wrap items-center gap-3">
               {session.duration && (
                 <span className="inline-flex items-center gap-1 text-xs text-depro-gray">
@@ -1184,7 +1186,7 @@ function ClubSessionCard({
                   </div>
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-0.5">Sesión del día</div>
-                    <div className="font-black text-depro-dark text-2xl leading-none">Sesión {sessionNumber}</div>
+                    <div className="font-black text-depro-dark text-2xl leading-none">{displayKey}</div>
                     <div className="text-sm font-semibold mt-1" style={{ color: st.color }}>{st.label}</div>
                   </div>
                 </div>
@@ -1223,9 +1225,11 @@ function ClubSessionCard({
                       } catch { /* ignore */ }
                     }
                     downloadSessionPdf({
-                      title: `Sesión ${sessionNumber}`,
+                      title: session.title || `Sesión ${displayKey}`,
                       subtitle: session.objective || session.title,
-                      blocks: blocks.map((b) => ({
+                      blocks: blocks
+                        .filter((b) => ADMIN_BLOCK_TYPES.includes(b.type))
+                        .map((b) => ({
                         label: b.label || BLOCK_LABELS[b.type],
                         duration: b.duration,
                         subSessions: b.subSessions,
@@ -1278,16 +1282,6 @@ function ClubSessionCard({
               />
             )}
 
-            {/* ── COMPLEMENTARIO ── */}
-            {activeBlock === "complementario" && (
-              <BlockExercisesPanel block={blockByType("complementario")} accentColor={accentColor} showBlockVideo />
-            )}
-
-            {/* ── VUELTA A LA CALMA ── */}
-            {activeBlock === "vuelta_calma" && (
-              <BlockExercisesPanel block={blockByType("vuelta_calma")} accentColor={accentColor} showBlockVideo />
-            )}
-
             {/* ── DISEÑAR TAREAS ── */}
             {activeBlock === "tareas" && (
               <DisenarTareas accentColor={accentColor} sessionType={sessionType} storageKey={taskStorageKey} />
@@ -1334,6 +1328,7 @@ function ClubMicrocycles({ accent }) {
   const [searchParams] = useSearchParams();
   const targetSessionId = searchParams.get("session");
   const targetTab = searchParams.get("tab") || "resumen";
+  const targetWeekParam = searchParams.get("week");
   const sessionRefs = useRef({});
   // Coordinador viendo equipo → tratar como entrenador de ese equipo
   const isCoordinator = !isReadOnly && (user?.team_role === "coordinador" || !user?.team);
@@ -1383,21 +1378,29 @@ function ClubMicrocycles({ accent }) {
     : { weeks: [] };
 
   const currentWeekIdx = micro ? getCurrentWeekIndex(micro.startDate, micro.endDate) : 0;
-  const safeWeekIdx = currentWeekIdx < 0 ? 0 : Math.min(currentWeekIdx, Math.max(mesoWeeksDistributed.length - 1, 0));
+  const defaultWeekIdx = currentWeekIdx < 0 ? 0 : currentWeekIdx;
+  const maxWeekIdx = Math.max(mesoWeeksDistributed.length - 1, 0);
+  const parsedWeek = targetWeekParam != null ? parseInt(targetWeekParam, 10) : null;
+  const viewWeekIdx = parsedWeek != null && !Number.isNaN(parsedWeek)
+    ? Math.min(Math.max(parsedWeek, 0), maxWeekIdx)
+    : Math.min(defaultWeekIdx, maxWeekIdx);
 
   const distributedWeekSessions = micro
     ? (mesoWeeksDistributed.length > 0
-        ? mesoWeeksDistributed[safeWeekIdx]?.sessions || []
+        ? mesoWeeksDistributed[viewWeekIdx]?.sessions || []
         : trainingDays.length > 0
           ? distributeWeekSessions(template, trainingDays)
           : template)
     : [];
 
+  const weekDateRange = micro?.startDate ? getWeekDateRange(micro.startDate, viewWeekIdx) : null;
+  const isViewingOtherWeek = parsedWeek != null && viewWeekIdx !== Math.min(defaultWeekIdx, maxWeekIdx);
+
   useEffect(() => {
     if (!targetSessionId || !distributedWeekSessions.length) return;
     const el = sessionRefs.current[targetSessionId];
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [targetSessionId, distributedWeekSessions]);
+  }, [targetSessionId, distributedWeekSessions, viewWeekIdx]);
 
   if (!micro) return (
     <div className="p-8 text-center text-depro-gray">
@@ -1407,7 +1410,7 @@ function ClubMicrocycles({ accent }) {
   );
 
 
-  const currentWeekCombination = mesoWeeksDistributed[safeWeekIdx]?.combination || "";
+  const currentWeekCombination = mesoWeeksDistributed[viewWeekIdx]?.combination || "";
 
   const totalCompletion = Math.round(
     distributedWeekSessions.reduce((acc, s) => acc + (s.completion ?? 0), 0) / Math.max(distributedWeekSessions.length, 1)
@@ -1425,18 +1428,25 @@ function ClubMicrocycles({ accent }) {
         <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Microciclo</h1>
         <p className="text-depro-gray text-sm">
           {isCoordinator
-            ? "Todos los equipos · Filtra por mesociclo"
+            ? "Semana actual del mesociclo"
             : `${activeTeam?.name || ""}${userTeamCategory ? ` (${userTeamCategory})` : ""}${userAgeBlock ? ` · ${userAgeBlock}` : ""}`}
         </p>
-        {!isCoordinator && micro.startDate && (
-          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-depro-blue-light/40 border border-depro-blue/20 text-xs">
+        {!isCoordinator && micro.startDate && weekDateRange?.start && (
+          <div className="mt-2 inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-xl bg-depro-blue-light/40 border border-depro-blue/20 text-xs">
             <Calendar size={11} className="text-depro-blue" />
-            <span className="text-depro-dark font-bold">Semana {safeWeekIdx + 1}</span>
+            <span className="text-depro-dark font-bold">Semana {viewWeekIdx + 1}</span>
             {currentWeekCombination && (
               <span className="font-black text-depro-blue">{currentWeekCombination}</span>
             )}
+            <span className="text-depro-gray">{formatDate(weekDateRange.start)} → {formatDate(weekDateRange.end)}</span>
             <span className="text-depro-gray">· {micro.label}</span>
-            <span className="text-depro-gray">· {formatDate(micro.startDate)} → {formatDate(micro.endDate)}</span>
+          </div>
+        )}
+        {isViewingOtherWeek && (
+          <div className="mt-2">
+            <Link to="/dashboard/plan" className="text-xs font-bold text-depro-blue hover:underline">
+              ← Volver a la semana actual
+            </Link>
           </div>
         )}
       </div>
@@ -1466,18 +1476,21 @@ function ClubMicrocycles({ accent }) {
         })}
       </div>
 
-      {/* Resumen del microciclo */}
+      {/* Resumen semanal (solo esta semana) */}
       <div
         className="rounded-2xl p-5 mb-6 flex items-center gap-5"
         style={{ background: `linear-gradient(135deg, ${accent}14 0%, ${accent}04 100%)`, border: `1px solid ${accent}25` }}
       >
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-base font-black flex-shrink-0" style={{ backgroundColor: accent + "20", color: accent }}>
-          {micro.code}
+          S{viewWeekIdx + 1}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-bold text-depro-gray uppercase tracking-wide">{micro.label}</div>
-          <div className="font-black text-depro-dark">{micro.focus}</div>
-          <div className="text-xs text-depro-gray">{micro.range}</div>
+          <div className="text-xs font-bold text-depro-gray uppercase tracking-wide">Semana {viewWeekIdx + 1} del mesociclo</div>
+          <div className="font-black text-depro-dark">{micro.label}</div>
+          <div className="text-xs text-depro-gray">
+            {weekDateRange?.start ? `${formatDate(weekDateRange.start)} → ${formatDate(weekDateRange.end)}` : micro.range}
+            {currentWeekCombination ? ` · ${currentWeekCombination}` : ""}
+          </div>
         </div>
         <div className="text-right">
           <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">Avance</div>
@@ -1503,9 +1516,11 @@ function ClubMicrocycles({ accent }) {
       {/* Sesiones distribuidas */}
       <div className="space-y-4">
         {distributedWeekSessions.map((s, idx) => {
-          const sType = getPeriodizationSessionType(s.intensity);
+          const sType = s.framework || getPeriodizationSessionType(s.intensity);
+          const displayKey = getSessionDisplayKey(s);
           const typeColors = { A: "#3B82F6", B: "#F59E0B", C: "#EF4444", D: "#10B981" };
           const taskKey = clubId && userTeamId ? `depro_club_tasks_${clubId}_${userTeamId}_${s.id || idx}` : null;
+          const matchesTarget = sessionMatchesTarget(s, targetSessionId);
           return (
             <div key={s.id || idx}>
               {s.assignedDay && !isCoordinator && (
@@ -1515,7 +1530,7 @@ function ClubMicrocycles({ accent }) {
                   </span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
                     style={{ backgroundColor: (typeColors[sType] ?? accent) + "18", color: typeColors[sType] ?? accent }}>
-                    Sesión {sType}
+                    {displayKey} · {ST[sType]?.label || "Sesión"}
                   </span>
                   <span className="text-[10px] text-depro-gray hidden sm:block">{getDayRationale(s.assignedDay, sType)}</span>
                 </div>
@@ -1526,9 +1541,12 @@ function ClubMicrocycles({ accent }) {
                 sessionNumber={idx + 1}
                 readOnly={isReadOnly}
                 taskStorageKey={taskKey}
-                initialExpanded={targetSessionId === String(s.id)}
-                initialTab={targetSessionId === String(s.id) ? targetTab : "resumen"}
-                cardRef={(el) => { if (s.id) sessionRefs.current[s.id] = el; }}
+                initialExpanded={matchesTarget}
+                initialTab={matchesTarget ? targetTab : "resumen"}
+                cardRef={(el) => {
+                  if (s.id) sessionRefs.current[s.id] = el;
+                  if (s._sourceTemplateId) sessionRefs.current[s._sourceTemplateId] = el;
+                }}
               />
             </div>
           );

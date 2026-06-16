@@ -207,6 +207,17 @@ export function getWeekStartDate(mesocicloStartDate, weekIndex) {
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
+/** Rango de fechas (YYYY-MM-DD) de la semana N dentro del mesociclo */
+export function getWeekDateRange(startDate, weekIndex = 0) {
+  if (!startDate) return { start: null, end: null };
+  const weekStart = new Date(startDate + "T00:00:00");
+  weekStart.setDate(weekStart.getDate() + weekIndex * 7);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  return { start: fmt(weekStart), end: fmt(weekEnd) };
+}
+
 /**
  * Devuelve si el mesociclo está activo hoy.
  */

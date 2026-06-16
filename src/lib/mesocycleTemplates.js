@@ -75,6 +75,11 @@ function mesocicloWeekCount(startDate, endDate) {
   return Math.max(1, Math.ceil(diffDays / 7));
 }
 
+export function getSessionDisplayKey(session) {
+  const s = ensureSessionTemplateFields(session);
+  return s.templateKey || s.framework || "A1";
+}
+
 export function ensureSessionTemplateFields(session) {
   if (!session) return session;
   const framework = session.framework || frameworkFromIntensity(session.intensity);
