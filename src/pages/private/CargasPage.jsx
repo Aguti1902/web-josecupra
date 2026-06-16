@@ -23,20 +23,45 @@ function calcLoad(volumen, rpe, especificidad) {
   return v * r * e;
 }
 
-function trafficLight(load) {
-  if (!load) return { color: "#9CA3AF", label: "—", bg: "#F3F4F6" };
-  if (load < 200) return { color: "#22C55E", label: "Baja",    bg: "#F0FDF4" };
-  if (load < 400) return { color: "#F59E0B", label: "Media",   bg: "#FFFBEB" };
-  if (load < 700) return { color: "#EF4444", label: "Alta",    bg: "#FEF2F2" };
+/** sRPE clásico (Foster): minutos × RPE — referencia para clasificar la sesión */
+function calcSrpe(volumen, rpe) {
+  return (parseFloat(volumen) || 0) * (parseFloat(rpe) || 0);
+}
+
+/**
+ * Semáforo por sesión — basado en sRPE (min × RPE), estándar en fútbol.
+ * La carga mostrada sigue siendo Volumen × RPE × Especificidad.
+ */
+function sessionTrafficLight(volumen, rpe) {
+  const srpe = calcSrpe(volumen, rpe);
+  if (!srpe) return { color: "#9CA3AF", label: "—", bg: "#F3F4F6" };
+  if (srpe < 250) return { color: "#22C55E", label: "Baja",    bg: "#F0FDF4" };
+  if (srpe < 450) return { color: "#F59E0B", label: "Media",   bg: "#FFFBEB" };
+  if (srpe < 650) return { color: "#EF4444", label: "Alta",    bg: "#FEF2F2" };
   return              { color: "#7C3AED", label: "Muy alta", bg: "#F5F3FF" };
 }
 
-function weeklyLoadLabel(total) {
-  if (!total) return "Sin datos";
-  if (total < 600)  return "Carga semanal baja";
-  if (total < 1200) return "Carga semanal media";
-  if (total < 2000) return "Carga semanal alta";
-  return "Carga semanal muy alta";
+/** Semáforo semanal — carga acumulada DEPRO escalada por días de entreno del equipo */
+function weeklyTrafficLight(total, trainingDaysCount = 3) {
+  if (!total) return { color: "#9CA3AF", label: "Sin datos", bg: "#F3F4F6" };
+  const n = Math.max(trainingDaysCount || 3, 2);
+  const low  = n * 550;
+  const med  = n * 1050;
+  const high = n * 1700;
+  if (total < low)  return { color: "#22C55E", label: "Carga semanal baja",    bg: "#F0FDF4" };
+  if (total < med)  return { color: "#F59E0B", label: "Carga semanal media",   bg: "#FFFBEB" };
+  if (total < high) return { color: "#EF4444", label: "Carga semanal alta",    bg: "#FEF2F2" };
+  return              { color: "#7C3AED", label: "Carga semanal muy alta", bg: "#F5F3FF" };
+}
+
+function getVisibleSessions(trainingDaysCount) {
+  return SESSIONS.filter((s) => s.key !== "d" || trainingDaysCount >= 4);
+}
+
+function getWeekSessionKeys(trainingDaysCount) {
+  const keys = ["partido", "a", "b", "c"];
+  if (trainingDaysCount >= 4) keys.push("d");
+  return keys;
 }
 
 const STORAGE_KEY = (clubId, teamId) => `depro_cargas_${clubId}_${teamId}`;
@@ -86,8 +111,8 @@ function Tooltip({ text, children }) {
 }
 
 /* ── Semáforo badge ─────────────────────────────────────────── */
-function LoadBadge({ load }) {
-  const tl = trafficLight(load);
+function LoadBadge({ load, volumen, rpe }) {
+  const tl = sessionTrafficLight(volumen, rpe);
   if (!load) return <span className="text-depro-gray/40">—</span>;
   return (
     <span className="font-black text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: tl.bg, color: tl.color }}>
@@ -152,7 +177,7 @@ function TeamSessionEditor({ session, entry, onChange, readOnly }) {
       </div>
       {load > 0 && (
         <div className="flex items-center justify-end">
-          <LoadBadge load={load} />
+          <LoadBadge load={load} volumen={entry.volumen} rpe={entry.rpe} />
         </div>
       )}
     </div>
@@ -230,7 +255,7 @@ function PlayersSessionEditor({ session, entry, players, onChange, readOnly }) {
               {players.map((player) => {
                 const pd   = getPlayer(player.id);
                 const load = calcLoad(pd.minutos, pd.rpe, especComun || 3);
-                const tl   = trafficLight(load);
+                const tl   = sessionTrafficLight(pd.minutos, pd.rpe);
                 return (
                   <tr key={player.id} className="border-b border-depro-border/50 hover:bg-depro-gray-light/20 transition-colors">
                     <td className="px-4 py-2.5">
@@ -294,10 +319,14 @@ function PlayersSessionEditor({ session, entry, players, onChange, readOnly }) {
                   </td>
                   <td className="px-3 py-2 text-center">
                     {(() => {
-                      const loads = players.map((p) => { const pd = getPlayer(p.id); return calcLoad(pd.minutos, pd.rpe, especComun || 3); }).filter(Boolean);
-                      if (!loads.length) return null;
-                      const avg = loads.reduce((a,b)=>a+b,0)/loads.length;
-                      const tl = trafficLight(avg);
+                      const withData = players.filter((p) => {
+                        const pd = getPlayer(p.id);
+                        return calcSrpe(pd.minutos, pd.rpe) > 0;
+                      });
+                      if (!withData.length) return null;
+                      const avgMin = withData.reduce((s, p) => s + (parseFloat(getPlayer(p.id).minutos) || 0), 0) / withData.length;
+                      const avgRpe = withData.reduce((s, p) => s + (parseFloat(getPlayer(p.id).rpe) || 0), 0) / withData.length;
+                      const tl = sessionTrafficLight(avgMin, avgRpe);
                       return <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: tl.color }} title={tl.label} />;
                     })()}
                   </td>
@@ -338,10 +367,17 @@ export default function CargasPage() {
   }
 
   const storageKey = STORAGE_KEY(club?.id || "x", team?.id || "y");
+  const trainingDaysCount = team?.trainingDays?.length || 3;
+  const visibleSessions = getVisibleSessions(trainingDaysCount);
+  const weekSessionKeys = getWeekSessionKeys(trainingDaysCount);
 
   // ── Selector principal ───────────────────────────────────
   const [scope, setScope]         = useState("equipo"); // "equipo" | "jugadores"
   const [activeSession, setActiveSession] = useState("partido");
+
+  const resolvedSession = visibleSessions.some((s) => s.key === activeSession)
+    ? activeSession
+    : visibleSessions.find((s) => !s.isPartido)?.key || "a";
 
   // ── Datos ────────────────────────────────────────────────
   const [allData, setAllData] = useState(() => {
@@ -406,11 +442,11 @@ export default function CargasPage() {
   }, [club?.id, team?.id]);
 
   // ── Carga total semanal ──────────────────────────────────
-  const weekLoad = ["partido","a","b","c","d"].reduce((sum, key) => {
+  const weekLoad = weekSessionKeys.reduce((sum, key) => {
     const e = currentWeekData[key] || {};
     return sum + calcLoad(e.volumen, e.rpe, e.especificidad);
   }, 0);
-  const weekLoadTL = trafficLight(weekLoad);
+  const weekLoadTL = weeklyTrafficLight(weekLoad, trainingDaysCount);
 
   // ── Vista mensual ────────────────────────────────────────
   const [viewMonth, setViewMonth] = useState(new Date().getMonth());
@@ -424,7 +460,7 @@ export default function CargasPage() {
     return d.toLocaleDateString("es-ES", { day:"numeric", month:"short" });
   }
 
-  const activeSessionDef = SESSIONS.find((s) => s.key === activeSession) || SESSIONS[0];
+  const activeSessionDef = visibleSessions.find((s) => s.key === resolvedSession) || visibleSessions[0];
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
@@ -473,7 +509,7 @@ export default function CargasPage() {
           <div className="flex-1">
             <p className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2">Sesión</p>
             <div className="flex flex-wrap gap-2">
-              {SESSIONS.map((s) => (
+              {visibleSessions.map((s) => (
                 <button
                   key={s.key}
                   onClick={() => setActiveSession(s.key)}
@@ -527,7 +563,7 @@ export default function CargasPage() {
         {weekLoad > 0 && (
           <div className="px-5 py-2.5 border-b border-depro-border flex items-center gap-3 bg-depro-gray-light/10">
             <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: weekLoadTL.color }} />
-            <span className="text-sm font-bold text-depro-dark">{weeklyLoadLabel(weekLoad)}</span>
+            <span className="text-sm font-bold text-depro-dark">{weekLoadTL.label}</span>
             <span className="text-xs text-depro-gray ml-auto">Total semana: <strong>{Math.round(weekLoad)}</strong></span>
           </div>
         )}
@@ -544,16 +580,16 @@ export default function CargasPage() {
           {scope === "equipo" ? (
             <TeamSessionEditor
               session={activeSessionDef}
-              entry={currentWeekData[activeSession] || {}}
-              onChange={(e) => updateSession(activeSession, e)}
+              entry={currentWeekData[resolvedSession] || {}}
+              onChange={(e) => updateSession(resolvedSession, e)}
               readOnly={isReadOnly}
             />
           ) : (
             <PlayersSessionEditor
               session={activeSessionDef}
-              entry={currentWeekData[activeSession] || {}}
+              entry={currentWeekData[resolvedSession] || {}}
               players={players}
-              onChange={(e) => updateSession(activeSession, e)}
+              onChange={(e) => updateSession(resolvedSession, e)}
               readOnly={isReadOnly}
             />
           )}
@@ -583,7 +619,9 @@ export default function CargasPage() {
                 <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">A</th>
                 <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">B</th>
                 <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">C</th>
-                <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">D</th>
+                {trainingDaysCount >= 4 && (
+                  <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">D</th>
+                )}
                 <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">Total</th>
               </tr>
             </thead>
@@ -591,17 +629,20 @@ export default function CargasPage() {
               {monthWeeks.map((week, wi) => {
                 const key = isoWeekKey(week.start);
                 const wd  = allData[key] || {};
-                const sessions = { partido: wd.partido||{}, a: wd.a||{}, b: wd.b||{}, c: wd.c||{}, d: wd.d||{} };
-                const total = Object.values(sessions).reduce((s,e) => s + calcLoad(e.volumen,e.rpe,e.especificidad), 0);
-                const tl  = trafficLight(total);
+                const sessions = weekSessionKeys.reduce((acc, k) => {
+                  acc[k] = wd[k] || {};
+                  return acc;
+                }, {});
+                const total = Object.values(sessions).reduce((s, e) => s + calcLoad(e.volumen, e.rpe, e.especificidad), 0);
+                const tl  = weeklyTrafficLight(total, trainingDaysCount);
                 const fmt = (s,e) => `${s.getDate()}/${s.getMonth()+1} – ${e.getDate()}/${e.getMonth()+1}`;
                 return (
                   <tr key={wi} className="border-b border-depro-border/50 hover:bg-depro-gray-light/20 transition-colors">
                     <td className="px-4 py-3 text-depro-gray font-medium">{fmt(week.start, week.end)}</td>
-                    {["partido","a","b","c","d"].map(k => {
+                    {weekSessionKeys.map((k) => {
                       const e = sessions[k];
                       const l = calcLoad(e.volumen, e.rpe, e.especificidad);
-                      const t = trafficLight(l);
+                      const t = sessionTrafficLight(e.volumen, e.rpe);
                       return (
                         <td key={k} className="px-3 py-3 text-center">
                           {l > 0 ? (
