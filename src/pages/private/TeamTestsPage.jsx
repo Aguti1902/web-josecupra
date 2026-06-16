@@ -5,6 +5,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
+import {
+  RATING_LEGEND, getEvalValues, loadSeasonData, saveSeasonData,
+  getRatingForEval, getLastEvalInfo,
+} from "../../lib/teamTestRatings";
 
 /* ── Helper: cargar config de tests del admin ─────────────── */
 function loadAdminTests() {
@@ -30,14 +34,10 @@ function getYouTubeId(url) {
 
 /* ── Definición de tests ───────────────────────────────────── */
 const TESTS = [
-  { id: "resistencia", name: "Resistencia", unit: "rectas", color: "#3B82F6", higher_is_better: true,  placeholder: "14",
-    ranges: [{ label: "Bajo", max: 8, color: "#EF4444" }, { label: "Medio", max: 15, color: "#F59E0B" }, { label: "Bueno", max: 22, color: "#3B82F6" }, { label: "Excelente", max: Infinity, color: "#22C55E" }] },
-  { id: "sprint",      name: "Sprint",      unit: "seg",    color: "#EF4444", higher_is_better: false, placeholder: "2.85",
-    ranges: [{ label: "Excelente", max: 2.6, color: "#22C55E" }, { label: "Bueno", max: 3.0, color: "#3B82F6" }, { label: "Medio", max: 3.5, color: "#F59E0B" }, { label: "Bajo", max: Infinity, color: "#EF4444" }] },
-  { id: "cod",         name: "COD",         unit: "seg",    color: "#8B5CF6", higher_is_better: false, placeholder: "4.72",
-    ranges: [{ label: "Excelente", max: 4.4, color: "#22C55E" }, { label: "Bueno", max: 5.0, color: "#3B82F6" }, { label: "Medio", max: 5.6, color: "#F59E0B" }, { label: "Bajo", max: Infinity, color: "#EF4444" }] },
-  { id: "cmj",         name: "CMJ",         unit: "cm",     color: "#22C55E", higher_is_better: true,  placeholder: "38",
-    ranges: [{ label: "Bajo", max: 25, color: "#EF4444" }, { label: "Medio", max: 35, color: "#F59E0B" }, { label: "Bueno", max: 45, color: "#3B82F6" }, { label: "Excelente", max: Infinity, color: "#22C55E" }] },
+  { id: "resistencia", name: "Resistencia", unit: "rectas", color: "#3B82F6", higher_is_better: true,  placeholder: "14" },
+  { id: "sprint",      name: "Sprint",      unit: "seg",    color: "#EF4444", higher_is_better: false, placeholder: "2.85" },
+  { id: "cod",         name: "COD",         unit: "seg",    color: "#8B5CF6", higher_is_better: false, placeholder: "4.72" },
+  { id: "cmj",         name: "CMJ",         unit: "cm",     color: "#22C55E", higher_is_better: true,  placeholder: "38" },
 ];
 
 const EVALS = ["T1", "T2", "T3"]; // 3 evaluaciones por temporada
@@ -51,36 +51,6 @@ function safeAccent(hex) { return lum(hex) > 0.75 ? "#0A36F7" : (hex || "#0A36F7
 function contrastText(hex) { return lum(hex) > 0.55 ? "#111827" : "#ffffff"; }
 
 /* ── Helpers de datos ─────────────────────────────────────── */
-// key: depro_season_tests_{playerId}  → { resistencia: ["14","",""], sprint: [...], ... }
-function seasonKey(playerId) { return `depro_season_tests_${playerId}`; }
-function loadSeasonData(playerId) {
-  try {
-    const raw = localStorage.getItem(seasonKey(playerId));
-    if (!raw) return {};
-    return JSON.parse(raw);
-  } catch { return {}; }
-}
-function saveSeasonData(playerId, data) {
-  localStorage.setItem(seasonKey(playerId), JSON.stringify(data));
-}
-function getEvalValues(playerId, testId) {
-  // Devuelve array de 3 posiciones: ["val1", "val2", ""] ó ["","",""]
-  const d = loadSeasonData(playerId);
-  return d[testId] || ["", "", ""];
-}
-function setEvalValue(playerId, testId, evalIdx, value) {
-  const d = loadSeasonData(playerId);
-  const arr = d[testId] || ["", "", ""];
-  arr[evalIdx] = value;
-  d[testId] = arr;
-  saveSeasonData(playerId, d);
-}
-
-function getRange(test, val) {
-  const n = parseFloat(val);
-  if (isNaN(n)) return null;
-  return test.ranges.find((r) => n < r.max) || test.ranges[test.ranges.length - 1];
-}
 
 function getDelta(test, vals) {
   // Retorna delta entre los últimos dos valores registrados
@@ -95,7 +65,7 @@ function getDelta(test, vals) {
 }
 
 /* ── Sparkline 3 puntos ───────────────────────────────────── */
-function Sparkline3({ vals, test, width = 160, height = 60 }) {
+function Sparkline3({ vals, test, playerIds, width = 160, height = 60 }) {
   const points = vals
     .map((v, i) => ({ i, v: parseFloat(v), empty: v === "" || isNaN(parseFloat(v)) }));
   const filled = points.filter((p) => !p.empty);
@@ -153,7 +123,7 @@ function Sparkline3({ vals, test, width = 160, height = 60 }) {
       {[0,1,2].map((i) => {
         const { x, y } = toXY(i);
         const hasVal = vals[i] !== "" && !isNaN(parseFloat(vals[i]));
-        const r = hasVal ? getRange(test, vals[i]) : null;
+        const r = hasVal ? getRatingForEval(test, vals[i], playerIds, i) : null;
         return (
           <g key={i}>
             {hasVal ? (
@@ -179,7 +149,7 @@ function Sparkline3({ vals, test, width = 160, height = 60 }) {
 }
 
 /* ── Panel evolutivo de un jugador (expandido) ───────────── */
-function PlayerEvolutionPanel({ player, accent, onEdit }) {
+function PlayerEvolutionPanel({ player, accent, playerIds, onEdit }) {
   return (
     <div className="border-t border-depro-border bg-gray-50/60 px-5 py-4">
       <div className="flex items-center justify-between mb-4">
@@ -220,12 +190,12 @@ function PlayerEvolutionPanel({ player, accent, onEdit }) {
               </div>
 
               {/* Gráfica */}
-              <Sparkline3 vals={vals} test={t} width={140} height={56} />
+              <Sparkline3 vals={vals} test={t} playerIds={playerIds} width={140} height={56} />
 
               {/* Tabla T1/T2/T3 */}
               <div className="mt-2 grid grid-cols-3 gap-1">
                 {vals.map((v, i) => {
-                  const r = v !== "" && !isNaN(parseFloat(v)) ? getRange(t, v) : null;
+                  const r = v !== "" && !isNaN(parseFloat(v)) ? getRatingForEval(t, v, playerIds, i) : null;
                   return (
                     <div key={i} className="text-center rounded-lg py-1.5" style={{ backgroundColor: r ? r.color + "12" : "#F9FAFB" }}>
                       <div className="text-[9px] font-bold text-depro-gray">{EVALS[i]}</div>
@@ -254,7 +224,7 @@ function PlayerEvolutionPanel({ player, accent, onEdit }) {
 }
 
 /* ── Modal para registrar/editar las 3 marcas de un jugador ── */
-function EditMarksModal({ player, accent, onClose, onSave }) {
+function EditMarksModal({ player, accent, players, onClose, onSave }) {
   const [inputs, setInputs] = useState(() => {
     const d = loadSeasonData(player.id);
     const init = {};
@@ -262,9 +232,10 @@ function EditMarksModal({ player, accent, onClose, onSave }) {
     return init;
   });
 
+  const playerIds = players.map((p) => p.id);
+
   const handleSave = () => {
     TESTS.forEach((t) => {
-      setEvalValue; // ensure fn is referenced
       const d = loadSeasonData(player.id);
       d[t.id] = inputs[t.id];
       saveSeasonData(player.id, d);
@@ -306,7 +277,9 @@ function EditMarksModal({ player, accent, onClose, onSave }) {
               <div className="grid grid-cols-3 gap-3">
                 {EVALS.map((label, i) => {
                   const val = inputs[t.id]?.[i] || "";
-                  const range = val !== "" && !isNaN(parseFloat(val)) ? getRange(t, val) : null;
+                  const range = val !== "" && !isNaN(parseFloat(val))
+                    ? getRatingForEval(t, val, playerIds, i, player.id, val)
+                    : null;
                   return (
                     <div key={i}>
                       <label className="text-xs font-bold text-depro-gray mb-1 block">{label}</label>
@@ -448,15 +421,16 @@ export default function TeamTestsPage() {
         </p>
       </div>
 
-      {/* Leyenda */}
+      {/* Leyenda — vs media del equipo */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5">
-        {[{ label: "Excelente", color: "#22C55E" }, { label: "Bueno", color: "#3B82F6" }, { label: "Medio", color: "#F59E0B" }, { label: "Bajo", color: "#EF4444" }].map((l) => (
+        {RATING_LEGEND.map((l) => (
           <div key={l.label} className="flex items-center gap-1.5 text-xs text-depro-gray">
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: l.color }} />
             {l.label}
+            <span className="text-depro-gray/50">({l.hint})</span>
           </div>
         ))}
-        <span className="text-xs text-depro-gray/60">· T1 = 1ª eval · T2 = 2ª eval · T3 = 3ª eval</span>
+        <span className="text-xs text-depro-gray/60 w-full sm:w-auto">· Comparado con la media del equipo · T1 / T2 / T3</span>
       </div>
 
       {/* Tabla comparativa */}
@@ -517,8 +491,11 @@ export default function TeamTestsPage() {
                   const vals  = getEvalValues(player.id, t.id);
                   const delta = getDelta(t, vals);
                   // Última marca registrada
-                  const lastVal = [...vals].reverse().find((v) => v !== "" && !isNaN(parseFloat(v)));
-                  const range   = lastVal ? getRange(t, lastVal) : null;
+                  const lastInfo = getLastEvalInfo(vals);
+                  const lastVal  = lastInfo?.value;
+                  const range    = lastVal && lastInfo
+                    ? getRatingForEval(t, lastVal, players.map((p) => p.id), lastInfo.idx)
+                    : null;
 
                   return (
                     <button
@@ -535,7 +512,9 @@ export default function TeamTestsPage() {
                           {/* Mini pills T1/T2/T3 */}
                           <div className="flex items-center gap-0.5 mt-1.5">
                             {vals.map((v, i) => {
-                              const r = v !== "" && !isNaN(parseFloat(v)) ? getRange(t, v) : null;
+                              const r = v !== "" && !isNaN(parseFloat(v))
+                                ? getRatingForEval(t, v, players.map((p) => p.id), i)
+                                : null;
                               return (
                                 <div
                                   key={i}
@@ -573,6 +552,7 @@ export default function TeamTestsPage() {
                 <PlayerEvolutionPanel
                   player={player}
                   accent={accent}
+                  playerIds={players.map((p) => p.id)}
                   onEdit={isReadOnly ? null : (p) => setEditing(p)}
                 />
               )}
@@ -702,6 +682,7 @@ export default function TeamTestsPage() {
         <EditMarksModal
           player={editingPlayer}
           accent={accent}
+          players={players}
           onClose={() => setEditing(null)}
           onSave={() => { setTick((v) => v + 1); setExpanded(editingPlayer.id); }}
         />

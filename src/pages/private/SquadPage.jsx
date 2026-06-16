@@ -8,6 +8,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
+import { getEvalValues, getRatingForEval } from "../../lib/teamTestRatings";
 
 // ── Constantes ───────────────────────────────────────────────
 const POSITIONS = [
@@ -217,27 +218,18 @@ const POS_GROUPS = {
 };
 
 const TESTS_FULL = [
-  { id: "resistencia", name: "Resistencia aeróbica", unit: "rectas", color: "#3B82F6", higher_is_better: true,
-    ranges: [{ label: "Bajo", max: 8, color: "#EF4444" }, { label: "Medio", max: 15, color: "#F59E0B" }, { label: "Bueno", max: 22, color: "#3B82F6" }, { label: "Excelente", max: Infinity, color: "#22C55E" }] },
-  { id: "sprint", name: "Sprint lineal", unit: "seg", color: "#EF4444", higher_is_better: false,
-    ranges: [{ label: "Excelente", max: 2.6, color: "#22C55E" }, { label: "Bueno", max: 3.0, color: "#3B82F6" }, { label: "Medio", max: 3.5, color: "#F59E0B" }, { label: "Bajo", max: Infinity, color: "#EF4444" }] },
-  { id: "cod", name: "COD 5-10-5", unit: "seg", color: "#8B5CF6", higher_is_better: false,
-    ranges: [{ label: "Excelente", max: 4.4, color: "#22C55E" }, { label: "Bueno", max: 5.0, color: "#3B82F6" }, { label: "Medio", max: 5.6, color: "#F59E0B" }, { label: "Bajo", max: Infinity, color: "#EF4444" }] },
-  { id: "cmj", name: "Salto CMJ", unit: "cm", color: "#22C55E", higher_is_better: true,
-    ranges: [{ label: "Bajo", max: 25, color: "#EF4444" }, { label: "Medio", max: 35, color: "#F59E0B" }, { label: "Bueno", max: 45, color: "#3B82F6" }, { label: "Excelente", max: Infinity, color: "#22C55E" }] },
+  { id: "resistencia", name: "Resistencia aeróbica", unit: "rectas", color: "#3B82F6", higher_is_better: true },
+  { id: "sprint", name: "Sprint lineal", unit: "seg", color: "#EF4444", higher_is_better: false },
+  { id: "cod", name: "COD 5-10-5", unit: "seg", color: "#8B5CF6", higher_is_better: false },
+  { id: "cmj", name: "Salto CMJ", unit: "cm", color: "#22C55E", higher_is_better: true },
 ];
 
 const EVAL_LABELS = ["T1", "T2", "T3"];
 
-function seasonTestsKey(playerId) { return `depro_season_tests_${playerId}`; }
 function loadSeasonTests(playerId) {
-  try { return JSON.parse(localStorage.getItem(seasonTestsKey(playerId)) || "{}"); }
-  catch { return {}; }
-}
-function getTestRange(test, value) {
-  const n = parseFloat(value);
-  if (isNaN(n)) return null;
-  return test.ranges.find((r) => n <= r.max) || test.ranges[test.ranges.length - 1];
+  const d = {};
+  TESTS_FULL.forEach((t) => { d[t.id] = getEvalValues(playerId, t.id); });
+  return d;
 }
 function playerHasAnyTests(playerId) {
   const season = loadSeasonTests(playerId);
@@ -250,14 +242,17 @@ function playerHasAnyTests(playerId) {
   });
   return hasSeason || hasPremium;
 }
-function matchesAgeBand(age, band) {
-  if (!band || band === FILTER_ALL) return true;
-  const n = Number(age);
-  if (!age || isNaN(n)) return false;
-  if (band === "≤12") return n <= 12;
-  if (band === "13-15") return n >= 13 && n <= 15;
-  if (band === "≥16") return n >= 16;
-  return true;
+
+function filterPillClass(active) {
+  const base = "text-xs font-bold px-3 py-1.5 rounded-full border transition-all";
+  if (!active) return `${base} border-depro-border text-depro-gray bg-depro-gray-light/40 hover:border-depro-gray/50 hover:text-depro-dark`;
+  return base;
+}
+
+function filterPillStyle(active, sa, ctFn, variant = "soft") {
+  if (!active) return undefined;
+  if (variant === "solid") return { backgroundColor: sa, color: ctFn(sa), borderColor: sa };
+  return { backgroundColor: sa + "15", color: sa, borderColor: sa + "35" };
 }
 
 function weekKey() {
@@ -304,8 +299,9 @@ function loadPlayerStats(playerId) {
 }
 
 // ── Modal ficha completa del jugador ────────────────────────
-function PlayerDetailModal({ player, onClose, sa, onEdit }) {
+function PlayerDetailModal({ player, onClose, sa, onEdit, teamPlayers = [] }) {
   const stats = useMemo(() => loadPlayerStats(player.id), [player.id]);
+  const teamIds = useMemo(() => teamPlayers.map((p) => p.id), [teamPlayers]);
   const pct   = stats.totalSessions > 0
     ? Math.round((stats.completedSessions / stats.totalSessions) * 100) : 0;
   const posColor = POSITION_COLORS[player.position] || sa;
@@ -402,9 +398,10 @@ function PlayerDetailModal({ player, onClose, sa, onEdit }) {
 
           {/* Tests de temporada (entrenador) */}
           <section>
-            <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-1">
               <Activity size={12} /> Tests físicos · Temporada (T1 / T2 / T3)
             </h3>
+            <p className="text-[10px] text-depro-gray mb-3">Colores y etiquetas según la media del equipo en cada evaluación</p>
             {hasSeasonData ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {stats.seasonTests.map((t) => (
@@ -416,7 +413,9 @@ function PlayerDetailModal({ player, onClose, sa, onEdit }) {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {t.evals.map((v, i) => {
-                        const r = v !== "" && !isNaN(parseFloat(v)) ? getTestRange(t, v) : null;
+                        const r = v !== "" && !isNaN(parseFloat(v)) && teamIds.length
+                          ? getRatingForEval(t, v, teamIds, i)
+                          : null;
                         return (
                           <div key={i} className="text-center rounded-lg py-2" style={{ backgroundColor: r ? r.color + "12" : "#F9FAFB" }}>
                             <div className="text-[9px] font-bold text-depro-gray">{EVAL_LABELS[i]}</div>
@@ -543,7 +542,6 @@ export default function SquadPage() {
   const [posFilter, setPosFilter]   = useState(FILTER_ALL);
   const [teamFilter, setTeamFilter] = useState("todos");
   const [posGroupFilter, setPosGroupFilter] = useState(FILTER_ALL);
-  const [ageFilter, setAgeFilter]   = useState(FILTER_ALL);
   const [sourceFilter, setSourceFilter] = useState(FILTER_ALL);
   const [testsFilter, setTestsFilter]   = useState(FILTER_ALL);
   const [sortBy, setSortBy]         = useState("nombre");
@@ -679,7 +677,6 @@ export default function SquadPage() {
       const matchTeam   = !isCoord || teamFilter === "todos" || p._teamId === teamFilter;
       const groupPos    = POS_GROUPS[posGroupFilter];
       const matchGroup  = !groupPos || groupPos.includes(p.position);
-      const matchAge    = matchesAgeBand(p.age, ageFilter);
       const matchSource = sourceFilter === FILTER_ALL
         || (sourceFilter === "Manual" && p._source === "manual")
         || (sourceFilter === "Registrado" && p._source === "registered");
@@ -687,7 +684,7 @@ export default function SquadPage() {
       const matchTests  = testsFilter === FILTER_ALL
         || (testsFilter === "Con tests" && hasTests)
         || (testsFilter === "Sin tests" && !hasTests);
-      return matchSearch && matchPos && matchTeam && matchGroup && matchAge && matchSource && matchTests;
+      return matchSearch && matchPos && matchTeam && matchGroup && matchSource && matchTests;
     });
 
     list = [...list].sort((a, b) => {
@@ -700,7 +697,7 @@ export default function SquadPage() {
       return cmp;
     });
     return list;
-  }, [unifiedPlayers, search, posFilter, teamFilter, posGroupFilter, ageFilter, sourceFilter, testsFilter, sortBy, isCoord]);
+  }, [unifiedPlayers, search, posFilter, teamFilter, posGroupFilter, sourceFilter, testsFilter, sortBy, isCoord]);
 
   // ── Estadísticas (manual + registrados) ──────────────────
   const stats = useMemo(() => {
@@ -815,7 +812,7 @@ export default function SquadPage() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white border border-depro-border rounded-2xl p-4 space-y-3">
+      <div className="bg-white border border-depro-border rounded-2xl p-5 md:p-6 space-y-5">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -826,12 +823,12 @@ export default function SquadPage() {
               className="admin-input w-full pl-10"
             />
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <ArrowUpDown size={13} className="text-depro-gray" />
+          <div className="flex items-center gap-2 flex-shrink-0 sm:min-w-[180px]">
+            <ArrowUpDown size={13} className="text-depro-gray flex-shrink-0" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="admin-input text-xs py-2 pr-8"
+              className="admin-input text-xs py-2 pr-8 w-full"
             >
               <option value="nombre">Orden: Nombre</option>
               <option value="dorsal">Orden: Dorsal</option>
@@ -842,77 +839,103 @@ export default function SquadPage() {
           </div>
         </div>
 
-        {/* Posición específica */}
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          <Filter size={13} className="text-depro-gray flex-shrink-0" />
-          {[FILTER_ALL, ...POSITIONS].map((f) => (
-            <button
-              key={f}
-              onClick={() => setPosFilter(f)}
-              className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
-              style={posFilter === f ? { backgroundColor: sa, color: ct(sa), borderColor: sa } : {}}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+        <div className="border-t border-depro-border pt-5 space-y-5">
+          {/* Posición específica */}
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2">
+              <Filter size={13} className="text-depro-gray" />
+              <span className="text-[10px] font-bold text-depro-gray uppercase tracking-wider">Posición</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[FILTER_ALL, ...POSITIONS].map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setPosFilter(f)}
+                  className={filterPillClass(posFilter === f)}
+                  style={filterPillStyle(posFilter === f, sa, ct, "solid")}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        {/* Línea / edad / origen / tests */}
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            <span className="text-[10px] font-bold text-depro-gray uppercase flex-shrink-0">Línea</span>
-            {Object.keys(POS_GROUPS).map((g) => (
-              <button key={g} onClick={() => setPosGroupFilter(g)}
-                className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
-                style={posGroupFilter === g ? { backgroundColor: sa + "18", color: sa, borderColor: sa + "40" } : {}}
-              >{g}</button>
-            ))}
+          {/* Línea · Tipo · Tests */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="space-y-2.5">
+              <span className="text-[10px] font-bold text-depro-gray uppercase tracking-wider block">Línea</span>
+              <div className="flex flex-wrap gap-2">
+                {Object.keys(POS_GROUPS).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setPosGroupFilter(g)}
+                    className={filterPillClass(posGroupFilter === g)}
+                    style={filterPillStyle(posGroupFilter === g, sa, ct)}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2.5">
+              <span className="text-[10px] font-bold text-depro-gray uppercase tracking-wider block">Tipo</span>
+              <div className="flex flex-wrap gap-2">
+                {[FILTER_ALL, "Manual", "Registrado"].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSourceFilter(s)}
+                    className={filterPillClass(sourceFilter === s)}
+                    style={filterPillStyle(sourceFilter === s, sa, ct)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2.5">
+              <span className="text-[10px] font-bold text-depro-gray uppercase tracking-wider block">Tests</span>
+              <div className="flex flex-wrap gap-2">
+                {[FILTER_ALL, "Con tests", "Sin tests"].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTestsFilter(t)}
+                    className={filterPillClass(testsFilter === t)}
+                    style={filterPillStyle(testsFilter === t, sa, ct)}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold text-depro-gray uppercase flex-shrink-0">Edad</span>
-            {[FILTER_ALL, "≤12", "13-15", "≥16"].map((a) => (
-              <button key={a} onClick={() => setAgeFilter(a)}
-                className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
-                style={ageFilter === a ? { backgroundColor: sa + "18", color: sa, borderColor: sa + "40" } : {}}
-              >{a}</button>
-            ))}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold text-depro-gray uppercase flex-shrink-0">Tipo</span>
-            {[FILTER_ALL, "Manual", "Registrado"].map((s) => (
-              <button key={s} onClick={() => setSourceFilter(s)}
-                className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
-                style={sourceFilter === s ? { backgroundColor: sa + "18", color: sa, borderColor: sa + "40" } : {}}
-              >{s}</button>
-            ))}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold text-depro-gray uppercase flex-shrink-0">Tests</span>
-            {[FILTER_ALL, "Con tests", "Sin tests"].map((t) => (
-              <button key={t} onClick={() => setTestsFilter(t)}
-                className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
-                style={testsFilter === t ? { backgroundColor: sa + "18", color: sa, borderColor: sa + "40" } : {}}
-              >{t}</button>
-            ))}
-          </div>
-        </div>
 
-        {/* Filtro por equipo — solo coordinador */}
-        {isCoord && allTeams.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            <Shield size={13} className="text-depro-gray flex-shrink-0" />
-            {[{ id: "todos", name: FILTER_ALL }, ...allTeams].map((tm) => (
-              <button
-                key={tm.id}
-                onClick={() => setTeamFilter(tm.id)}
-                className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
-                style={teamFilter === tm.id ? { backgroundColor: sa, color: ct(sa), borderColor: sa } : {}}
-              >
-                {tm.name}
-              </button>
-            ))}
-          </div>
-        )}
+          {/* Filtro por equipo — solo coordinador */}
+          {isCoord && allTeams.length > 0 && (
+            <div className="space-y-2.5 pt-1 border-t border-depro-border">
+              <div className="flex items-center gap-2">
+                <Shield size={13} className="text-depro-gray" />
+                <span className="text-[10px] font-bold text-depro-gray uppercase tracking-wider">Equipo</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[{ id: "todos", name: FILTER_ALL }, ...allTeams].map((tm) => (
+                  <button
+                    key={tm.id}
+                    type="button"
+                    onClick={() => setTeamFilter(tm.id)}
+                    className={filterPillClass(teamFilter === tm.id)}
+                    style={filterPillStyle(teamFilter === tm.id, sa, ct, "solid")}
+                  >
+                    {tm.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Lista */}
@@ -1074,6 +1097,7 @@ export default function SquadPage() {
           player={detailPlayer}
           onClose={() => setDetailPlayer(null)}
           sa={sa}
+          teamPlayers={unifiedPlayers}
           onEdit={canEdit ? (p) => { setEditPlayer(p); setShowModal(true); } : null}
         />
       )}
