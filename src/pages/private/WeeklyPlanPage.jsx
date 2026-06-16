@@ -18,7 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
 import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession } from "../../lib/playerPlanEngine";
 import { markSessionComplete, touchLastTrain } from "../../lib/sessionProgress";
-import { downloadSessionPdf } from "../../lib/sessionPdf";
+import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
 import { getSessionBlocks, BLOCK_LABELS, BLOCK_COLORS, ADMIN_BLOCK_TYPES, sessionMatchesTarget } from "../../lib/sessionBlocks";
@@ -1049,6 +1049,7 @@ const CLUB_VISIBLE_TABS = ["resumen", "calentamiento", "principal", "tareas"];
 function ClubSessionCard({
   session, accentColor, sessionNumber, readOnly = false, taskStorageKey,
   initialExpanded = false, initialTab = "resumen", cardRef,
+  clubName = "", teamName = "",
 }) {
   const safeInitialTab = CLUB_VISIBLE_TABS.includes(initialTab) ? initialTab : "resumen";
   const [expanded, setExpanded]       = useState(initialExpanded);
@@ -1193,42 +1194,15 @@ function ClubSessionCard({
                 )}
                 <button type="button"
                   onClick={() => {
-                    let tasks = [];
-                    if (taskStorageKey) {
-                      try {
-                        const raw = localStorage.getItem(taskStorageKey);
-                        const data = raw ? JSON.parse(raw) : null;
-                        if (Array.isArray(data?.tasks) && data.tasks.length) tasks = data.tasks;
-                        else if (data?.task) tasks = [data.task];
-                      } catch { /* ignore */ }
-                    }
-                    downloadSessionPdf({
-                      title: session.title || `Sesión ${displayKey}`,
-                      subtitle: session.objective || session.title,
-                      blocks: blocks
-                        .filter((b) => ADMIN_BLOCK_TYPES.includes(b.type))
-                        .map((b) => ({
-                        label: b.label || BLOCK_LABELS[b.type],
-                        duration: b.duration,
-                        subSessions: b.subSessions,
-                        exercises: (b.exercises || []).map((e) => ({
-                          name: e.name,
-                          sets: e.sets,
-                          reps: e.reps,
-                          duration: e.duration,
-                          description: e.description,
-                          tips: e.tips,
-                        })),
-                      })),
-                      tasks,
-                      meta: {
-                        duration: session.duration,
-                        type: st.label,
-                        intensity: session.intensity,
-                        variant: session.templateVariant,
-                      },
-                      brandColor: accentColor,
-                    });
+                    downloadSessionPdf(buildClubSessionPdfPayload({
+                      session,
+                      displayKey,
+                      sessionType,
+                      accentColor,
+                      taskStorageKey,
+                      clubName,
+                      teamName,
+                    }));
                   }}
                   className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
                   <FileText size={14} /> Descargar PDF
@@ -1591,6 +1565,8 @@ function ClubMicrocycles({ accent }) {
                 sessionNumber={idx + 1}
                 readOnly={isReadOnly}
                 taskStorageKey={taskKey}
+                clubName={user?.club?.name || ""}
+                teamName={activeTeam?.name || ""}
                 initialExpanded={matchesTarget}
                 initialTab={matchesTarget ? targetTab : "resumen"}
                 cardRef={(el) => {
