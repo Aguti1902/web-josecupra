@@ -10,7 +10,6 @@ import {
 const DEPRO_BLUE = "#0A36F7";
 const DEPRO_DARK = "#333333";
 const DEPRO_CREAM = "#FBFBFB";
-const DEPRO_CREAM_WARM = "#FFF8F0";
 
 function esc(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -65,6 +64,25 @@ function normalizeTips(tips) {
   if (Array.isArray(tips)) return tips.filter(Boolean);
   if (tips) return String(tips).split("\n").map((s) => s.trim()).filter(Boolean);
   return [];
+}
+
+function lum(hex) {
+  const { r, g, b } = hexToRgb(safeHexColor(hex));
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+function contrastText(hex) {
+  return lum(hex) > 0.55 ? "#111827" : "#ffffff";
+}
+
+function pickDeproLogoPath(origin, bgColor) {
+  const base = origin || "";
+  return lum(bgColor) > 0.55 ? `${base}/logo.png` : `${base}/logo%20blanco.png`;
+}
+
+function clubInitials(name) {
+  if (!name) return "?";
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
 function safeHexColor(hex, fallback = DEPRO_BLUE) {
@@ -178,6 +196,8 @@ export function buildClubSessionPdfPayload({
   taskStorageKey,
   clubName = "",
   teamName = "",
+  clubLogo = "",
+  secondaryColor = "",
 }) {
   const fw = sessionType || session.framework || "A";
   const blocks = getSessionBlocks(session);
@@ -192,6 +212,7 @@ export function buildClubSessionPdfPayload({
     displayKey: displayKey || session.templateKey || fw,
     clubName,
     teamName,
+    clubLogoUrl: clubLogo,
     day: session.assignedDay || "",
     warmUp: {
       label: BLOCK_LABELS.calentamiento,
@@ -221,14 +242,16 @@ export function buildClubSessionPdfPayload({
       objective: session.objective,
     },
     brandColor: accentColor || DEPRO_BLUE,
+    secondaryColor: secondaryColor || "",
   };
 }
 
-function buildStyles(brand, clubAccent) {
-  const accent = clubAccent || brand;
-  const gradStart = mixHex(DEPRO_BLUE, accent, 0.35);
-  const gradMid = mixHex(accent, DEPRO_CREAM_WARM, 0.55);
-  const gradEnd = DEPRO_CREAM;
+function buildStyles(brand, clubAccent, clubSecondary) {
+  const accent = safeHexColor(clubAccent, brand);
+  const secondary = safeHexColor(clubSecondary, mixHex(accent, "#ffffff", 0.22));
+  const bandText = contrastText(accent);
+  const bandMuted = lum(accent) > 0.55 ? "#4B5563" : "rgba(255,255,255,0.78)";
+  const badgeText = contrastText(accent);
 
   return `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -243,7 +266,7 @@ function buildStyles(brand, clubAccent) {
     body{
       font-family:'Inter',system-ui,sans-serif;
       color:${DEPRO_DARK};
-      background:${gradEnd};
+      background:${DEPRO_CREAM};
       line-height:1.45;
       font-size:11px;
     }
@@ -256,53 +279,57 @@ function buildStyles(brand, clubAccent) {
       background:white;
     }
     .top-bar{
-      height:6px;
-      background:linear-gradient(90deg,${DEPRO_BLUE} 0%,${accent} 55%,${mixHex(accent, "#F59E0B", 0.4)} 100%);
+      height:5px;
+      background:linear-gradient(90deg,${accent} 0%,${secondary} 100%);
     }
-    .hero{
-      padding:28px 36px 24px;
-      background:linear-gradient(135deg,${gradStart} 0%,${gradMid} 52%,${gradEnd} 100%);
-      position:relative;
+    .hero{border-bottom:1px solid #E5E7EB}
+    .hero-band{
+      padding:22px 36px;
+      background:linear-gradient(135deg,${accent} 0%,${secondary} 100%);
+      color:${bandText};
     }
-    .hero::after{
-      content:'';
-      position:absolute;
-      right:-40px;top:-40px;
-      width:180px;height:180px;
-      border-radius:50%;
-      background:${alphaHex(accent, 0.12)};
+    .hero-band-inner{
+      display:flex;align-items:center;justify-content:space-between;gap:20px;
     }
-    .hero-top{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      margin-bottom:20px;
-      position:relative;
-      z-index:1;
+    .depro-logo{height:28px;width:auto;object-fit:contain;display:block}
+    .club-brand{
+      display:flex;align-items:center;gap:12px;text-align:right;
     }
-    .logo-wrap{display:flex;align-items:center;gap:12px}
-    .logo{height:32px;width:auto;object-fit:contain}
-    .club-meta{text-align:right}
-    .club-name{font-size:13px;font-weight:800;color:${DEPRO_DARK}}
-    .team-name{font-size:10px;font-weight:600;color:#6B7280;margin-top:2px}
+    .club-logo-wrap{
+      width:52px;height:52px;border-radius:14px;
+      background:white;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 4px 16px rgba(0,0,0,0.12);
+      overflow:hidden;
+    }
+    .club-logo{width:100%;height:100%;object-fit:contain;padding:6px}
+    .club-logo-fallback{
+      width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+      font-size:16px;font-weight:900;color:${accent};background:white;
+    }
+    .club-name{font-size:14px;font-weight:900;color:${bandText};line-height:1.2}
+    .team-name{font-size:10px;font-weight:600;color:${bandMuted};margin-top:3px}
+    .hero-body{
+      padding:24px 36px 22px;
+      background:white;
+      border-left:5px solid ${accent};
+    }
     .session-badge{
       display:inline-flex;align-items:center;gap:6px;
-      background:${alphaHex(accent, 0.18)};
-      border:1px solid ${alphaHex(accent, 0.35)};
-      color:${accent};
+      background:${accent};
+      color:${badgeText};
       font-size:10px;font-weight:800;
       padding:5px 12px;border-radius:999px;
       text-transform:uppercase;letter-spacing:0.06em;
-      margin-bottom:10px;
+      margin-bottom:12px;
     }
     .session-key{
-      font-size:42px;font-weight:900;line-height:1;
-      color:${DEPRO_DARK};letter-spacing:-0.03em;
+      font-size:44px;font-weight:900;line-height:1;
+      color:${accent};letter-spacing:-0.03em;
     }
     .session-title{
       font-size:20px;font-weight:800;color:${DEPRO_DARK};
-      margin-top:6px;max-width:520px;
+      margin-top:8px;max-width:520px;
     }
     .session-sub{
       font-size:12px;color:#6B7280;margin-top:4px;max-width:520px;
@@ -467,7 +494,9 @@ function renderPageFooter(pageNum, totalPages, dateStr) {
 function buildDocumentHtml(data) {
   const brand = DEPRO_BLUE;
   const accent = safeHexColor(data.brandColor, brand);
-  const logoUrl = data.logoUrl || `${typeof window !== "undefined" ? window.location.origin : ""}/logo.png`;
+  const secondary = safeHexColor(data.secondaryColor, mixHex(accent, "#ffffff", 0.22));
+  const deproLogo = data.deproLogoUrl || data.logoUrl || "";
+  const clubLogo = data.clubLogoUrl || "";
   const dateStr = new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
   const meta = data.meta || {};
   const warmUp = data.warmUp;
@@ -483,21 +512,30 @@ function buildDocumentHtml(data) {
     { label: "Dinámica", value: meta.type || meta.framework || "—" },
   ];
 
+  const clubLogoHtml = clubLogo
+    ? `<img class="club-logo" src="${esc(clubLogo)}" alt="${esc(data.clubName || "Club")}" />`
+    : `<div class="club-logo-fallback">${esc(clubInitials(data.clubName))}</div>`;
+
   const heroBlock = `
     <div class="hero">
-      <div class="hero-top">
-        <div class="logo-wrap">
-          <img class="logo" src="${esc(logoUrl)}" alt="DEPRO" />
-        </div>
-        <div class="club-meta">
-          ${data.clubName ? `<div class="club-name">${esc(data.clubName)}</div>` : ""}
-          ${data.teamName ? `<div class="team-name">${esc(data.teamName)}</div>` : ""}
+      <div class="hero-band">
+        <div class="hero-band-inner">
+          <img class="depro-logo" src="${esc(deproLogo)}" alt="DEPRO" />
+          <div class="club-brand">
+            <div>
+              ${data.clubName ? `<div class="club-name">${esc(data.clubName)}</div>` : ""}
+              ${data.teamName ? `<div class="team-name">${esc(data.teamName)}</div>` : ""}
+            </div>
+            <div class="club-logo-wrap">${clubLogoHtml}</div>
+          </div>
         </div>
       </div>
-      <div class="session-badge">${esc(data.displayKey || meta.variant || meta.framework || "Sesión")} · ${esc(meta.type || "Entrenamiento")}</div>
-      <div class="session-key">${esc(data.displayKey || data.title?.slice(0, 8) || "S")}</div>
-      <div class="session-title">${esc(data.title)}</div>
-      ${data.subtitle ? `<div class="session-sub">${esc(data.subtitle)}</div>` : ""}
+      <div class="hero-body">
+        <div class="session-badge">${esc(data.displayKey || meta.variant || meta.framework || "Sesión")} · ${esc(meta.type || "Entrenamiento")}</div>
+        <div class="session-key">${esc(data.displayKey || data.title?.slice(0, 8) || "S")}</div>
+        <div class="session-title">${esc(data.title)}</div>
+        ${data.subtitle && data.subtitle !== data.title ? `<div class="session-sub">${esc(data.subtitle)}</div>` : ""}
+      </div>
     </div>`;
 
   const summaryGrid = `
@@ -530,7 +568,7 @@ function buildDocumentHtml(data) {
       : "";
 
     return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>${esc(data.title)} — DEPRO</title>
-      <style>${buildStyles(brand, accent)}</style></head><body><div class="doc">
+      <style>${buildStyles(brand, accent, secondary)}</style></head><body><div class="doc">
         <section class="page"><div class="top-bar"></div>${heroBlock}
           <div class="content">
             <div class="section-head"><div class="section-icon">📋</div><div class="section-title">Resumen</div></div>
@@ -618,7 +656,7 @@ function buildDocumentHtml(data) {
     </section>` : "";
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>${esc(data.title)} — DEPRO</title>
-    <style>${buildStyles(brand, accent)}</style></head><body><div class="doc">${page1}${page2}${page3}</div>
+    <style>${buildStyles(brand, accent, secondary)}</style></head><body><div class="doc">${page1}${page2}${page3}</div>
     <button class="print-btn no-print" onclick="window.print()">Descargar / Imprimir PDF</button>
     <script>window.onload=function(){setTimeout(function(){window.print()},600)}</script></body></html>`;
 }
@@ -693,15 +731,24 @@ export async function downloadSessionPdf(data) {
 
   try {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const logoUrl = data.logoUrl || `${origin}/logo.png`;
-    let logoDataUri = logoUrl;
-    try {
-      logoDataUri = await resolveLogoDataUri(logoUrl);
-    } catch {
-      /* usar URL directa */
-    }
+    const primary = safeHexColor(data.brandColor, DEPRO_BLUE);
+    const secondary = safeHexColor(data.secondaryColor, mixHex(primary, "#ffffff", 0.22));
+    const deproPath = pickDeproLogoPath(origin, primary);
 
-    const html = buildDocumentHtml({ ...data, logoUrl: logoDataUri });
+    const [deproLogo, clubLogo] = await Promise.all([
+      resolveLogoDataUri(data.deproLogoUrl || deproPath).catch(() => deproPath),
+      data.clubLogoUrl
+        ? resolveLogoDataUri(data.clubLogoUrl).catch(() => data.clubLogoUrl)
+        : Promise.resolve(""),
+    ]);
+
+    const html = buildDocumentHtml({
+      ...data,
+      brandColor: primary,
+      secondaryColor: secondary,
+      deproLogoUrl: deproLogo,
+      clubLogoUrl: clubLogo,
+    });
 
     if (popup && !popup.closed) {
       try {

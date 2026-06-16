@@ -1049,7 +1049,7 @@ const CLUB_VISIBLE_TABS = ["resumen", "calentamiento", "principal", "tareas"];
 function ClubSessionCard({
   session, accentColor, sessionNumber, readOnly = false, taskStorageKey,
   initialExpanded = false, initialTab = "resumen", cardRef,
-  clubName = "", teamName = "",
+  clubName = "", teamName = "", clubLogo = "", secondaryColor = "",
 }) {
   const safeInitialTab = CLUB_VISIBLE_TABS.includes(initialTab) ? initialTab : "resumen";
   const [expanded, setExpanded]       = useState(initialExpanded);
@@ -1202,6 +1202,8 @@ function ClubSessionCard({
                       taskStorageKey,
                       clubName,
                       teamName,
+                      clubLogo,
+                      secondaryColor,
                     }));
                   }}
                   className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
@@ -1567,6 +1569,8 @@ function ClubMicrocycles({ accent }) {
                 taskStorageKey={taskKey}
                 clubName={user?.club?.name || ""}
                 teamName={activeTeam?.name || ""}
+                clubLogo={user?.club?.logo || ""}
+                secondaryColor={user?.club?.secondaryColor || ""}
                 initialExpanded={matchesTarget}
                 initialTab={matchesTarget ? targetTab : "resumen"}
                 cardRef={(el) => {
