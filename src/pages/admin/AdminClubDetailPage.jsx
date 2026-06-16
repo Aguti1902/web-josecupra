@@ -1135,6 +1135,7 @@ function NewSessionModal({ onClose, onCreate }) {
                   key={blockType}
                   blockType={blockType}
                   block={block}
+                  sessionFramework={sessionTypeMeta.type || "A"}
                   onUpdate={(changes) => updateBlock(blockType, changes)}
                 />
               </div>

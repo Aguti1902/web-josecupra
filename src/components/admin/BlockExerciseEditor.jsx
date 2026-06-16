@@ -1,5 +1,8 @@
-import { Plus, Trash2, PlayCircle } from "lucide-react";
+import { Plus, Trash2, PlayCircle, Info } from "lucide-react";
 import { emptyExercise, emptySubSession, normalizeBlock } from "../../lib/sessionBlocks";
+import {
+  emptyGuideItem, getDefaultGuideItems, resolveBlockGuideItems,
+} from "../../lib/blockGuideItems";
 
 function getYouTubeId(url) {
   if (!url) return null;
@@ -12,15 +15,32 @@ const SESSION_BLOCK_CONFIG = {
   principal:      { label: "Bloque principal", color: "#3B82F6", hasVideo: false },
 };
 
-export default function BlockExerciseEditor({ blockType, block, onUpdate }) {
+export default function BlockExerciseEditor({ blockType, block, onUpdate, sessionFramework = "A" }) {
   const normalized = normalizeBlock({ ...block, type: blockType });
   const subSessions = normalized.subSessions || [emptySubSession("Parte 1")];
   const cfg = SESSION_BLOCK_CONFIG[blockType] || { color: "#3B82F6" };
+  const guideItems = resolveBlockGuideItems(block, blockType, sessionFramework);
 
   const syncSubSessions = (next) => {
     const exercises = next.flatMap((ss) => ss.exercises || []);
-    onUpdate({ type: blockType, subSessions: next, exercises });
+    onUpdate({ type: blockType, subSessions: next, exercises, guideItems: block.guideItems ?? guideItems });
   };
+
+  const setGuideItems = (next) => onUpdate({ guideItems: next });
+
+  const updateGuideItem = (gi, field, val) => {
+    const next = guideItems.map((item, i) => (i === gi ? { ...item, [field]: val } : item));
+    setGuideItems(next);
+  };
+
+  const addGuideItem = () => setGuideItems([...guideItems, emptyGuideItem()]);
+
+  const removeGuideItem = (gi) => {
+    if (guideItems.length <= 1) return;
+    setGuideItems(guideItems.filter((_, i) => i !== gi));
+  };
+
+  const resetGuideItems = () => setGuideItems(getDefaultGuideItems(blockType, sessionFramework));
 
   const updateSub = (si, changes) =>
     syncSubSessions(subSessions.map((ss, i) => (i === si ? { ...ss, ...changes } : ss)));
@@ -81,6 +101,40 @@ export default function BlockExerciseEditor({ blockType, block, onUpdate }) {
           </div>
         </div>
       )}
+
+      {/* Panel informativo (columna derecha en vista club) */}
+      <div className="rounded-xl border border-depro-border p-3 space-y-2 bg-depro-gray-light/30">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <Info size={12} className="text-depro-blue" />
+            <span className="text-xs font-bold text-depro-dark">Panel informativo (vista entrenador)</span>
+          </div>
+          <button type="button" onClick={resetGuideItems}
+            className="text-[10px] font-bold text-depro-gray hover:text-depro-blue transition-colors">
+            Restaurar
+          </button>
+        </div>
+        <p className="text-[10px] text-depro-gray leading-tight">
+          Textos de la columna derecha en calentamiento/principal. El entrenador los verá tal cual los escribas aquí.
+        </p>
+        {guideItems.map((item, gi) => (
+          <div key={item.id || gi} className="grid grid-cols-[1fr_2fr_auto] gap-2 items-start">
+            <input className="border border-depro-border rounded-lg px-2 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+              placeholder="Etiqueta" value={item.label || ""}
+              onChange={(e) => updateGuideItem(gi, "label", e.target.value)} />
+            <input className="border border-depro-border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+              placeholder="Descripción" value={item.text || ""}
+              onChange={(e) => updateGuideItem(gi, "text", e.target.value)} />
+            <button type="button" onClick={() => removeGuideItem(gi)} className="text-depro-gray hover:text-red-500 p-1 mt-0.5">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        ))}
+        <button type="button" onClick={addGuideItem}
+          className="flex items-center gap-1 text-xs font-bold text-depro-blue hover:underline">
+          <Plus size={11} /> Añadir punto
+        </button>
+      </div>
 
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-depro-gray uppercase tracking-wide">

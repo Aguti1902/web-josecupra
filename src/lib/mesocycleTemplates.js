@@ -4,6 +4,8 @@
  * El mesociclo combina variantes por semana: Semana 1 → A1/B1/C1, etc.
  */
 
+import { normalizeTaskDesigner } from "./taskDesigner";
+
 export const FRAMEWORKS = ["A", "B", "C", "D"];
 export const FRAMEWORK_LABELS = {
   A: "Extensiva",
@@ -256,5 +258,11 @@ export function prepareSessionPayload(session, existingSessions = []) {
   const intensity = session.intensity || intensityFromFramework(framework);
   const base = ensureSessionTemplateFields({ ...session, framework, intensity });
   const templateKey = base.templateKey || suggestTemplateKey(existingSessions, framework);
-  return { ...base, framework, templateKey, intensity };
+  return {
+    ...base,
+    framework,
+    templateKey,
+    intensity,
+    taskDesigner: normalizeTaskDesigner(session.taskDesigner),
+  };
 }

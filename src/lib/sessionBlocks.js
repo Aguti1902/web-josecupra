@@ -41,9 +41,11 @@ export function emptySubSession(title = "Parte 1") {
 /** Normaliza un bloque: migra exercises[] plano → subSessions[] */
 export function normalizeBlock(block) {
   const type = block.type;
+  const base = { guideItems: block.guideItems };
   if (block.subSessions?.length) {
     return {
       ...block,
+      ...base,
       type,
       label: block.label || BLOCK_LABELS[type],
       exercises: block.subSessions.flatMap((ss) => ss.exercises || []),
@@ -52,6 +54,7 @@ export function normalizeBlock(block) {
   const exercises = block.exercises || [];
   return {
     ...block,
+    ...base,
     type,
     label: block.label || BLOCK_LABELS[type],
     subSessions: exercises.length

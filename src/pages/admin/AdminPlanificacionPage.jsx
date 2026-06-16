@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   ClipboardList, Plus, X, Save, Shield, CheckCircle, Users,
-  Flame, Dumbbell, BarChart2, ChevronDown, ChevronUp,
+  Flame, Dumbbell, BarChart2, ChevronDown, ChevronUp, PencilRuler,
   Trash2, Calendar, PlayCircle, Edit3, Copy, RefreshCw,
 } from "lucide-react";
 import {
@@ -9,6 +9,8 @@ import {
   flattenBlocksToExercises, BLOCK_LABELS, ADMIN_BLOCK_TYPES,
 } from "../../lib/sessionBlocks";
 import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
+import TaskDesignerEditor from "../../components/admin/TaskDesignerEditor";
+import { createDefaultTaskDesigner, normalizeTaskDesigner } from "../../lib/taskDesigner";
 import { getMesocicloWeeks, formatWeekRangeLabel } from "../../lib/periodization";
 import {
   FRAMEWORKS, FRAMEWORK_LABELS, FRAMEWORK_COLORS,
@@ -98,6 +100,7 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
           ? adminSessionBlocks(initialData.blocks)
           : adminDefaultBlocks(),
         exercises: initialData.exercises || [],
+        taskDesigner: normalizeTaskDesigner(initialData.taskDesigner),
       };
     }
     const fw = defaultFramework || "A";
@@ -111,6 +114,7 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
       space: "",
       blocks: adminDefaultBlocks(),
       exercises: [],
+      taskDesigner: createDefaultTaskDesigner(),
     };
   });
 
@@ -135,6 +139,7 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
     { id:"resumen",        label:"Resumen",          icon: BarChart2 },
     { id:"calentamiento",  label:"Calentamiento",    icon: Flame },
     { id:"principal",      label:"Principal",        icon: Dumbbell },
+    { id:"tareas",         label:"Diseñar tareas",   icon: PencilRuler },
   ];
 
   const handleSave = () => {
@@ -142,7 +147,14 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
     const blocks = adminSessionBlocks(form.blocks).map((b) => normalizeBlock(b));
     const allExercises = flattenBlocksToExercises(blocks);
     const payload = prepareSessionPayload(
-      { ...form, framework: fw, intensity: intensityFromFramework(fw), blocks, exercises: allExercises },
+      {
+        ...form,
+        framework: fw,
+        intensity: intensityFromFramework(fw),
+        blocks,
+        exercises: allExercises,
+        taskDesigner: normalizeTaskDesigner(form.taskDesigner),
+      },
       existingSessions
     );
     if (isEditing && onUpdate) {
@@ -306,11 +318,20 @@ function SessionEditorModal({ onClose, onCreate, initialData = null, onUpdate = 
                   key={blockType}
                   blockType={blockType}
                   block={block}
+                  sessionFramework={form.framework || "A"}
                   onUpdate={(changes) => updateBlock(blockType, changes)}
                 />
               </div>
             );
           })}
+
+          {tab === "tareas" && (
+            <TaskDesignerEditor
+              value={form.taskDesigner}
+              sessionFramework={form.framework || "A"}
+              onChange={(taskDesigner) => setForm((f) => ({ ...f, taskDesigner }))}
+            />
+          )}
 
         </div>
 

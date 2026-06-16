@@ -10,7 +10,7 @@ import {
   Target, X, Moon, Maximize2, Users, Gauge, Pause, Zap, RefreshCw, Sparkles,
   PencilRuler, Info, AlertTriangle, PlayCircle,
   Activity, Dumbbell, Wind, Layers, TrendingUp, BarChart2, ShieldCheck,
-  Timer, Calendar, Sun, Ban, ListChecks, Repeat2, BookOpen, Route,
+  Timer, Calendar, Sun, Ban, ListChecks, Repeat2, BookOpen, Route, Check,
 } from "lucide-react";
 import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
@@ -22,6 +22,11 @@ import { downloadSessionPdf } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
 import { getSessionBlocks, BLOCK_LABELS, BLOCK_COLORS, ADMIN_BLOCK_TYPES, sessionMatchesTarget } from "../../lib/sessionBlocks";
+import { resolveBlockGuideItems } from "../../lib/blockGuideItems";
+import {
+  normalizeTaskDesigner, resolveTaskTypes, resolveTaskParams,
+  resolveTaskCues, resolveTaskRecommendations,
+} from "../../lib/taskDesigner";
 
 const Youtube = PlayCircle;
 
@@ -654,158 +659,119 @@ const ST = {
   C: { label: "Reactiva",        color: "#EF4444", bg: "#FEF2F2", Icon: Zap },
   D: { label: "Complementaria",  color: "#10B981", bg: "#F0FDF4", Icon: Dumbbell },
 };
-const WARMUP_GUIDE_ITEMS = [
-  { Icon: Activity,  title: "Con balón",       text: "Posesión simple, rueda o rondo de activación" },
-  { Icon: Repeat2,   title: "Tarea integrada", text: "Rondo, conservación o circuito técnico corto" },
-  { Icon: Maximize2, title: "Espacio",         text: "Zona media del campo · Sin presión inicial" },
-  { Icon: Users,     title: "Participación",   text: "Todo el equipo desde el minuto 1" },
-  { Icon: Clock,     title: "Duración",        text: "10–15 min · Escalado gradual hasta ritmo medio" },
-  { Icon: Ban,       title: "Evitar",          text: "Sprints sin balón, ejercicios estáticos, carga en frío" },
-];
-const PROTOCOL_INFO = {
-  A: [
-    { Icon: Target,       label: "Qué haremos",  value: "Trabajo de volumen y dominio colectivo" },
-    { Icon: BookOpen,     label: "Por qué",       value: "Construir base técnica sin sobrecargar el SNC" },
-    { Icon: Clock,        label: "Duración",      value: "Series largas · 8–12 min de trabajo" },
-    { Icon: Activity,     label: "Intensidad",    value: "60–70% · Ritmo controlado" },
-    { Icon: ShieldCheck,  label: "Sub-12",        value: "Reducir series 20% · Sin impacto articular" },
-  ],
-  B: [
-    { Icon: Target,       label: "Qué haremos",  value: "Alta exigencia en espacios reducidos" },
-    { Icon: BookOpen,     label: "Por qué",       value: "Mejorar decisión bajo presión y velocidad" },
-    { Icon: Clock,        label: "Duración",      value: "Bloques cortos · 4–6 min de trabajo" },
-    { Icon: Flame,        label: "Intensidad",    value: "80–90% · Ritmo muy elevado" },
-    { Icon: ShieldCheck,  label: "Sub-14",        value: "Máx. 85% FCmax · Vigilar carga articular" },
-  ],
-  C: [
-    { Icon: Target,       label: "Qué haremos",  value: "Acciones explosivas y velocidad reactiva máxima" },
-    { Icon: BookOpen,     label: "Por qué",       value: "Activar el SNC y mejorar la velocidad de reacción" },
-    { Icon: Timer,        label: "Duración",      value: "Ráfagas cortas · 2–4 min · Descanso 3–5 min" },
-    { Icon: Zap,          label: "Intensidad",    value: "100% · Sin reservas · Máximo esfuerzo" },
-    { Icon: ShieldCheck,  label: "Sub-16",        value: "Calentamiento mínimo 15 min · Riesgo lesional" },
-  ],
-  D: [
-    { Icon: Target,       label: "Qué haremos",  value: "Trabajo complementario de movilidad y activación" },
-    { Icon: BookOpen,     label: "Por qué",       value: "Completar la semana sin acumular fatiga" },
-    { Icon: Clock,        label: "Duración",      value: "Bloques medios · 6–8 min" },
-    { Icon: Activity,     label: "Intensidad",    value: "50–60% · Carga baja" },
-    { Icon: ShieldCheck,  label: "4 días/sem",    value: "Sesión ideal para equipos con 4 entrenos semanales" },
-  ],
-};
-const DAY_RECS = {
-  A: [
-    { Icon: Maximize2, text: "Espacios amplios para circulación fluida" },
-    { Icon: Repeat2,   text: "Alta repetición con baja presión temporal" },
-    { Icon: Clock,     text: "Descansos largos entre series, sin prisa" },
-    { Icon: Users,     text: "Participación colectiva: todo el equipo junto" },
-  ],
-  B: [
-    { Icon: Route,     text: "Espacios reducidos para forzar decisiones rápidas" },
-    { Icon: Users,     text: "Grupos pequeños → máxima participación individual" },
-    { Icon: Zap,       text: "Bloques cortos de alta exigencia sin pausa" },
-    { Icon: Target,    text: "Presión constante sobre el portador del balón" },
-  ],
-  C: [
-    { Icon: TrendingUp, text: "Acciones de 2–4 seg con arranque máximo" },
-    { Icon: Timer,      text: "Recuperación generosa para mantener calidad" },
-    { Icon: Activity,   text: "Cambios de dirección y velocidad al máximo" },
-    { Icon: Sun,        text: "El descanso define la calidad de cada acción" },
-  ],
-  D: [
-    { Icon: Dumbbell,   text: "Trabajo complementario de baja carga articular" },
-    { Icon: Wind,       text: "Movilidad y activación sin fatiga acumulada" },
-    { Icon: ShieldCheck,text: "Ideal tras sesiones intensas de la semana" },
-    { Icon: Users,      text: "Participación total con foco en calidad técnica" },
-  ],
-};
-const TASK_TYPES = [
-  "Automatismos","Ruedas de pase","Posesiones","Juegos de posición",
-  "Conservaciones","Rondo simple","Rondo ampliado","Rondo direccional",
-  "Partidos reducidos","Partidos condicionados","Finalización",
-  "Oleadas","Secuencias por carriles","1 vs 1","2 vs 1","3 vs 2",
-  "Transiciones ofensivas","Transiciones defensivas","Circuitos técnicos",
-  "Tarea mixta","Tarea global","Juegos reactivos","Presión tras pérdida",
-  "Salida de balón","Juego posicional","Pressing zonal","Combinativas",
-  "Trabajo técnico individual",
-];
-const BASE_PARAMS = {
-  A: { space:"Amplio", grouping:"Todo el equipo", balls:"1 c/2–3 jug.", work:"8–12 min", rest:"3–4 min", intensity:"60–70%" },
-  B: { space:"Reducido", grouping:"Grupos de 4–8", balls:"1 por grupo", work:"4–6 min", rest:"1–2 min", intensity:"80–90%" },
-  C: { space:"Direccional", grouping:"Grupos de 4–6", balls:"1 por acción", work:"2–4 min", rest:"3–5 min", intensity:"Máxima" },
-  D: { space:"Medio", grouping:"Grupos de 6–10", balls:"1 por grupo", work:"6–8 min", rest:"2–3 min", intensity:"50–60%" },
-};
-const TASK_CUES = {
-  "Posesiones":             { A:["Espacio grande, baja presión","Circulación sin urgencia","Fútbol asociativo"],               B:["Espacio reducido, ritmo alto","Presión inmediata en pérdida","Superioridades cambiantes"],         C:["Acciones rápidas y transiciones veloces","Presión total","Máx. 2–3 min por serie"] },
-  "Rondo simple":           { A:["1–2 toques sin presión temporal","Apoyo siempre disponible","Ritmo técnico"],                 B:["1 toque obligatorio","Espacio más pequeño","Velocidad de circulación máxima"],               C:["Reacción inmediata al cambio de rol","Sprint defensivo al perder","Pocas rep. máxima calidad"] },
-  "Partidos reducidos":     { A:["Campo grande, juego asociativo","Libertad táctica total","Descansos generosos"],              B:["Campo pequeño, alta intensidad","Transiciones muy rápidas","Presión constante"],               C:["Ráfagas de 2–3 min al 100%","Descanso amplio entre partidos","Transición inmediata"] },
-  "Finalización":           { A:["Muchos disparos, poca presión","Variedad de posiciones de tiro","Ritmo técnico"],             B:["Finalización bajo presión activa","Velocidad en el último pase","Decisión rápida"],            C:["Sprint de llegada máximo","Disparo sin control previo","Recuperación total entre rep."] },
-  "1 vs 1":                 { A:["Espacio amplio para el dribling","Muchas repeticiones técnicas","Sin urgencia"],              B:["Espacio reducido para 1v1","Alta presión defensiva","Decisión instantánea"],                    C:["Arranque máximo desde el primer metro","100% en el sprint","Transición explosiva"] },
-  "Transiciones ofensivas": { A:["Salida organizada sin urgencia","Múltiples líneas de pase","Comunicación táctica"],           B:["Velocidad de transición máxima","Salida en 3 seg máximo","Superioridad aprovechada"],           C:["Sprint total al recuperar","Decisión instantánea","Máxima velocidad hasta el gol"] },
-  "Pressing zonal":         { A:["Zonas amplias de pressing suave","Organización de referencias","Baja intensidad defensiva"],  B:["Pressing coordinado y agresivo","Trampa defensiva activa","Alta intensidad en zona"],           C:["Activación total del pressing","Sprint explosivo defensivo","Recuperar el balón en 5 seg"] },
-};
-const DEFAULT_CUES = {
-  A:["Ritmo técnico controlado · alta repetición","Espacios amplios sin urgencia temporal","Descansos generosos entre series"],
-  B:["Velocidad de decisión máxima","Presión alta sobre el portador","Grupos reducidos sin pausa"],
-  C:["Arranque explosivo en cada acción","Descanso completo antes de repetir","100% de intensidad en cada ráfaga"],
-};
+const REC_ICONS = [Maximize2, Repeat2, Clock, Users, Route, Zap, Target, TrendingUp, Timer, Activity, Sun, Dumbbell, Wind, ShieldCheck];
+
+function loadSelectedTasks(storageKey, taskTypes) {
+  const fallback = taskTypes[0] ? [taskTypes[0]] : [];
+  if (!storageKey) return fallback;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return fallback;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.tasks) && data.tasks.length) {
+      return data.tasks.filter((t) => taskTypes.includes(t));
+    }
+    if (data.task && taskTypes.includes(data.task)) return [data.task];
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 /* ─────────────────────────────────────────────
-   DISEÑADOR DE TAREAS — 28 tipos + parámetros A/B/C
+   DISEÑADOR DE TAREAS — multiselección + datos admin
 ───────────────────────────────────────────── */
 
-function DisenarTareas({ accentColor, sessionType = "A", storageKey }) {
+function DisenarTareas({ accentColor, sessionType = "A", storageKey, taskDesigner }) {
+  const td = normalizeTaskDesigner(taskDesigner);
+  const taskTypes = resolveTaskTypes(td);
   const [dropOpen, setDropOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(() => {
-    if (!storageKey) return TASK_TYPES[0];
-    try {
-      const raw = localStorage.getItem(storageKey);
-      return raw ? JSON.parse(raw).task : TASK_TYPES[0];
-    } catch { return TASK_TYPES[0]; }
-  });
+  const [selectedTasks, setSelectedTasks] = useState(() => loadSelectedTasks(storageKey, taskTypes));
+
+  useEffect(() => {
+    setSelectedTasks((prev) => {
+      const valid = prev.filter((t) => taskTypes.includes(t));
+      if (valid.length) return valid;
+      return taskTypes[0] ? [taskTypes[0]] : [];
+    });
+  }, [taskTypes.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!storageKey) return;
-    localStorage.setItem(storageKey, JSON.stringify({ task: selectedTask, sessionType, savedAt: Date.now() }));
-  }, [selectedTask, storageKey, sessionType]);
+    localStorage.setItem(storageKey, JSON.stringify({ tasks: selectedTasks, sessionType, savedAt: Date.now() }));
+  }, [selectedTasks, storageKey, sessionType]);
+
+  const toggleTask = (t) => {
+    setSelectedTasks((prev) => {
+      if (prev.includes(t)) {
+        const next = prev.filter((x) => x !== t);
+        return next.length ? next : prev;
+      }
+      return [...prev, t];
+    });
+  };
 
   const st = ST[sessionType] || ST.A;
   const StIcon = st.Icon;
-  const params = BASE_PARAMS[sessionType];
-  const cues = ((TASK_CUES[selectedTask] || DEFAULT_CUES)[sessionType] || DEFAULT_CUES.A);
-  const recs = DAY_RECS[sessionType] || DAY_RECS.A;
+  const params = resolveTaskParams(td, sessionType);
+  const recTexts = resolveTaskRecommendations(td, sessionType);
 
   return (
     <div className="space-y-5">
-      {/* Dropdown tipo de tarea */}
+      {/* Multiselección tipo de tarea */}
       <div className="relative">
         <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2 block">
           Tipo de tarea
         </label>
         <button
+          type="button"
           onClick={() => setDropOpen((v) => !v)}
           className="w-full flex items-center justify-between px-4 py-3 bg-depro-gray-light border border-depro-border rounded-xl text-sm font-semibold text-depro-dark hover:bg-depro-gray-light/70 transition-colors"
         >
-          <span>{selectedTask}</span>
-          <ChevronDown size={14} className={`text-depro-gray transition-transform ${dropOpen ? "rotate-180" : ""}`} />
+          <span className="truncate text-left">
+            {selectedTasks.length === 1
+              ? selectedTasks[0]
+              : `${selectedTasks.length} tareas seleccionadas`}
+          </span>
+          <ChevronDown size={14} className={`text-depro-gray transition-transform flex-shrink-0 ml-2 ${dropOpen ? "rotate-180" : ""}`} />
         </button>
         {dropOpen && (
           <div className="absolute left-0 right-0 mt-1 bg-white border border-depro-border rounded-xl shadow-card-hover z-20 max-h-60 overflow-y-auto">
-            {TASK_TYPES.map((t) => (
-              <button
-                key={t}
-                onClick={() => { setSelectedTask(t); setDropOpen(false); }}
-                className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
-                  t === selectedTask ? "font-bold text-depro-blue bg-depro-blue-light" : "text-depro-dark hover:bg-depro-gray-light"
-                }`}
-              >
+            {taskTypes.map((t) => {
+              const checked = selectedTasks.includes(t);
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleTask(t)}
+                  className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2.5 ${
+                    checked ? "font-bold text-depro-blue bg-depro-blue-light/50" : "text-depro-dark hover:bg-depro-gray-light"
+                  }`}
+                >
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                    checked ? "bg-depro-blue border-depro-blue" : "border-depro-border bg-white"
+                  }`}>
+                    {checked && <Check size={10} className="text-white" strokeWidth={3} />}
+                  </span>
+                  {t}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {selectedTasks.length > 1 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {selectedTasks.map((t) => (
+              <span key={t} className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: st.color + "15", color: st.color }}>
                 {t}
-              </button>
+              </span>
             ))}
           </div>
         )}
       </div>
 
-      {/* Banner visual de la tarea */}
+      {/* Banner visual */}
       <div
         className="w-full rounded-2xl p-8 flex flex-col items-center justify-center border"
         style={{ background: `linear-gradient(135deg, ${st.bg} 0%, ${st.color}18 100%)`, borderColor: st.color + "30" }}
@@ -814,17 +780,23 @@ function DisenarTareas({ accentColor, sessionType = "A", storageKey }) {
           style={{ backgroundColor: st.color + "20", borderColor: st.color + "30" }}>
           <StIcon size={30} style={{ color: st.color }} />
         </div>
-        <div className="text-2xl font-black text-center" style={{ color: st.color }}>{selectedTask}</div>
+        {selectedTasks.length === 1 ? (
+          <div className="text-2xl font-black text-center" style={{ color: st.color }}>{selectedTasks[0]}</div>
+        ) : (
+          <div className="text-lg font-black text-center leading-snug" style={{ color: st.color }}>
+            {selectedTasks.join(" · ")}
+          </div>
+        )}
         <div className="flex items-center gap-1 text-xs text-depro-gray mt-1.5">
           <StIcon size={10} style={{ color: st.color }} /> Sesión {st.label}
         </div>
       </div>
 
-      {/* Parámetros condicionales */}
+      {/* Parámetros */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs font-black px-3 py-1 rounded-full" style={{ backgroundColor: st.color + "15", color: st.color }}>
-            {st.emoji} Parámetros para Sesión {st.label}
+            Parámetros para Sesión {st.label}
           </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -845,19 +817,24 @@ function DisenarTareas({ accentColor, sessionType = "A", storageKey }) {
         </div>
       </div>
 
-      {/* Consignas específicas */}
-      <div className="rounded-xl p-4 space-y-2.5" style={{ backgroundColor: st.color + "08", border: `1px solid ${st.color}20` }}>
-        <div className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: st.color }}>
-          💬 Consignas · {selectedTask}
-        </div>
-        {cues.map((c, i) => (
-          <div key={i} className="flex items-start gap-2.5">
-            <span className="w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5"
-              style={{ backgroundColor: st.color + "20", color: st.color }}>{i + 1}</span>
-            <span className="text-xs text-depro-dark leading-relaxed">{c}</span>
+      {/* Consignas por tarea seleccionada */}
+      {selectedTasks.map((taskName) => {
+        const cues = resolveTaskCues(td, taskName, sessionType);
+        return (
+          <div key={taskName} className="rounded-xl p-4 space-y-2.5" style={{ backgroundColor: st.color + "08", border: `1px solid ${st.color}20` }}>
+            <div className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: st.color }}>
+              💬 Consignas · {taskName}
+            </div>
+            {cues.map((c, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5"
+                  style={{ backgroundColor: st.color + "20", color: st.color }}>{i + 1}</span>
+                <span className="text-xs text-depro-dark leading-relaxed">{c}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        );
+      })}
 
       {/* Recomendaciones del día */}
       <div className="bg-depro-gray-light rounded-2xl p-4 border border-depro-border">
@@ -865,15 +842,15 @@ function DisenarTareas({ accentColor, sessionType = "A", storageKey }) {
           <ListChecks size={13} style={{ color: st.color }} /> Recomendaciones del día · Sesión {st.label}
         </div>
         <div className="space-y-2.5">
-          {recs.map((r, i) => {
-            const RIcon = r.Icon;
+          {recTexts.map((text, i) => {
+            const RIcon = REC_ICONS[i % REC_ICONS.length];
             return (
               <div key={i} className="flex items-center gap-2.5 text-xs text-depro-dark">
                 <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: st.color + "15" }}>
                   <RIcon size={11} style={{ color: st.color }} />
                 </div>
-                <span className="leading-snug">{r.text}</span>
+                <span className="leading-snug">{text}</span>
               </div>
             );
           })}
@@ -1045,14 +1022,13 @@ function BlockTwoColumnLayout({ block, accentColor, panelTitle, panelIcon: Panel
               <span className="text-xs font-bold text-depro-dark">{panelTitle}</span>
             </div>
             {infoItems.map((item) => {
-              const PIcon = item.Icon;
               const label = item.label || item.title;
-              const value = item.value || item.text;
+              const value = item.text || item.value;
               return (
-                <div key={label} className="flex items-start gap-3 p-3 rounded-xl bg-depro-gray-light border border-depro-border">
+                <div key={item.id || label} className="flex items-start gap-3 p-3 rounded-xl bg-depro-gray-light border border-depro-border">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: panelColor + "15" }}>
-                    <PIcon size={13} style={{ color: panelColor }} />
+                    <Info size={13} style={{ color: panelColor }} />
                   </div>
                   <div>
                     <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{label}</div>
@@ -1222,7 +1198,8 @@ function ClubSessionCard({
                       try {
                         const raw = localStorage.getItem(taskStorageKey);
                         const data = raw ? JSON.parse(raw) : null;
-                        if (data?.task) tasks = [data.task];
+                        if (Array.isArray(data?.tasks) && data.tasks.length) tasks = data.tasks;
+                        else if (data?.task) tasks = [data.task];
                       } catch { /* ignore */ }
                     }
                     downloadSessionPdf({
@@ -1267,7 +1244,7 @@ function ClubSessionCard({
                 panelTitle={`Calentamiento · Sesión ${st.label}`}
                 panelIcon={Flame}
                 panelColor="#F59E0B"
-                infoItems={WARMUP_GUIDE_ITEMS}
+                infoItems={resolveBlockGuideItems(blockByType("calentamiento"), "calentamiento", sessionType)}
               />
             )}
 
@@ -1279,13 +1256,18 @@ function ClubSessionCard({
                 panelTitle={`Principal · Sesión ${st.label}`}
                 panelIcon={StIcon}
                 panelColor={st.color}
-                infoItems={PROTOCOL_INFO[sessionType]}
+                infoItems={resolveBlockGuideItems(blockByType("principal"), "principal", sessionType)}
               />
             )}
 
             {/* ── DISEÑAR TAREAS ── */}
             {activeBlock === "tareas" && (
-              <DisenarTareas accentColor={accentColor} sessionType={sessionType} storageKey={taskStorageKey} />
+              <DisenarTareas
+                accentColor={accentColor}
+                sessionType={sessionType}
+                storageKey={taskStorageKey}
+                taskDesigner={session.taskDesigner}
+              />
             )}
           </div>
         </div>
