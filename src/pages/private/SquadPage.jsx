@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Users, Search, Trash2, Edit3, X, Save,
-  Filter, UserPlus, Shield, CheckCircle,
-  TrendingUp, Activity, Zap, ChevronRight,
-  Calendar, BarChart2, Trophy,
+  Filter, UserPlus, Shield,
+  Activity, Zap, ChevronRight,
+  BarChart2, ArrowUpDown,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
@@ -207,13 +206,59 @@ function PlayerModal({ initial, onSave, onClose, sa }) {
   );
 }
 
-// ── Helpers de datos del jugador ────────────────────────────
-const TESTS_META = [
-  { id: "resistencia", name: "Resistencia",  unit: "rectas", color: "#3B82F6" },
-  { id: "sprint",      name: "Sprint",        unit: "seg",    color: "#EF4444" },
-  { id: "cod",         name: "COD 5-10-5",   unit: "seg",    color: "#8B5CF6" },
-  { id: "cmj",         name: "Salto CMJ",    unit: "cm",     color: "#22C55E" },
+const FILTER_ALL = "Todos";
+
+const POS_GROUPS = {
+  [FILTER_ALL]: null,
+  Portería: ["Portero"],
+  Defensa:  ["Defensa", "Lateral"],
+  Medio:    ["Pivote", "Centro", "Mediapunta"],
+  Ataque:   ["Extremo", "Delantero"],
+};
+
+const TESTS_FULL = [
+  { id: "resistencia", name: "Resistencia aeróbica", unit: "rectas", color: "#3B82F6", higher_is_better: true,
+    ranges: [{ label: "Bajo", max: 8, color: "#EF4444" }, { label: "Medio", max: 15, color: "#F59E0B" }, { label: "Bueno", max: 22, color: "#3B82F6" }, { label: "Excelente", max: Infinity, color: "#22C55E" }] },
+  { id: "sprint", name: "Sprint lineal", unit: "seg", color: "#EF4444", higher_is_better: false,
+    ranges: [{ label: "Excelente", max: 2.6, color: "#22C55E" }, { label: "Bueno", max: 3.0, color: "#3B82F6" }, { label: "Medio", max: 3.5, color: "#F59E0B" }, { label: "Bajo", max: Infinity, color: "#EF4444" }] },
+  { id: "cod", name: "COD 5-10-5", unit: "seg", color: "#8B5CF6", higher_is_better: false,
+    ranges: [{ label: "Excelente", max: 4.4, color: "#22C55E" }, { label: "Bueno", max: 5.0, color: "#3B82F6" }, { label: "Medio", max: 5.6, color: "#F59E0B" }, { label: "Bajo", max: Infinity, color: "#EF4444" }] },
+  { id: "cmj", name: "Salto CMJ", unit: "cm", color: "#22C55E", higher_is_better: true,
+    ranges: [{ label: "Bajo", max: 25, color: "#EF4444" }, { label: "Medio", max: 35, color: "#F59E0B" }, { label: "Bueno", max: 45, color: "#3B82F6" }, { label: "Excelente", max: Infinity, color: "#22C55E" }] },
 ];
+
+const EVAL_LABELS = ["T1", "T2", "T3"];
+
+function seasonTestsKey(playerId) { return `depro_season_tests_${playerId}`; }
+function loadSeasonTests(playerId) {
+  try { return JSON.parse(localStorage.getItem(seasonTestsKey(playerId)) || "{}"); }
+  catch { return {}; }
+}
+function getTestRange(test, value) {
+  const n = parseFloat(value);
+  if (isNaN(n)) return null;
+  return test.ranges.find((r) => n <= r.max) || test.ranges[test.ranges.length - 1];
+}
+function playerHasAnyTests(playerId) {
+  const season = loadSeasonTests(playerId);
+  const hasSeason = Object.values(season).some((arr) => (arr || []).some((v) => v !== "" && !isNaN(parseFloat(v))));
+  const hasPremium = TESTS_FULL.some((t) => {
+    try {
+      const hist = JSON.parse(localStorage.getItem(`depro_test_${playerId}_${t.id}`) || "[]");
+      return hist.length > 0;
+    } catch { return false; }
+  });
+  return hasSeason || hasPremium;
+}
+function matchesAgeBand(age, band) {
+  if (!band || band === FILTER_ALL) return true;
+  const n = Number(age);
+  if (!age || isNaN(n)) return false;
+  if (band === "≤12") return n <= 12;
+  if (band === "13-15") return n >= 13 && n <= 15;
+  if (band === "≥16") return n >= 16;
+  return true;
+}
 
 function weekKey() {
   const d = new Date(); const day = d.getDay() || 7;
@@ -241,115 +286,218 @@ function loadPlayerStats(playerId) {
     }
   } catch {}
 
-  // Tests físicos
-  const tests = TESTS_META.map((t) => {
+  // Tests físicos (premium individual)
+  const tests = TESTS_FULL.map((t) => {
     try {
       const hist = JSON.parse(localStorage.getItem(`depro_test_${playerId}_${t.id}`) || "[]");
       const last = hist[hist.length - 1];
-      return { ...t, last: last?.value ?? null, date: last?.date ?? null, count: hist.length };
-    } catch { return { ...t, last: null, date: null, count: 0 }; }
+      return { ...t, last: last?.value ?? null, date: last?.date ?? null, count: hist.length, history: hist };
+    } catch { return { ...t, last: null, date: null, count: 0, history: [] }; }
   });
 
-  return { completedDays, plan: !!plan, totalSessions, completedSessions, tests };
+  const seasonTests = TESTS_FULL.map((t) => ({
+    ...t,
+    evals: (loadSeasonTests(playerId)[t.id] || ["", "", ""]).slice(0, 3),
+  }));
+
+  return { completedDays, plan: !!plan, totalSessions, completedSessions, tests, seasonTests };
 }
 
-// ── Modal estadísticas jugador registrado ────────────────────
-function PlayerStatsModal({ player, onClose, sa }) {
+// ── Modal ficha completa del jugador ────────────────────────
+function PlayerDetailModal({ player, onClose, sa, onEdit }) {
   const stats = useMemo(() => loadPlayerStats(player.id), [player.id]);
   const pct   = stats.totalSessions > 0
     ? Math.round((stats.completedSessions / stats.totalSessions) * 100) : 0;
+  const posColor = POSITION_COLORS[player.position] || sa;
+  const isRegistered = player._source === "registered" || player._reg;
+  const hasSeasonData = stats.seasonTests.some((t) => t.evals.some((v) => v !== "" && !isNaN(parseFloat(v))));
+  const hasPremiumData = stats.tests.some((t) => t.last !== null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-depro-border sticky top-0 bg-white z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black" style={{ backgroundColor: sa + "15", color: sa }}>
+        <div className="flex items-start justify-between p-5 border-b border-depro-border sticky top-0 bg-white z-10">
+          <div className="flex items-center gap-4 min-w-0">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black flex-shrink-0"
+              style={{ backgroundColor: posColor + "20", color: posColor }}
+            >
               {(player.name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
             </div>
-            <div>
-              <div className="font-bold text-depro-dark">{player.name}</div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#22C55E15", color: "#16A34A" }}>
-                  {player.plan || "Plan activo"}
-                </span>
-                {player.email && <span className="text-xs text-depro-gray">{player.email}</span>}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-black text-depro-dark text-xl">{player.name}</h2>
+                {player.number && (
+                  <span className="text-xs font-black px-2 py-0.5 rounded-lg" style={{ backgroundColor: sa, color: ct(sa) }}>
+                    #{player.number}
+                  </span>
+                )}
               </div>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                {player.position && player.position !== "—" && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: posColor + "15", color: posColor }}>
+                    {player.position}
+                  </span>
+                )}
+                {player._teamName && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: sa + "12", color: sa }}>
+                    {player._teamName}
+                  </span>
+                )}
+                {isRegistered && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#22C55E15", color: "#16A34A" }}>
+                    {player.plan || "Plan individual"}
+                  </span>
+                )}
+              </div>
+              {player.email && <p className="text-xs text-depro-gray mt-1 truncate">{player.email}</p>}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-depro-gray-light text-depro-gray">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {onEdit && player._source === "manual" && (
+              <button
+                onClick={() => { onClose(); onEdit(player); }}
+                className="p-2 rounded-lg hover:bg-depro-gray-light text-depro-gray hover:text-depro-dark transition-colors"
+                title="Editar jugador"
+              >
+                <Edit3 size={16} />
+              </button>
+            )}
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-depro-gray-light text-depro-gray">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        <div className="p-5 space-y-5">
-          {/* Progreso semanal */}
-          <div>
+        <div className="p-5 space-y-6">
+          {/* Datos personales */}
+          <section>
             <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-3">
-              <Calendar size={12} /> Semana actual
+              <Users size={12} /> Información del jugador
             </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-depro-gray-light rounded-xl p-4 text-center">
-                <div className="text-2xl font-black" style={{ color: sa }}>{stats.completedDays}</div>
-                <div className="text-xs text-depro-gray mt-0.5">Días completados</div>
-              </div>
-              <div className="bg-depro-gray-light rounded-xl p-4 text-center">
-                <div className="text-2xl font-black text-depro-dark">{stats.plan ? "✓" : "—"}</div>
-                <div className="text-xs text-depro-gray mt-0.5">Plan generado</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Progreso del plan */}
-          {stats.totalSessions > 0 && (
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-3">
-                <BarChart2 size={12} /> Progreso del plan
-              </h3>
-              <div className="bg-depro-gray-light rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-depro-dark font-medium">{stats.completedSessions} / {stats.totalSessions} sesiones</span>
-                  <span className="text-sm font-black" style={{ color: pct === 100 ? "#22C55E" : sa }}>{pct}%</span>
-                </div>
-                <div className="h-2 bg-white rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: pct === 100 ? "#22C55E" : sa }} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Tests físicos */}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-3">
-              <Activity size={12} /> Tests físicos (Premium)
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {stats.tests.map((t) => (
-                <div key={t.id} className="bg-depro-gray-light rounded-xl p-3 border-l-4" style={{ borderColor: t.color }}>
-                  <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{t.name}</div>
-                  {t.last !== null ? (
-                    <>
-                      <div className="text-xl font-black mt-0.5" style={{ color: t.color }}>
-                        {t.last} <span className="text-xs font-normal text-depro-gray">{t.unit}</span>
-                      </div>
-                      <div className="text-[10px] text-depro-gray mt-0.5">{t.date} · {t.count} mediciones</div>
-                    </>
-                  ) : (
-                    <div className="text-sm text-depro-gray mt-1">Sin datos</div>
-                  )}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: "Edad", value: player.age ? `${player.age} años` : "—" },
+                { label: "Peso", value: player.weight ? `${player.weight} kg` : "—" },
+                { label: "Dorsal", value: player.number || "—" },
+                { label: "Equipo", value: player._teamName || "—" },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-depro-gray-light rounded-xl p-3">
+                  <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{label}</div>
+                  <div className="text-sm font-black text-depro-dark mt-0.5">{value}</div>
                 </div>
               ))}
             </div>
-          </div>
+            {player.notes && (
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1">Observaciones</div>
+                <p className="text-sm text-amber-900">{player.notes}</p>
+              </div>
+            )}
+          </section>
 
-          {/* Sin datos */}
-          {!stats.plan && stats.completedDays === 0 && stats.tests.every((t) => t.last === null) && (
-            <div className="text-center py-6 text-depro-gray">
-              <Trophy size={28} className="mx-auto mb-2 text-depro-border" />
-              <p className="text-sm font-medium text-depro-dark">Sin actividad registrada aún</p>
-              <p className="text-xs mt-1">El jugador aún no ha generado su plan ni completado tests.</p>
-            </div>
+          {/* Tests de temporada (entrenador) */}
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-3">
+              <Activity size={12} /> Tests físicos · Temporada (T1 / T2 / T3)
+            </h3>
+            {hasSeasonData ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {stats.seasonTests.map((t) => (
+                  <div key={t.id} className="border border-depro-border rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.color }} />
+                      <span className="text-sm font-bold text-depro-dark">{t.name}</span>
+                      <span className="text-[10px] text-depro-gray ml-auto">{t.unit}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {t.evals.map((v, i) => {
+                        const r = v !== "" && !isNaN(parseFloat(v)) ? getTestRange(t, v) : null;
+                        return (
+                          <div key={i} className="text-center rounded-lg py-2" style={{ backgroundColor: r ? r.color + "12" : "#F9FAFB" }}>
+                            <div className="text-[9px] font-bold text-depro-gray">{EVAL_LABELS[i]}</div>
+                            {r ? (
+                              <>
+                                <div className="text-base font-black mt-0.5" style={{ color: r.color }}>{v}</div>
+                                <div className="text-[9px] font-semibold" style={{ color: r.color }}>{r.label}</div>
+                              </>
+                            ) : (
+                              <div className="text-sm text-depro-gray/40 mt-1">—</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 border border-dashed border-depro-border rounded-xl text-depro-gray">
+                <Activity size={24} className="mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Sin tests de temporada registrados</p>
+                <p className="text-xs mt-1">Puedes añadirlos desde la sección Tests del equipo</p>
+              </div>
+            )}
+          </section>
+
+          {/* Tests premium (jugador registrado) */}
+          {isRegistered && (
+            <section>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-3">
+                <Zap size={12} /> Tests individuales (app jugador)
+              </h3>
+              {hasPremiumData ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {stats.tests.map((t) => (
+                    <div key={t.id} className="bg-depro-gray-light rounded-xl p-3 border-l-4" style={{ borderColor: t.color }}>
+                      <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{t.name}</div>
+                      {t.last !== null ? (
+                        <>
+                          <div className="text-xl font-black mt-0.5" style={{ color: t.color }}>
+                            {t.last} <span className="text-xs font-normal text-depro-gray">{t.unit}</span>
+                          </div>
+                          <div className="text-[10px] text-depro-gray mt-0.5">{t.date} · {t.count} mediciones</div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-depro-gray mt-1">Sin datos</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-depro-gray text-center py-4">El jugador aún no ha registrado tests en la app</p>
+              )}
+            </section>
+          )}
+
+          {/* Actividad del plan (registrados) */}
+          {isRegistered && (stats.plan || stats.completedDays > 0) && (
+            <section>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-depro-gray flex items-center gap-1.5 mb-3">
+                <BarChart2 size={12} /> Actividad del plan
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-depro-gray-light rounded-xl p-4 text-center">
+                  <div className="text-2xl font-black" style={{ color: sa }}>{stats.completedDays}</div>
+                  <div className="text-xs text-depro-gray mt-0.5">Días completados esta semana</div>
+                </div>
+                {stats.totalSessions > 0 && (
+                  <div className="bg-depro-gray-light rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">{stats.completedSessions}/{stats.totalSessions} sesiones</span>
+                      <span className="text-sm font-black" style={{ color: pct === 100 ? "#22C55E" : sa }}>{pct}%</span>
+                    </div>
+                    <div className="h-2 bg-white rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: pct === 100 ? "#22C55E" : sa }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
           )}
         </div>
       </div>
@@ -388,18 +536,21 @@ export default function SquadPage() {
     ) || null;
   }, [viewingTeam, user?.team, user?.email, isCoord, allTeams]);
 
-  const { t } = useTranslation();
-
   // ── Estado ────────────────────────────────────────────────
   const [squads, setSquads]         = useState({});
   const [regPlayers, setRegPlayers] = useState([]);
   const [search, setSearch]         = useState("");
-  const [posFilter, setPosFilter]   = useState(t("squad.all"));
+  const [posFilter, setPosFilter]   = useState(FILTER_ALL);
   const [teamFilter, setTeamFilter] = useState("todos");
+  const [posGroupFilter, setPosGroupFilter] = useState(FILTER_ALL);
+  const [ageFilter, setAgeFilter]   = useState(FILTER_ALL);
+  const [sourceFilter, setSourceFilter] = useState(FILTER_ALL);
+  const [testsFilter, setTestsFilter]   = useState(FILTER_ALL);
+  const [sortBy, setSortBy]         = useState("nombre");
   const [showModal, setShowModal]       = useState(false);
   const [editPlayer, setEditPlayer]     = useState(null);
   const [teamError, setTeamError]       = useState(false);
-  const [statsPlayer, setStatsPlayer]   = useState(null);
+  const [detailPlayer, setDetailPlayer] = useState(null);
 
   // ── Cargar plantillas (localStorage + Supabase) ────────────
   // allTeams.length y myTeam?.id en deps para re-ejecutar cuando lleguen los datos asíncronos del club
@@ -506,27 +657,63 @@ export default function SquadPage() {
     );
   }, [squads, isCoord, allTeams, myTeam]);
 
+  // ── Lista unificada: plantilla manual + registrados ───────
+  const unifiedPlayers = useMemo(() => {
+    const manual = allPlayers.map((p) => ({ ...p, _source: "manual" }));
+    const manualIds = new Set(manual.map((p) => p.id));
+    const reg = regPlayers
+      .filter((p) => !manualIds.has(p.id))
+      .map((p) => ({
+        ...p,
+        _source: "registered",
+        position: p.position || "—",
+        _teamName: allTeams.find((t) => t.id === p._teamId)?.name || myTeam?.name || "—",
+      }));
+    return [...manual, ...reg];
+  }, [allPlayers, regPlayers, allTeams, myTeam?.name]);
+
   const filtered = useMemo(() => {
-    return allPlayers.filter((p) => {
+    let list = unifiedPlayers.filter((p) => {
       const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
-      const matchPos    = posFilter === "Todos" || p.position === posFilter;
+      const matchPos    = posFilter === FILTER_ALL || p.position === posFilter;
       const matchTeam   = !isCoord || teamFilter === "todos" || p._teamId === teamFilter;
-      return matchSearch && matchPos && matchTeam;
+      const groupPos    = POS_GROUPS[posGroupFilter];
+      const matchGroup  = !groupPos || groupPos.includes(p.position);
+      const matchAge    = matchesAgeBand(p.age, ageFilter);
+      const matchSource = sourceFilter === FILTER_ALL
+        || (sourceFilter === "Manual" && p._source === "manual")
+        || (sourceFilter === "Registrado" && p._source === "registered");
+      const hasTests    = playerHasAnyTests(p.id);
+      const matchTests  = testsFilter === FILTER_ALL
+        || (testsFilter === "Con tests" && hasTests)
+        || (testsFilter === "Sin tests" && !hasTests);
+      return matchSearch && matchPos && matchTeam && matchGroup && matchAge && matchSource && matchTests;
     });
-  }, [allPlayers, search, posFilter, teamFilter, isCoord]);
+
+    list = [...list].sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === "nombre") cmp = (a.name || "").localeCompare(b.name || "");
+      else if (sortBy === "dorsal") cmp = (Number(a.number) || 99) - (Number(b.number) || 99);
+      else if (sortBy === "edad") cmp = (Number(a.age) || 0) - (Number(b.age) || 0);
+      else if (sortBy === "posicion") cmp = (a.position || "").localeCompare(b.position || "");
+      else if (sortBy === "equipo") cmp = (a._teamName || "").localeCompare(b._teamName || "");
+      return cmp;
+    });
+    return list;
+  }, [unifiedPlayers, search, posFilter, teamFilter, posGroupFilter, ageFilter, sourceFilter, testsFilter, sortBy, isCoord]);
 
   // ── Estadísticas (manual + registrados) ──────────────────
   const stats = useMemo(() => {
-    const src = allPlayers;
+    const src = unifiedPlayers;
     const withAge = src.filter((p) => p.age);
     const avgAge  = withAge.length
       ? Math.round(withAge.reduce((a, p) => a + Number(p.age), 0) / withAge.length)
       : "—";
     const posCounts = {};
-    src.forEach((p) => { posCounts[p.position] = (posCounts[p.position] || 0) + 1; });
+    src.forEach((p) => { if (p.position && p.position !== "—") posCounts[p.position] = (posCounts[p.position] || 0) + 1; });
     const topPos = Object.entries(posCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
-    return { total: src.length + regPlayers.length, avgAge, topPos };
-  }, [allPlayers, regPlayers]);
+    return { total: src.length, avgAge, topPos };
+  }, [unifiedPlayers]);
 
   // ── CRUD ─────────────────────────────────────────────────
   const activeTeamId = isCoord ? null : myTeam?.id;
@@ -639,21 +826,73 @@ export default function SquadPage() {
               className="admin-input w-full pl-10"
             />
           </div>
-          <div className="flex items-center gap-1.5 overflow-x-auto flex-shrink-0">
-            <Filter size={13} className="text-depro-gray flex-shrink-0" />
-            {["Todos", ...POSITIONS].map((f) => (
-              <button
-                key={f}
-                onClick={() => setPosFilter(f)}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <ArrowUpDown size={13} className="text-depro-gray" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="admin-input text-xs py-2 pr-8"
+            >
+              <option value="nombre">Orden: Nombre</option>
+              <option value="dorsal">Orden: Dorsal</option>
+              <option value="edad">Orden: Edad</option>
+              <option value="posicion">Orden: Posición</option>
+              {isCoord && <option value="equipo">Orden: Equipo</option>}
+            </select>
+          </div>
+        </div>
+
+        {/* Posición específica */}
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <Filter size={13} className="text-depro-gray flex-shrink-0" />
+          {[FILTER_ALL, ...POSITIONS].map((f) => (
+            <button
+              key={f}
+              onClick={() => setPosFilter(f)}
+              className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
+              style={posFilter === f ? { backgroundColor: sa, color: ct(sa), borderColor: sa } : {}}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* Línea / edad / origen / tests */}
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            <span className="text-[10px] font-bold text-depro-gray uppercase flex-shrink-0">Línea</span>
+            {Object.keys(POS_GROUPS).map((g) => (
+              <button key={g} onClick={() => setPosGroupFilter(g)}
                 className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
-                style={
-                  posFilter === f
-                    ? { backgroundColor: sa, color: ct(sa), borderColor: sa }
-                    : {}
-                }
-              >
-                {f}
-              </button>
+                style={posGroupFilter === g ? { backgroundColor: sa + "18", color: sa, borderColor: sa + "40" } : {}}
+              >{g}</button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-depro-gray uppercase flex-shrink-0">Edad</span>
+            {[FILTER_ALL, "≤12", "13-15", "≥16"].map((a) => (
+              <button key={a} onClick={() => setAgeFilter(a)}
+                className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
+                style={ageFilter === a ? { backgroundColor: sa + "18", color: sa, borderColor: sa + "40" } : {}}
+              >{a}</button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-depro-gray uppercase flex-shrink-0">Tipo</span>
+            {[FILTER_ALL, "Manual", "Registrado"].map((s) => (
+              <button key={s} onClick={() => setSourceFilter(s)}
+                className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
+                style={sourceFilter === s ? { backgroundColor: sa + "18", color: sa, borderColor: sa + "40" } : {}}
+              >{s}</button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-depro-gray uppercase flex-shrink-0">Tests</span>
+            {[FILTER_ALL, "Con tests", "Sin tests"].map((t) => (
+              <button key={t} onClick={() => setTestsFilter(t)}
+                className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
+                style={testsFilter === t ? { backgroundColor: sa + "18", color: sa, borderColor: sa + "40" } : {}}
+              >{t}</button>
             ))}
           </div>
         </div>
@@ -662,18 +901,14 @@ export default function SquadPage() {
         {isCoord && allTeams.length > 0 && (
           <div className="flex items-center gap-1.5 overflow-x-auto">
             <Shield size={13} className="text-depro-gray flex-shrink-0" />
-            {[{ id: "todos", name: "Todos" }, ...allTeams].map((t) => (
+            {[{ id: "todos", name: FILTER_ALL }, ...allTeams].map((tm) => (
               <button
-                key={t.id}
-                onClick={() => setTeamFilter(t.id)}
+                key={tm.id}
+                onClick={() => setTeamFilter(tm.id)}
                 className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
-                style={
-                  teamFilter === t.id
-                    ? { backgroundColor: sa, color: ct(sa), borderColor: sa }
-                    : {}
-                }
+                style={teamFilter === tm.id ? { backgroundColor: sa, color: ct(sa), borderColor: sa } : {}}
               >
-                {t.name}
+                {tm.name}
               </button>
             ))}
           </div>
@@ -682,11 +917,20 @@ export default function SquadPage() {
 
       {/* Lista */}
       <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
+        <div
+          className="px-5 py-2.5 border-b border-depro-border flex items-center justify-between text-[10px] text-depro-gray"
+          style={{ backgroundColor: sa + "06" }}
+        >
+          <span>{filtered.length} jugador{filtered.length !== 1 ? "es" : ""} · Clic en una fila para ver ficha completa</span>
+          <span className="hidden sm:flex items-center gap-1"><ChevronRight size={10} /> Ver detalle</span>
+        </div>
         {/* Cabecera */}
         <div
           className="hidden md:grid px-5 py-3 text-[10px] font-bold uppercase tracking-wider border-b border-depro-border"
           style={{ backgroundColor: sa + "0D", color: sa,
-            gridTemplateColumns: isCoord ? "3rem 1fr 7rem 4rem 4rem 7rem 1fr 3rem" : "3rem 1fr 7rem 4rem 4rem 1fr 5rem" }}
+            gridTemplateColumns: isCoord
+              ? "3rem 1fr 7rem 4rem 4rem 7rem 1fr 3rem 1.5rem"
+              : "3rem 1fr 7rem 4rem 4rem 1fr 5rem 1.5rem" }}
         >
           <span>Nº</span>
           <span>Jugador</span>
@@ -696,20 +940,21 @@ export default function SquadPage() {
           {isCoord && <span>Equipo</span>}
           <span>Observaciones</span>
           {canEdit && <span />}
+          <span />
         </div>
 
         {filtered.length === 0 ? (
           <div className="text-center py-16">
             <Users size={36} className="mx-auto mb-3" style={{ color: sa + "50" }} />
             <p className="font-medium text-depro-dark">
-              {allPlayers.length === 0 ? "La plantilla está vacía" : "No hay jugadores con ese filtro"}
+              {unifiedPlayers.length === 0 ? "La plantilla está vacía" : "No hay jugadores con ese filtro"}
             </p>
-            {allPlayers.length === 0 && canEdit && (
+            {unifiedPlayers.length === 0 && canEdit && (
               <p className="text-sm text-depro-gray mt-1">
                 Pulsa "Añadir jugador" para comenzar a registrar la plantilla.
               </p>
             )}
-            {allPlayers.length === 0 && isCoord && (
+            {unifiedPlayers.length === 0 && isCoord && (
               <p className="text-sm text-depro-gray mt-1">
                 Los entrenadores de cada equipo añadirán a sus jugadores desde la página de Plantilla.
               </p>
@@ -718,14 +963,19 @@ export default function SquadPage() {
         ) : (
           filtered.map((p) => {
             const posColor = POSITION_COLORS[p.position] || sa;
+            const hasTests = playerHasAnyTests(p.id);
             return (
               <div
                 key={p.id}
-                className="grid px-5 py-4 border-b border-depro-border last:border-b-0 hover:bg-depro-gray-light/40 transition-colors items-center gap-3"
+                role="button"
+                tabIndex={0}
+                onClick={() => setDetailPlayer(p)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setDetailPlayer(p); }}
+                className="grid px-5 py-4 border-b border-depro-border last:border-b-0 hover:bg-depro-gray-light/40 transition-colors items-center gap-3 cursor-pointer group"
                 style={{
                   gridTemplateColumns: isCoord
-                    ? "3rem 1fr 7rem 4rem 4rem 7rem 1fr 3rem"
-                    : "3rem 1fr 7rem 4rem 4rem 1fr 5rem",
+                    ? "3rem 1fr 7rem 4rem 4rem 7rem 1fr 3rem 1.5rem"
+                    : "3rem 1fr 7rem 4rem 4rem 1fr 5rem 1.5rem",
                 }}
               >
                 {/* Dorsal */}
@@ -744,7 +994,21 @@ export default function SquadPage() {
                   >
                     {p.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
-                  <span className="font-bold text-depro-dark text-sm truncate">{p.name}</span>
+                  <div className="min-w-0">
+                    <span className="font-bold text-depro-dark text-sm truncate block">{p.name}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {p._source === "registered" && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "#22C55E15", color: "#16A34A" }}>
+                          Registrado
+                        </span>
+                      )}
+                      {hasTests && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-depro-blue-light text-depro-blue">
+                          Tests
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Posición */}
@@ -752,7 +1016,7 @@ export default function SquadPage() {
                   className="text-xs font-bold px-2 py-0.5 rounded-full w-fit"
                   style={{ backgroundColor: posColor + "15", color: posColor }}
                 >
-                  {p.position}
+                  {p.position || "—"}
                 </span>
 
                 {/* Edad */}
@@ -777,17 +1041,17 @@ export default function SquadPage() {
                 <p className="text-xs text-depro-gray line-clamp-2">{p.notes || "—"}</p>
 
                 {/* Acciones */}
-                {canEdit && (
+                {canEdit && p._source === "manual" && (
                   <div className="flex items-center gap-1 justify-end">
                     <button
-                      onClick={() => { setEditPlayer(p); setShowModal(true); }}
+                      onClick={(e) => { e.stopPropagation(); setEditPlayer(p); setShowModal(true); }}
                       className="p-1.5 rounded-lg hover:bg-depro-gray-light text-depro-gray hover:text-depro-dark transition-colors"
                       title="Editar"
                     >
                       <Edit3 size={14} />
                     </button>
                     <button
-                      onClick={() => handleDelete(p)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(p); }}
                       className="p-1.5 rounded-lg hover:bg-red-50 text-depro-gray hover:text-red-500 transition-colors"
                       title="Eliminar"
                     >
@@ -795,72 +1059,22 @@ export default function SquadPage() {
                     </button>
                   </div>
                 )}
+                {(!canEdit || p._source !== "manual") && <span />}
+
+                <ChevronRight size={16} className="text-depro-gray group-hover:text-depro-dark transition-colors flex-shrink-0" />
               </div>
             );
           })
         )}
       </div>
 
-      {/* Jugadores registrados con plan de pago */}
-      {regPlayers.length > 0 && (
-        <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
-          <div
-            className="px-5 py-3 border-b border-depro-border flex items-center justify-between gap-2"
-            style={{ backgroundColor: sa + "08" }}
-          >
-            <div className="flex items-center gap-2">
-              <CheckCircle size={14} style={{ color: sa }} />
-              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: sa }}>
-                Jugadores con plan individual ({regPlayers.length})
-              </span>
-            </div>
-            <span className="text-[10px] text-depro-gray flex items-center gap-1">
-              <TrendingUp size={10} /> Clic para ver estadísticas
-            </span>
-          </div>
-          {regPlayers.map((p) => {
-            const teamName = allTeams.find((t) => t.id === p._teamId)?.name || myTeam?.name || "—";
-            return (
-              <div
-                key={p.id}
-                onClick={() => setStatsPlayer(p)}
-                className="flex items-center gap-3 px-5 py-4 border-b border-depro-border last:border-b-0 hover:bg-depro-gray-light/40 transition-colors cursor-pointer group"
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0"
-                  style={{ backgroundColor: sa + "15", color: sa }}
-                >
-                  {(p.name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-depro-dark text-sm">{p.name}</div>
-                  <div className="text-xs text-depro-gray">{teamName}</div>
-                </div>
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: "#22C55E15", color: "#16A34A" }}
-                >
-                  {p.plan || "Plan activo"}
-                </span>
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 border"
-                  style={{ borderColor: sa + "40", color: sa }}
-                >
-                  Registrado
-                </span>
-                <ChevronRight size={14} className="text-depro-gray group-hover:text-depro-dark transition-colors flex-shrink-0" />
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Modal estadísticas jugador registrado */}
-      {statsPlayer && (
-        <PlayerStatsModal
-          player={statsPlayer}
-          onClose={() => setStatsPlayer(null)}
+      {/* Modal ficha jugador */}
+      {detailPlayer && (
+        <PlayerDetailModal
+          player={detailPlayer}
+          onClose={() => setDetailPlayer(null)}
           sa={sa}
+          onEdit={canEdit ? (p) => { setEditPlayer(p); setShowModal(true); } : null}
         />
       )}
 
