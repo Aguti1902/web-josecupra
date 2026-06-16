@@ -1194,7 +1194,7 @@ function ClubSessionCard({
                 )}
                 <button type="button"
                   onClick={() => {
-                    downloadSessionPdf(buildClubSessionPdfPayload({
+                    void downloadSessionPdf(buildClubSessionPdfPayload({
                       session,
                       displayKey,
                       sessionType,

@@ -606,14 +606,76 @@ function buildDocumentHtml(data) {
     <script>window.onload=function(){setTimeout(function(){window.print()},600)}</script></body></html>`;
 }
 
-export function downloadSessionPdf(data) {
-  const html = buildDocumentHtml(data);
-  const w = window.open("", "_blank");
-  if (!w) {
-    alert("Permite ventanas emergentes para descargar el PDF.");
-    return;
+async function resolveLogoDataUri(logoUrl) {
+  try {
+    const res = await fetch(logoUrl, { cache: "force-cache" });
+    if (!res.ok) return logoUrl;
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return logoUrl;
   }
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
+}
+
+function writeToPrintWindow(targetWindow, html) {
+  targetWindow.document.open();
+  targetWindow.document.write(html);
+  targetWindow.document.close();
+}
+
+function openPrintViaIframe(html) {
+  const existing = document.getElementById("depro-pdf-print-frame");
+  if (existing) existing.remove();
+
+  const frame = document.createElement("iframe");
+  frame.id = "depro-pdf-print-frame";
+  frame.setAttribute("title", "Vista previa PDF sesión DEPRO");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none";
+  document.body.appendChild(frame);
+
+  const win = frame.contentWindow;
+  writeToPrintWindow(win, html);
+
+  const triggerPrint = () => {
+    try {
+      win.focus();
+      win.print();
+    } catch {
+      /* ignore */
+    }
+  };
+
+  if (win.document.readyState === "complete") {
+    setTimeout(triggerPrint, 400);
+  } else {
+    frame.onload = () => setTimeout(triggerPrint, 400);
+  }
+}
+
+export async function downloadSessionPdf(data) {
+  // Abrir ventana en el mismo gesto del click (evita bloqueo de popups)
+  const popup = window.open("about:blank", "_blank");
+
+  try {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const logoUrl = data.logoUrl || `${origin}/logo.png`;
+    const logoDataUri = await resolveLogoDataUri(logoUrl);
+    const html = buildDocumentHtml({ ...data, logoUrl: logoDataUri });
+
+    if (popup && !popup.closed) {
+      writeToPrintWindow(popup, html);
+      return;
+    }
+
+    openPrintViaIframe(html);
+  } catch (err) {
+    console.error("[DEPRO PDF]", err);
+    popup?.close();
+    alert("No se pudo generar el PDF. Inténtalo de nuevo.");
+  }
 }
