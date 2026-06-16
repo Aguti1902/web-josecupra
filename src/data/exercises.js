@@ -307,6 +307,7 @@ export function filterExercisesEnriched(params) {
   let results = enriched.filter((ex) => {
     if (lesiones.some((l) => ex.contraindicado.includes(l.toLowerCase()))) return false;
     if (excludeByAge.some((t) => ex.etiquetas.includes(t))) return false;
+    if (params.experiencia === "novato" && (ex.etiquetas.includes("pliometria") || ex.etiquetas.includes("fuerza_maxima"))) return false;
     if (mat && ex.material !== "sin_material" && ex.material !== mat) return false;
     if (allTags.length > 0 && !allTags.some((t) => ex.etiquetas.includes(t))) return false;
     return true;

@@ -36,7 +36,7 @@ export default function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const { user, logout } = useAuth();
-  const { viewingTeam } = useView();
+  const { viewingTeam, setViewingTeam } = useView();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();

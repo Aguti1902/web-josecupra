@@ -17,7 +17,7 @@ const AGE_BLOCKS = [
   { id: "Bloque 3", label: "Bloque 3 · Fútbol Juvenil",   ages: ["Sub-16","Juvenil"],                  color: "#EF4444" },
 ];
 
-const INTENSITIES   = ["Baja","Media","Media-alta","Alta","Máxima"];
+const INTENSITIES   = ["Baja","Media","Media-alta","Alta","Máxima","Complementaria-D"];
 const SESSION_DAYS  = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 
 const SESSION_BLOCK_CONFIG = {

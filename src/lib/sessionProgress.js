@@ -64,9 +64,17 @@ export function getAdherenceReminder(userId, freqNum) {
   const ids = loadProgressIds(userId);
   if (ids.length >= freqNum) return null;
   const lastKey = localStorage.getItem(`depro_last_train_${userId}`);
-  if (!lastKey) return null;
-  const daysSince = Math.floor((Date.now() - new Date(lastKey).getTime()) / 86400000);
-  if (daysSince >= 4) return `Llevas ${daysSince} días sin entrenar. ¿Hacemos una sesión mínima hoy?`;
+  const daysSince = lastKey
+    ? Math.floor((Date.now() - new Date(lastKey).getTime()) / 86400000)
+    : 999;
+  if (daysSince >= 3) {
+    return {
+      message: lastKey
+        ? `Llevas ${daysSince} días sin entrenar. ¿Hacemos una sesión mínima hoy?`
+        : "Llevas varios días sin registrar actividad. ¿Empezamos con una sesión mínima?",
+      suggestMinimal: true,
+    };
+  }
   return null;
 }
 

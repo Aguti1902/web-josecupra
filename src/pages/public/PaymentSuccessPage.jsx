@@ -26,6 +26,9 @@ export default function PaymentSuccessPage() {
       .then((data) => {
         if (data.ok) {
           setStatus({ loading: false, email: data.email, password: data.password, error: null });
+          if (data.userId) {
+            sessionStorage.setItem("depro_pending_plan_user", data.userId);
+          }
         } else {
           setStatus({ loading: false, email: "", password: null, error: data.error });
         }

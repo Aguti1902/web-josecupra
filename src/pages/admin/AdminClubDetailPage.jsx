@@ -670,8 +670,105 @@ function NewUserModal({ teams, clubId, onClose, onCreate }) {
   );
 }
 
+function EditCoordinatorModal({ coordinator, onClose, onSave }) {
+  const [form, setForm] = useState({
+    name: coordinator?.name || "",
+    email: coordinator?.email || "",
+    phone: coordinator?.phone || "",
+    password: coordinator?.password || "",
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
+        <div className="flex items-center justify-between p-6 border-b border-depro-border">
+          <h2 className="font-bold text-depro-dark text-lg">Editar coordinador</h2>
+          <button onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <input className="admin-input w-full" placeholder="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <input className="admin-input w-full" type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <input className="admin-input w-full" placeholder="Teléfono" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <input className="admin-input w-full" type="password" placeholder="Nueva contraseña (opcional)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+        </div>
+        <div className="flex gap-3 p-6 border-t border-depro-border">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm">Cancelar</button>
+          <button onClick={() => onSave(form)} disabled={!form.email} className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold disabled:opacity-40">Guardar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditClubUserModal({ user, teams, onClose, onSave }) {
+  const [form, setForm] = useState({
+    name: user?.name || "",
+    email: user?.email || "",
+    role: user?.role || "entrenador",
+    teamId: user?.teamId || "",
+    managedTeamIds: user?.managedTeamIds || [],
+    password: user?.password || "",
+  });
+
+  const toggleManagedTeam = (teamId) => {
+    setForm((f) => ({
+      ...f,
+      managedTeamIds: f.managedTeamIds.includes(teamId)
+        ? f.managedTeamIds.filter((id) => id !== teamId)
+        : [...f.managedTeamIds, teamId],
+    }));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-depro w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-depro-border">
+          <h2 className="font-bold text-depro-dark text-lg">Editar usuario</h2>
+          <button onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <input className="admin-input w-full" placeholder="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <input className="admin-input w-full" type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <select className="admin-input w-full" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+            <option value="entrenador">Entrenador</option>
+            <option value="coordinador">Coordinador</option>
+            <option value="ayudante">Ayudante</option>
+          </select>
+          {form.role === "coordinador" ? (
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-depro-gray uppercase">Equipos que gestiona</p>
+              {teams.map((t) => (
+                <label key={t.id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={form.managedTeamIds.includes(t.id)} onChange={() => toggleManagedTeam(t.id)} />
+                  {t.name}
+                </label>
+              ))}
+            </div>
+          ) : (
+            <select className="admin-input w-full" value={form.teamId} onChange={(e) => setForm({ ...form, teamId: e.target.value })}>
+              <option value="">— Sin equipo —</option>
+              {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          )}
+          <input className="admin-input w-full" type="password" placeholder="Nueva contraseña (opcional)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+        </div>
+        <div className="flex gap-3 p-6 border-t border-depro-border">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm">Cancelar</button>
+          <button
+            onClick={() => onSave({ ...user, ...form, team: teams.find((t) => t.id === form.teamId)?.name || user.team })}
+            disabled={!form.email}
+            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold disabled:opacity-40"
+          >
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── New Microcycle Modal ────────────────────────────────────── */
-const INTENSITIES = ["Baja", "Media-baja", "Media", "Media-alta", "Alta", "Máxima"];
+const INTENSITIES = ["Baja", "Media-baja", "Media", "Media-alta", "Alta", "Máxima", "Complementaria-D"];
 const SESSION_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
 function NewMicrocycleModal({ teams, onClose, onCreate, initialAgeBlock = "" }) {
@@ -1723,6 +1820,8 @@ export default function AdminClubDetailPage() {
   const [recreating, setRecreating] = useState(false);
   const [recreateMsg, setRecreateMsg] = useState(null);
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  const [showEditCoordinator, setShowEditCoordinator] = useState(false);
+  const [editingClubUser, setEditingClubUser] = useState(null);
 
   useEffect(() => {
     loadClubs().then((clubs) => {
@@ -1824,6 +1923,14 @@ export default function AdminClubDetailPage() {
     navigate("/dashboard/plan");
   };
   const addUser = (user) => updateClub((c) => ({ ...c, users: [...(c.users || []), user] }));
+  const updateClubUser = (user) => updateClub((c) => ({
+    ...c,
+    users: (c.users || []).map((u) => (u.id === user.id ? user : u)),
+  }));
+  const updateCoordinator = (data) => updateClub((c) => ({
+    ...c,
+    coordinator: { ...c.coordinator, ...data },
+  }));
   const removeUser = (uid) => updateClub((c) => ({ ...c, users: (c.users || []).filter((u) => u.id !== uid) }));
   const toggleUserActive = (uid) =>
     updateClub((c) => ({ ...c, users: (c.users || []).map((u) => (u.id === uid ? { ...u, active: !u.active } : u)) }));
@@ -1985,6 +2092,12 @@ export default function AdminClubDetailPage() {
                     {club.coordinator?.userCreated ? <CheckCircle size={11} /> : <Clock size={11} />}
                     {club.coordinator?.userCreated ? "Acceso activo" : "Acceso pendiente"}
                   </div>
+                  <button
+                    onClick={() => setShowEditCoordinator(true)}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-depro-blue hover:text-depro-blue-dark border border-depro-blue/30 hover:border-depro-blue px-3 py-1 rounded-full transition-colors"
+                  >
+                    <Edit3 size={11} /> Editar coordinador
+                  </button>
                   <button
                     onClick={handleRecreateAccess}
                     disabled={recreating}
@@ -2239,14 +2352,34 @@ export default function AdminClubDetailPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {user.id && !user.id.startsWith("coord") && !user.id.startsWith("coach_") && (
-                          <button
-                            onClick={() => removeUser(user.id)}
-                            className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-red hover:text-depro-red transition-colors"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
+                        <div className="flex items-center gap-1 justify-end">
+                          {user.id && !user.id.startsWith("coord") && !user.id.startsWith("coach_") && (
+                            <>
+                              <button
+                                onClick={() => setEditingClubUser(user)}
+                                className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
+                                title="Editar usuario"
+                              >
+                                <Edit3 size={13} />
+                              </button>
+                              <button
+                                onClick={() => removeUser(user.id)}
+                                className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-red hover:text-depro-red transition-colors"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </>
+                          )}
+                          {user.id === "coord" && (
+                            <button
+                              onClick={() => setShowEditCoordinator(true)}
+                              className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
+                              title="Editar coordinador"
+                            >
+                              <Edit3 size={13} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -2269,6 +2402,21 @@ export default function AdminClubDetailPage() {
         />
       )}
       {showNewUser && <NewUserModal teams={club.teams} clubId={club.id} onClose={() => setShowNewUser(false)} onCreate={addUser} />}
+      {showEditCoordinator && (
+        <EditCoordinatorModal
+          coordinator={club.coordinator}
+          onClose={() => setShowEditCoordinator(false)}
+          onSave={(data) => { updateCoordinator(data); setShowEditCoordinator(false); }}
+        />
+      )}
+      {editingClubUser && (
+        <EditClubUserModal
+          user={editingClubUser}
+          teams={club.teams || []}
+          onClose={() => setEditingClubUser(null)}
+          onSave={(data) => { updateClubUser(data); setEditingClubUser(null); }}
+        />
+      )}
     </div>
     </>
   );

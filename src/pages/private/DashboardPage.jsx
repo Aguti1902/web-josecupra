@@ -8,10 +8,11 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { getAdherenceReminder } from "../../lib/sessionProgress";
+import { getAdherenceReminder, countCompletedSessions, loadProgressIds, weekKey } from "../../lib/sessionProgress";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
-import { weeklyPlan, coachFeedback } from "../../data/mockData";
+import { coachFeedback } from "../../data/mockData";
+import { ensurePlayerPlan, DAY_ORDER, buildMinimalSession } from "../../lib/playerPlanEngine";
 import {
   distributeMesocycleForTeam, getCurrentWeekIndex, isMesocicloActive,
 } from "../../lib/periodization";
@@ -856,69 +857,68 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
 // ════════════════════════════════════════════════════════════
 // JUGADOR DASHBOARD (original)
 // ════════════════════════════════════════════════════════════
-// Helper: semana actual (lunes → domingo) como clave
-function weekKey() {
-  const d = new Date();
-  const day = d.getDay() || 7;
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - day + 1);
-  return monday.toISOString().slice(0, 10);
-}
+// Helper: semana actual (lunes → domingo) como clave — ver sessionProgress.weekKey
 
 function JugadorDashboard({ user, club }) {
   const accent    = club?.primaryColor || "#0A36F7";
   const safeAccent = visibleOnWhite(accent, "#0A36F7");
   const isPremium = user?.plan === "Premium" || user?.plan === "Pro";
-  const today = weeklyPlan.find((d) => d.sessions.some((s) => s.status === "today"));
-  const todaySession = today?.sessions[0];
   const lastFeedback = coachFeedback[0];
 
   const planKey = `depro_plan_${user?.id}`;
+  const [playerPlan, setPlayerPlan] = useState(null);
   const [planProgress, setPlanProgress] = useState({ completed: 0, total: 0 });
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(planKey);
-      if (!raw) return;
-      const plan = JSON.parse(raw);
-      const sessions = plan.flatMap((d) => d.sessions || []).filter((s) => s.blocks?.length || s.exercises?.length);
-      setPlanProgress({
-        total: sessions.length,
-        completed: sessions.filter((s) => s.status === "completed" || s.completion === 100).length,
-      });
-    } catch { /* ignore */ }
-  }, [planKey, user?.id]);
+    if (!user?.id) return;
+    const plan = ensurePlayerPlan(user);
+    setPlayerPlan(plan);
+    setPlanProgress(countCompletedSessions(plan));
+  }, [user?.id, user?.objetivo, user?.frecuencia, user?.material, user?.lesion]);
+
+  const todayName = getTodayName();
+  const todayDay = playerPlan?.find((d) => d.day === todayName);
+  const todaySession = todayDay?.sessions?.[0] ?? null;
 
   const freqNum = parseInt(String(user?.frecuencia || user?.training_days || 3).replace(/\D/g, "")) || 3;
   const progressTotal = planProgress.total || freqNum;
   const progressPct = progressTotal ? Math.min(100, Math.round((planProgress.completed / progressTotal) * 100)) : 0;
 
-  const [completedIds, setCompletedIds] = useState(() => {
-    try {
-      const raw = localStorage.getItem(`depro_progress_${user?.id}_${weekKey()}`);
-      return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-  });
+  const wk = weekKey();
+  const [completedIds, setCompletedIds] = useState(() => loadProgressIds(user?.id, wk));
 
-  const markDayDone = (label) => {
-    if (completedIds.includes(label)) return;
-    const updated = [...completedIds, label];
+  useEffect(() => {
+    setCompletedIds(loadProgressIds(user?.id, wk));
+  }, [user?.id, wk, planProgress.completed]);
+
+  const markDayDone = (dayFull) => {
+    if (completedIds.includes(dayFull)) return;
+    const updated = [...completedIds, dayFull];
     setCompletedIds(updated);
-    localStorage.setItem(`depro_progress_${user?.id}_${weekKey()}`, JSON.stringify(updated));
+    localStorage.setItem(`depro_progress_${user?.id}_${wk}`, JSON.stringify(updated));
   };
 
   const completedDays = planProgress.completed || completedIds.length;
   const displayTotal = progressTotal;
 
   const days7 = ["L", "M", "X", "J", "V", "S", "D"];
+  const dayFullNames = DAY_ORDER;
   const todayIdx = (new Date().getDay() + 6) % 7;
   const adherenceReminder = getAdherenceReminder(user?.id, displayTotal);
 
   return (
     <div className="space-y-6">
       {adherenceReminder && (
-        <div className="rounded-2xl p-4 border border-amber-200 bg-amber-50 text-sm text-amber-800">
-          {adherenceReminder}
+        <div className="rounded-2xl p-4 border border-amber-200 bg-amber-50 text-sm text-amber-800 flex flex-col sm:flex-row sm:items-center gap-3">
+          <span className="flex-1">{adherenceReminder.message}</span>
+          {adherenceReminder.suggestMinimal && (
+            <Link
+              to="/dashboard/plan?minimal=1"
+              className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 transition-colors"
+            >
+              Sesión mínima <ArrowRight size={12} />
+            </Link>
+          )}
         </div>
       )}
       {/* Banner del club si el jugador está asociado */}
@@ -1047,7 +1047,7 @@ function JugadorDashboard({ user, club }) {
                 <div className="flex items-center gap-1.5 text-depro-gray text-sm"><Clock size={14} />{todaySession.duration}</div>
               </div>
               <div className="space-y-2">
-                {todaySession.exercises.slice(0, 3).map((ex, i) => (
+                {(todaySession.exercises || todaySession.blocks?.flatMap((b) => b.exercises) || []).slice(0, 3).map((ex, i) => (
                   <div key={i} className="flex items-center gap-3 py-2.5 px-3 bg-depro-gray-light rounded-xl">
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: safeAccent + "15", color: safeAccent }}>{i + 1}</div>
                     <div className="flex-1 min-w-0">
@@ -1056,7 +1056,11 @@ function JugadorDashboard({ user, club }) {
                     </div>
                   </div>
                 ))}
-                {todaySession.exercises.length > 3 && <p className="text-xs text-depro-gray text-center pt-1">+ {todaySession.exercises.length - 3} ejercicios más</p>}
+                {(todaySession.exercises || todaySession.blocks?.flatMap((b) => b.exercises) || []).length > 3 && (
+                  <p className="text-xs text-depro-gray text-center pt-1">
+                    + {(todaySession.exercises || todaySession.blocks?.flatMap((b) => b.exercises) || []).length - 3} ejercicios más
+                  </p>
+                )}
               </div>
               <Link to="/dashboard/plan" className="mt-5 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm hover:opacity-90" style={{ backgroundColor: safeAccent, color: contrastText(safeAccent) }}>
                 Iniciar sesión <ArrowRight size={14} />
@@ -1075,7 +1079,8 @@ function JugadorDashboard({ user, club }) {
             <div className="bg-white border border-depro-border rounded-xl p-4">
               <div className="grid grid-cols-7 gap-1 mb-4">
                 {days7.map((d, i) => {
-                  const done    = completedIds.includes(d);
+                  const dayFull = dayFullNames[i];
+                  const done    = completedIds.includes(dayFull) || completedIds.includes(d);
                   const isToday = i === todayIdx;
                   // Colores siempre visibles:
                   // Completado → verde; Hoy (sin completar) → azul DEPRO con borde; Resto → gris
@@ -1085,7 +1090,7 @@ function JugadorDashboard({ user, club }) {
                   return (
                     <button
                       key={d}
-                      onClick={() => markDayDone(d)}
+                      onClick={() => markDayDone(dayFull)}
                       title={done ? "Completado" : isToday ? "Hoy" : "Marcar como hecho"}
                       className="flex flex-col items-center gap-1 group"
                     >

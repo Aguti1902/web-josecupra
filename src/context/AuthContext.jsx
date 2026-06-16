@@ -161,9 +161,12 @@ function buildUser(authUser, profile) {
       frecuencia: profile.frecuencia ?? meta.frecuencia ?? null,
       material:  profile.material  ?? meta.material  ?? null,
       lesion:    profile.lesion    ?? meta.lesion    ?? [],
+      lesionSubtipo: profile.lesionSubtipo ?? meta.lesionSubtipo ?? [],
       experiencia: profile.experiencia ?? meta.experiencia ?? null,
       disponibles: profile.disponibles ?? meta.disponibles ?? [],
       managedTeamIds: meta.managedTeamIds ?? profile.managedTeamIds ?? [],
+      edad: profile.age ?? meta.edad ?? null,
+      posicion: profile.position ?? meta.posicion ?? null,
     };
   }
 
@@ -189,9 +192,11 @@ function buildUser(authUser, profile) {
     frecuencia: meta.frecuencia ?? null,
     material:  meta.material  ?? null,
     lesion:    meta.lesion    ?? [],
+    lesionSubtipo: meta.lesionSubtipo ?? [],
     experiencia: meta.experiencia ?? null,
     disponibles: meta.disponibles ?? [],
     edad:      meta.edad      ?? null,
+    posicion:  meta.posicion  ?? null,
     managedTeamIds: meta.managedTeamIds ?? [],
     // Club
     team_role: meta.teamRole  ?? null,
@@ -237,6 +242,17 @@ export function AuthProvider({ children }) {
           fetchProfile(session.user.id).then(async (profile) => {
             const builtUser = buildUser(session.user, profile || null);
             setUser(builtUser);
+
+            if (builtUser.role === "player") {
+              import("../lib/playerPlanEngine").then(({ ensurePlayerPlan }) => {
+                const pending = sessionStorage.getItem("depro_pending_plan_user");
+                if (pending === builtUser.id) {
+                  localStorage.removeItem(`depro_plan_${builtUser.id}`);
+                  sessionStorage.removeItem("depro_pending_plan_user");
+                }
+                ensurePlayerPlan(builtUser);
+              }).catch(() => {});
+            }
 
             // Si es usuario de club, sincronizar datos del club desde la API
             // para garantizar que teams/sesiones estén siempre actualizados (cross-device)

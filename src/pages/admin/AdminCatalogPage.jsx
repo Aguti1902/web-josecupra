@@ -5,6 +5,7 @@ import {
   Edit3, Info, Activity, TrendingUp,
 } from "lucide-react";
 import { EXERCISES, TAGS } from "../../data/exercises";
+import { CATALOG_FOLDERS } from "../../data/extraExercises";
 
 /* ── Helpers ──────────────────────────────────────────────── */
 const CATALOG_OVERRIDES_KEY = "depro_catalog_overrides";
@@ -181,6 +182,7 @@ export default function AdminCatalogPage() {
   const [search, setSearch]     = useState("");
   const [filterMat, setFilterMat] = useState("");
   const [filterTag, setFilterTag] = useState("");
+  const [filterFolder, setFilterFolder] = useState("");
   const [collapsed, setCollapsed] = useState({});
   const [editing, setEditing]   = useState(null); // exercise object
   const [syncing, setSyncing]   = useState(false);
@@ -221,6 +223,14 @@ export default function AdminCatalogPage() {
   const toggleCollapsed = (key) =>
     setCollapsed((c) => ({ ...c, [key]: !c[key] }));
 
+  const matchesFolder = (e, folderId) => {
+    if (!folderId) return true;
+    if (folderId === "pliometria_basica") return e.id.startsWith("pb") || (e.etiquetas.includes("pliometria") && !e.id.startsWith("pa"));
+    if (folderId === "pliometria_avanzada") return e.id.startsWith("pa");
+    if (folderId.startsWith("lesion_")) return e.etiquetas.includes(folderId);
+    return e.etiquetas.includes(folderId);
+  };
+
   // Filtrar ejercicios
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -228,9 +238,10 @@ export default function AdminCatalogPage() {
       if (q && !e.nombre.toLowerCase().includes(q) && !e.etiquetas.join(" ").includes(q)) return false;
       if (filterMat && e.material !== filterMat) return false;
       if (filterTag && !e.etiquetas.includes(filterTag)) return false;
+      if (!matchesFolder(e, filterFolder)) return false;
       return true;
     });
-  }, [search, filterMat, filterTag]);
+  }, [search, filterMat, filterTag, filterFolder]);
 
   // Agrupar por sección
   const grouped = useMemo(() => {
@@ -302,8 +313,14 @@ export default function AdminCatalogPage() {
           {TAGS.objetivo.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
 
-        {(search || filterMat || filterTag) && (
-          <button onClick={() => { setSearch(""); setFilterMat(""); setFilterTag(""); }}
+        <select value={filterFolder} onChange={(e) => setFilterFolder(e.target.value)}
+          className="px-3 py-2.5 rounded-xl border border-depro-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30 text-depro-dark">
+          <option value="">Todas las carpetas PDF</option>
+          {CATALOG_FOLDERS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+        </select>
+
+        {(search || filterMat || filterTag || filterFolder) && (
+          <button onClick={() => { setSearch(""); setFilterMat(""); setFilterTag(""); setFilterFolder(""); }}
             className="px-4 py-2.5 rounded-xl border border-depro-border bg-white text-sm text-depro-gray hover:text-depro-dark transition-colors flex items-center gap-1.5">
             <X size={13} /> Limpiar filtros · {filtered.length} resultados
           </button>

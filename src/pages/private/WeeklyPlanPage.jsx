@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import {
-  distributeWeekSessions, getDayRationale, getSessionType as getPeriodizationSessionType,
+  distributeWeekSessions, distributeMesocycleForTeam, getDayRationale, getSessionType as getPeriodizationSessionType,
   getCurrentWeekIndex, formatDate, getMesocicloWeeks,
 } from "../../lib/periodization";
 import {
@@ -15,7 +15,7 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession } from "../../lib/playerPlanEngine";
 import { markSessionComplete, touchLastTrain } from "../../lib/sessionProgress";
 import { downloadSessionPdf } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
@@ -356,24 +356,40 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
 function PlayerWeeklyPlan({ accent }) {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const wantMinimal = searchParams.get("minimal") === "1";
   const planKey = `depro_plan_${user?.id}`;
 
   const [plan, setPlan]       = useState(null);
   const [generating, setGen]  = useState(false);
   const [view, setView]       = useState("micro"); // "micro" | "meso"
+  const [minimalSession, setMinimalSession] = useState(null);
 
   useEffect(() => {
+    if (!user?.id) return;
     try {
       const saved = localStorage.getItem(planKey);
-      if (saved) setPlan(JSON.parse(saved));
+      if (saved) {
+        setPlan(JSON.parse(saved));
+        return;
+      }
     } catch { /* ignore */ }
-  }, [planKey]);
+    const generated = ensurePlayerPlan(user);
+    if (generated) setPlan(generated);
+  }, [planKey, user?.id]);
+
+  useEffect(() => {
+    if (wantMinimal && user) {
+      setMinimalSession(buildMinimalSession(user));
+    } else {
+      setMinimalSession(null);
+    }
+  }, [wantMinimal, user?.id, user?.material, user?.lesion]);
 
   const handleGenerate = async () => {
     setGen(true);
     try {
       let generated = buildPlayerPlan(user);
-      // Intentar enriquecer con IA si está configurada
       try {
         const firstSession = generated.flatMap((d) => d.sessions)[0];
         if (firstSession) {
@@ -384,7 +400,7 @@ function PlayerWeeklyPlan({ accent }) {
             deporte: user?.deporte,
             etiquetas: [],
           });
-          await fetch("/api/generate-plan", {
+          const res = await fetch("/api/generate-plan", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -394,6 +410,17 @@ function PlayerWeeklyPlan({ accent }) {
               plantilla: getTemplate(firstSession.type).blocks.map((b) => b.label).join(", "),
             }),
           });
+          const data = await res.json();
+          if (data?.text) {
+            generated = generated.map((day, di) => ({
+              ...day,
+              sessions: day.sessions.map((s, si) =>
+                di === 0 && si === 0
+                  ? { ...s, aiNotes: data.text, objective: data.text.slice(0, 280) + (data.text.length > 280 ? "…" : "") }
+                  : s
+              ),
+            }));
+          }
         }
       } catch { /* motor local como fallback */ }
       setPlan(generated);
@@ -462,6 +489,31 @@ function PlayerWeeklyPlan({ accent }) {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
+      {minimalSession && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wide text-amber-700">Versión mínima</div>
+              <div className="font-black text-depro-dark">Sesión reducida por adherencia</div>
+            </div>
+            <Link to="/dashboard/plan" className="text-xs font-bold text-amber-700 hover:underline">Ver plan completo</Link>
+          </div>
+          <SessionCard
+            session={minimalSession}
+            accentColor={accent}
+            sessionNumber={0}
+            dayLabel="Hoy"
+            onComplete={() => {}}
+            onDownloadPdf={() => downloadSessionPdf({
+              title: "Sesión mínima",
+              subtitle: minimalSession.objective,
+              blocks: minimalSession.blocks,
+              meta: { duration: minimalSession.duration, type: minimalSession.type },
+              brandColor: accent,
+            })}
+          />
+        </div>
+      )}
       {/* Cabecera */}
       <div className="flex items-start justify-between mb-6 gap-4">
         <div>
@@ -1116,28 +1168,51 @@ function ClubSessionCard({
                 </div>
 
                 {!readOnly && (
-                  <>
-                    <CompletionButton
-                      completion={completion}
-                      onComplete={() => setCompletion(100)}
-                      accentColor={accentColor}
-                    />
-                    <button type="button"
-                      onClick={() => downloadSessionPdf({
-                        title: `Sesión ${sessionNumber}`,
-                        subtitle: session.objective || session.title,
-                        blocks: blocks.map((b) => ({
-                          label: b.label || BLOCK_LABELS[b.type],
-                          exercises: (b.exercises || []).map((e) => ({ name: e.name })),
-                        })),
-                        meta: { duration: session.duration, type: st.label, intensity: session.intensity },
-                        brandColor: accentColor,
-                      })}
-                      className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
-                      <FileText size={14} /> Descargar PDF
-                    </button>
-                  </>
+                  <CompletionButton
+                    completion={completion}
+                    onComplete={() => setCompletion(100)}
+                    accentColor={accentColor}
+                  />
                 )}
+                <button type="button"
+                  onClick={() => {
+                    let tasks = [];
+                    if (taskStorageKey) {
+                      try {
+                        const raw = localStorage.getItem(taskStorageKey);
+                        const data = raw ? JSON.parse(raw) : null;
+                        if (data?.task) tasks = [data.task];
+                      } catch { /* ignore */ }
+                    }
+                    downloadSessionPdf({
+                      title: `Sesión ${sessionNumber}`,
+                      subtitle: session.objective || session.title,
+                      blocks: blocks.map((b) => ({
+                        label: b.label || BLOCK_LABELS[b.type],
+                        duration: b.duration,
+                        subSessions: b.subSessions,
+                        exercises: (b.exercises || []).map((e) => ({
+                          name: e.name,
+                          sets: e.sets,
+                          reps: e.reps,
+                          duration: e.duration,
+                          description: e.description,
+                          tips: e.tips,
+                        })),
+                      })),
+                      tasks,
+                      meta: {
+                        duration: session.duration,
+                        type: st.label,
+                        intensity: session.intensity,
+                        variant: session.templateVariant,
+                      },
+                      brandColor: accentColor,
+                    });
+                  }}
+                  className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
+                  <FileText size={14} /> Descargar PDF
+                </button>
               </div>
             )}
 
@@ -1303,10 +1378,21 @@ function ClubMicrocycles({ accent }) {
   const micro = visiblePlans[selectedIdx] ?? visiblePlans[0];
 
   const template = micro?.sessions || [];
+  const totalCalendarWeeks = micro ? getMesocicloWeeks(micro.startDate, micro.endDate) : 1;
+  const baseWeekSize = Math.max(trainingDays.length || 3, 3);
+  const { weeks: mesoWeeksDistributed } = micro
+    ? distributeMesocycleForTeam(template, trainingDays, baseWeekSize, totalCalendarWeeks)
+    : { weeks: [] };
+
+  const currentWeekIdx = micro ? getCurrentWeekIndex(micro.startDate, micro.endDate) : 0;
+  const safeWeekIdx = currentWeekIdx < 0 ? 0 : Math.min(currentWeekIdx, Math.max(mesoWeeksDistributed.length - 1, 0));
+
   const distributedWeekSessions = micro
-    ? (!isCoordinator && trainingDays.length > 0
-        ? distributeWeekSessions(template, trainingDays)
-        : template)
+    ? (mesoWeeksDistributed.length > 0
+        ? mesoWeeksDistributed[safeWeekIdx]?.sessions || []
+        : trainingDays.length > 0
+          ? distributeWeekSessions(template, trainingDays)
+          : template)
     : [];
 
   useEffect(() => {
@@ -1322,9 +1408,6 @@ function ClubMicrocycles({ accent }) {
     </div>
   );
 
-  // Detectar semana actual según el calendario real del mesociclo
-  const currentWeekIdx = getCurrentWeekIndex(micro.startDate, micro.endDate);
-  const safeWeekIdx = currentWeekIdx < 0 ? 0 : currentWeekIdx;
 
   const totalCompletion = Math.round(
     distributedWeekSessions.reduce((acc, s) => acc + (s.completion ?? 0), 0) / Math.max(distributedWeekSessions.length, 1)

@@ -55,7 +55,8 @@ function ClientRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === "admin") return <Navigate to="/admin" replace />;
+  const viewAs = typeof sessionStorage !== "undefined" && sessionStorage.getItem("depro_view_as");
+  if (user.role === "admin" && !viewAs) return <Navigate to="/admin" replace />;
   return children;
 }
 

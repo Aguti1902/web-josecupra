@@ -363,7 +363,7 @@ export default function CargasPage() {
   activeWeekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7) + weekOffset * 7);
   const activeWeekKey = isoWeekKey(activeWeekStart);
 
-  const currentWeekData = allData[activeWeekKey] || { partido: {}, a: {}, b: {}, c: {} };
+  const currentWeekData = allData[activeWeekKey] || { partido: {}, a: {}, b: {}, c: {}, d: {} };
 
   function updateWeekData(newData) {
     const updated = { ...allData, [activeWeekKey]: newData };
@@ -406,7 +406,7 @@ export default function CargasPage() {
   }, [club?.id, team?.id]);
 
   // ── Carga total semanal ──────────────────────────────────
-  const weekLoad = ["partido","a","b","c"].reduce((sum, key) => {
+  const weekLoad = ["partido","a","b","c","d"].reduce((sum, key) => {
     const e = currentWeekData[key] || {};
     return sum + calcLoad(e.volumen, e.rpe, e.especificidad);
   }, 0);
@@ -583,6 +583,7 @@ export default function CargasPage() {
                 <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">A</th>
                 <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">B</th>
                 <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">C</th>
+                <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">D</th>
                 <th className="px-3 py-2.5 font-bold text-depro-gray uppercase tracking-wide text-center">Total</th>
               </tr>
             </thead>
@@ -590,14 +591,14 @@ export default function CargasPage() {
               {monthWeeks.map((week, wi) => {
                 const key = isoWeekKey(week.start);
                 const wd  = allData[key] || {};
-                const sessions = { partido: wd.partido||{}, a: wd.a||{}, b: wd.b||{}, c: wd.c||{} };
+                const sessions = { partido: wd.partido||{}, a: wd.a||{}, b: wd.b||{}, c: wd.c||{}, d: wd.d||{} };
                 const total = Object.values(sessions).reduce((s,e) => s + calcLoad(e.volumen,e.rpe,e.especificidad), 0);
                 const tl  = trafficLight(total);
                 const fmt = (s,e) => `${s.getDate()}/${s.getMonth()+1} – ${e.getDate()}/${e.getMonth()+1}`;
                 return (
                   <tr key={wi} className="border-b border-depro-border/50 hover:bg-depro-gray-light/20 transition-colors">
                     <td className="px-4 py-3 text-depro-gray font-medium">{fmt(week.start, week.end)}</td>
-                    {["partido","a","b","c"].map(k => {
+                    {["partido","a","b","c","d"].map(k => {
                       const e = sessions[k];
                       const l = calcLoad(e.volumen, e.rpe, e.especificidad);
                       const t = trafficLight(l);
