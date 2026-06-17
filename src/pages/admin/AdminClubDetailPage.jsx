@@ -1875,6 +1875,7 @@ export default function AdminClubDetailPage() {
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
   const [showEditCoordinator, setShowEditCoordinator] = useState(false);
   const [editingClubUser, setEditingClubUser] = useState(null);
+  const [activatingUserEmail, setActivatingUserEmail] = useState(null);
 
   useEffect(() => {
     loadClubs().then((clubs) => {
@@ -1988,8 +1989,6 @@ export default function AdminClubDetailPage() {
       ),
     }));
   };
-
-  const [activatingUserEmail, setActivatingUserEmail] = useState(null);
 
   const handleActivateUserAccess = async (user) => {
     if (!user?.email || !user?.password) {

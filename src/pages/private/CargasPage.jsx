@@ -353,19 +353,6 @@ export default function CargasPage() {
   const ageBlock  = getAgeBlock(team?.category);
   const isReadOnly = user?.team_role === "coordinador";
 
-  // Solo accesible para Bloques 2 y 3
-  if (!ageBlock) {
-    return (
-      <div className="p-8 max-w-2xl mx-auto text-center">
-        <div className="w-16 h-16 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
-          <Zap size={28} className="text-depro-gray opacity-40" />
-        </div>
-        <h2 className="text-xl font-black text-depro-dark mb-2">Módulo de Cargas no disponible</h2>
-        <p className="text-depro-gray text-sm">Este módulo está disponible únicamente para equipos de <strong>Fútbol 11</strong> (Bloques 2 y 3: Sub-13 a Juvenil).</p>
-      </div>
-    );
-  }
-
   const storageKey = STORAGE_KEY(club?.id || "x", team?.id || "y");
   const trainingDaysCount = team?.trainingDays?.length || 3;
   const visibleSessions = getVisibleSessions(trainingDaysCount);
@@ -401,23 +388,6 @@ export default function CargasPage() {
 
   const currentWeekData = allData[activeWeekKey] || { partido: {}, a: {}, b: {}, c: {}, d: {} };
 
-  function updateWeekData(newData) {
-    const updated = { ...allData, [activeWeekKey]: newData };
-    setAllData(updated);
-    try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
-    if (club?.id && team?.id) {
-      const detail = loadClubDetail(club.id) || {};
-      saveClubDetail(club.id, {
-        ...detail,
-        teamCargas: { ...(detail.teamCargas || {}), [team.id]: updated },
-      });
-    }
-  }
-
-  function updateSession(key, entry) {
-    updateWeekData({ ...currentWeekData, [key]: entry });
-  }
-
   // ── Jugadores de la plantilla ────────────────────────────
   const [players, setPlayers] = useState([]);
   useEffect(() => {
@@ -441,6 +411,40 @@ export default function CargasPage() {
       }).catch(() => {});
   }, [club?.id, team?.id]);
 
+  // ── Vista mensual ────────────────────────────────────────
+  const [viewMonth, setViewMonth] = useState(new Date().getMonth());
+  const [viewYear,  setViewYear]  = useState(new Date().getFullYear());
+
+  // Solo accesible para Bloques 2 y 3
+  if (!ageBlock) {
+    return (
+      <div className="p-8 max-w-2xl mx-auto text-center">
+        <div className="w-16 h-16 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
+          <Zap size={28} className="text-depro-gray opacity-40" />
+        </div>
+        <h2 className="text-xl font-black text-depro-dark mb-2">Módulo de Cargas no disponible</h2>
+        <p className="text-depro-gray text-sm">Este módulo está disponible únicamente para equipos de <strong>Fútbol 11</strong> (Bloques 2 y 3: Sub-13 a Juvenil).</p>
+      </div>
+    );
+  }
+
+  function updateWeekData(newData) {
+    const updated = { ...allData, [activeWeekKey]: newData };
+    setAllData(updated);
+    try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
+    if (club?.id && team?.id) {
+      const detail = loadClubDetail(club.id) || {};
+      saveClubDetail(club.id, {
+        ...detail,
+        teamCargas: { ...(detail.teamCargas || {}), [team.id]: updated },
+      });
+    }
+  }
+
+  function updateSession(key, entry) {
+    updateWeekData({ ...currentWeekData, [key]: entry });
+  }
+
   // ── Carga total semanal ──────────────────────────────────
   const weekLoad = weekSessionKeys.reduce((sum, key) => {
     const e = currentWeekData[key] || {};
@@ -448,9 +452,6 @@ export default function CargasPage() {
   }, 0);
   const weekLoadTL = weeklyTrafficLight(weekLoad, trainingDaysCount);
 
-  // ── Vista mensual ────────────────────────────────────────
-  const [viewMonth, setViewMonth] = useState(new Date().getMonth());
-  const [viewYear,  setViewYear]  = useState(new Date().getFullYear());
   const monthWeeks = getMonthWeeks(viewYear, viewMonth);
   const monthNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
