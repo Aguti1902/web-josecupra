@@ -14,28 +14,42 @@ import { supabase } from "./supabase";
  * Llama al endpoint serverless /api/create-user que usa la service role key.
  * Returns { ok: true } o { ok: false, error }
  */
+function isExistingUserError(message = "") {
+  const m = String(message).toLowerCase();
+  return m.includes("already registered")
+    || m.includes("already been registered")
+    || m.includes("user already registered");
+}
+
 export async function createClubUser({ email, password, name, role = "club", clubId, teamId, teamRole, managedTeamIds }) {
-  // 1. Intentar con el endpoint serverless (no envía email de confirmación)
+  const payload = { email, password, name, role, clubId, teamId, teamRole, managedTeamIds };
+
+  // 1. Endpoint serverless (cuenta confirmada, sin email de verificación)
   try {
     const res = await fetch("/api/create-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name, role, clubId, teamId, teamRole, managedTeamIds }),
+      body: JSON.stringify(payload),
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok) return data;
-    }
-  } catch {}
+    const data = await res.json().catch(() => ({}));
+    if (data.ok) return { ok: true, userId: data.userId };
+    if (isExistingUserError(data.error)) return { ok: true, alreadyExists: true };
+    if (data.error) return { ok: false, error: data.error };
+  } catch {
+    // API no disponible (p. ej. entorno local sin serverless) → fallback
+  }
 
-  // 2. Fallback: signUp directo (funciona si "Confirm email" está desactivado en Supabase)
+  // 2. Fallback: signUp directo (solo si la API no respondió)
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { name, role, clubId, teamId, teamRole, managedTeamIds } },
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      if (isExistingUserError(error.message)) return { ok: true, alreadyExists: true };
+      return { ok: false, error: error.message };
+    }
     return { ok: true, userId: data.user?.id, via: "signUp" };
   } catch (e) {
     return { ok: false, error: e.message };

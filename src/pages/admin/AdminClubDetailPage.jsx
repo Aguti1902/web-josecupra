@@ -125,8 +125,8 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
         teamId,
         teamRole: "entrenador",
       });
-      userCreated = result.ok;
-      userError = result.ok ? null : result.error;
+      userCreated = !!(result.ok || result.alreadyExists);
+      userError = userCreated ? null : result.error;
     }
 
     onCreate({
@@ -449,10 +449,10 @@ function EditTeamModal({ team, onClose, onSave, clubId }) {
   );
 }
 
-function NewUserModal({ teams, clubId, onClose, onCreate }) {
+function NewUserModal({ teams, clubId, onClose, onCreate, onAccessActivated }) {
   const [form, setForm] = useState({ name: "", email: "", role: "entrenador", teamId: "", managedTeamIds: [], password: generatePassword() });
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null); // { ok, email, password, error }
+  const [result, setResult] = useState(null); // { ok, email, password, error, formSnapshot }
 
   const selectedTeam = teams.find((t) => t.id === form.teamId) || null;
 
@@ -465,40 +465,69 @@ function NewUserModal({ teams, clubId, onClose, onCreate }) {
     }));
   };
 
+  const buildUserPayload = () => ({
+    id: `u${Date.now()}`,
+    name: form.name || form.email,
+    email: form.email,
+    role: form.role,
+    team: selectedTeam?.name || null,
+    teamId: form.role === "coordinador" ? null : (form.teamId || null),
+    managedTeamIds: form.role === "coordinador" ? form.managedTeamIds : [],
+    active: true,
+    lastLogin: "nunca",
+    password: form.password,
+  });
+
+  const activateAccess = async (snapshot = form) => {
+    const res = await createClubUser({
+      email: snapshot.email,
+      password: snapshot.password,
+      name: snapshot.name || snapshot.email,
+      role: "club",
+      clubId,
+      teamId: snapshot.role === "coordinador" ? undefined : (snapshot.teamId || undefined),
+      teamRole: snapshot.role,
+      managedTeamIds: snapshot.role === "coordinador" ? snapshot.managedTeamIds : undefined,
+    });
+    const active = !!(res.ok || res.alreadyExists);
+    if (active) onAccessActivated?.(snapshot.email);
+    return { ...res, active };
+  };
+
   const handleCreate = async () => {
     if (!form.email) return;
     setLoading(true);
 
-    const res = await createClubUser({
-      email: form.email,
-      password: form.password,
-      name: form.name || form.email,
-      role: "club",
-      clubId,
-      teamId: form.role === "coordinador" ? undefined : (form.teamId || undefined),
-      teamRole: form.role,
-      managedTeamIds: form.role === "coordinador" ? form.managedTeamIds : undefined,
-    });
+    const res = await activateAccess(form);
 
     onCreate({
-      id: `u${Date.now()}`,
-      name: form.name || form.email,
-      email: form.email,
-      role: form.role,
-      team: selectedTeam?.name || null,
-      teamId: form.role === "coordinador" ? null : (form.teamId || null),
-      managedTeamIds: form.role === "coordinador" ? form.managedTeamIds : [],
-      active: true,
-      lastLogin: "nunca",
-      password: form.password,
-      userCreated: res.ok,
+      ...buildUserPayload(),
+      userCreated: res.active,
     });
 
-    setResult({ ok: res.ok, email: form.email, password: form.password, error: res.error });
+    setResult({
+      ok: res.active,
+      email: form.email,
+      password: form.password,
+      error: res.error,
+      formSnapshot: { ...form },
+    });
     setLoading(false);
   };
 
-  // Pantalla de resultado
+  const handleRetryActivation = async () => {
+    if (!result?.formSnapshot) return;
+    setLoading(true);
+    const res = await activateAccess(result.formSnapshot);
+    if (res.active) {
+      setResult((r) => ({ ...r, ok: true, error: null }));
+    } else {
+      setResult((r) => ({ ...r, error: res.error || r.error }));
+    }
+    setLoading(false);
+  };
+
+  // Pantalla de resultado — credenciales, NO confirmación de email
   if (result) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -510,28 +539,56 @@ function NewUserModal({ teams, clubId, onClose, onCreate }) {
             }
           </div>
           <h2 className="font-bold text-depro-dark text-lg mb-1">
-            {result.ok ? "Usuario creado con éxito" : "Usuario guardado (acceso pendiente)"}
+            {result.ok ? "Usuario activo — guarda las credenciales" : "Datos guardados, acceso no activado"}
           </h2>
           {result.ok ? (
-            <div className="bg-gray-50 rounded-xl p-4 mt-4 text-left space-y-2">
-              <p className="text-xs text-depro-gray uppercase font-semibold tracking-wider">Credenciales de acceso</p>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-depro-gray">Email:</span>
-                <span className="text-sm font-mono font-bold text-depro-dark">{result.email}</span>
+            <>
+              <p className="text-sm text-depro-gray mt-2 mb-4">
+                El usuario <strong>ya puede iniciar sesión</strong>. Comparte email y contraseña; no volverás a ver la contraseña aquí.
+              </p>
+              <div className="bg-gray-50 rounded-xl p-4 text-left space-y-2">
+                <p className="text-xs text-depro-gray uppercase font-semibold tracking-wider">Credenciales</p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-depro-gray">Email</span>
+                  <span className="text-sm font-mono font-bold text-depro-dark">{result.email}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-depro-gray">Contraseña</span>
+                  <span className="text-sm font-mono font-bold text-depro-dark">{result.password}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-depro-gray">Contraseña:</span>
-                <span className="text-sm font-mono font-bold text-depro-dark">{result.password}</span>
-              </div>
-            </div>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(`${result.email}\n${result.password}`)}
+                className="mt-3 text-xs font-bold text-depro-blue hover:underline"
+              >
+                Copiar email y contraseña
+              </button>
+            </>
           ) : (
-            <p className="text-sm text-depro-gray mt-2">
-              {result.error || "No se pudo crear la cuenta en Supabase. Usa el botón 'Recrear acceso' desde la pestaña Usuarios."}
-            </p>
+            <>
+              <p className="text-sm text-depro-gray mt-2 mb-3">
+                Los datos del usuario están en la lista, pero <strong>no se creó la cuenta en el servidor</strong>.
+                No es un email de confirmación: hay que activar el acceso manualmente.
+              </p>
+              {result.error && (
+                <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 mb-3 text-left">
+                  {result.error}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleRetryActivation}
+                disabled={loading}
+                className="w-full py-2.5 rounded-xl border border-depro-blue text-depro-blue font-semibold text-sm hover:bg-depro-blue/5 transition-colors disabled:opacity-40"
+              >
+                {loading ? "Activando…" : "Reintentar activación"}
+              </button>
+            </>
           )}
           <button
             onClick={onClose}
-            className="mt-6 w-full py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors"
+            className="mt-4 w-full py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm hover:bg-depro-blue-dark transition-colors"
           >
             Cerrar
           </button>
@@ -1883,7 +1940,7 @@ export default function AdminClubDetailPage() {
       teamRole: "coordinador",
     });
     setRecreating(false);
-    const alreadyExists = result.error?.includes("already registered") || result.error?.includes("already been registered");
+    const alreadyExists = result.alreadyExists || result.error?.includes("already registered") || result.error?.includes("already been registered");
     if (result.ok || alreadyExists) {
       setRecreateMsg({ ok: true, msg: alreadyExists
         ? `✓ El usuario ya existe. Acceso marcado como activo para: ${club.coordinator.email}`
@@ -1919,6 +1976,51 @@ export default function AdminClubDetailPage() {
     navigate("/dashboard/plan");
   };
   const addUser = (user) => updateClub((c) => ({ ...c, users: [...(c.users || []), user] }));
+
+  const markUserAccessActive = (email) => {
+    if (!email) return;
+    updateClub((c) => ({
+      ...c,
+      users: (c.users || []).map((u) => (u.email === email ? { ...u, userCreated: true } : u)),
+      coordinator: c.coordinator?.email === email ? { ...c.coordinator, userCreated: true } : c.coordinator,
+      teams: (c.teams || []).map((t) =>
+        t.coach?.email === email ? { ...t, coach: { ...t.coach, userCreated: true } } : t
+      ),
+    }));
+  };
+
+  const [activatingUserEmail, setActivatingUserEmail] = useState(null);
+
+  const handleActivateUserAccess = async (user) => {
+    if (!user?.email || !user?.password) {
+      setRecreateMsg({ ok: false, msg: "No hay contraseña guardada. Edita el usuario y define una contraseña." });
+      return;
+    }
+    setActivatingUserEmail(user.email);
+    setRecreateMsg(null);
+    const result = await createClubUser({
+      email: user.email,
+      password: user.password,
+      name: user.name || user.email,
+      role: "club",
+      clubId: club.id,
+      teamId: user.teamId || undefined,
+      teamRole: user.role,
+      managedTeamIds: user.managedTeamIds,
+    });
+    setActivatingUserEmail(null);
+    if (result.ok || result.alreadyExists) {
+      markUserAccessActive(user.email);
+      setRecreateMsg({
+        ok: true,
+        msg: result.alreadyExists
+          ? `✓ La cuenta ya existía. Acceso marcado como activo: ${user.email}`
+          : `✓ Acceso activado. ${user.email} ya puede iniciar sesión.`,
+      });
+    } else {
+      setRecreateMsg({ ok: false, msg: result.error || "No se pudo activar el acceso." });
+    }
+  };
   const updateClubUser = (user) => updateClub((c) => ({
     ...c,
     users: (c.users || []).map((u) => (u.id === user.id ? user : u)),
@@ -2285,6 +2387,13 @@ export default function AdminClubDetailPage() {
       {/* USUARIOS */}
       {activeTab === "usuarios" && (
         <div className="space-y-4">
+          {recreateMsg && (
+            <div className={`text-sm px-4 py-3 rounded-xl border ${
+              recreateMsg.ok ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-600 border-red-200"
+            }`}>
+              {recreateMsg.msg}
+            </div>
+          )}
           <div className="flex justify-end">
             <button
               onClick={() => setShowNewUser(true)}
@@ -2339,13 +2448,28 @@ export default function AdminClubDetailPage() {
                         {user.team ?? "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                          user.userCreated !== false
-                            ? "bg-green-50 text-green-700 border-green-200"
-                            : "bg-yellow-50 text-yellow-700 border-yellow-200"
-                        }`}>
-                          {user.userCreated !== false ? "Activo" : "Pendiente"}
-                        </span>
+                        <div className="flex flex-col gap-1.5">
+                          <span className={`inline-flex w-fit px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                            user.userCreated !== false
+                              ? "bg-green-50 text-green-700 border-green-200"
+                              : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                          }`}>
+                            {user.userCreated !== false ? "Activo" : "Pendiente"}
+                          </span>
+                          {user.userCreated === false && user.password && (
+                            <button
+                              type="button"
+                              onClick={() => handleActivateUserAccess(user)}
+                              disabled={activatingUserEmail === user.email}
+                              className="text-[10px] font-bold text-depro-blue hover:underline text-left disabled:opacity-50"
+                            >
+                              {activatingUserEmail === user.email ? "Activando…" : "Activar acceso"}
+                            </button>
+                          )}
+                          {user.userCreated === false && !user.password && (
+                            <span className="text-[10px] text-depro-gray">Edita y añade contraseña</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
@@ -2397,7 +2521,15 @@ export default function AdminClubDetailPage() {
           onSave={updateTeam}
         />
       )}
-      {showNewUser && <NewUserModal teams={club.teams} clubId={club.id} onClose={() => setShowNewUser(false)} onCreate={addUser} />}
+      {showNewUser && (
+        <NewUserModal
+          teams={club.teams}
+          clubId={club.id}
+          onClose={() => setShowNewUser(false)}
+          onCreate={addUser}
+          onAccessActivated={markUserAccessActive}
+        />
+      )}
       {showEditCoordinator && (
         <EditCoordinatorModal
           coordinator={club.coordinator}

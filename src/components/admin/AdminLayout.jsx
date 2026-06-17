@@ -8,25 +8,34 @@ import { useAuth } from "../../context/AuthContext";
 
 const navGroups = [
   {
-    label: "Panel",
+    label: "General",
     items: [
-      { to: "/admin", icon: LayoutDashboard, label: "Overview" },
-      { to: "/admin/clients", icon: Users, label: "Clientes jugadores" },
+      { to: "/admin", icon: LayoutDashboard, label: "Resumen" },
     ],
   },
   {
-    label: "Contenido",
+    label: "Clubs",
+    groupIcon: Building2,
+    accent: "#60A5FA",
     items: [
-      { to: "/admin/planificacion", icon: CalendarDays,   label: "Planificación" },
+      { to: "/admin/clubs",         icon: Building2,   label: "Clubs y equipos" },
+      { to: "/admin/planificacion", icon: CalendarDays, label: "Planificación" },
       { to: "/admin/tests",         icon: ClipboardList, label: "Tests físicos" },
-      { to: "/admin/catalog",       icon: BookOpen,      label: "Catálogo ejercicios" },
-      { to: "/admin/plan-builder",  icon: Brain,         label: "Motor de planes" },
     ],
   },
   {
-    label: "Estructura",
+    label: "Individuales",
+    groupIcon: Users,
+    accent: "#A78BFA",
     items: [
-      { to: "/admin/clubs", icon: Building2, label: "Clubs y equipos" },
+      { to: "/admin/clients",      icon: Users,  label: "Clientes jugadores" },
+      { to: "/admin/plan-builder", icon: Brain,  label: "Motor de planes" },
+      { to: "/admin/catalog",      icon: BookOpen, label: "Catálogo ejercicios" },
+    ],
+  },
+  {
+    label: "Sistema",
+    items: [
       { to: "/admin/settings", icon: Settings, label: "Ajustes" },
     ],
   },
@@ -79,10 +88,21 @@ export default function AdminLayout({ children }) {
         {/* Nav */}
         <nav className="flex-1 p-4 overflow-y-auto space-y-5">
           {navGroups.map((group) => (
-            <div key={group.label}>
-              <p className="text-xs font-bold text-white/30 uppercase tracking-wider px-3 mb-2">
-                {group.label}
-              </p>
+            <div
+              key={group.label}
+              className={group.label === "Individuales" ? "pt-1 border-t border-white/10" : ""}
+            >
+              <div className="flex items-center gap-2 px-3 mb-2">
+                {group.groupIcon && (
+                  <group.groupIcon size={13} style={{ color: group.accent || "rgba(255,255,255,0.35)" }} />
+                )}
+                <p
+                  className="text-[10px] font-black uppercase tracking-widest"
+                  style={{ color: group.accent ? group.accent + "CC" : "rgba(255,255,255,0.35)" }}
+                >
+                  {group.label}
+                </p>
+              </div>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const active =
