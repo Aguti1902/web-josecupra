@@ -256,6 +256,117 @@ function DemoLoads({ accent, step }) {
   );
 }
 
+function DemoPdf({ accent, step }) {
+  return (
+    <BrowserFrame title="session-b · export-pdf" accent={accent}>
+      <div className="flex gap-3">
+        <SidebarMini active="plan" accent={accent} />
+        <div className="flex-1 relative min-h-[220px]">
+          <div className={`space-y-2 transition-all duration-500 ${step >= 3 ? "opacity-20 blur-[1px]" : "opacity-100"}`}>
+            <div className="text-xs font-black text-gray-900">Session B · Intensive · 75 min</div>
+            {["Warm-up: Rondo 4v2", "Main: Possession 8v8", "Tasks: 3 selected"].map((line, i) => (
+              <div
+                key={line}
+                className={`bg-white rounded-lg border px-2.5 py-2 text-[10px] text-gray-700 transition-all duration-500 ${
+                  step > i ? "border-gray-200" : "border-gray-100 opacity-40"
+                }`}
+              >
+                {line}
+              </div>
+            ))}
+            <div
+              className={`mt-3 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold transition-all duration-500 ${
+                step >= 1 ? "bg-blue-600 text-white shadow-md scale-105" : "bg-gray-100 text-gray-400"
+              }`}
+            >
+              <Download size={12} /> Export club PDF
+            </div>
+          </div>
+          {step >= 2 && (
+            <div className="absolute inset-x-0 top-2 flex justify-center pointer-events-none">
+              <div
+                className={`bg-white border-2 border-gray-200 shadow-2xl rounded-lg p-3 w-[88%] transition-all duration-500 ${
+                  step >= 2 ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-2"
+                }`}
+              >
+                <div className="flex items-center gap-2 border-b border-gray-100 pb-2 mb-2">
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center text-white text-[9px] font-black" style={{ backgroundColor: accent }}>RF</div>
+                  <div>
+                    <div className="text-[10px] font-black text-gray-900">Riverside FC Academy</div>
+                    <div className="text-[8px] text-gray-400">Session B · U15 Elite · Week 12</div>
+                  </div>
+                </div>
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className={`h-2 rounded bg-gray-100 mb-1.5 transition-all duration-300 ${step >= n + 1 ? "w-full" : "w-2/3"}`} />
+                ))}
+                {step >= 4 && (
+                  <div className="mt-2 text-[9px] font-bold text-green-600 flex items-center gap-1">
+                    <CheckCircle2 size={11} /> PDF ready · logo & colors applied
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
+function DemoBrand({ accent, step }) {
+  const teams = [
+    { name: "U15 Elite", color: accent },
+    { name: "U17 Pro", color: "#059669" },
+    { name: "U13 Dev", color: "#7C3AED" },
+  ];
+  const teamIdx = step >= 3 ? 2 : step >= 2 ? 1 : 0;
+  const active = teams[teamIdx];
+
+  return (
+    <BrowserFrame title="club · white-label" accent={active.color}>
+      <div className="flex gap-3">
+        <div className="w-28 flex-shrink-0 border-r border-gray-200 pr-3 space-y-0.5" style={{ backgroundColor: active.color + "06" }}>
+          <div className="flex items-center gap-1.5 px-2 mb-2">
+            <div className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[8px] font-black transition-colors duration-500" style={{ backgroundColor: active.color }}>RF</div>
+            <span className="text-[8px] font-bold text-gray-700 truncate">Riverside FC</span>
+          </div>
+          {teams.map((t, i) => (
+            <div
+              key={t.name}
+              className={`px-2 py-1.5 rounded-lg text-[9px] font-semibold transition-all duration-500 ${i === teamIdx ? "text-white shadow-sm" : "text-gray-400"}`}
+              style={i === teamIdx ? { backgroundColor: t.color } : {}}
+            >
+              {t.name}
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 space-y-2">
+          <div className="rounded-lg p-3 text-white transition-all duration-500" style={{ background: `linear-gradient(135deg, ${active.color}, ${active.color}cc)` }}>
+            <div className="text-[9px] opacity-80 font-bold uppercase">Your brand · not DEPRO</div>
+            <div className="text-sm font-black">{active.name}</div>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {["Primary", "Secondary", "Logo"].map((l, i) => (
+              <div
+                key={l}
+                className={`rounded-lg border p-2 text-center transition-all duration-500 ${step > i ? "border-gray-200 bg-white" : "border-gray-100 opacity-40"}`}
+              >
+                <div className="w-full h-4 rounded mb-1 transition-colors duration-500" style={{ backgroundColor: i === 0 ? active.color : i === 1 ? active.color + "55" : "#E5E7EB" }} />
+                <div className="text-[7px] font-bold text-gray-400 uppercase">{l}</div>
+              </div>
+            ))}
+          </div>
+          {step >= 4 && (
+            <div className="text-[9px] font-bold text-gray-600 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-2">
+              Parents & sponsors see <span style={{ color: active.color }}>Riverside FC</span> on login, app & PDFs
+            </div>
+          )}
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
 const DEMOS = [
   { id: "dashboard", label: "Club dashboard", Component: DemoDashboard },
   { id: "microcycle", label: "Session planning", Component: DemoMicrocycle },
@@ -267,59 +378,59 @@ const DEMOS = [
 const PLATFORM_FEATURES = [
   {
     id: "dashboard",
-    demoIdx: 0,
     icon: Zap,
     title: "Club dashboard",
     summary: "One screen for directors to see the whole academy.",
     bullets: ["Week & mesocycle overview per team", "Next session, player count & test completion", "Branded header with club logo and colors"],
+    Component: DemoDashboard,
   },
   {
     id: "microcycle",
-    demoIdx: 1,
     icon: Calendar,
     title: "Session planning",
     summary: "Every mesocycle session configured for you — included in the monthly fee.",
     bullets: ["Sessions A / B / C / D mapped to your training days", "Warm-up, main block & task designer per session", "Club-branded PDF export in one click"],
+    Component: DemoMicrocycle,
   },
   {
     id: "squad",
-    demoIdx: 2,
     icon: Users,
     title: "Squad registry",
     summary: "Full roster intelligence across every team.",
     bullets: ["Filter by position, plan type & test status", "Individual player cards with season history", "Multi-team support under one license"],
+    Component: DemoSquad,
   },
   {
     id: "tests",
-    demoIdx: 3,
     icon: Activity,
     title: "Physical testing",
     summary: "Objective ratings parents and sponsors understand.",
     bullets: ["4 tests × 3 evaluations (T1 → T2 → T3)", "Auto-rated vs team average — not generic benchmarks", "Green / blue / amber / red at a glance"],
+    Component: DemoTests,
   },
   {
     id: "loads",
-    demoIdx: 4,
     icon: TrendingUp,
     title: "Load monitoring",
     summary: "Science-based workload control for every microcycle.",
     bullets: ["Volume × RPE × specificity (sRPE methodology)", "Weekly traffic light: low / medium / high", "Match + training sessions in one calendar"],
+    Component: DemoLoads,
   },
   {
     id: "pdf",
-    demoIdx: 1,
     icon: FileText,
     title: "Print-ready session PDFs",
     summary: "Coaches walk onto the field with a professional plan.",
     bullets: ["Logo and club colors on every export", "Warm-up videos and task breakdown included", "Share with staff or print for the bench"],
+    Component: DemoPdf,
   },
   {
     id: "brand",
-    demoIdx: 0,
     icon: Shield,
     title: "White-label branding",
     summary: "Your club's identity on every screen and export.",
     bullets: ["Custom logo, primary & secondary colors", "Team switcher for U13 through U19", "Parents see your brand — not a generic app"],
+    Component: DemoBrand,
   },
 ];
 
@@ -328,9 +439,6 @@ export function PlatformHeroQuickTour({ accent = "#0A36F7" }) {
   const [demoIdx, setDemoIdx] = useState(0);
   const [step, setStep] = useState(0);
   const [fade, setFade] = useState(true);
-
-  const demo = DEMOS[demoIdx];
-  const DemoComponent = demo.Component;
 
   useEffect(() => {
     const tick = setInterval(() => setStep((s) => (s >= 3 ? 0 : s + 1)), 500);
@@ -341,13 +449,16 @@ export function PlatformHeroQuickTour({ accent = "#0A36F7" }) {
     const rotate = setInterval(() => {
       setFade(false);
       setTimeout(() => {
-        setDemoIdx((i) => (i + 1) % DEMOS.length);
+        setDemoIdx((i) => (i + 1) % PLATFORM_FEATURES.length);
         setStep(0);
         setFade(true);
       }, 200);
     }, 2600);
     return () => clearInterval(rotate);
   }, []);
+
+  const feature = PLATFORM_FEATURES[demoIdx];
+  const DemoComponent = feature.Component;
 
   return (
     <div>
@@ -358,12 +469,12 @@ export function PlatformHeroQuickTour({ accent = "#0A36F7" }) {
         <DemoComponent accent={accent} step={step} />
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
           <span className="text-[11px] font-bold bg-gray-900/90 text-white px-3 py-1.5 rounded-full backdrop-blur-sm shadow-lg">
-            {demo.label}
+            {feature.title}
           </span>
           <div className="flex gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-100 shadow-sm">
-            {DEMOS.map((d, i) => (
+            {PLATFORM_FEATURES.map((f, i) => (
               <div
-                key={d.id}
+                key={f.id}
                 className={`h-1 rounded-full transition-all duration-300 ${i === demoIdx ? "w-4 bg-blue-600" : "w-1 bg-gray-300"}`}
               />
             ))}
@@ -379,14 +490,20 @@ export function PlatformHeroQuickTour({ accent = "#0A36F7" }) {
 export function PlatformFeatureShowcase({ accent = "#0A36F7" }) {
   const [featureIdx, setFeatureIdx] = useState(0);
   const [step, setStep] = useState(0);
+  const [fade, setFade] = useState(true);
 
   const feature = PLATFORM_FEATURES[featureIdx];
-  const demo = DEMOS[feature.demoIdx];
-  const DemoComponent = demo.Component;
+  const DemoComponent = feature.Component;
 
-  useEffect(() => {
-    setStep(0);
-  }, [featureIdx]);
+  const selectFeature = (idx) => {
+    if (idx === featureIdx) return;
+    setFade(false);
+    setTimeout(() => {
+      setFeatureIdx(idx);
+      setStep(0);
+      setFade(true);
+    }, 180);
+  };
 
   useEffect(() => {
     const tick = setInterval(() => setStep((s) => (s >= 4 ? 0 : s + 1)), 900);
@@ -395,39 +512,28 @@ export function PlatformFeatureShowcase({ accent = "#0A36F7" }) {
 
   return (
     <div className="grid lg:grid-cols-2 gap-10 xl:gap-14 items-start">
-      {/* Left — interactive demo with module tabs */}
+      {/* Left — one demo per selected feature, no top tabs */}
       <div className="lg:sticky lg:top-24">
-        <div className="flex flex-wrap gap-2 mb-4">
-          {DEMOS.map((d, i) => (
-            <button
-              key={d.id}
-              type="button"
-              onClick={() => {
-                const fi = PLATFORM_FEATURES.findIndex((f) => f.demoIdx === i);
-                setFeatureIdx(fi >= 0 ? fi : 0);
-              }}
-              className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${
-                feature.demoIdx === i
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
-              }`}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
-        <div className="relative">
+        <div
+          className="relative transition-opacity duration-200"
+          style={{ opacity: fade ? 1 : 0 }}
+        >
           <DemoComponent accent={accent} step={step} />
-          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className={`h-1 rounded-full transition-all duration-300 ${step >= i ? "w-4 bg-blue-600" : "w-1 bg-gray-300"}`}
-              />
-            ))}
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+            <span className="text-[11px] font-bold bg-gray-900/90 text-white px-3 py-1.5 rounded-full backdrop-blur-sm shadow-lg">
+              {feature.title}
+            </span>
+            <div className="flex gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-100 shadow-sm">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className={`h-1 rounded-full transition-all duration-300 ${step >= i ? "w-3 bg-blue-600" : "w-1 bg-gray-300"}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
-        <p className="text-center text-xs text-gray-400 mt-6">Live product simulation · click a feature to explore</p>
+        <p className="text-center text-xs text-gray-400 mt-6">Click a feature on the right — each has its own live demo</p>
       </div>
 
       {/* Right — all software characteristics */}
@@ -441,7 +547,7 @@ export function PlatformFeatureShowcase({ accent = "#0A36F7" }) {
               <button
                 key={f.id}
                 type="button"
-                onClick={() => setFeatureIdx(i)}
+                onClick={() => selectFeature(i)}
                 className={`w-full text-left rounded-xl border p-4 transition-all duration-200 ${
                   active
                     ? "border-blue-200 bg-blue-50/60 shadow-sm ring-1 ring-blue-100"
