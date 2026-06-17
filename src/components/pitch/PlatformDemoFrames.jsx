@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import {
   Activity, Calendar, CheckCircle2, ChevronRight, ClipboardList, Download, FileText,
   Filter, Shield, TrendingUp, Users, Zap,
@@ -29,16 +30,17 @@ function BrowserFrame({ title, children, accent = "#0A36F7" }) {
 }
 
 function SidebarMini({ active, accent }) {
+  const { t } = useTranslation("usPitch");
   const items = [
-    { id: "dash", label: "Dashboard", icon: Zap },
-    { id: "plan", label: "Microcycle", icon: Calendar },
-    { id: "squad", label: "Squad", icon: Users },
-    { id: "tests", label: "Tests", icon: Activity },
-    { id: "loads", label: "Loads", icon: TrendingUp },
+    { id: "dash", label: t("demos.ui.dashboard"), icon: Zap },
+    { id: "plan", label: t("demos.ui.microcycle"), icon: Calendar },
+    { id: "squad", label: t("demos.ui.squad"), icon: Users },
+    { id: "tests", label: t("demos.ui.tests"), icon: Activity },
+    { id: "loads", label: t("demos.ui.loads"), icon: TrendingUp },
   ];
   return (
     <div className="w-28 flex-shrink-0 border-r border-gray-200 pr-3 space-y-0.5">
-      <div className="text-[8px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">Riverside FC</div>
+      <div className="text-[8px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">{t("demos.clubName")}</div>
       {items.map((it) => {
         const Icon = it.icon;
         const on = active === it.id;
@@ -59,20 +61,21 @@ function SidebarMini({ active, accent }) {
 }
 
 function DemoDashboard({ accent, step }) {
+  const { t } = useTranslation("usPitch");
   return (
     <BrowserFrame title="dashboard" accent={accent}>
       <div className="flex gap-3">
         <SidebarMini active="dash" accent={accent} />
         <div className="flex-1 space-y-3">
           <div className="rounded-lg p-3 text-white" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}dd)` }}>
-            <div className="text-[10px] opacity-80 font-bold uppercase">Riverside FC Academy</div>
-            <div className="text-sm font-black">U15 Elite · Week 12</div>
+            <div className="text-[10px] opacity-80 font-bold uppercase">{t("demos.clubName")}</div>
+            <div className="text-sm font-black">{t("demos.ui.weekTeam", { team: "Sub-15 A" })}</div>
           </div>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { l: "Players", v: step >= 1 ? "22" : "—" },
-              { l: "Sessions", v: step >= 1 ? "3" : "—" },
-              { l: "Tests done", v: step >= 2 ? "88%" : "—" },
+              { l: t("demos.ui.players"), v: step >= 1 ? "22" : "—" },
+              { l: t("demos.ui.sessions"), v: step >= 1 ? "3" : "—" },
+              { l: t("demos.ui.testsDone"), v: step >= 2 ? "88%" : "—" },
             ].map((s) => (
               <div key={s.l} className="bg-white rounded-lg border border-gray-100 p-2 text-center">
                 <div className="text-lg font-black text-gray-900 stat-number">{s.v}</div>
@@ -81,9 +84,9 @@ function DemoDashboard({ accent, step }) {
             ))}
           </div>
           <div className="bg-white rounded-lg border border-gray-100 p-2.5">
-            <div className="text-[9px] font-bold text-gray-400 uppercase mb-1">Next session</div>
+            <div className="text-[9px] font-bold text-gray-400 uppercase mb-1">{t("demos.ui.nextSession")}</div>
             <div className={`text-xs font-bold text-gray-800 transition-opacity duration-500 ${step >= 2 ? "opacity-100" : "opacity-40"}`}>
-              Wed · Session B · Intensive · 75 min
+              {t("demos.ui.nextSessionValue")}
             </div>
           </div>
         </div>
@@ -93,15 +96,17 @@ function DemoDashboard({ accent, step }) {
 }
 
 function DemoMicrocycle({ accent, step }) {
-  const blocks = ["Warm-up", "Main block", "Task designer"];
+  const { t } = useTranslation("usPitch");
+  const blocks = [t("demos.ui.warmup"), t("demos.ui.mainBlock"), t("demos.ui.taskDesigner")];
+  const blockLines = [t("demos.ui.microBlock1"), t("demos.ui.microBlock2"), t("demos.ui.microBlock3")];
   return (
     <BrowserFrame title="microcycle / week-12" accent={accent}>
       <div className="flex gap-3">
         <SidebarMini active="plan" accent={accent} />
         <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between">
-            <div className="text-xs font-black text-gray-900">Session B · Intensive</div>
-            <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Type B</span>
+            <div className="text-xs font-black text-gray-900">{t("demos.ui.sessionB")}</div>
+            <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">{t("demos.ui.typeB")}</span>
           </div>
           {blocks.map((b, i) => (
             <div
@@ -111,14 +116,10 @@ function DemoMicrocycle({ accent, step }) {
               }`}
             >
               <div className="text-[9px] font-bold text-gray-400 uppercase">{b}</div>
-              <div className="text-[10px] text-gray-700 mt-0.5">
-                {i === 0 && "Rondo 4v2 · 12 min · Video included"}
-                {i === 1 && "Possession 8v8 · Press trigger · 25 min"}
-                {i === 2 && "3 tasks selected · A/B/C framework"}
-              </div>
+              <div className="text-[10px] text-gray-700 mt-0.5">{blockLines[i]}</div>
               {step > i + 1 && i === 2 && (
                 <div className="mt-2 flex items-center gap-1 text-[9px] font-bold text-blue-600 animate-pulse">
-                  <Download size={10} /> Export club PDF
+                  <Download size={10} /> {t("demos.ui.exportPdf")}
                 </div>
               )}
             </div>
@@ -130,6 +131,8 @@ function DemoMicrocycle({ accent, step }) {
 }
 
 function DemoSquad({ accent, step }) {
+  const { t } = useTranslation("usPitch");
+  const filters = [t("demos.ui.filterAll"), t("demos.ui.filterMid"), t("demos.ui.filterTests")];
   const players = [
     { n: "J. Morrison", pos: "CM", t: "Premium" },
     { n: "E. Brooks", pos: "CB", t: "Basic" },
@@ -142,7 +145,7 @@ function DemoSquad({ accent, step }) {
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <Filter size={10} className="text-gray-400" />
-            {["All", "Midfield", "With tests"].map((f, i) => (
+            {filters.map((f, i) => (
               <span
                 key={f}
                 className={`text-[8px] font-bold px-2 py-0.5 rounded-full border transition-all duration-300 ${
@@ -176,6 +179,7 @@ function DemoSquad({ accent, step }) {
 }
 
 function MiniLineChart({ title, unit, values, teamAvg, color, step }) {
+  const { t } = useTranslation("usPitch");
   const w = 130;
   const chartH = 36;
   const labelH = 10;
@@ -255,10 +259,10 @@ function MiniLineChart({ title, unit, values, teamAvg, color, step }) {
       </svg>
       <div className="flex gap-2 mt-0.5">
         <span className="text-[7px] text-gray-400 flex items-center gap-0.5">
-          <span className="w-2 h-0.5 rounded" style={{ backgroundColor: color }} /> Player
+          <span className="w-2 h-0.5 rounded" style={{ backgroundColor: color }} /> {t("demos.ui.playerLegend")}
         </span>
         <span className="text-[7px] text-gray-400 flex items-center gap-0.5">
-          <span className="w-2 h-0.5 border-t border-dashed border-gray-400" /> Team avg
+          <span className="w-2 h-0.5 border-t border-dashed border-gray-400" /> {t("demos.ui.teamAvgLegend")}
         </span>
       </div>
     </div>
@@ -266,6 +270,7 @@ function MiniLineChart({ title, unit, values, teamAvg, color, step }) {
 }
 
 function DemoTests({ accent, step }) {
+  const { t } = useTranslation("usPitch");
   const cols = ["T1", "T2", "T3"];
   const row = { name: "J. Morrison", vals: ["500", "520", step >= 2 ? "545" : "—"], colors: ["#22C55E", "#22C55E", "#22C55E"] };
   return (
@@ -273,10 +278,12 @@ function DemoTests({ accent, step }) {
       <div className="flex gap-3">
         <SidebarMini active="tests" accent={accent} />
         <div className="flex-1 space-y-2">
-          <div className="text-[9px] text-gray-500">Rated vs <strong>team average</strong> · auto</div>
+          <div className="text-[9px] text-gray-500">
+            <Trans i18nKey="demos.ui.ratedVsAvg" ns="usPitch" components={{ strong: <strong /> }} />
+          </div>
           <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
             <div className="grid grid-cols-4 gap-px bg-gray-100 text-[8px] font-bold text-gray-400 uppercase">
-              <div className="bg-gray-50 p-1.5">Player</div>
+              <div className="bg-gray-50 p-1.5">{t("demos.ui.playerCol")}</div>
               {cols.map((c) => <div key={c} className="bg-gray-50 p-1.5 text-center">{c}</div>)}
             </div>
             <div className="grid grid-cols-4 gap-px bg-gray-100">
@@ -297,7 +304,7 @@ function DemoTests({ accent, step }) {
           </div>
           <div className={`grid grid-cols-2 gap-1.5 transition-all duration-500 ${step >= 1 ? "opacity-100" : "opacity-30"}`}>
             <MiniLineChart
-              title="Endurance"
+              title={t("demos.ui.endurance")}
               unit=""
               values={[500, 520, 545]}
               teamAvg={[498, 510, 518]}
@@ -305,7 +312,7 @@ function DemoTests({ accent, step }) {
               step={step}
             />
             <MiniLineChart
-              title="Sprint"
+              title={t("demos.ui.sprint")}
               unit="s"
               values={[2.92, 2.84, 2.78]}
               teamAvg={[2.95, 2.88, 2.82]}
@@ -315,7 +322,7 @@ function DemoTests({ accent, step }) {
           </div>
           {step >= 3 && (
             <div className="text-[9px] font-bold text-green-600 flex items-center gap-1">
-              <ChevronRight size={10} /> Excellent · +9% vs team avg (Endurance T3)
+              <ChevronRight size={10} /> {t("demos.ui.excellentRating")}
             </div>
           )}
         </div>
@@ -325,8 +332,9 @@ function DemoTests({ accent, step }) {
 }
 
 function DemoLoads({ accent, step }) {
+  const { t } = useTranslation("usPitch");
   const sessions = [
-    { l: "Match", v: step >= 1 ? 720 : "—", c: "#EF4444" },
+    { l: t("demos.ui.match"), v: step >= 1 ? 720 : "—", c: "#EF4444" },
     { l: "A", v: step >= 1 ? 405 : "—", c: "#22C55E" },
     { l: "B", v: step >= 2 ? 890 : "—", c: "#F59E0B" },
     { l: "C", v: step >= 2 ? 650 : "—", c: "#F59E0B" },
@@ -337,11 +345,11 @@ function DemoLoads({ accent, step }) {
         <SidebarMini active="loads" accent={accent} />
         <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-bold text-gray-500 uppercase">Weekly load</span>
+            <span className="text-[9px] font-bold text-gray-500 uppercase">{t("demos.ui.weeklyLoad")}</span>
             <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full transition-all duration-500 ${
               step >= 3 ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-400"
             }`}>
-              {step >= 3 ? "Medium · 2,665" : "Calculating…"}
+              {step >= 3 ? t("demos.ui.mediumLoad") : t("demos.ui.calculating")}
             </span>
           </div>
           <div className="grid grid-cols-4 gap-1.5">
@@ -365,19 +373,20 @@ function DemoLoads({ accent, step }) {
 }
 
 function DemoTaskDesigner({ accent, step }) {
+  const { t } = useTranslation("usPitch");
   const frameworks = [
-    { fw: "A", label: "Extensive", color: "#3B82F6" },
-    { fw: "B", label: "Intensive", color: "#F59E0B" },
-    { fw: "C", label: "Reactive", color: "#EF4444" },
-    { fw: "D", label: "Complementary", color: "#10B981" },
+    { fw: "A", label: t("demos.ui.extensive"), color: "#3B82F6" },
+    { fw: "B", label: t("demos.ui.intensive"), color: "#F59E0B" },
+    { fw: "C", label: t("demos.ui.reactive"), color: "#EF4444" },
+    { fw: "D", label: t("demos.ui.complementary"), color: "#10B981" },
   ];
   const fwIdx = step >= 3 ? 2 : step >= 2 ? 1 : 0;
   const activeFw = frameworks[fwIdx];
-  const tasks = ["Positional rondo", "4v4 transitions", "Finishing"];
+  const tasks = [t("demos.ui.positionalRondo"), t("demos.ui.transitions"), t("demos.ui.finishing")];
   const params = [
-    { l: "Space", v: "30 × 20 m" },
-    { l: "Players", v: "8v8 + 2 neutrals" },
-    { l: "Duration", v: "12 min × 3 sets" },
+    { l: t("demos.ui.space"), v: t("demos.ui.spaceValue") },
+    { l: t("demos.ui.playersCount"), v: t("demos.ui.playersValue") },
+    { l: t("demos.ui.duration"), v: t("demos.ui.durationValue") },
   ];
 
   return (
@@ -387,7 +396,7 @@ function DemoTaskDesigner({ accent, step }) {
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-1.5">
             <ClipboardList size={12} className="text-gray-400" />
-            <span className="text-xs font-black text-gray-900">Task designer</span>
+            <span className="text-xs font-black text-gray-900">{t("demos.ui.taskDesigner")}</span>
           </div>
 
           <div className="flex gap-1 flex-wrap">
@@ -423,7 +432,7 @@ function DemoTaskDesigner({ accent, step }) {
 
           <div className="rounded-lg border border-gray-100 bg-white p-2">
             <div className="text-[8px] font-bold text-gray-400 uppercase mb-1.5">
-              Parameters · Session {activeFw.label}
+              {t("explorerUi.taskParams", { label: activeFw.label })}
             </div>
             {params.map((p, i) => (
               <div
@@ -450,14 +459,16 @@ function DemoTaskDesigner({ accent, step }) {
 }
 
 function DemoPdf({ accent, step }) {
+  const { t } = useTranslation("usPitch");
+  const lines = [t("demos.ui.warmupLine"), t("demos.ui.mainLine"), t("demos.ui.tasksLine")];
   return (
     <BrowserFrame title="session-b · export-pdf" accent={accent}>
       <div className="flex gap-3">
         <SidebarMini active="plan" accent={accent} />
         <div className="flex-1 relative min-h-[220px]">
           <div className={`space-y-2 transition-all duration-500 ${step >= 3 ? "opacity-20 blur-[1px]" : "opacity-100"}`}>
-            <div className="text-xs font-black text-gray-900">Session B · Intensive · 75 min</div>
-            {["Warm-up: Rondo 4v2", "Main: Possession 8v8", "Tasks: 3 selected"].map((line, i) => (
+            <div className="text-xs font-black text-gray-900">{t("demos.ui.sessionB")} · 75 min</div>
+            {lines.map((line, i) => (
               <div
                 key={line}
                 className={`bg-white rounded-lg border px-2.5 py-2 text-[10px] text-gray-700 transition-all duration-500 ${
@@ -472,7 +483,7 @@ function DemoPdf({ accent, step }) {
                 step >= 1 ? "bg-blue-600 text-white shadow-md scale-105" : "bg-gray-100 text-gray-400"
               }`}
             >
-              <Download size={12} /> Export club PDF
+              <Download size={12} /> {t("demos.ui.exportPdf")}
             </div>
           </div>
           {step >= 2 && (
@@ -483,10 +494,10 @@ function DemoPdf({ accent, step }) {
                 }`}
               >
                 <div className="flex items-center gap-2 border-b border-gray-100 pb-2 mb-2">
-                  <div className="w-7 h-7 rounded-md flex items-center justify-center text-white text-[9px] font-black" style={{ backgroundColor: accent }}>RF</div>
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center text-white text-[9px] font-black" style={{ backgroundColor: accent }}>FC</div>
                   <div>
-                    <div className="text-[10px] font-black text-gray-900">Riverside FC Academy</div>
-                    <div className="text-[8px] text-gray-400">Session B · U15 Elite · Week 12</div>
+                    <div className="text-[10px] font-black text-gray-900">{t("demos.clubName")}</div>
+                    <div className="text-[8px] text-gray-400">{t("demos.ui.sessionB")} · {t("demos.ui.weekTeam", { team: "Sub-15 A" })}</div>
                   </div>
                 </div>
                 {[1, 2, 3].map((n) => (
@@ -507,10 +518,11 @@ function DemoPdf({ accent, step }) {
 }
 
 function DemoBrand({ accent, step }) {
+  const { t } = useTranslation("usPitch");
   const teams = [
-    { name: "U15 Elite", color: accent },
-    { name: "U17 Pro", color: "#059669" },
-    { name: "U13 Dev", color: "#7C3AED" },
+    { name: "Sub-15 A", color: accent },
+    { name: "Juvenil A", color: "#059669" },
+    { name: "Sub-13 A", color: "#7C3AED" },
   ];
   const teamIdx = step >= 3 ? 2 : step >= 2 ? 1 : 0;
   const active = teams[teamIdx];
@@ -520,8 +532,8 @@ function DemoBrand({ accent, step }) {
       <div className="flex gap-3">
         <div className="w-28 flex-shrink-0 border-r border-gray-200 pr-3 space-y-0.5" style={{ backgroundColor: active.color + "06" }}>
           <div className="flex items-center gap-1.5 px-2 mb-2">
-            <div className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[8px] font-black transition-colors duration-500" style={{ backgroundColor: active.color }}>RF</div>
-            <span className="text-[8px] font-bold text-gray-700 truncate">Riverside FC</span>
+            <div className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[8px] font-black transition-colors duration-500" style={{ backgroundColor: active.color }}>FC</div>
+            <span className="text-[8px] font-bold text-gray-700 truncate">{t("demos.clubName")}</span>
           </div>
           {teams.map((t, i) => (
             <div
@@ -539,7 +551,7 @@ function DemoBrand({ accent, step }) {
             <div className="text-sm font-black">{active.name}</div>
           </div>
           <div className="grid grid-cols-3 gap-1.5">
-            {["Primary", "Secondary", "Logo"].map((l, i) => (
+            {[t("demos.ui.primary"), t("demos.ui.secondary"), t("demos.ui.logo")].map((l, i) => (
               <div
                 key={l}
                 className={`rounded-lg border p-2 text-center transition-all duration-500 ${step > i ? "border-gray-200 bg-white" : "border-gray-100 opacity-40"}`}
@@ -551,7 +563,7 @@ function DemoBrand({ accent, step }) {
           </div>
           {step >= 4 && (
             <div className="text-[9px] font-bold text-gray-600 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-2">
-              Parents & sponsors see <span style={{ color: active.color }}>Riverside FC</span> on login, app & PDFs
+              <Trans i18nKey="demos.ui.parentsSee" ns="usPitch" values={{ club: t("demos.clubName") }} components={{ span: <span style={{ color: active.color }} /> }} />
             </div>
           )}
         </div>
@@ -560,83 +572,51 @@ function DemoBrand({ accent, step }) {
   );
 }
 
-const DEMOS = [
-  { id: "dashboard", label: "Club dashboard", Component: DemoDashboard },
-  { id: "microcycle", label: "Session planning", Component: DemoMicrocycle },
-  { id: "squad", label: "Squad registry", Component: DemoSquad },
-  { id: "tests", label: "Physical tests", Component: DemoTests },
-  { id: "loads", label: "Load monitoring", Component: DemoLoads },
+const PLATFORM_FEATURE_META = [
+  { id: "dashboard", icon: Zap, Component: DemoDashboard },
+  { id: "microcycle", icon: Calendar, Component: DemoMicrocycle },
+  { id: "task-designer", icon: ClipboardList, Component: DemoTaskDesigner },
+  { id: "squad", icon: Users, Component: DemoSquad },
+  { id: "tests", icon: Activity, Component: DemoTests },
+  { id: "loads", icon: TrendingUp, Component: DemoLoads },
+  { id: "pdf", icon: FileText, Component: DemoPdf },
+  { id: "brand", icon: Shield, Component: DemoBrand },
 ];
 
-const PLATFORM_FEATURES = [
-  {
-    id: "dashboard",
-    icon: Zap,
-    title: "Club dashboard",
-    summary: "One screen for directors to see the whole academy.",
-    bullets: ["Week & mesocycle overview per team", "Next session, player count & test completion", "Branded header with club logo and colors"],
-    Component: DemoDashboard,
-  },
-  {
-    id: "microcycle",
-    icon: Calendar,
-    title: "Session planning",
-    summary: "Every mesocycle session configured for you — included in the monthly fee.",
-    bullets: ["Sessions A / B / C / D mapped to your training days", "Warm-up, main block & task designer per session", "Club-branded PDF export in one click"],
-    Component: DemoMicrocycle,
-  },
-  {
-    id: "task-designer",
-    icon: ClipboardList,
-    title: "Task designer",
-    summary: "Build conditional tasks per session framework — A, B, C and D.",
-    bullets: ["Multiselect task types from your club catalog", "Parameters, cues & recommendations per framework", "Synced automatically to session PDFs and coach view"],
-    Component: DemoTaskDesigner,
-  },
-  {
-    id: "squad",
-    icon: Users,
-    title: "Squad registry",
-    summary: "Full roster intelligence across every team.",
-    bullets: ["Filter by position, plan type & test status", "Individual player cards with season history", "Multi-team support under one license"],
-    Component: DemoSquad,
-  },
-  {
-    id: "tests",
-    icon: Activity,
-    title: "Physical testing",
-    summary: "Objective ratings parents and sponsors understand.",
-    bullets: ["4 tests × 3 evaluations (T1 → T2 → T3)", "Line charts vs team average — evolution at a glance", "Green / blue / amber / red ratings automatic"],
-    Component: DemoTests,
-  },
-  {
-    id: "loads",
-    icon: TrendingUp,
-    title: "Load monitoring",
-    summary: "Science-based workload control for every microcycle.",
-    bullets: ["Volume × RPE × specificity (sRPE methodology)", "Weekly traffic light: low / medium / high", "Match + training sessions in one calendar"],
-    Component: DemoLoads,
-  },
-  {
-    id: "pdf",
-    icon: FileText,
-    title: "Print-ready session PDFs",
-    summary: "Coaches walk onto the field with a professional plan.",
-    bullets: ["Logo and club colors on every export", "Warm-up videos and task breakdown included", "Share with staff or print for the bench"],
-    Component: DemoPdf,
-  },
-  {
-    id: "brand",
-    icon: Shield,
-    title: "White-label branding",
-    summary: "Your club's identity on every screen and export.",
-    bullets: ["Custom logo, primary & secondary colors", "Team switcher for U13 through U19", "Parents see your brand — not a generic app"],
-    Component: DemoBrand,
-  },
+function usePlatformFeatures() {
+  const { t, i18n } = useTranslation("usPitch");
+  return useMemo(
+    () =>
+      PLATFORM_FEATURE_META.map((f) => ({
+        ...f,
+        title: t(`demos.features.${f.id}.title`),
+        summary: t(`demos.features.${f.id}.summary`),
+        bullets: t(`demos.features.${f.id}.bullets`, { returnObjects: true }),
+      })),
+    [t, i18n.language]
+  );
+}
+
+const DEMOS = [
+  { id: "dashboard", labelKey: "demos.features.dashboard.title", Component: DemoDashboard },
+  { id: "microcycle", labelKey: "demos.features.microcycle.title", Component: DemoMicrocycle },
+  { id: "squad", labelKey: "demos.features.squad.title", Component: DemoSquad },
+  { id: "tests", labelKey: "demos.features.tests.title", Component: DemoTests },
+  { id: "loads", labelKey: "demos.features.loads.title", Component: DemoLoads },
 ];
+
+/** @deprecated — use usePlatformFeatures() */
+const PLATFORM_FEATURES = PLATFORM_FEATURE_META.map((f) => ({
+  ...f,
+  title: f.id,
+  summary: "",
+  bullets: [],
+}));
 
 /** Hero: fast autoplay tour — no tab pills, cycles all modules */
 export function PlatformHeroQuickTour({ accent = "#0A36F7" }) {
+  const { t } = useTranslation("usPitch");
+  const platformFeatures = usePlatformFeatures();
   const [demoIdx, setDemoIdx] = useState(0);
   const [step, setStep] = useState(0);
   const [fade, setFade] = useState(true);
@@ -650,7 +630,7 @@ export function PlatformHeroQuickTour({ accent = "#0A36F7" }) {
     const rotate = setInterval(() => {
       setFade(false);
       setTimeout(() => {
-        setDemoIdx((i) => (i + 1) % PLATFORM_FEATURES.length);
+        setDemoIdx((i) => (i + 1) % platformFeatures.length);
         setStep(0);
         setFade(true);
       }, 200);
@@ -658,7 +638,7 @@ export function PlatformHeroQuickTour({ accent = "#0A36F7" }) {
     return () => clearInterval(rotate);
   }, []);
 
-  const feature = PLATFORM_FEATURES[demoIdx];
+  const feature = platformFeatures[demoIdx];
   const DemoComponent = feature.Component;
 
   return (
@@ -673,7 +653,7 @@ export function PlatformHeroQuickTour({ accent = "#0A36F7" }) {
             {feature.title}
           </span>
           <div className="flex gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-100 shadow-sm">
-            {PLATFORM_FEATURES.map((f, i) => (
+            {platformFeatures.map((f, i) => (
               <div
                 key={f.id}
                 className={`h-1 rounded-full transition-all duration-300 ${i === demoIdx ? "w-4 bg-blue-600" : "w-1 bg-gray-300"}`}
@@ -682,18 +662,20 @@ export function PlatformHeroQuickTour({ accent = "#0A36F7" }) {
           </div>
         </div>
       </div>
-      <p className="text-center text-xs text-gray-400 mt-5">Quick tour · all modules in one glance</p>
+      <p className="text-center text-xs text-gray-400 mt-5">{t("demos.heroFootnote")}</p>
     </div>
   );
 }
 
 /** Platform section: demo left + full feature list right */
 export function PlatformFeatureShowcase({ accent = "#0A36F7" }) {
+  const { t } = useTranslation("usPitch");
+  const platformFeatures = usePlatformFeatures();
   const [featureIdx, setFeatureIdx] = useState(0);
   const [step, setStep] = useState(0);
   const [fade, setFade] = useState(true);
 
-  const feature = PLATFORM_FEATURES[featureIdx];
+  const feature = platformFeatures[featureIdx];
   const DemoComponent = feature.Component;
 
   const selectFeature = (idx) => {
@@ -734,14 +716,14 @@ export function PlatformFeatureShowcase({ accent = "#0A36F7" }) {
             </div>
           </div>
         </div>
-        <p className="text-center text-xs text-gray-400 mt-6">Click a feature on the right — each has its own live demo</p>
+        <p className="text-center text-xs text-gray-400 mt-6">{t("demos.showcaseFootnote")}</p>
       </div>
 
       {/* Right — all software characteristics */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Full platform capabilities</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">{t("demos.capabilitiesTitle")}</p>
         <div className="space-y-2">
-          {PLATFORM_FEATURES.map((f, i) => {
+          {platformFeatures.map((f, i) => {
             const Icon = f.icon;
             const active = i === featureIdx;
             return (
@@ -786,8 +768,7 @@ export function PlatformFeatureShowcase({ accent = "#0A36F7" }) {
           })}
         </div>
         <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-600 leading-relaxed">
-          <strong className="text-gray-900 font-bold">Included every month:</strong> DEPRO configures all training sessions
-          for every mesocycle across all your teams — coaches open the app and run the plan.
+          <Trans i18nKey="demos.includedNote" ns="usPitch" components={{ strong: <strong className="text-gray-900 font-bold" /> }} />
         </div>
       </div>
     </div>

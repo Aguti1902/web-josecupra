@@ -1,0 +1,108 @@
+{
+  "demos": {
+    "heroFootnote": "Tour rápido · todos los módulos de un vistazo",
+    "showcaseFootnote": "Haz clic en una función a la derecha — cada una tiene su demo en vivo",
+    "capabilitiesTitle": "Capacidades completas de la plataforma",
+    "includedNote": "<strong>Incluido cada mes:</strong> DEPRO configura todas las sesiones de entrenamiento de cada mesociclo en todos tus equipos — el entrenador abre la app y ejecuta el plan.",
+    "clubName": "Fundació Cornellà",
+    "sidebarNav": "Navegación",
+    "features": {
+      "dashboard": {
+        "title": "Dashboard del club",
+        "summary": "Una pantalla para que la dirección vea toda la academia.",
+        "bullets": ["Resumen semanal y mesociclo por equipo", "Próxima sesión, jugadores y tests completados", "Cabecera con logo y colores del club"]
+      },
+      "microcycle": {
+        "title": "Planificación de sesiones",
+        "summary": "Cada sesión del mesociclo configurada para ti — incluido en la cuota mensual.",
+        "bullets": ["Sesiones A / B / C / D en tus días de entreno", "Calentamiento, bloque principal y task designer", "Exportación PDF con branding del club en un clic"]
+      },
+      "task-designer": {
+        "title": "Task designer",
+        "summary": "Crea tareas condicionales por framework de sesión — A, B, C y D.",
+        "bullets": ["Multiselección de tipos de tarea del catálogo del club", "Parámetros, claves y recomendaciones por framework", "Sincronizado con PDFs de sesión y vista del entrenador"]
+      },
+      "squad": {
+        "title": "Registro de plantilla",
+        "summary": "Inteligencia de plantilla completa en todos los equipos.",
+        "bullets": ["Filtra por posición, plan y estado de tests", "Fichas individuales con historial de temporada", "Multi-equipo bajo una sola licencia"]
+      },
+      "tests": {
+        "title": "Tests físicos",
+        "summary": "Ratings objetivos que familias y patrocinadores entienden.",
+        "bullets": ["4 tests × 3 evaluaciones (T1 → T2 → T3)", "Gráficas vs media del equipo — evolución a simple vista", "Ratings verde / azul / ámbar / rojo automáticos"]
+      },
+      "loads": {
+        "title": "Monitorización de cargas",
+        "summary": "Control científico de la carga en cada microciclo.",
+        "bullets": ["Volumen × RPE × especificidad (metodología sRPE)", "Semáforo semanal: baja / media / alta", "Partido + entrenamientos en un solo calendario"]
+      },
+      "pdf": {
+        "title": "PDFs de sesión listos para imprimir",
+        "summary": "El entrenador llega al campo con un plan profesional.",
+        "bullets": ["Logo y colores del club en cada exportación", "Vídeos de calentamiento y desglose de tareas", "Comparte con staff o imprime para el banquillo"]
+      },
+      "brand": {
+        "title": "Branding white-label",
+        "summary": "La identidad de tu club en cada pantalla y exportación.",
+        "bullets": ["Logo, colores primario y secundario personalizados", "Selector de equipos de Sub-13 a Juvenil", "Las familias ven tu marca — no una app genérica"]
+      }
+    },
+    "ui": {
+      "players": "Jugadores",
+      "sessions": "Sesiones",
+      "testsDone": "Tests hechos",
+      "nextSession": "Próxima sesión",
+      "nextSessionValue": "Mié · Sesión B · Intensiva · 75 min",
+      "warmup": "Calentamiento",
+      "mainBlock": "Bloque principal",
+      "taskDesigner": "Task designer",
+      "microBlock1": "Rondo 4v2 · 12 min · Vídeo incluido",
+      "microBlock2": "Posesión 8v8 · Trigger de pressing · 25 min",
+      "microBlock3": "3 tareas seleccionadas · Framework A/B/C",
+      "exportPdf": "Exportar PDF del club",
+      "sessionB": "Sesión B · Intensiva",
+      "typeB": "Tipo B",
+      "filterAll": "Todos",
+      "filterMid": "Medio",
+      "filterTests": "Con tests",
+      "ratedVsAvg": "Valorado vs <strong>media del equipo</strong> · automático",
+      "playerCol": "Jugador",
+      "endurance": "Resistencia",
+      "sprint": "Sprint",
+      "playerLegend": "Jugador",
+      "teamAvgLegend": "Media equipo",
+      "excellentRating": "Excelente · +9% vs media equipo (Resistencia T3)",
+      "weeklyLoad": "Carga semanal",
+      "calculating": "Calculando…",
+      "mediumLoad": "Media · 2.665",
+      "match": "Partido",
+      "space": "Espacio",
+      "spaceValue": "30 × 20 m",
+      "playersCount": "Jugadores",
+      "playersValue": "8v8 + 2 neutrales",
+      "duration": "Duración",
+      "durationValue": "12 min × 3 series",
+      "extensive": "Extensiva",
+      "intensive": "Intensiva",
+      "reactive": "Reactiva",
+      "complementary": "Complementaria",
+      "positionalRondo": "Rondo posicional",
+      "transitions": "Transiciones 4v4",
+      "finishing": "Finalización",
+      "warmupLine": "Calentamiento: Rondo 4v2",
+      "mainLine": "Principal: Posesión 8v8",
+      "tasksLine": "Tareas: 3 seleccionadas",
+      "primary": "Primario",
+      "secondary": "Secundario",
+      "logo": "Logo",
+      "parentsSee": "Familias y patrocinadores ven <span>{{club}}</span> en login, app y PDFs",
+      "dashboard": "Dashboard",
+      "microcycle": "Microciclo",
+      "squad": "Plantilla",
+      "tests": "Tests",
+      "loads": "Cargas",
+      "weekTeam": "{{team}} · Semana 12"
+    }
+  }
+}

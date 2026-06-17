@@ -7,15 +7,21 @@ import en from "./locales/en.json";
 import ca from "./locales/ca.json";
 import usPitchEn from "./locales/usPitch.en.json";
 import usPitchEs from "./locales/usPitch.es.json";
+import usPitchDemosEn from "./locales/usPitch.demos.en.json";
+import usPitchDemosEs from "./locales/usPitch.demos.es.json";
+import usPitchExplorerEn from "./locales/usPitch.explorer.en.json";
+import usPitchExplorerEs from "./locales/usPitch.explorer.es.json";
+
+const mergeUsPitch = (base, demos, explorer) => ({ ...base, ...demos, ...explorer });
 
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
-      es: { translation: es, usPitch: usPitchEs },
-      en: { translation: en, usPitch: usPitchEn },
-      ca: { translation: ca, usPitch: usPitchEn },
+      es: { translation: es, usPitch: mergeUsPitch(usPitchEs, usPitchDemosEs, usPitchExplorerEs) },
+      en: { translation: en, usPitch: mergeUsPitch(usPitchEn, usPitchDemosEn, usPitchExplorerEn) },
+      ca: { translation: ca, usPitch: mergeUsPitch(usPitchEn, usPitchDemosEn, usPitchExplorerEn) },
     },
     fallbackLng: "es",
     supportedLngs: ["es", "en", "ca"],

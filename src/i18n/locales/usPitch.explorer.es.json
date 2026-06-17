@@ -1,0 +1,179 @@
+{
+  "explorerUi": {
+    "chromeLabel": "Vista previa interactiva · haz clic en todo",
+    "footerNote": "22 jugadores · calendario mesociclo · previews de ejercicios · navegación entre módulos",
+    "navigation": "Navegación",
+    "interactivePreview": "Vista previa interactiva",
+    "videoPreviewNote": "Preview del ejercicio — disponible en la plataforma completa del club",
+    "matchLabel": "PARTIDO",
+    "matchDay": "Día de partido",
+    "duration": "Duración",
+    "sets": "Series",
+    "reps": "Reps",
+    "exportPdf": "Exportar PDF de sesión",
+    "pdfReady": "PDF listo ✓",
+    "openMicrocycle": "Abrir en microciclo →",
+    "openMatchingSession": "Abrir sesión vinculada en microciclo →",
+    "openSessionHint": "Clic → sesión",
+    "selectedDay": "Día seleccionado",
+    "today": "Hoy",
+    "playerCard": "Ficha de jugador",
+    "viewTests": "Ver tests físicos →",
+    "weeklyPlanSquad": "Plan semanal de la plantilla",
+    "ratedVsAvg": "Valorado vs <strong>media del equipo</strong> · clic en fila para cambiar jugador",
+    "chartsFor": "Gráficas · {{name}}",
+    "enduranceM": "Resistencia (m)",
+    "sprintS": "Sprint (s)",
+    "agilityS": "Agilidad (s)",
+    "jumpCm": "Salto vertical (cm)",
+    "weeklyLoadSrpe": "Carga semanal · sRPE",
+    "loadTraffic": "Volumen × RPE × especificidad — clic en barra o tarjeta para abrir sesión.",
+    "taskTypesToggle": "Tipos de tarea · clic para activar/desactivar",
+    "taskParams": "Parámetros · Sesión {{label}}",
+    "activeWeek": "Semana {{week}} activa",
+    "calendarHint": "Clic en día coloreado para abrir sesión · gris = descanso",
+    "playersCount": "{{count}} jugadores",
+    "nav": {
+      "dashboard": "Dashboard",
+      "microcycle": "Microciclo",
+      "mesocycle": "Mesociclo",
+      "squad": "Plantilla",
+      "tests": "Tests",
+      "loads": "Cargas",
+      "tasks": "Task designer"
+    },
+    "modules": {
+      "dashboard": { "title": "Centro de mando del club", "desc": "Haz clic en las tarjetas para ir a sesiones, plantilla o cargas." },
+      "microcycle": { "title": "Plan semanal de sesiones", "desc": "Selecciona un día — abre ejercicios con preview y exporta PDF." },
+      "mesocycle": { "title": "Calendario de periodización", "desc": "Clic en un día de entreno para abrir esa sesión en el microciclo." },
+      "squad": { "title": "Plantilla completa · 22 jugadores", "desc": "Filtra por posición o plan. Clic en jugador para ficha y enlaces." },
+      "tests": { "title": "Suite de tests físicos", "desc": "Evolución T1 → T2 → T3 vs media del equipo. Clic en fila para gráficas." },
+      "loads": { "title": "Monitorización de cargas", "desc": "Clic en sesiones para resaltar volumen semanal. Vinculado al microciclo." },
+      "tasks": { "title": "Task designer", "desc": "Cambia frameworks A/B/C/D — activa tareas y edita parámetros en vivo." }
+    },
+    "dashboard": {
+      "weekLine": "Mesociclo 2 · Bloque B · Lun / Mié / Vie + Partido",
+      "players": "Jugadores",
+      "playersSub": "Plantilla completa activa",
+      "sessions": "Sesiones esta semana",
+      "sessionsSub": "A · B · C + Partido",
+      "tests": "Tests completados",
+      "testsSub": "4 T1 pendientes",
+      "nextSession": "Próxima sesión · clic para abrir",
+      "teamsOverview": "Resumen de equipos",
+      "weeklyLoad": "Carga semanal",
+      "weeklyLoadValue": "2.665 AU · Media"
+    },
+    "squadFilters": {
+      "all": "Todos (22)",
+      "premium": "Premium",
+      "pending": "Tests pendientes",
+      "gk": "POR",
+      "def": "Defensa",
+      "mid": "Medio",
+      "fwd": "Delantera"
+    },
+    "playerFields": {
+      "age": "Edad",
+      "foot": "Pie",
+      "load": "Carga",
+      "tests": "Tests",
+      "complete": "Completo",
+      "pending": "Pendiente",
+      "testsDone": "Tests ✓",
+      "yrs": "años",
+      "footRight": "Derecho",
+      "footLeft": "Izquierdo",
+      "footBoth": "Ambos",
+      "planPremium": "Plan Premium",
+      "planBasic": "Plan Basic"
+    },
+    "loads": {
+      "medium": "Media · {{total}} AU"
+    },
+    "paramLabels": {
+      "space": "Espacio",
+      "players": "Jugadores",
+      "duration": "Duración"
+    },
+    "frameworks": {
+      "A": "Extensiva",
+      "B": "Intensiva",
+      "C": "Reactiva",
+      "D": "Complementaria",
+      "M": "Partido"
+    },
+    "blocks": {
+      "warmup": "Calentamiento",
+      "main": "Bloque principal",
+      "tasks": "Task designer",
+      "match": "Partido"
+    },
+    "months": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+    "weekdays": ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
+    "ratings": {
+      "Excellent": "Excelente",
+      "Good": "Bueno"
+    },
+    "loadLevels": {
+      "Low": "Baja",
+      "Medium": "Media",
+      "High": "Alta",
+      "Peak": "Pico"
+    },
+    "sessions": {
+      "mon-a": {
+        "day": "Lunes",
+        "framework": "Extensiva",
+        "title": "Sesión A · Extensiva",
+        "objective": "Posesión técnica · base aeróbica · baja carga neuromuscular"
+      },
+      "wed-b": {
+        "day": "Miércoles",
+        "framework": "Intensiva",
+        "title": "Sesión B · Intensiva",
+        "objective": "Pressing alto · recuperación en último tercio · estímulo anaeróbico"
+      },
+      "fri-c": {
+        "day": "Viernes",
+        "framework": "Reactiva",
+        "title": "Sesión C · Reactiva",
+        "objective": "Juego de transición · velocidad reactiva · carga media"
+      },
+      "sat-match": {
+        "day": "Sábado",
+        "framework": "Partido",
+        "title": "Partido vs Gimnàstic Manresa",
+        "objective": "Partido oficial · carga registrada automáticamente"
+      }
+    },
+    "exercises": {
+      "e1": { "name": "Activación dinámica", "desc": "Movilidad articular + carrera progresiva." },
+      "e2": { "name": "Rondo 4v2", "desc": "Juego posicional · 12×12 m · máx. 2 toques." },
+      "e3": { "name": "Posesión 8v8", "desc": "Mantener balón · canales de amplitud · progresión por tercios." },
+      "e4": { "name": "Rondo posicional", "desc": "Tarea framework A · claves sincronizadas al PDF." },
+      "e5": { "name": "Activación + sprints", "desc": "4×15 m de aceleración." },
+      "e6": { "name": "Rondo 5v2 alto ritmo", "desc": "Un toque si es posible · pressing inmediato tras pérdida." },
+      "e7": { "name": "Triggers de pressing 8v8", "desc": "Trampa tras mal control · contraataque en 6 seg." },
+      "e8": { "name": "Posesión bajo presión", "desc": "Salida de balón vs bloque alto." },
+      "e9": { "name": "Transiciones 4v4", "desc": "Framework B · ganar balón → atacar en 8 seg." },
+      "e10": { "name": "Finalización tras pressing", "desc": "Tiro en 2 toques tras recuperación." },
+      "e11": { "name": "Movilidad + COD", "desc": "Patrones de cambio de dirección." },
+      "e12": { "name": "Transición 6v6+2", "desc": "Marcar en 8 segundos o defender área." },
+      "e13": { "name": "Juego de finalización", "desc": "Framework C · finalización reactiva." },
+      "e14": { "name": "Partido competitivo", "desc": "Partido oficial · GPS + sRPE post-partido." }
+    },
+    "tasks": {
+      "A": ["Rondo posicional", "Posesión en amplitud", "Circuito técnico"],
+      "B": ["Trampa de pressing", "Transiciones 4v4", "Finalización tras pressing"],
+      "C": ["Juego de transición", "Contraataque", "Finalización"],
+      "D": ["Circuito de fuerza", "Estabilidad core", "Carrera de recuperación"]
+    },
+    "taskParams": {
+      "A": { "space": "40 × 30 m", "players": "8v8", "duration": "15 min × 2 series" },
+      "B": { "space": "30 × 20 m", "players": "8v8 + 2 neutrales", "duration": "12 min × 3 series" },
+      "C": { "space": "50 × 35 m", "players": "6v6 + 2", "duration": "10 min × 4 series" },
+      "D": { "space": "Gimnasio / campo", "players": "Individual", "duration": "20 min" }
+    }
+  }
+}

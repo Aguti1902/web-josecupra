@@ -1,13 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import {
   Activity, Calendar, ChevronRight, ClipboardList, Download,
   LayoutDashboard, Play, TrendingUp, Users, X, Zap,
 } from "lucide-react";
 import {
-  SQUAD, SESSIONS, MESOCYCLE_CALENDAR, WEEK_LOADS, TASK_FRAMEWORKS, TASK_PARAMS,
-  TEAMS, PLAYER_TESTS, CURRENT_WEEK, MONTH_NAMES, WEEKDAY_SHORT,
+  SQUAD, MESOCYCLE_CALENDAR, WEEK_LOADS,
+  TEAMS, PLAYER_TESTS, CURRENT_WEEK,
   buildMonthGrid, dateKey, filterSquad, getPlayerById, DEPRO_VIDEO_LOGO,
 } from "./clubExplorerData";
+import {
+  localizeSession, getMonthNames, getWeekdays, localizeLoadLevel,
+  localizeRating, localizePlayerFoot, localizePlan, getTaskFrameworks,
+  getTaskParams, localizeLoadLabel,
+} from "./clubExplorerI18n";
 
 const DEFAULT_CLUB = {
   name: "Fundació Cornellà",
@@ -17,25 +23,25 @@ const DEFAULT_CLUB = {
   team: "Sub-15 A",
 };
 
-const NAV = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-  { id: "microcycle", label: "Microcycle", icon: Calendar, path: "/dashboard/plan" },
-  { id: "mesocycle", label: "Mesocycle", icon: ClipboardList, path: "/dashboard/mesocycle" },
-  { id: "squad", label: "Squad", icon: Users, path: "/dashboard/squad" },
-  { id: "tests", label: "Tests", icon: Activity, path: "/dashboard/team-tests" },
-  { id: "loads", label: "Loads", icon: TrendingUp, path: "/dashboard/cargas" },
-  { id: "tasks", label: "Task designer", icon: Zap, path: "/dashboard/plan/tasks" },
+const NAV_IDS = [
+  { id: "dashboard", icon: LayoutDashboard, path: "/dashboard", labelKey: "explorerUi.nav.dashboard" },
+  { id: "microcycle", icon: Calendar, path: "/dashboard/plan", labelKey: "explorerUi.nav.microcycle" },
+  { id: "mesocycle", icon: ClipboardList, path: "/dashboard/mesocycle", labelKey: "explorerUi.nav.mesocycle" },
+  { id: "squad", icon: Users, path: "/dashboard/squad", labelKey: "explorerUi.nav.squad" },
+  { id: "tests", icon: Activity, path: "/dashboard/team-tests", labelKey: "explorerUi.nav.tests" },
+  { id: "loads", icon: TrendingUp, path: "/dashboard/cargas", labelKey: "explorerUi.nav.loads" },
+  { id: "tasks", icon: Zap, path: "/dashboard/plan/tasks", labelKey: "explorerUi.nav.tasks" },
 ];
 
-const MODULE_COPY = {
-  dashboard: { title: "Club command center", desc: "Click cards to jump into sessions, squad or loads." },
-  microcycle: { title: "Weekly session plan", desc: "Select a day — open exercises with drill previews and export PDF." },
-  mesocycle: { title: "Periodization calendar", desc: "Click any training day to open that session in the microcycle." },
-  squad: { title: "Full squad · 22 players", desc: "Filter by position or plan. Click a player for profile and cross-links." },
-  tests: { title: "Physical testing suite", desc: "T1 → T2 → T3 evolution vs team average. Click any row for charts." },
-  loads: { title: "Load monitoring", desc: "Click sessions to highlight weekly volume. Linked to microcycle days." },
-  tasks: { title: "Task designer", desc: "Switch frameworks A/B/C/D — toggle tasks and edit parameters live." },
-};
+const SQUAD_FILTER_IDS = [
+  { id: "all", labelKey: "explorerUi.squadFilters.all" },
+  { id: "premium", labelKey: "explorerUi.squadFilters.premium" },
+  { id: "pending", labelKey: "explorerUi.squadFilters.pending" },
+  { id: "gk", labelKey: "explorerUi.squadFilters.gk" },
+  { id: "def", labelKey: "explorerUi.squadFilters.def" },
+  { id: "mid", labelKey: "explorerUi.squadFilters.mid" },
+  { id: "fwd", labelKey: "explorerUi.squadFilters.fwd" },
+];
 
 const TYPE_COLORS = { A: "#3B82F6", B: "#F59E0B", C: "#EF4444", M: "#6B7280" };
 
@@ -82,7 +88,7 @@ function DeproVideoPlaceholder({ className = "", compact = false }) {
   );
 }
 
-function ExerciseThumb({ exercise, onClick, selected }) {
+function ExerciseThumb({ exercise, onClick, selected, matchLabel }) {
   return (
     <button
       type="button"
@@ -97,7 +103,7 @@ function ExerciseThumb({ exercise, onClick, selected }) {
           {exercise.hasVideo ? (
             <DeproVideoPlaceholder className="w-full h-full" compact />
           ) : (
-            <span className="flex items-center justify-center h-full text-[10px] text-gray-400 font-bold bg-gray-50">MATCH</span>
+            <span className="flex items-center justify-center h-full text-[10px] text-gray-400 font-bold bg-gray-50">{matchLabel}</span>
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -110,7 +116,7 @@ function ExerciseThumb({ exercise, onClick, selected }) {
   );
 }
 
-function ExercisePreviewModal({ exercise, onClose }) {
+function ExercisePreviewModal({ exercise, onClose, t }) {
   if (!exercise) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
@@ -128,17 +134,17 @@ function ExercisePreviewModal({ exercise, onClose }) {
           <DeproVideoPlaceholder className="aspect-video w-full border-b border-gray-100" />
         ) : (
           <div className="aspect-video w-full bg-gray-50 flex items-center justify-center border-b border-gray-100">
-            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Match day</p>
+            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">{t("explorerUi.matchDay")}</p>
           </div>
         )}
         <div className="px-5 py-4 grid grid-cols-3 gap-3 text-center text-sm border-t border-gray-100">
-          <div><p className="text-xs text-gray-400">Duration</p><p className="font-bold">{exercise.duration}</p></div>
-          <div><p className="text-xs text-gray-400">Sets</p><p className="font-bold">{exercise.sets}</p></div>
-          <div><p className="text-xs text-gray-400">Reps</p><p className="font-bold">{exercise.reps}</p></div>
+          <div><p className="text-xs text-gray-400">{t("explorerUi.duration")}</p><p className="font-bold">{exercise.duration}</p></div>
+          <div><p className="text-xs text-gray-400">{t("explorerUi.sets")}</p><p className="font-bold">{exercise.sets}</p></div>
+          <div><p className="text-xs text-gray-400">{t("explorerUi.reps")}</p><p className="font-bold">{exercise.reps}</p></div>
         </div>
         {exercise.hasVideo && (
           <p className="px-5 pb-4 text-[11px] text-center text-gray-400">
-            Drill video preview — available in the full club platform
+            {t("explorerUi.videoPreviewNote")}
           </p>
         )}
       </div>
@@ -147,19 +153,20 @@ function ExercisePreviewModal({ exercise, onClose }) {
 }
 
 function PanelDashboard({ club, actions }) {
-  const next = SESSIONS["wed-b"];
+  const { t } = useTranslation("usPitch");
+  const next = localizeSession("wed-b", t);
   return (
     <div className="space-y-5">
       <div className="rounded-2xl p-6 text-white" style={{ background: `linear-gradient(135deg, ${club.accent}, ${club.accent}cc)` }}>
         <p className="text-xs font-bold uppercase opacity-80 mb-1">{club.name}</p>
         <h3 className="text-2xl font-black">{club.team} · Week {CURRENT_WEEK}</h3>
-        <p className="text-sm opacity-90 mt-1">Mesocycle 2 · Block B · Mon / Wed / Fri + Match</p>
+        <p className="text-sm opacity-90 mt-1">{t("explorerUi.dashboard.weekLine")}</p>
       </div>
       <div className="grid sm:grid-cols-3 gap-4">
         {[
-          { l: "Players", v: "22", sub: "Full roster active", onClick: () => actions.go("squad") },
-          { l: "Sessions this week", v: "4", sub: "A · B · C + Match", onClick: () => actions.go("microcycle") },
-          { l: "Tests completed", v: "82%", sub: "4 pending T1", onClick: () => actions.go("tests") },
+          { l: t("explorerUi.dashboard.players"), v: "22", sub: t("explorerUi.dashboard.playersSub"), onClick: () => actions.go("squad") },
+          { l: t("explorerUi.dashboard.sessions"), v: "4", sub: t("explorerUi.dashboard.sessionsSub"), onClick: () => actions.go("microcycle") },
+          { l: t("explorerUi.dashboard.tests"), v: "82%", sub: t("explorerUi.dashboard.testsSub"), onClick: () => actions.go("tests") },
         ].map((s) => (
           <button
             key={s.l}
@@ -180,23 +187,23 @@ function PanelDashboard({ club, actions }) {
           className="rounded-xl border-2 border-gray-200 bg-white p-5 text-left hover:shadow-md transition-all"
           style={{ borderColor: club.accent + "44" }}
         >
-          <p className="text-xs font-bold text-gray-400 uppercase mb-3">Next session · click to open</p>
+          <p className="text-xs font-bold text-gray-400 uppercase mb-3">{t("explorerUi.dashboard.nextSession")}</p>
           <p className="font-black text-gray-900">{next.day} · {next.title}</p>
           <p className="text-sm text-gray-500 mt-1">{next.duration} min · RPE {next.rpe} · {next.objective}</p>
         </button>
         <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <p className="text-xs font-bold text-gray-400 uppercase mb-3">Teams overview</p>
+          <p className="text-xs font-bold text-gray-400 uppercase mb-3">{t("explorerUi.dashboard.teamsOverview")}</p>
           <div className="space-y-2">
-            {TEAMS.map((t) => (
+            {TEAMS.map((tTeam) => (
               <button
-                key={t.id}
+                key={tTeam.id}
                 type="button"
-                onClick={() => t.id === "u15" && actions.go("squad")}
+                onClick={() => tTeam.id === "u15" && actions.go("squad")}
                 className="w-full flex items-center justify-between text-sm hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2"
               >
-                <span className="font-semibold text-gray-700">{t.name}</span>
+                <span className="font-semibold text-gray-700">{tTeam.name}</span>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: club.accent + "18", color: club.accent }}>
-                  {t.players} players
+                  {t("explorerUi.playersCount", { count: tTeam.players })}
                 </span>
               </button>
             ))}
@@ -209,8 +216,8 @@ function PanelDashboard({ club, actions }) {
         className="w-full rounded-xl border border-gray-200 bg-white p-4 flex items-center justify-between hover:bg-gray-50"
       >
         <div className="text-left">
-          <p className="text-xs font-bold text-gray-400 uppercase">Weekly load</p>
-          <p className="font-black text-amber-600">2,665 AU · Medium</p>
+          <p className="text-xs font-bold text-gray-400 uppercase">{t("explorerUi.dashboard.weeklyLoad")}</p>
+          <p className="font-black text-amber-600">{t("explorerUi.dashboard.weeklyLoadValue")}</p>
         </div>
         <ChevronRight size={18} className="text-gray-300" />
       </button>
@@ -219,7 +226,8 @@ function PanelDashboard({ club, actions }) {
 }
 
 function PanelMicrocycle({ club, state, actions }) {
-  const session = SESSIONS[state.selectedSessionId] || SESSIONS["wed-b"];
+  const { t } = useTranslation("usPitch");
+  const session = localizeSession(state.selectedSessionId, t) || localizeSession("wed-b", t);
   const weekDays = ["mon-a", "wed-b", "fri-c", "sat-match"];
   const [previewEx, setPreviewEx] = useState(null);
   const [pdfExported, setPdfExported] = useState(false);
@@ -231,23 +239,23 @@ function PanelMicrocycle({ club, state, actions }) {
 
   return (
     <div className="space-y-4">
-      {previewEx && <ExercisePreviewModal exercise={previewEx} onClose={() => setPreviewEx(null)} />}
+      {previewEx && <ExercisePreviewModal exercise={previewEx} onClose={() => setPreviewEx(null)} t={t} />}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-lg font-black text-gray-900">Microcycle · Week {CURRENT_WEEK}</h3>
+        <h3 className="text-lg font-black text-gray-900">{t("explorerUi.nav.microcycle")} · Week {CURRENT_WEEK}</h3>
         <button
           type="button"
           onClick={handleExport}
           className="flex items-center gap-2 text-xs font-bold text-white px-4 py-2 rounded-lg transition-opacity"
           style={{ backgroundColor: pdfExported ? "#22C55E" : club.accent }}
         >
-          <Download size={14} /> {pdfExported ? "PDF ready ✓" : "Export session PDF"}
+          <Download size={14} /> {pdfExported ? t("explorerUi.pdfReady") : t("explorerUi.exportPdf")}
         </button>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {weekDays.map((sid) => {
-          const s = SESSIONS[sid];
+          const s = localizeSession(sid, t);
           const on = state.selectedSessionId === sid;
           return (
             <button
@@ -298,6 +306,7 @@ function PanelMicrocycle({ club, state, actions }) {
                     key={ex.id}
                     exercise={ex}
                     selected={state.selectedExerciseId === ex.id}
+                    matchLabel={t("explorerUi.matchLabel")}
                     onClick={() => {
                       actions.selectExercise(ex.id);
                       setPreviewEx(ex);
@@ -314,9 +323,12 @@ function PanelMicrocycle({ club, state, actions }) {
 }
 
 function PanelMesocycle({ club, state, actions }) {
+  const { t } = useTranslation("usPitch");
   const year = 2026;
   const month = 5;
   const rows = useMemo(() => buildMonthGrid(year, month), []);
+  const monthNames = getMonthNames(t);
+  const weekdays = getWeekdays(t);
   const selectedKey = state.selectedCalendarDate;
   const selectedEntry = selectedKey ? MESOCYCLE_CALENDAR[selectedKey] : null;
 
@@ -324,17 +336,17 @@ function PanelMesocycle({ club, state, actions }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-black text-gray-900">Mesocycle 2 · {MONTH_NAMES[month]} {year}</h3>
-          <p className="text-xs text-gray-500 mt-1">Click a coloured day to open session · grey = rest / travel</p>
+          <h3 className="text-lg font-black text-gray-900">Mesocycle 2 · {monthNames[month]} {year}</h3>
+          <p className="text-xs text-gray-500 mt-1">{t("explorerUi.calendarHint")}</p>
         </div>
         <span className="text-xs font-bold px-3 py-1.5 rounded-full text-white" style={{ backgroundColor: club.accent }}>
-          Week {CURRENT_WEEK} active
+          {t("explorerUi.activeWeek", { week: CURRENT_WEEK })}
         </span>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
         <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
-          {WEEKDAY_SHORT.map((d) => (
+          {weekdays.map((d) => (
             <div key={d} className="py-2 text-center text-[10px] font-bold text-gray-400 uppercase">{d}</div>
           ))}
         </div>
@@ -344,7 +356,7 @@ function PanelMesocycle({ club, state, actions }) {
               if (!day) return <div key={di} className="min-h-[72px] bg-gray-50/50" />;
               const key = dateKey(year, month, day);
               const entry = MESOCYCLE_CALENDAR[key];
-              const session = entry ? SESSIONS[entry.sessionId] : null;
+              const session = entry ? localizeSession(entry.sessionId, t) : null;
               const isToday = key === "2026-06-18";
               const isSelected = selectedKey === key;
 
@@ -385,8 +397,8 @@ function PanelMesocycle({ club, state, actions }) {
       {selectedEntry && (
         <div className="rounded-xl border border-gray-200 bg-white p-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase">Selected day</p>
-            <p className="font-black text-gray-900">{selectedKey} · {SESSIONS[selectedEntry.sessionId]?.title}</p>
+            <p className="text-xs font-bold text-gray-400 uppercase">{t("explorerUi.selectedDay")}</p>
+            <p className="font-black text-gray-900">{selectedKey} · {localizeSession(selectedEntry.sessionId, t)?.title}</p>
           </div>
           <button
             type="button"
@@ -394,21 +406,21 @@ function PanelMesocycle({ club, state, actions }) {
             className="text-xs font-bold text-white px-4 py-2 rounded-lg"
             style={{ backgroundColor: club.accent }}
           >
-            Open in microcycle →
+            {t("explorerUi.openMicrocycle")}
           </button>
         </div>
       )}
 
       <div className="grid sm:grid-cols-4 gap-2">
         {[
-          { t: "A", c: "#3B82F6", l: "Extensive" },
-          { t: "B", c: "#F59E0B", l: "Intensive" },
-          { t: "C", c: "#EF4444", l: "Reactive" },
-          { t: "M", c: "#6B7280", l: "Match" },
-        ].map((x) => (
-          <div key={x.t} className="rounded-lg border border-gray-100 p-3 text-center">
-            <span className="text-xs font-bold px-2 py-0.5 rounded text-white" style={{ backgroundColor: x.c }}>{x.t}</span>
-            <p className="text-[10px] text-gray-500 mt-1">{x.l}</p>
+          { fw: "A", c: "#3B82F6", lKey: "A" },
+          { fw: "B", c: "#F59E0B", lKey: "B" },
+          { fw: "C", c: "#EF4444", lKey: "C" },
+          { fw: "M", c: "#6B7280", lKey: "M" },
+        ].map((item) => (
+          <div key={item.fw} className="rounded-lg border border-gray-100 p-3 text-center">
+            <span className="text-xs font-bold px-2 py-0.5 rounded text-white" style={{ backgroundColor: item.c }}>{item.fw}</span>
+            <p className="text-[10px] text-gray-500 mt-1">{t(`explorerUi.frameworks.${item.lKey}`)}</p>
           </div>
         ))}
       </div>
@@ -416,24 +428,15 @@ function PanelMesocycle({ club, state, actions }) {
   );
 }
 
-const SQUAD_FILTERS = [
-  { id: "all", label: "All (22)" },
-  { id: "premium", label: "Premium" },
-  { id: "pending", label: "Tests pending" },
-  { id: "gk", label: "GK" },
-  { id: "def", label: "Defence" },
-  { id: "mid", label: "Midfield" },
-  { id: "fwd", label: "Forwards" },
-];
-
 function PanelSquad({ club, state, actions }) {
+  const { t } = useTranslation("usPitch");
   const players = filterSquad(state.squadFilter);
   const selected = getPlayerById(state.selectedPlayerId);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {SQUAD_FILTERS.map((f) => (
+        {SQUAD_FILTER_IDS.map((f) => (
           <button
             key={f.id}
             type="button"
@@ -443,7 +446,7 @@ function PanelSquad({ club, state, actions }) {
             }`}
             style={state.squadFilter === f.id ? { backgroundColor: club.accent } : {}}
           >
-            {f.label}
+            {t(f.labelKey)}
           </button>
         ))}
       </div>
@@ -465,18 +468,18 @@ function PanelSquad({ club, state, actions }) {
                   <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-black text-gray-600">{p.num}</span>
                   <div>
                     <p className="font-bold text-gray-900 text-sm">{p.name}</p>
-                    <p className="text-xs text-gray-400">{p.pos} · {p.age} yrs · {p.foot} foot</p>
+                    <p className="text-xs text-gray-400">{p.pos} · {p.age} {t("explorerUi.playerFields.yrs")} · {localizePlayerFoot(p.foot, t)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="font-semibold hidden sm:inline" style={{ color: club.accent }}>{p.plan}</span>
+                  <span className="font-semibold hidden sm:inline" style={{ color: club.accent }}>{localizePlan(p.plan, t)}</span>
                   <span className={`font-bold px-2 py-0.5 rounded ${p.tests === "done" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
-                    {p.tests === "done" ? "Tests ✓" : "Pending"}
+                    {p.tests === "done" ? t("explorerUi.playerFields.testsDone") : t("explorerUi.playerFields.pending")}
                   </span>
                   <span className={`font-bold px-2 py-0.5 rounded hidden md:inline ${
                     p.load === "High" || p.load === "Peak" ? "bg-red-50 text-red-600" : p.load === "Low" ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-600"
                   }`}>
-                    {p.load}
+                    {localizeLoadLevel(p.load, t)}
                   </span>
                   <ChevronRight size={14} className="text-gray-300" />
                 </div>
@@ -489,9 +492,9 @@ function PanelSquad({ club, state, actions }) {
           <div className="lg:col-span-2 rounded-xl border-2 bg-white p-5 space-y-4" style={{ borderColor: club.accent + "44" }}>
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase">Player card</p>
+                <p className="text-xs font-bold text-gray-400 uppercase">{t("explorerUi.playerCard")}</p>
                 <h4 className="text-xl font-black text-gray-900">#{selected.num} {selected.name}</h4>
-                <p className="text-sm text-gray-500">{selected.pos} · {selected.plan} plan</p>
+                <p className="text-sm text-gray-500">{selected.pos} · {localizePlan(selected.plan, t)}</p>
               </div>
               <button type="button" onClick={() => actions.selectPlayer(null)} className="text-gray-400 hover:text-gray-600">
                 <X size={18} />
@@ -499,10 +502,10 @@ function PanelSquad({ club, state, actions }) {
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               {[
-                ["Age", selected.age],
-                ["Foot", selected.foot],
-                ["Load", selected.load],
-                ["Tests", selected.tests === "done" ? "Complete" : "Pending"],
+                [t("explorerUi.playerFields.age"), selected.age],
+                [t("explorerUi.playerFields.foot"), localizePlayerFoot(selected.foot, t)],
+                [t("explorerUi.playerFields.load"), localizeLoadLevel(selected.load, t)],
+                [t("explorerUi.playerFields.tests"), selected.tests === "done" ? t("explorerUi.playerFields.complete") : t("explorerUi.playerFields.pending")],
               ].map(([l, v]) => (
                 <div key={l} className="rounded-lg bg-gray-50 px-3 py-2">
                   <p className="text-[10px] text-gray-400 font-bold uppercase">{l}</p>
@@ -517,14 +520,14 @@ function PanelSquad({ club, state, actions }) {
                 className="w-full text-xs font-bold text-white py-2.5 rounded-lg"
                 style={{ backgroundColor: club.accent }}
               >
-                View physical tests →
+                {t("explorerUi.viewTests")}
               </button>
               <button
                 type="button"
                 onClick={() => actions.go("microcycle")}
                 className="w-full text-xs font-bold py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
               >
-                Weekly plan for squad
+                {t("explorerUi.weeklyPlanSquad")}
               </button>
             </div>
           </div>
@@ -535,6 +538,7 @@ function PanelSquad({ club, state, actions }) {
 }
 
 function PanelTests({ club, state, actions }) {
+  const { t } = useTranslation("usPitch");
   const pid = state.selectedPlayerId || "p08";
   const player = getPlayerById(pid) || SQUAD[7];
   const tests = PLAYER_TESTS[pid] || PLAYER_TESTS.p08;
@@ -543,12 +547,14 @@ function PanelTests({ club, state, actions }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">Rated vs <strong>team average</strong> · click row to switch player</p>
+      <p className="text-sm text-gray-500">
+        <Trans i18nKey="explorerUi.ratedVsAvg" ns="usPitch" components={{ strong: <strong /> }} />
+      </p>
       <div className="rounded-xl border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-gray-50">
             <tr className="text-xs font-bold text-gray-400 uppercase">
-              <th className="px-4 py-2 text-left">Player</th>
+              <th className="px-4 py-2 text-left">{t("demos.ui.playerCol")}</th>
               <th className="px-4 py-2">T1</th>
               <th className="px-4 py-2">T2</th>
               <th className="px-4 py-2">T3</th>
@@ -557,7 +563,7 @@ function PanelTests({ club, state, actions }) {
           </thead>
           <tbody>
             {rows.map((p) => {
-              const t = PLAYER_TESTS[p.id]?.endurance || { t1: 480 + p.num * 2, t2: 495 + p.num, t3: 510 + p.num, rating: "Good", pct: "+3%" };
+              const testRow = PLAYER_TESTS[p.id]?.endurance || { t1: 480 + p.num * 2, t2: 495 + p.num, t3: 510 + p.num, rating: "Good", pct: "+3%" };
               const on = p.id === player.id;
               return (
                 <tr
@@ -566,34 +572,34 @@ function PanelTests({ club, state, actions }) {
                   className={`border-t border-gray-100 cursor-pointer ${on ? "bg-green-50" : "hover:bg-gray-50"}`}
                 >
                   <td className="px-4 py-2.5 font-bold">{p.name}</td>
-                  {[t.t1, t.t2, t.t3].map((v, i) => (
+                  {[testRow.t1, testRow.t2, testRow.t3].map((v, i) => (
                     <td key={i} className="px-4 py-2.5 text-center">
                       <span className="font-black text-green-600 bg-green-50 px-2 py-0.5 rounded text-xs">{v}</span>
                     </td>
                   ))}
-                  <td className="px-4 py-2.5 text-center text-xs font-bold text-green-600">{t.rating} {t.pct}</td>
+                  <td className="px-4 py-2.5 text-center text-xs font-bold text-green-600">{localizeRating(testRow.rating, t)} {testRow.pct}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
-      <p className="text-xs font-bold text-gray-400 uppercase">Charts · {player.name}</p>
+      <p className="text-xs font-bold text-gray-400 uppercase">{t("explorerUi.chartsFor", { name: player.name })}</p>
       <div className="grid md:grid-cols-2 gap-4">
         <div className="rounded-xl border border-gray-200 p-4 bg-white">
-          <p className="text-xs font-bold text-gray-400 uppercase mb-2">Endurance (m)</p>
+          <p className="text-xs font-bold text-gray-400 uppercase mb-2">{t("explorerUi.enduranceM")}</p>
           <ChartLines color={club.accent} values={[tests.endurance.t1, tests.endurance.t2, tests.endurance.t3]} teamAvg={[498, 510, 518]} />
         </div>
         <div className="rounded-xl border border-gray-200 p-4 bg-white">
-          <p className="text-xs font-bold text-gray-400 uppercase mb-2">Sprint (s)</p>
+          <p className="text-xs font-bold text-gray-400 uppercase mb-2">{t("explorerUi.sprintS")}</p>
           <ChartLines color="#3B82F6" values={[tests.sprint.t1, tests.sprint.t2, tests.sprint.t3]} teamAvg={[2.95, 2.88, 2.82]} />
         </div>
         <div className="rounded-xl border border-gray-200 p-4 bg-white">
-          <p className="text-xs font-bold text-gray-400 uppercase mb-2">Agility (s)</p>
+          <p className="text-xs font-bold text-gray-400 uppercase mb-2">{t("explorerUi.agilityS")}</p>
           <ChartLines color="#F59E0B" values={[tests.agility.t1, tests.agility.t2, tests.agility.t3]} teamAvg={[4.4, 4.3, 4.2]} />
         </div>
         <div className="rounded-xl border border-gray-200 p-4 bg-white">
-          <p className="text-xs font-bold text-gray-400 uppercase mb-2">Vertical jump (cm)</p>
+          <p className="text-xs font-bold text-gray-400 uppercase mb-2">{t("explorerUi.jumpCm")}</p>
           <ChartLines color="#EF4444" values={[tests.jump.t1, tests.jump.t2, tests.jump.t3]} teamAvg={[36, 37, 38]} />
         </div>
       </div>
@@ -602,6 +608,7 @@ function PanelTests({ club, state, actions }) {
 }
 
 function PanelLoads({ club, state, actions }) {
+  const { t } = useTranslation("usPitch");
   const sessions = Object.entries(WEEK_LOADS);
   const total = sessions.reduce((s, [, v]) => s + v.au, 0);
   const highlighted = state.selectedSessionId;
@@ -609,8 +616,8 @@ function PanelLoads({ club, state, actions }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-black text-gray-900">Weekly load · sRPE</h3>
-        <span className="text-sm font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-700">Medium · {total.toLocaleString()} AU</span>
+        <h3 className="text-lg font-black text-gray-900">{t("explorerUi.weeklyLoadSrpe")}</h3>
+        <span className="text-sm font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-700">{t("explorerUi.loads.medium", { total: total.toLocaleString() })}</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {sessions.map(([sid, s]) => {
@@ -623,9 +630,9 @@ function PanelLoads({ club, state, actions }) {
               className={`rounded-xl border p-4 text-center transition-all ${on ? "shadow-md ring-2" : "border-gray-200 bg-white hover:border-gray-300"}`}
               style={on ? { borderColor: s.color, ringColor: s.color + "33" } : {}}
             >
-              <p className="text-xs font-bold text-gray-400">{s.label}</p>
+              <p className="text-xs font-bold text-gray-400">{localizeLoadLabel(s.label, t)}</p>
               <p className="text-2xl font-black mt-1" style={{ color: s.color }}>{s.au}</p>
-              <p className="text-[10px] text-gray-400 mt-1">Click → session</p>
+              <p className="text-[10px] text-gray-400 mt-1">{t("explorerUi.openSessionHint")}</p>
             </button>
           );
         })}
@@ -638,24 +645,26 @@ function PanelLoads({ club, state, actions }) {
             onClick={() => actions.openSession(sid)}
             className="h-full transition-opacity hover:opacity-80"
             style={{ width: `${(s.au / total) * 100}%`, backgroundColor: s.color }}
-            title={`${s.label}: ${s.au} AU`}
+            title={`${localizeLoadLabel(s.label, t)}: ${s.au} AU`}
           />
         ))}
       </div>
-      <p className="text-xs text-gray-500">Volume × RPE × specificity — click any bar or card to open that session.</p>
+      <p className="text-xs text-gray-500">{t("explorerUi.loadTraffic")}</p>
     </div>
   );
 }
 
-function PanelTasks({ club, state, actions }) {
-  const fw = TASK_FRAMEWORKS.find((f) => f.fw === state.taskFramework) || TASK_FRAMEWORKS[1];
-  const params = TASK_PARAMS[state.taskFramework];
+function PanelTasks({ club, state, actions, frameworks }) {
+  const { t } = useTranslation("usPitch");
+  const fw = frameworks.find((f) => f.fw === state.taskFramework) || frameworks[1];
+  const params = getTaskParams(state.taskFramework, t);
   const selectedTasks = state.selectedTasks;
+  const paramLabels = t("explorerUi.paramLabels", { returnObjects: true });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {TASK_FRAMEWORKS.map((f) => (
+        {frameworks.map((f) => (
           <button
             key={f.fw}
             type="button"
@@ -669,14 +678,14 @@ function PanelTasks({ club, state, actions }) {
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         <div className="rounded-xl border border-gray-200 p-4 bg-white">
-          <p className="text-xs font-bold text-gray-400 uppercase mb-3">Task types · click to toggle</p>
-          {fw.tasks.map((t) => {
-            const on = selectedTasks.includes(t);
+          <p className="text-xs font-bold text-gray-400 uppercase mb-3">{t("explorerUi.taskTypesToggle")}</p>
+          {fw.tasks.map((taskName) => {
+            const on = selectedTasks.includes(taskName);
             return (
               <button
-                key={t}
+                key={taskName}
                 type="button"
-                onClick={() => actions.toggleTask(t)}
+                onClick={() => actions.toggleTask(taskName)}
                 className="w-full flex items-center gap-2 text-sm font-semibold py-2.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 rounded-lg px-1"
               >
                 <span
@@ -685,16 +694,16 @@ function PanelTasks({ club, state, actions }) {
                 >
                   {on ? "✓" : ""}
                 </span>
-                {t}
+                {taskName}
               </button>
             );
           })}
         </div>
         <div className="rounded-xl border border-gray-200 p-4 bg-white">
-          <p className="text-xs font-bold text-gray-400 uppercase mb-3">Parameters · Session {fw.label}</p>
-          {Object.entries(params).map(([l, v]) => (
-            <div key={l} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0">
-              <span className="text-gray-500 capitalize">{l}</span>
+          <p className="text-xs font-bold text-gray-400 uppercase mb-3">{t("explorerUi.taskParams", { label: fw.label })}</p>
+          {Object.entries(params).map(([key, v]) => (
+            <div key={key} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0">
+              <span className="text-gray-500">{paramLabels[key] || key}</span>
               <span className="font-bold text-gray-800">{v}</span>
             </div>
           ))}
@@ -704,7 +713,7 @@ function PanelTasks({ club, state, actions }) {
             className="mt-4 w-full text-xs font-bold text-white py-2.5 rounded-lg"
             style={{ backgroundColor: club.accent }}
           >
-            Open matching session in microcycle →
+            {t("explorerUi.openMatchingSession")}
           </button>
         </div>
       </div>
@@ -723,6 +732,8 @@ const PANELS = {
 };
 
 export function ClubDashboardExplorer({ club = DEFAULT_CLUB }) {
+  const { t, i18n } = useTranslation("usPitch");
+  const frameworks = useMemo(() => getTaskFrameworks(t), [t, i18n.language]);
   const [active, setActive] = useState("dashboard");
   const [selectedSessionId, setSelectedSessionId] = useState("wed-b");
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
@@ -730,7 +741,12 @@ export function ClubDashboardExplorer({ club = DEFAULT_CLUB }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState(null);
   const [squadFilter, setSquadFilter] = useState("all");
   const [taskFramework, setTaskFramework] = useState("B");
-  const [selectedTasks, setSelectedTasks] = useState(["Pressing trap", "4v4 transitions", "Finishing after press"]);
+  const [selectedTasks, setSelectedTasks] = useState([]);
+
+  useEffect(() => {
+    const fw = frameworks.find((f) => f.fw === taskFramework);
+    if (fw) setSelectedTasks([...fw.tasks]);
+  }, [taskFramework, frameworks]);
 
   const actions = {
     go: (module) => setActive(module),
@@ -752,12 +768,12 @@ export function ClubDashboardExplorer({ club = DEFAULT_CLUB }) {
     },
     setTaskFramework: (fw) => {
       setTaskFramework(fw);
-      const framework = TASK_FRAMEWORKS.find((f) => f.fw === fw);
+      const framework = frameworks.find((f) => f.fw === fw);
       if (framework) setSelectedTasks([...framework.tasks]);
     },
     toggleTask: (task) => {
       setSelectedTasks((prev) =>
-        prev.includes(task) ? prev.filter((t) => t !== task) : [...prev, task]
+        prev.includes(task) ? prev.filter((item) => item !== task) : [...prev, task]
       );
     },
   };
@@ -772,8 +788,7 @@ export function ClubDashboardExplorer({ club = DEFAULT_CLUB }) {
     selectedTasks,
   };
 
-  const activeNav = NAV.find((n) => n.id === active);
-  const copy = MODULE_COPY[active];
+  const activeNav = NAV_IDS.find((n) => n.id === active);
   const Panel = PANELS[active];
 
   return (
@@ -803,9 +818,9 @@ export function ClubDashboardExplorer({ club = DEFAULT_CLUB }) {
               <p className="text-[10px] text-gray-400 font-semibold truncate">{club.team}</p>
             </div>
           </div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-2">Navigation</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-2">{t("explorerUi.navigation")}</p>
           <nav className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
-            {NAV.map((item) => {
+            {NAV_IDS.map((item) => {
               const Icon = item.icon;
               const on = active === item.id;
               return (
@@ -819,7 +834,7 @@ export function ClubDashboardExplorer({ club = DEFAULT_CLUB }) {
                   style={on ? { backgroundColor: club.accent, color: "#fff" } : {}}
                 >
                   <Icon size={18} />
-                  {item.label}
+                  {t(item.labelKey)}
                   {on && <ChevronRight size={14} className="ml-auto hidden lg:block opacity-80" />}
                 </button>
               );
@@ -829,18 +844,18 @@ export function ClubDashboardExplorer({ club = DEFAULT_CLUB }) {
 
         <main className="flex-1 flex flex-col min-w-0 bg-[#FAFBFC]">
           <div className="px-5 md:px-8 py-5 border-b border-gray-100 bg-white">
-            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: club.accent }}>Interactive preview · click everything</p>
-            <h3 className="text-xl md:text-2xl font-black text-gray-900">{copy.title}</h3>
-            <p className="text-sm text-gray-500 mt-1 max-w-2xl">{copy.desc}</p>
+            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: club.accent }}>{t("explorerUi.interactivePreview")}</p>
+            <h3 className="text-xl md:text-2xl font-black text-gray-900">{t(`explorerUi.modules.${active}.title`)}</h3>
+            <p className="text-sm text-gray-500 mt-1 max-w-2xl">{t(`explorerUi.modules.${active}.desc`)}</p>
           </div>
           <div className="flex-1 overflow-y-auto p-5 md:p-8">
-            <Panel club={club} state={state} actions={actions} />
+            <Panel club={club} state={state} actions={actions} frameworks={frameworks} />
           </div>
         </main>
       </div>
 
       <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 text-center text-xs text-gray-400">
-        22 players · calendar mesocycle · drill previews · cross-module navigation
+        {t("explorerUi.footerNote")}
       </div>
     </div>
   );
