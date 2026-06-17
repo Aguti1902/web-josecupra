@@ -6,6 +6,7 @@ import {
   Mail, Menu, Target, TrendingUp, Users, X,
 } from "lucide-react";
 import { PlatformHeroQuickTour, PlatformFeatureShowcase } from "../../components/pitch/PlatformDemoFrames";
+import { ClubDashboardExplorer } from "../../components/pitch/ClubDashboardExplorer";
 
 const SETUP_FEE = 15000;
 const MONTHLY_FEE = 1500;
@@ -17,6 +18,7 @@ const NAV = [
   { id: "overview", label: "Overview" },
   { id: "example", label: "Example club" },
   { id: "platform", label: "Platform" },
+  { id: "explorer", label: "Live dashboard" },
   { id: "roi", label: "Club ROI" },
   { id: "workflow", label: "Workflow" },
   { id: "pricing", label: "Pricing" },
@@ -472,11 +474,11 @@ export default function USClubPitchPage() {
                 physical testing, load monitoring and squad intelligence — under their own brand.
               </p>
               <div className="flex flex-wrap gap-3 mb-10">
-                <button type="button" onClick={() => scrollTo("platform")} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3.5 rounded-lg transition-colors">
-                  See live demo <ArrowRight size={18} />
+                <button type="button" onClick={() => scrollTo("explorer")} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3.5 rounded-lg transition-colors">
+                  Explore full dashboard <ArrowRight size={18} />
                 </button>
-                <button type="button" onClick={() => scrollTo("example")} className="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-800 font-bold px-6 py-3.5 rounded-lg transition-colors">
-                  Example: Fundació Cornellà
+                <button type="button" onClick={() => scrollTo("platform")} className="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-800 font-bold px-6 py-3.5 rounded-lg transition-colors">
+                  All features
                 </button>
               </div>
               <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
@@ -602,6 +604,34 @@ export default function USClubPitchPage() {
             </p>
           </div>
           <PlatformFeatureShowcase accent={ACCENT} />
+        </div>
+      </section>
+
+      {/* Full interactive club dashboard */}
+      <section id="explorer" className="py-20 md:py-28 bg-gray-900 border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="max-w-3xl mb-10 md:mb-14">
+            <p className="text-xs font-bold uppercase tracking-widest text-green-400 mb-3">Hands-on preview</p>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4">
+              Navigate the full club dashboard
+            </h2>
+            <p className="text-gray-400 text-lg leading-relaxed">
+              Click through every module — dashboard, microcycle, mesocycle, squad, tests, loads and task designer.
+              This is how coaches and directors actually use DEPRO day to day.
+            </p>
+          </div>
+          <ClubDashboardExplorer
+            club={{
+              name: EXAMPLE_CLUB.name,
+              abbrev: "FC",
+              logo: EXAMPLE_CLUB.logo,
+              accent: EXAMPLE_ACCENT,
+              team: "Sub-15 A",
+            }}
+          />
+          <p className="text-center text-xs text-gray-500 mt-6">
+            Branded preview · {EXAMPLE_CLUB.name} · corporate green theme
+          </p>
         </div>
       </section>
 

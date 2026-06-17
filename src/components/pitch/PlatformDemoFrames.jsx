@@ -177,16 +177,26 @@ function DemoSquad({ accent, step }) {
 
 function MiniLineChart({ title, unit, values, teamAvg, color, step }) {
   const w = 130;
-  const h = 44;
-  const pad = 4;
-  const visible = values.slice(0, Math.min(step + 1, values.length));
-  const allVals = [...values, teamAvg];
-  const min = Math.min(...allVals) - 8;
-  const max = Math.max(...allVals) + 8;
-  const toX = (i) => pad + (i / (values.length - 1)) * (w - pad * 2);
-  const toY = (v) => h - pad - ((v - min) / (max - min)) * (h - pad * 2);
+  const chartH = 36;
+  const labelH = 10;
+  const h = chartH + labelH;
+  const padX = 6;
+  const padY = 5;
+  const visibleCount = Math.min(step + 1, values.length);
+  const visible = values.slice(0, visibleCount);
+  const avgArr = Array.isArray(teamAvg) ? teamAvg : values.map(() => teamAvg);
+  const allVals = [...values, ...avgArr];
+  const rawMin = Math.min(...allVals);
+  const rawMax = Math.max(...allVals);
+  const range = rawMax - rawMin || 1;
+  const min = rawMin - range * 0.15;
+  const max = rawMax + range * 0.15;
+  const plotW = w - padX * 2;
+  const plotH = chartH - padY * 2;
+  const toX = (i) => padX + (i / (values.length - 1)) * plotW;
+  const toY = (v) => padY + plotH - ((v - min) / (max - min)) * plotH;
   const playerPts = visible.map((v, i) => `${toX(i)},${toY(v)}`).join(" ");
-  const avgPts = values.map((_, i) => `${toX(i)},${toY(teamAvg[i] ?? teamAvg[0])}`).join(" ");
+  const avgPts = avgArr.map((v, i) => `${toX(i)},${toY(v)}`).join(" ");
 
   return (
     <div className="bg-white rounded-lg border border-gray-100 p-2">
@@ -194,21 +204,53 @@ function MiniLineChart({ title, unit, values, teamAvg, color, step }) {
         <span className="text-[8px] font-bold text-gray-500 uppercase">{title}</span>
         <span className="text-[8px] font-black" style={{ color }}>{visible[visible.length - 1]}{unit}</span>
       </div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-11">
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-11" preserveAspectRatio="xMidYMid meet">
         {[0, 1, 2].map((i) => (
-          <line key={i} x1={pad} x2={w - pad} y1={pad + (i * (h - pad * 2)) / 2} y2={pad + (i * (h - pad * 2)) / 2} stroke="#F3F4F6" strokeWidth="1" />
+          <line
+            key={i}
+            x1={padX}
+            x2={w - padX}
+            y1={padY + (i * plotH) / 2}
+            y2={padY + (i * plotH) / 2}
+            stroke="#F3F4F6"
+            strokeWidth="1"
+          />
         ))}
-        {step >= 1 && (
-          <polyline points={avgPts} fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeDasharray="3 2" />
-        )}
+        <polyline
+          points={avgPts}
+          fill="none"
+          stroke="#9CA3AF"
+          strokeWidth="1.5"
+          strokeDasharray="4 3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={step >= 1 ? 1 : 0.35}
+        />
         {visible.length >= 2 && (
-          <polyline points={playerPts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline
+            points={playerPts}
+            fill="none"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         )}
         {visible.map((v, i) => (
-          <circle key={i} cx={toX(i)} cy={toY(v)} r="2.5" fill={color} className="transition-all duration-500" />
+          <circle key={i} cx={toX(i)} cy={toY(v)} r="2.5" fill={color} stroke="#fff" strokeWidth="1" />
+        ))}
+        {avgArr.map((v, i) => (
+          <circle
+            key={`avg-${i}`}
+            cx={toX(i)}
+            cy={toY(v)}
+            r="1.5"
+            fill="#9CA3AF"
+            opacity={step >= 1 ? 0.9 : 0.4}
+          />
         ))}
         {["T1", "T2", "T3"].map((l, i) => (
-          <text key={l} x={toX(i)} y={h - 1} textAnchor="middle" fontSize="6" fill="#9CA3AF" fontWeight="bold">{l}</text>
+          <text key={l} x={toX(i)} y={h - 2} textAnchor="middle" fontSize="6" fill="#9CA3AF" fontWeight="bold">{l}</text>
         ))}
       </svg>
       <div className="flex gap-2 mt-0.5">
