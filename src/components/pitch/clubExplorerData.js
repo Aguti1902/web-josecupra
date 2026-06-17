@@ -40,14 +40,7 @@ export const PLAYER_TESTS = {
   },
 };
 
-const YT = {
-  rondo: "Wg95n1Sbfqc",
-  possession: "JbZm0S4sBYM",
-  pressing: "nYw0nS4sBYM",
-  transitions: "d7zs10kR4lE",
-  finishing: "8jPQjjsBbIc",
-  activation: "kQvS7z4T0Yg",
-};
+export const DEPRO_VIDEO_LOGO = "/logo.png";
 
 export const SESSIONS = {
   "mon-a": {
@@ -67,22 +60,22 @@ export const SESSIONS = {
         id: "warmup",
         label: "Warm-up",
         exercises: [
-          { id: "e1", name: "Dynamic activation", duration: "8 min", sets: "1", reps: "—", videoId: YT.activation, desc: "Joint mobility + progressive run." },
-          { id: "e2", name: "Rondo 4v2", duration: "12 min", sets: "3", reps: "2 min", videoId: YT.rondo, desc: "Positional play · 12×12 m · 2 touch max." },
+          { id: "e1", name: "Dynamic activation", duration: "8 min", sets: "1", reps: "—", hasVideo: true, desc: "Joint mobility + progressive run." },
+          { id: "e2", name: "Rondo 4v2", duration: "12 min", sets: "3", reps: "2 min", hasVideo: true, desc: "Positional play · 12×12 m · 2 touch max." },
         ],
       },
       {
         id: "main",
         label: "Main block",
         exercises: [
-          { id: "e3", name: "Possession 8v8", duration: "25 min", sets: "4", reps: "5 min", videoId: YT.possession, desc: "Keep ball · width channels · build through thirds." },
+          { id: "e3", name: "Possession 8v8", duration: "25 min", sets: "4", reps: "5 min", hasVideo: true, desc: "Keep ball · width channels · build through thirds." },
         ],
       },
       {
         id: "tasks",
         label: "Task designer",
         exercises: [
-          { id: "e4", name: "Positional rondo", duration: "10 min", sets: "2", reps: "5 min", videoId: YT.rondo, desc: "A-framework task · cues synced to PDF." },
+          { id: "e4", name: "Positional rondo", duration: "10 min", sets: "2", reps: "5 min", hasVideo: true, desc: "A-framework task · cues synced to PDF." },
         ],
       },
     ],
@@ -104,24 +97,24 @@ export const SESSIONS = {
         id: "warmup",
         label: "Warm-up",
         exercises: [
-          { id: "e5", name: "Activation + sprints", duration: "10 min", sets: "1", reps: "—", videoId: YT.activation, desc: "4×15 m accelerations." },
-          { id: "e6", name: "Rondo 5v2 high tempo", duration: "12 min", sets: "3", reps: "3 min", videoId: YT.rondo, desc: "One-touch when possible · immediate press on loss." },
+          { id: "e5", name: "Activation + sprints", duration: "10 min", sets: "1", reps: "—", hasVideo: true, desc: "4×15 m accelerations." },
+          { id: "e6", name: "Rondo 5v2 high tempo", duration: "12 min", sets: "3", reps: "3 min", hasVideo: true, desc: "One-touch when possible · immediate press on loss." },
         ],
       },
       {
         id: "main",
         label: "Main block",
         exercises: [
-          { id: "e7", name: "Pressing triggers 8v8", duration: "25 min", sets: "5", reps: "4 min", videoId: YT.pressing, desc: "Trap on bad touch · counter within 6 sec." },
-          { id: "e8", name: "Possession under pressure", duration: "18 min", sets: "3", reps: "6 min", videoId: YT.possession, desc: "Play out vs high block." },
+          { id: "e7", name: "Pressing triggers 8v8", duration: "25 min", sets: "5", reps: "4 min", hasVideo: true, desc: "Trap on bad touch · counter within 6 sec." },
+          { id: "e8", name: "Possession under pressure", duration: "18 min", sets: "3", reps: "6 min", hasVideo: true, desc: "Play out vs high block." },
         ],
       },
       {
         id: "tasks",
         label: "Task designer",
         exercises: [
-          { id: "e9", name: "4v4 transitions", duration: "12 min", sets: "4", reps: "3 min", videoId: YT.transitions, desc: "B-framework · win ball → attack in 8 sec." },
-          { id: "e10", name: "Finishing after press", duration: "10 min", sets: "3", reps: "3 min", videoId: YT.finishing, desc: "Shot within 2 touches after regain." },
+          { id: "e9", name: "4v4 transitions", duration: "12 min", sets: "4", reps: "3 min", hasVideo: true, desc: "B-framework · win ball → attack in 8 sec." },
+          { id: "e10", name: "Finishing after press", duration: "10 min", sets: "3", reps: "3 min", hasVideo: true, desc: "Shot within 2 touches after regain." },
         ],
       },
     ],
@@ -143,21 +136,21 @@ export const SESSIONS = {
         id: "warmup",
         label: "Warm-up",
         exercises: [
-          { id: "e11", name: "Mobility + COD", duration: "10 min", sets: "1", reps: "—", videoId: YT.activation, desc: "Change of direction patterns." },
+          { id: "e11", name: "Mobility + COD", duration: "10 min", sets: "1", reps: "—", hasVideo: true, desc: "Change of direction patterns." },
         ],
       },
       {
         id: "main",
         label: "Main block",
         exercises: [
-          { id: "e12", name: "Transition 6v6+2", duration: "30 min", sets: "6", reps: "4 min", videoId: YT.transitions, desc: "Score in 8 seconds or defend box." },
+          { id: "e12", name: "Transition 6v6+2", duration: "30 min", sets: "6", reps: "4 min", hasVideo: true, desc: "Score in 8 seconds or defend box." },
         ],
       },
       {
         id: "tasks",
         label: "Task designer",
         exercises: [
-          { id: "e13", name: "Finishing game", duration: "15 min", sets: "3", reps: "5 min", videoId: YT.finishing, desc: "C-framework reactive finishing." },
+          { id: "e13", name: "Finishing game", duration: "15 min", sets: "3", reps: "5 min", hasVideo: true, desc: "C-framework reactive finishing." },
         ],
       },
     ],
@@ -179,7 +172,7 @@ export const SESSIONS = {
         id: "main",
         label: "Match",
         exercises: [
-          { id: "e14", name: "Competitive fixture", duration: "90 min", sets: "1", reps: "—", videoId: null, desc: "Official league match · GPS + sRPE post-match." },
+          { id: "e14", name: "Competitive fixture", duration: "90 min", sets: "1", reps: "—", hasVideo: false, desc: "Official league match · GPS + sRPE post-match." },
         ],
       },
     ],

@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import {
-  Activity, Calendar, ChevronRight, ClipboardList, Download, ExternalLink,
+  Activity, Calendar, ChevronRight, ClipboardList, Download,
   LayoutDashboard, Play, TrendingUp, Users, X, Zap,
 } from "lucide-react";
 import {
   SQUAD, SESSIONS, MESOCYCLE_CALENDAR, WEEK_LOADS, TASK_FRAMEWORKS, TASK_PARAMS,
   TEAMS, PLAYER_TESTS, CURRENT_WEEK, MONTH_NAMES, WEEKDAY_SHORT,
-  buildMonthGrid, dateKey, filterSquad, getPlayerById,
+  buildMonthGrid, dateKey, filterSquad, getPlayerById, DEPRO_VIDEO_LOGO,
 } from "./clubExplorerData";
 
 const DEFAULT_CLUB = {
@@ -29,7 +29,7 @@ const NAV = [
 
 const MODULE_COPY = {
   dashboard: { title: "Club command center", desc: "Click cards to jump into sessions, squad or loads." },
-  microcycle: { title: "Weekly session plan", desc: "Select a day — open exercises, watch drill videos, export PDF." },
+  microcycle: { title: "Weekly session plan", desc: "Select a day — open exercises with drill previews and export PDF." },
   mesocycle: { title: "Periodization calendar", desc: "Click any training day to open that session in the microcycle." },
   squad: { title: "Full squad · 22 players", desc: "Filter by position or plan. Click a player for profile and cross-links." },
   tests: { title: "Physical testing suite", desc: "T1 → T2 → T3 evolution vs team average. Click any row for charts." },
@@ -65,11 +65,24 @@ function ChartLines({ color, values, teamAvg }) {
   );
 }
 
-function ExerciseThumb({ exercise, onClick, selected }) {
-  const thumb = exercise.videoId
-    ? `https://img.youtube.com/vi/${exercise.videoId}/mqdefault.jpg`
-    : null;
+function DeproVideoPlaceholder({ className = "", compact = false }) {
+  return (
+    <div className={`relative bg-white flex items-center justify-center overflow-hidden ${className}`}>
+      <img
+        src={DEPRO_VIDEO_LOGO}
+        alt="DEPRO"
+        className={`object-contain ${compact ? "h-8 w-auto opacity-90" : "h-12 md:h-16 w-auto opacity-90"}`}
+      />
+      <span className="absolute inset-0 flex items-center justify-center bg-black/5">
+        <span className={`rounded-full bg-white/95 shadow-md flex items-center justify-center ${compact ? "w-8 h-8" : "w-12 h-12"}`}>
+          <Play size={compact ? 14 : 22} className="text-gray-700 fill-gray-700 ml-0.5" />
+        </span>
+      </span>
+    </div>
+  );
+}
 
+function ExerciseThumb({ exercise, onClick, selected }) {
   return (
     <button
       type="button"
@@ -80,16 +93,11 @@ function ExerciseThumb({ exercise, onClick, selected }) {
       style={selected ? { borderColor: "#0D8F4D", ringColor: "#0D8F4D22" } : {}}
     >
       <div className="flex gap-3 p-3">
-        <div className="relative w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-          {thumb ? (
-            <>
-              <img src={thumb} alt="" className="w-full h-full object-cover" />
-              <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <Play size={20} className="text-white fill-white" />
-              </span>
-            </>
+        <div className="relative w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-gray-100">
+          {exercise.hasVideo ? (
+            <DeproVideoPlaceholder className="w-full h-full" compact />
           ) : (
-            <span className="flex items-center justify-center h-full text-[10px] text-gray-400 font-bold">MATCH</span>
+            <span className="flex items-center justify-center h-full text-[10px] text-gray-400 font-bold bg-gray-50">MATCH</span>
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -97,14 +105,13 @@ function ExerciseThumb({ exercise, onClick, selected }) {
           <p className="text-xs text-gray-500 mt-0.5">{exercise.duration} · {exercise.sets} × {exercise.reps}</p>
           <p className="text-xs text-gray-400 mt-1 line-clamp-2">{exercise.desc}</p>
         </div>
-        {exercise.videoId && <ExternalLink size={14} className="text-gray-300 flex-shrink-0 mt-1" />}
       </div>
     </button>
   );
 }
 
-function VideoModal({ exercise, onClose }) {
-  if (!exercise?.videoId) return null;
+function ExercisePreviewModal({ exercise, onClose }) {
+  if (!exercise) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -117,20 +124,23 @@ function VideoModal({ exercise, onClose }) {
             <X size={20} />
           </button>
         </div>
-        <div className="aspect-video bg-black">
-          <iframe
-            title={exercise.name}
-            src={`https://www.youtube.com/embed/${exercise.videoId}?autoplay=1`}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
+        {exercise.hasVideo ? (
+          <DeproVideoPlaceholder className="aspect-video w-full border-b border-gray-100" />
+        ) : (
+          <div className="aspect-video w-full bg-gray-50 flex items-center justify-center border-b border-gray-100">
+            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Match day</p>
+          </div>
+        )}
         <div className="px-5 py-4 grid grid-cols-3 gap-3 text-center text-sm border-t border-gray-100">
           <div><p className="text-xs text-gray-400">Duration</p><p className="font-bold">{exercise.duration}</p></div>
           <div><p className="text-xs text-gray-400">Sets</p><p className="font-bold">{exercise.sets}</p></div>
           <div><p className="text-xs text-gray-400">Reps</p><p className="font-bold">{exercise.reps}</p></div>
         </div>
+        {exercise.hasVideo && (
+          <p className="px-5 pb-4 text-[11px] text-center text-gray-400">
+            Drill video preview — available in the full club platform
+          </p>
+        )}
       </div>
     </div>
   );
@@ -211,7 +221,7 @@ function PanelDashboard({ club, actions }) {
 function PanelMicrocycle({ club, state, actions }) {
   const session = SESSIONS[state.selectedSessionId] || SESSIONS["wed-b"];
   const weekDays = ["mon-a", "wed-b", "fri-c", "sat-match"];
-  const [videoEx, setVideoEx] = useState(null);
+  const [previewEx, setPreviewEx] = useState(null);
   const [pdfExported, setPdfExported] = useState(false);
 
   const handleExport = () => {
@@ -221,7 +231,7 @@ function PanelMicrocycle({ club, state, actions }) {
 
   return (
     <div className="space-y-4">
-      {videoEx && <VideoModal exercise={videoEx} onClose={() => setVideoEx(null)} />}
+      {previewEx && <ExercisePreviewModal exercise={previewEx} onClose={() => setPreviewEx(null)} />}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-lg font-black text-gray-900">Microcycle · Week {CURRENT_WEEK}</h3>
@@ -290,7 +300,7 @@ function PanelMicrocycle({ club, state, actions }) {
                     selected={state.selectedExerciseId === ex.id}
                     onClick={() => {
                       actions.selectExercise(ex.id);
-                      if (ex.videoId) setVideoEx(ex);
+                      setPreviewEx(ex);
                     }}
                   />
                 ))}
@@ -830,7 +840,7 @@ export function ClubDashboardExplorer({ club = DEFAULT_CLUB }) {
       </div>
 
       <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 text-center text-xs text-gray-400">
-        22 players · calendar mesocycle · session videos · cross-module navigation
+        22 players · calendar mesocycle · drill previews · cross-module navigation
       </div>
     </div>
   );

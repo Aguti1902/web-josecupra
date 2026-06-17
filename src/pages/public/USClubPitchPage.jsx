@@ -616,7 +616,7 @@ export default function USClubPitchPage() {
               Navigate the full club dashboard
             </h2>
             <p className="text-gray-400 text-lg leading-relaxed">
-              Full Sub-15 A roster (22 players), mesocycle calendar, microcycle sessions with drill videos,
+              Full Sub-15 A roster (22 players), mesocycle calendar, microcycle sessions with drill previews,
               physical tests and cross-module navigation. This is how coaches and directors actually use DEPRO day to day.
             </p>
           </div>
