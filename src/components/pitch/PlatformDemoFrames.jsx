@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Activity, Calendar, CheckCircle2, ChevronRight, Download, FileText,
+  Activity, Calendar, CheckCircle2, ChevronRight, ClipboardList, Download, FileText,
   Filter, Shield, TrendingUp, Users, Zap,
 } from "lucide-react";
 
@@ -23,7 +23,7 @@ function BrowserFrame({ title, children, accent = "#0A36F7" }) {
           RF
         </div>
       </div>
-      <div className="p-4 md:p-5 bg-[#FAFBFC] min-h-[280px]">{children}</div>
+      <div className="p-4 md:p-5 bg-[#FAFBFC] min-h-[300px]">{children}</div>
     </div>
   );
 }
@@ -175,6 +175,54 @@ function DemoSquad({ accent, step }) {
   );
 }
 
+function MiniLineChart({ title, unit, values, teamAvg, color, step }) {
+  const w = 130;
+  const h = 44;
+  const pad = 4;
+  const visible = values.slice(0, Math.min(step + 1, values.length));
+  const allVals = [...values, teamAvg];
+  const min = Math.min(...allVals) - 8;
+  const max = Math.max(...allVals) + 8;
+  const toX = (i) => pad + (i / (values.length - 1)) * (w - pad * 2);
+  const toY = (v) => h - pad - ((v - min) / (max - min)) * (h - pad * 2);
+  const playerPts = visible.map((v, i) => `${toX(i)},${toY(v)}`).join(" ");
+  const avgPts = values.map((_, i) => `${toX(i)},${toY(teamAvg[i] ?? teamAvg[0])}`).join(" ");
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-100 p-2">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[8px] font-bold text-gray-500 uppercase">{title}</span>
+        <span className="text-[8px] font-black" style={{ color }}>{visible[visible.length - 1]}{unit}</span>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-11">
+        {[0, 1, 2].map((i) => (
+          <line key={i} x1={pad} x2={w - pad} y1={pad + (i * (h - pad * 2)) / 2} y2={pad + (i * (h - pad * 2)) / 2} stroke="#F3F4F6" strokeWidth="1" />
+        ))}
+        {step >= 1 && (
+          <polyline points={avgPts} fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeDasharray="3 2" />
+        )}
+        {visible.length >= 2 && (
+          <polyline points={playerPts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+        {visible.map((v, i) => (
+          <circle key={i} cx={toX(i)} cy={toY(v)} r="2.5" fill={color} className="transition-all duration-500" />
+        ))}
+        {["T1", "T2", "T3"].map((l, i) => (
+          <text key={l} x={toX(i)} y={h - 1} textAnchor="middle" fontSize="6" fill="#9CA3AF" fontWeight="bold">{l}</text>
+        ))}
+      </svg>
+      <div className="flex gap-2 mt-0.5">
+        <span className="text-[7px] text-gray-400 flex items-center gap-0.5">
+          <span className="w-2 h-0.5 rounded" style={{ backgroundColor: color }} /> Player
+        </span>
+        <span className="text-[7px] text-gray-400 flex items-center gap-0.5">
+          <span className="w-2 h-0.5 border-t border-dashed border-gray-400" /> Team avg
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function DemoTests({ accent, step }) {
   const cols = ["T1", "T2", "T3"];
   const row = { name: "J. Morrison", vals: ["500", "520", step >= 2 ? "545" : "—"], colors: ["#22C55E", "#22C55E", "#22C55E"] };
@@ -182,8 +230,8 @@ function DemoTests({ accent, step }) {
     <BrowserFrame title="team-tests" accent={accent}>
       <div className="flex gap-3">
         <SidebarMini active="tests" accent={accent} />
-        <div className="flex-1">
-          <div className="text-[9px] text-gray-500 mb-2">Rated vs <strong>team average</strong> · auto</div>
+        <div className="flex-1 space-y-2">
+          <div className="text-[9px] text-gray-500">Rated vs <strong>team average</strong> · auto</div>
           <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
             <div className="grid grid-cols-4 gap-px bg-gray-100 text-[8px] font-bold text-gray-400 uppercase">
               <div className="bg-gray-50 p-1.5">Player</div>
@@ -205,8 +253,26 @@ function DemoTests({ accent, step }) {
               ))}
             </div>
           </div>
+          <div className={`grid grid-cols-2 gap-1.5 transition-all duration-500 ${step >= 1 ? "opacity-100" : "opacity-30"}`}>
+            <MiniLineChart
+              title="Endurance"
+              unit=""
+              values={[500, 520, 545]}
+              teamAvg={[498, 510, 518]}
+              color="#22C55E"
+              step={step}
+            />
+            <MiniLineChart
+              title="Sprint"
+              unit="s"
+              values={[2.92, 2.84, 2.78]}
+              teamAvg={[2.95, 2.88, 2.82]}
+              color={accent}
+              step={step}
+            />
+          </div>
           {step >= 3 && (
-            <div className="mt-2 text-[9px] font-bold text-green-600 flex items-center gap-1">
+            <div className="text-[9px] font-bold text-green-600 flex items-center gap-1">
               <ChevronRight size={10} /> Excellent · +9% vs team avg (Endurance T3)
             </div>
           )}
@@ -250,6 +316,91 @@ function DemoLoads({ accent, step }) {
               style={{ width: step >= 3 ? "68%" : `${step * 20}%` }}
             />
           </div>
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
+function DemoTaskDesigner({ accent, step }) {
+  const frameworks = [
+    { fw: "A", label: "Extensiva", color: "#3B82F6" },
+    { fw: "B", label: "Intensiva", color: "#F59E0B" },
+    { fw: "C", label: "Reactiva", color: "#EF4444" },
+    { fw: "D", label: "Complementaria", color: "#10B981" },
+  ];
+  const fwIdx = step >= 3 ? 2 : step >= 2 ? 1 : 0;
+  const activeFw = frameworks[fwIdx];
+  const tasks = ["Rondo posicional", "Transiciones 4v4", "Finalización"];
+  const params = [
+    { l: "Espacio", v: "30 × 20 m" },
+    { l: "Jugadores", v: "8v8 + 2 neutrales" },
+    { l: "Duración", v: "12 min × 3 series" },
+  ];
+
+  return (
+    <BrowserFrame title="task-designer / session-b" accent={accent}>
+      <div className="flex gap-3">
+        <SidebarMini active="plan" accent={accent} />
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-1.5">
+            <ClipboardList size={12} className="text-gray-400" />
+            <span className="text-xs font-black text-gray-900">Task designer</span>
+          </div>
+
+          <div className="flex gap-1 flex-wrap">
+            {frameworks.map((f, i) => (
+              <span
+                key={f.fw}
+                className={`text-[8px] font-bold px-2 py-0.5 rounded-md border transition-all duration-500 ${
+                  i === fwIdx ? "text-white border-transparent shadow-sm" : "text-gray-400 border-gray-200 bg-white opacity-50"
+                }`}
+                style={i === fwIdx ? { backgroundColor: f.color } : {}}
+              >
+                {f.fw} · {f.label}
+              </span>
+            ))}
+          </div>
+
+          <div className="rounded-lg border border-gray-100 bg-white p-2 space-y-1">
+            <div className="text-[8px] font-bold text-gray-400 uppercase mb-1">Task types · multiselect</div>
+            {tasks.map((t, i) => (
+              <div
+                key={t}
+                className={`flex items-center gap-2 text-[9px] font-semibold px-2 py-1 rounded-md transition-all duration-500 ${
+                  step > i ? "bg-blue-50 text-blue-800 border border-blue-100" : "text-gray-400 border border-transparent"
+                }`}
+              >
+                <span className={`w-3 h-3 rounded border flex items-center justify-center text-[7px] ${step > i ? "bg-blue-600 border-blue-600 text-white" : "border-gray-300"}`}>
+                  {step > i ? "✓" : ""}
+                </span>
+                {t}
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-lg border border-gray-100 bg-white p-2">
+            <div className="text-[8px] font-bold text-gray-400 uppercase mb-1.5">
+              Parameters · Session {activeFw.label}
+            </div>
+            {params.map((p, i) => (
+              <div
+                key={p.l}
+                className={`flex justify-between text-[9px] py-1 border-b border-gray-50 last:border-0 transition-all duration-500 ${
+                  step > i + 1 ? "opacity-100" : "opacity-35"
+                }`}
+              >
+                <span className="text-gray-500">{p.l}</span>
+                <span className="font-bold text-gray-800">{p.v}</span>
+              </div>
+            ))}
+          </div>
+
+          {step >= 4 && (
+            <div className="text-[9px] font-bold rounded-lg px-2.5 py-1.5 flex items-center gap-1" style={{ backgroundColor: activeFw.color + "15", color: activeFw.color }}>
+              <CheckCircle2 size={10} /> Cues & recommendations synced to PDF
+            </div>
+          )}
         </div>
       </div>
     </BrowserFrame>
@@ -393,6 +544,14 @@ const PLATFORM_FEATURES = [
     Component: DemoMicrocycle,
   },
   {
+    id: "task-designer",
+    icon: ClipboardList,
+    title: "Task designer",
+    summary: "Build conditional tasks per session framework — A, B, C and D.",
+    bullets: ["Multiselect task types from your club catalog", "Parameters, cues & recommendations per framework", "Synced automatically to session PDFs and coach view"],
+    Component: DemoTaskDesigner,
+  },
+  {
     id: "squad",
     icon: Users,
     title: "Squad registry",
@@ -405,7 +564,7 @@ const PLATFORM_FEATURES = [
     icon: Activity,
     title: "Physical testing",
     summary: "Objective ratings parents and sponsors understand.",
-    bullets: ["4 tests × 3 evaluations (T1 → T2 → T3)", "Auto-rated vs team average — not generic benchmarks", "Green / blue / amber / red at a glance"],
+    bullets: ["4 tests × 3 evaluations (T1 → T2 → T3)", "Line charts vs team average — evolution at a glance", "Green / blue / amber / red ratings automatic"],
     Component: DemoTests,
   },
   {
