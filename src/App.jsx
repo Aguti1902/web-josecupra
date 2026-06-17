@@ -10,6 +10,7 @@ import HomePage from "./pages/public/HomePage";
 import LoginPage from "./pages/public/LoginPage";
 import OnboardingPage from "./pages/public/OnboardingPage";
 import PaymentSuccessPage from "./pages/public/PaymentSuccessPage";
+import USClubPitchPage from "./pages/public/USClubPitchPage";
 
 // Private (client app)
 import AppLayout from "./components/private/AppLayout";
@@ -101,6 +102,7 @@ function AppRoutes() {
       />
       <Route path="/comprar" element={<OnboardingPage />} />
       <Route path="/pago-exitoso" element={<PaymentSuccessPage />} />
+      <Route path="/us-clubs" element={<USClubPitchPage />} />
 
       {/* ── Client App ─────────────────────────────────────────── */}
       <Route path="/dashboard" element={<ClientRoute><AppLayout><DashboardPage /></AppLayout></ClientRoute>} />
