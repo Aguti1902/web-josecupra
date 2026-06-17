@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight, BarChart3, Building2, Calendar, CheckCircle2,
-  ChevronRight, Clock, DollarSign, FileText, LineChart,
-  Mail, Menu, Shield, Target, TrendingUp, Users, X, Zap,
+  ChevronRight, Clock, DollarSign,
+  Mail, Menu, Target, TrendingUp, Users, X,
 } from "lucide-react";
-import { PlatformDemoCarousel, PlatformScreenshotGrid } from "../../components/pitch/PlatformDemoFrames";
+import { PlatformHeroQuickTour, PlatformFeatureShowcase } from "../../components/pitch/PlatformDemoFrames";
 
 const SETUP_FEE = 15000;
 const MONTHLY_FEE = 1500;
@@ -16,6 +16,7 @@ const NAV = [
   { id: "overview", label: "Overview" },
   { id: "example", label: "Example club" },
   { id: "platform", label: "Platform" },
+  { id: "roi", label: "Club ROI" },
   { id: "workflow", label: "Workflow" },
   { id: "pricing", label: "Pricing" },
   { id: "partner", label: "Partner" },
@@ -50,12 +51,163 @@ const COMPARE_ROWS = [
 const FAQ = [
   { q: "Is this only for large academies?", a: "No. The sweet spot is 2–8 teams (80–200 players). Riverside FC in our example runs 5 teams on one license." },
   { q: "Do coaches need training?", a: "1-hour onboarding call per staff. The UI is built for coaches, not data scientists." },
+  { q: "What does the monthly fee include?", a: "Platform access plus full configuration of all training sessions for every mesocycle — every team, every session type, ready before coaches step on the field. No building plans from scratch." },
   { q: "What about individual player plans?", a: "DEPRO also offers individual player subscriptions — clubs can upsell private physical plans to families." },
   { q: "Who owns the data?", a: "The club. Export anytime. We do not sell player data." },
 ];
 
 function fmtUSD(n) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+}
+
+function ClubROICalculator() {
+  const [coaches, setCoaches] = useState(EXAMPLE_CLUB.coaches);
+  const [players, setPlayers] = useState(EXAMPLE_CLUB.players);
+  const [annualFee, setAnnualFee] = useState(2800);
+
+  const roi = useMemo(() => {
+    const hoursSavedPerCoachWeek = 2.5;
+    const coachHourlyRate = 45;
+    const adminHoursSavedWeek = 3;
+    const adminHourlyRate = 55;
+    const retentionLiftPct = 0.025;
+    const injuryReductionPerPlayer = 120;
+
+    const coachTimeSaved = coaches * hoursSavedPerCoachWeek * 52 * coachHourlyRate;
+    const adminTimeSaved = adminHoursSavedWeek * 52 * adminHourlyRate;
+    const retentionValue = players * retentionLiftPct * annualFee;
+    const injurySavings = players * injuryReductionPerPlayer;
+
+    const totalBenefit = coachTimeSaved + adminTimeSaved + retentionValue + injurySavings;
+    const yearOneCost = SETUP_FEE + MONTHLY_FEE * 12;
+    const yearTwoPlusCost = MONTHLY_FEE * 12;
+    const yearOneNet = totalBenefit - yearOneCost;
+    const yearOneROI = (yearOneNet / yearOneCost) * 100;
+    const paybackMonths = totalBenefit > 0 ? Math.ceil((yearOneCost / totalBenefit) * 12) : 12;
+    const yearTwoROI = ((totalBenefit - yearTwoPlusCost) / yearTwoPlusCost) * 100;
+
+    return {
+      coachTimeSaved,
+      adminTimeSaved,
+      retentionValue,
+      injurySavings,
+      totalBenefit,
+      yearOneCost,
+      yearTwoPlusCost,
+      yearOneNet,
+      yearOneROI,
+      yearTwoROI,
+      paybackMonths,
+      hoursSavedTotal: coaches * hoursSavedPerCoachWeek * 52 + adminHoursSavedWeek * 52,
+    };
+  }, [coaches, players, annualFee]);
+
+  return (
+    <div>
+      <div className="grid lg:grid-cols-2 gap-10 mb-12">
+        <div className="space-y-7">
+          <div>
+            <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
+              <span>Coaching staff</span>
+              <span className="text-gray-900 font-black">{coaches}</span>
+            </label>
+            <input type="range" min={2} max={20} value={coaches} onChange={(e) => setCoaches(Number(e.target.value))} className="w-full accent-blue-600" />
+          </div>
+          <div>
+            <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
+              <span>Registered players</span>
+              <span className="text-gray-900 font-black">{players}</span>
+            </label>
+            <input type="range" min={40} max={250} step={2} value={players} onChange={(e) => setPlayers(Number(e.target.value))} className="w-full accent-blue-600" />
+          </div>
+          <div>
+            <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
+              <span>Avg. annual fee per player</span>
+              <span className="text-gray-900 font-black">{fmtUSD(annualFee)}</span>
+            </label>
+            <input type="range" min={1500} max={6000} step={100} value={annualFee} onChange={(e) => setAnnualFee(Number(e.target.value))} className="w-full accent-blue-600" />
+          </div>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            Model based on {EXAMPLE_CLUB.name}: 2.5 h/week saved per coach (no manual plan building),
+            3 h/week admin time saved, 2.5% retention lift from data-driven parent communication,
+            and conservative injury-cost reduction via load monitoring.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border-2 border-gray-900 bg-white p-6 md:p-8 shadow-lg">
+          <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Estimated annual value</div>
+          <div className="text-4xl md:text-5xl font-black text-gray-900 mb-1">{fmtUSD(roi.totalBenefit)}</div>
+          <p className="text-sm text-gray-500 mb-6">Total quantified benefit vs. {fmtUSD(roi.yearOneCost)} year-one investment</p>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {[
+              { l: "Year 1 ROI", v: `${Math.round(roi.yearOneROI)}%`, highlight: true },
+              { l: "Payback period", v: `${roi.paybackMonths} mo`, highlight: false },
+              { l: "Year 2+ ROI", v: `${Math.round(roi.yearTwoROI)}%`, highlight: false },
+              { l: "Hours saved / yr", v: `${roi.hoursSavedTotal.toLocaleString()}h`, highlight: false },
+            ].map((s) => (
+              <div key={s.l} className={`rounded-xl p-3 border ${s.highlight ? "border-blue-200 bg-blue-50" : "border-gray-100 bg-gray-50"}`}>
+                <div className="text-[10px] font-bold uppercase text-gray-400">{s.l}</div>
+                <div className={`font-black stat-number ${s.highlight ? "text-2xl text-blue-700" : "text-xl text-gray-900"}`}>{s.v}</div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-gray-100 pt-4 space-y-2 text-sm">
+            {[
+              { l: "Coach planning time saved", v: roi.coachTimeSaved },
+              { l: "Admin & coordination saved", v: roi.adminTimeSaved },
+              { l: "Retention value (2.5% fewer exits)", v: roi.retentionValue },
+              { l: "Injury & load management", v: roi.injurySavings },
+            ].map((row) => (
+              <div key={row.l} className="flex justify-between gap-4">
+                <span className="text-gray-500">{row.l}</span>
+                <span className="font-bold text-gray-900">{fmtUSD(row.v)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between gap-4 pt-2 border-t border-gray-100 font-bold">
+              <span className="text-gray-900">Year 1 net gain</span>
+              <span className={roi.yearOneNet >= 0 ? "text-green-600" : "text-red-600"}>{fmtUSD(roi.yearOneNet)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          {
+            icon: Clock,
+            stat: `${coaches * 2.5 + 3}h`,
+            label: "Saved per week",
+            sub: `${coaches} coaches × 2.5 h + 3 h admin — sessions configured by DEPRO, not built manually`,
+          },
+          {
+            icon: Users,
+            stat: (players * 0.025).toFixed(1),
+            label: "Players retained / yr",
+            sub: `At 2.5% retention lift, ${fmtUSD(annualFee)}/player ≈ ${fmtUSD(roi.retentionValue)} annual value`,
+          },
+          {
+            icon: TrendingUp,
+            stat: fmtUSD(roi.injurySavings),
+            label: "Injury cost avoided",
+            sub: "Conservative load-monitoring savings across your roster (industry avg. −15–25% soft-tissue)",
+          },
+          {
+            icon: DollarSign,
+            stat: `${(roi.totalBenefit / roi.yearTwoPlusCost).toFixed(1)}×`,
+            label: "Benefit vs. annual fee",
+            sub: `${fmtUSD(roi.totalBenefit)} value on ${fmtUSD(roi.yearTwoPlusCost)}/yr after setup year`,
+          },
+        ].map((item) => (
+          <div key={item.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <item.icon size={20} className="text-blue-600 mb-3" />
+            <div className="text-3xl font-black text-gray-900 stat-number">{item.stat}</div>
+            <div className="text-sm font-bold text-gray-800 mt-1">{item.label}</div>
+            <p className="text-xs text-gray-500 mt-2 leading-relaxed">{item.sub}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function PartnerCalculator() {
@@ -190,7 +342,7 @@ export default function USClubPitchPage() {
               <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
                 {[
                   { v: "$15k", l: "Setup" },
-                  { v: "$1.5k", l: "/ month" },
+                  { v: "$1.5k", l: "/ month · all sessions configured" },
                   { v: "10%", l: "Partner comm." },
                 ].map((s) => (
                   <div key={s.l}>
@@ -201,7 +353,7 @@ export default function USClubPitchPage() {
               </div>
             </div>
             <div>
-              <PlatformDemoCarousel accent={ACCENT} />
+              <PlatformHeroQuickTour accent={ACCENT} />
             </div>
           </div>
         </div>
@@ -291,20 +443,32 @@ export default function USClubPitchPage() {
         </div>
       </section>
 
-      {/* Platform demos + photos */}
+      {/* Platform — demo + features */}
       <section id="platform" className="py-20 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto mb-14">
+          <div className="max-w-2xl mb-14">
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Platform walkthrough</p>
-            <h2 className="text-3xl md:text-4xl font-black mb-4">See exactly what coaches and directors get</h2>
-            <p className="text-gray-600">Interactive demos below auto-play — click tabs to explore each module.</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">Every feature, one operating system</h2>
+            <p className="text-gray-600 leading-relaxed">
+              Explore the live demo on the left — click any capability on the right to see it in action.
+            </p>
           </div>
-          <PlatformDemoCarousel accent={ACCENT} />
-          <div className="mt-20">
-            <h3 className="text-xl font-black text-gray-900 mb-2 text-center">Training environment & club culture</h3>
-            <p className="text-sm text-gray-500 text-center mb-8 max-w-xl mx-auto">DEPRO connects on-field work with the data layer directors need.</p>
-            <PlatformScreenshotGrid />
+          <PlatformFeatureShowcase accent={ACCENT} />
+        </div>
+      </section>
+
+      {/* Club ROI */}
+      <section id="roi" className="py-20 bg-gray-50 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="max-w-2xl mb-12">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Return on investment</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">What clubs actually gain</h2>
+            <p className="text-gray-600 leading-relaxed">
+              DEPRO is not just software — it replaces hours of manual planning, reduces preventable injuries,
+              and gives directors a retention tool parents understand. Adjust the sliders to model your academy.
+            </p>
           </div>
+          <ClubROICalculator />
         </div>
       </section>
 
@@ -370,49 +534,33 @@ export default function USClubPitchPage() {
         </div>
       </section>
 
-      {/* Modules detail */}
-      <section className="py-20 border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <h2 className="text-3xl font-black text-center mb-12">Six modules. One operating system.</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              { icon: Calendar, title: "Microcycle & mesocycle", desc: "Sessions A/B/C/D mapped to Mon–Wed–Fri. PDF export with club logo on every session." },
-              { icon: Users, title: "Squad & profiles", desc: "Filters by position, tests, source. Full player card with season test history." },
-              { icon: LineChart, title: "Physical testing", desc: "4 tests × 3 evaluations. Ratings vs team average — green/blue/amber/red automatic." },
-              { icon: TrendingUp, title: "Load monitoring", desc: "Volume × RPE × specificity. sRPE science. Weekly and monthly calendars." },
-              { icon: FileText, title: "Session PDFs", desc: "Print-ready plans: warm-up, main block, task designer, recommendations." },
-              { icon: Shield, title: "White-label branding", desc: "Your logo, primary & secondary colors on every screen, export and login." },
-            ].map((m) => (
-              <div key={m.title} className="rounded-xl border border-gray-200 p-5 hover:border-blue-200 hover:shadow-sm transition-all">
-                <m.icon size={22} className="text-blue-600 mb-3" />
-                <h3 className="font-bold text-gray-900 mb-2">{m.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{m.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Pricing */}
       <section id="pricing" className="py-20 bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-xl mx-auto mb-12">
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Investment</p>
             <h2 className="text-3xl md:text-4xl font-black mb-4">Enterprise-grade. Simple pricing.</h2>
-            <p className="text-gray-600">One club license covers all teams, coaches and players within the organization.</p>
+            <p className="text-gray-600">
+              One club license covers all teams, coaches and players. The monthly fee includes
+              full configuration of every training session across each mesocycle — coaches open the app and it&apos;s ready.
+            </p>
           </div>
           <div className="max-w-md mx-auto">
             <div className="rounded-2xl border-2 border-gray-900 bg-white p-8 shadow-lg">
               <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-6">Club license · annual value</div>
-              <div className="mb-1 text-sm text-gray-500">One-time setup & configuration</div>
+              <div className="mb-1 text-sm text-gray-500">One-time setup — branding, teams & platform onboarding</div>
               <div className="text-5xl font-black text-gray-900 mb-6">{fmtUSD(SETUP_FEE)}</div>
               <div className="border-t border-gray-100 pt-6 mb-6">
                 <div className="text-sm text-gray-500 mb-1">Monthly platform license</div>
                 <div className="text-4xl font-black text-gray-900">{fmtUSD(MONTHLY_FEE)}<span className="text-base font-semibold text-gray-400">/mo</span></div>
                 <div className="text-xs text-gray-400 mt-1">≈ {fmtUSD(MONTHLY_FEE * 12)}/year recurring</div>
+                <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-900 leading-relaxed">
+                  <strong className="font-bold">Included every month:</strong> DEPRO configures all sessions (A, B, C, D) for every team and category in each mesocycle — microcycles, tasks, loads and PDFs, ready to run.
+                </div>
               </div>
               <ul className="space-y-2.5 mb-8 text-sm text-gray-600">
                 {[
+                  "Full mesocycle training setup — every session configured",
                   "Unlimited teams & coaches",
                   "Full periodization engine",
                   "Physical tests + load suite",
