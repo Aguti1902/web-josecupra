@@ -1,173 +1,116 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, BarChart3, Calendar, ChevronRight, DollarSign,
-  Layers, LineChart, Shield, Sparkles, Target, TrendingUp,
-  Users, Zap, Activity, Trophy, CheckCircle2, Menu, X,
+  ArrowRight, BarChart3, Building2, Calendar, CheckCircle2,
+  ChevronRight, Clock, DollarSign, FileText, LineChart,
+  Mail, Menu, Shield, Target, TrendingUp, Users, X, Zap,
 } from "lucide-react";
+import { PlatformDemoCarousel, PlatformScreenshotGrid } from "../../components/pitch/PlatformDemoFrames";
 
 const SETUP_FEE = 15000;
 const MONTHLY_FEE = 1500;
 const COMMISSION_RATE = 0.1;
+const ACCENT = "#0A36F7";
 
 const NAV = [
-  { id: "vision", label: "Vision" },
+  { id: "overview", label: "Overview" },
+  { id: "example", label: "Example club" },
   { id: "platform", label: "Platform" },
-  { id: "results", label: "Results" },
+  { id: "workflow", label: "Workflow" },
   { id: "pricing", label: "Pricing" },
-  { id: "partner", label: "Partner Earnings" },
+  { id: "partner", label: "Partner" },
 ];
 
-const FEATURES = [
-  {
-    id: "sessions",
-    icon: Calendar,
-    title: "Every session. Planned & branded.",
-    headline: "Microcycles, mesocycles & match-day prep — all in one place.",
-    bullets: [
-      "Weekly training calendar mapped to your real training days",
-      "Type A / B / C / D sessions with load logic built in",
-      "Club-branded PDF exports for every session",
-      "Coaches see exactly what to run — no guesswork",
-    ],
-    stat: { label: "Hours saved / coach / week", value: "6+" },
-    color: "#0A36F7",
-  },
-  {
-    id: "squad",
-    icon: Users,
-    title: "Full squad intelligence",
-    headline: "Roster, roles, filters & player profiles — centralized.",
-    bullets: [
-      "Complete squad registry with position, age & notes",
-      "Manual + registered players in one unified view",
-      "Coach panel with team-level visibility",
-      "Multi-team support for academies & coordinators",
-    ],
-    stat: { label: "Data points / player", value: "40+" },
-    color: "#8B5CF6",
-  },
-  {
-    id: "tests",
-    icon: Activity,
-    title: "Physical testing that actually means something",
-    headline: "T1 → T2 → T3 evolution vs team average — automatic.",
-    bullets: [
-      "Endurance, sprint, COD & CMJ tracked per season",
-      "Color-coded ratings vs team average (not arbitrary thresholds)",
-      "Sparkline evolution per player across evaluations",
-      "Identify who is progressing — and who needs intervention",
-    ],
-    stat: { label: "Evaluations / season", value: "3×4" },
-    color: "#22C55E",
-  },
-  {
-    id: "loads",
-    icon: TrendingUp,
-    title: "Load monitoring (sRPE science)",
-    headline: "Volume × RPE × specificity — weekly traffic lights.",
-    bullets: [
-      "Team & individual load tracking per session",
-      "Scientific sRPE-based classification",
-      "Monthly load calendar for periodization review",
-      "Prevent overload before it becomes injury",
-    ],
-    stat: { label: "Sessions tracked / week", value: "4+" },
-    color: "#F59E0B",
-  },
+const EXAMPLE_CLUB = {
+  name: "Riverside FC Academy",
+  city: "Westchester, NY",
+  teams: 5,
+  players: 94,
+  coaches: 8,
+  trainingDays: "Mon · Wed · Fri",
+  category: "U13 – U19",
+};
+
+const WORKFLOW = [
+  { step: "01", title: "Onboarding & branding", time: "Week 1", desc: "We configure your logo, colors, teams, training days and age blocks. Coaches receive login credentials." },
+  { step: "02", title: "Plans go live", time: "Week 2", desc: "Microcycles and mesocycles appear automatically per category. Coaches open Session B on Wednesday — everything is ready." },
+  { step: "03", title: "Squad & tests baseline", time: "Week 3", desc: "Roster imported. T1 physical tests recorded. Platform calculates team averages — every rating is relative, not generic." },
+  { step: "04", title: "Weekly loads & evolution", time: "Ongoing", desc: "Coaches log volume, RPE and specificity. Directors see weekly traffic lights and T1→T2→T3 player evolution." },
 ];
 
-const PROOF_STATS = [
-  { value: "100%", label: "White-label — your logo, your colors" },
-  { value: "3", label: "Age blocks from U9 to U19" },
-  { value: "24/7", label: "Cloud access for all staff" },
-  { value: "97%", label: "Platform retention target" },
+const COMPARE_ROWS = [
+  { feature: "Branded club platform (logo + colors)", depro: true, sheets: false, generic: false },
+  { feature: "Periodized micro / meso cycles", depro: true, sheets: "Partial", generic: false },
+  { feature: "Physical tests vs team average", depro: true, sheets: false, generic: "Add-on" },
+  { feature: "Load monitoring (sRPE-based)", depro: true, sheets: false, generic: false },
+  { feature: "Session PDF exports", depro: true, sheets: false, generic: "Limited" },
+  { feature: "Multi-team academy support", depro: true, sheets: true, generic: "Limited" },
+];
+
+const FAQ = [
+  { q: "Is this only for large academies?", a: "No. The sweet spot is 2–8 teams (80–200 players). Riverside FC in our example runs 5 teams on one license." },
+  { q: "Do coaches need training?", a: "1-hour onboarding call per staff. The UI is built for coaches, not data scientists." },
+  { q: "What about individual player plans?", a: "DEPRO also offers individual player subscriptions — clubs can upsell private physical plans to families." },
+  { q: "Who owns the data?", a: "The club. Export anytime. We do not sell player data." },
 ];
 
 function fmtUSD(n) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(n);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
 function PartnerCalculator() {
-  const [clubs, setClubs] = useState(3);
+  const [clubs, setClubs] = useState(4);
   const [months, setMonths] = useState(12);
 
   const calc = useMemo(() => {
     const setupComm = SETUP_FEE * COMMISSION_RATE;
     const monthlyComm = MONTHLY_FEE * COMMISSION_RATE;
-    const oneTime = setupComm * clubs;
-    const recurringPerMonth = monthlyComm * clubs;
-    const recurringTotal = recurringPerMonth * months;
-    const yearOne = oneTime + recurringTotal;
-    return { setupComm, monthlyComm, oneTime, recurringPerMonth, recurringTotal, yearOne };
+    return {
+      setupComm,
+      monthlyComm,
+      oneTime: setupComm * clubs,
+      recurringPerMonth: monthlyComm * clubs,
+      recurringTotal: monthlyComm * clubs * months,
+      yearOne: setupComm * clubs + monthlyComm * clubs * months,
+    };
   }, [clubs, months]);
 
   return (
-    <div className="grid lg:grid-cols-2 gap-8 items-start">
+    <div className="grid lg:grid-cols-2 gap-10">
       <div className="space-y-8">
         <div>
-          <label className="flex justify-between text-sm font-bold text-white/80 mb-3">
-            <span>Clubs closed</span>
-            <span className="text-white font-black text-lg">{clubs}</span>
+          <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
+            <span>Clubs closed per year</span>
+            <span className="text-gray-900 font-black text-xl">{clubs}</span>
           </label>
-          <input
-            type="range"
-            min={1}
-            max={24}
-            value={clubs}
-            onChange={(e) => setClubs(Number(e.target.value))}
-            className="w-full accent-emerald-400 h-2 rounded-full cursor-pointer"
-          />
-          <div className="flex justify-between text-xs text-white/40 mt-1">
-            <span>1 club</span>
-            <span>24 clubs / year</span>
-          </div>
+          <input type="range" min={1} max={24} value={clubs} onChange={(e) => setClubs(Number(e.target.value))} className="w-full accent-blue-600" />
         </div>
         <div>
-          <label className="flex justify-between text-sm font-bold text-white/80 mb-3">
-            <span>Recurring commission horizon</span>
-            <span className="text-white font-black text-lg">{months} mo</span>
+          <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
+            <span>Recurring horizon (months)</span>
+            <span className="text-gray-900 font-black text-xl">{months}</span>
           </label>
-          <input
-            type="range"
-            min={1}
-            max={36}
-            value={months}
-            onChange={(e) => setMonths(Number(e.target.value))}
-            className="w-full accent-emerald-400 h-2 rounded-full cursor-pointer"
-          />
+          <input type="range" min={1} max={36} value={months} onChange={(e) => setMonths(Number(e.target.value))} className="w-full accent-blue-600" />
         </div>
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-sm text-white/70 space-y-2">
-          <p><strong className="text-white">10% partner commission</strong> on every deal you close:</p>
-          <ul className="space-y-1 pl-4 list-disc marker:text-emerald-400">
-            <li>{fmtUSD(calc.setupComm)} one-time per club ({fmtUSD(SETUP_FEE)} setup)</li>
-            <li>{fmtUSD(calc.monthlyComm)}/month per club ({fmtUSD(MONTHLY_FEE)} subscription)</li>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 space-y-2">
+          <p className="font-semibold text-gray-900">10% on every deal you close:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>{fmtUSD(calc.setupComm)} per club setup ({fmtUSD(SETUP_FEE)})</li>
+            <li>{fmtUSD(calc.monthlyComm)}/month per active club ({fmtUSD(MONTHLY_FEE)}/mo)</li>
           </ul>
         </div>
       </div>
-
       <div className="space-y-4">
         {[
-          { label: "One-time setup commissions", value: calc.oneTime, accent: "text-emerald-300" },
-          { label: `Recurring (${months} months)`, value: calc.recurringTotal, accent: "text-sky-300" },
-          { label: "Total partner earnings", value: calc.yearOne, accent: "text-white", big: true },
-        ].map((row) => (
-          <div
-            key={row.label}
-            className={`rounded-2xl border border-white/10 p-5 ${row.big ? "bg-gradient-to-br from-emerald-500/20 to-sky-500/10" : "bg-white/5"}`}
-          >
-            <div className="text-xs font-bold uppercase tracking-wider text-white/50 mb-1">{row.label}</div>
-            <div className={`font-black stat-number ${row.big ? "text-4xl md:text-5xl" : "text-2xl md:text-3xl"} ${row.accent}`}>
-              {fmtUSD(row.value)}
-            </div>
-            {row.big && (
-              <div className="text-sm text-white/60 mt-2">
-                + {fmtUSD(calc.recurringPerMonth)}/mo ongoing while clubs stay active
-              </div>
+          { label: "Setup commissions (one-time)", value: calc.oneTime },
+          { label: `Recurring (${months} mo)`, value: calc.recurringTotal },
+          { label: "Total partner earnings", value: calc.yearOne, highlight: true },
+        ].map((r) => (
+          <div key={r.label} className={`rounded-xl border p-5 ${r.highlight ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-white"}`}>
+            <div className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">{r.label}</div>
+            <div className={`font-black stat-number ${r.highlight ? "text-4xl text-blue-700" : "text-2xl text-gray-900"}`}>{fmtUSD(r.value)}</div>
+            {r.highlight && (
+              <p className="text-sm text-gray-500 mt-2">+ {fmtUSD(calc.recurringPerMonth)}/mo while clubs stay subscribed</p>
             )}
           </div>
         ))}
@@ -176,51 +119,12 @@ function PartnerCalculator() {
   );
 }
 
-function MockChart({ active }) {
-  const bars = [42, 55, 48, 62, 58, 71, 68, 78, 74, 85];
-  return (
-    <div className="rounded-2xl bg-depro-dark p-6 border border-white/10">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wider text-white/40">Team evolution</div>
-          <div className="text-white font-bold">Sprint 30m · season avg</div>
-        </div>
-        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/20 text-green-400">
-          ↑ 8.2% vs T1
-        </span>
-      </div>
-      <div className="flex items-end gap-2 h-32">
-        {bars.map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-t-md transition-all duration-500"
-            style={{
-              height: `${h}%`,
-              backgroundColor: active ? "#22C55E" : "#0A36F7",
-              opacity: i === bars.length - 1 ? 1 : 0.35 + (i / bars.length) * 0.5,
-            }}
-          />
-        ))}
-      </div>
-      <div className="flex justify-between mt-3 text-[10px] text-white/30 font-bold">
-        {["T1 W1", "T1 W4", "T2 W1", "T2 W4", "T3 W1", "T3 W4", "Playoffs", "Final", "Now", "Proj"].map((l) => (
-          <span key={l} className="hidden sm:inline">{l}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function USClubPitchPage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeFeature, setActiveFeature] = useState(FEATURES[0].id);
   const [scrolled, setScrolled] = useState(false);
 
-  const feature = FEATURES.find((f) => f.id === activeFeature) || FEATURES[0];
-  const FeatureIcon = feature.icon;
-
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 20);
+    const fn = () => setScrolled(window.scrollY > 12);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
@@ -231,205 +135,258 @@ export default function USClubPitchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-white text-gray-900">
       {/* Nav */}
-      <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? "bg-[#050816]/90 backdrop-blur-xl border-b border-white/10" : ""}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <header className={`fixed top-0 inset-x-0 z-50 transition-all ${scrolled ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100" : "bg-white"}`}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <img src="/logo blanco.png" alt="DEPRO" className="h-6 w-auto" />
-            <span className="hidden sm:inline text-xs font-bold uppercase tracking-widest text-white/40">Club OS · US</span>
+            <img src="/logo.png" alt="DEPRO" className="h-7 w-auto" />
+            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-gray-400">Club Platform · US</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1">
             {NAV.map((n) => (
-              <button
-                key={n.id}
-                type="button"
-                onClick={() => scrollTo(n.id)}
-                className="px-3 py-2 text-xs font-bold text-white/60 hover:text-white transition-colors rounded-lg hover:bg-white/5"
-              >
+              <button key={n.id} type="button" onClick={() => scrollTo(n.id)} className="px-3 py-2 text-xs font-semibold text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-50">
                 {n.label}
               </button>
             ))}
           </nav>
-          <button
-            type="button"
-            onClick={() => scrollTo("partner")}
-            className="hidden sm:flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs px-4 py-2 rounded-full transition-colors"
-          >
-            Partner calc <ChevronRight size={14} />
+          <button type="button" onClick={() => scrollTo("partner")} className="hidden sm:flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+            Partner calculator <ChevronRight size={14} />
           </button>
-          <button type="button" className="md:hidden p-2 text-white/70" onClick={() => setMenuOpen(!menuOpen)}>
+          <button type="button" className="lg:hidden p-2" onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
         {menuOpen && (
-          <div className="md:hidden border-t border-white/10 bg-[#050816] px-4 py-3 space-y-1">
+          <div className="lg:hidden border-t border-gray-100 px-4 py-3 bg-white space-y-1">
             {NAV.map((n) => (
-              <button key={n.id} type="button" onClick={() => scrollTo(n.id)} className="block w-full text-left py-2.5 text-sm font-semibold text-white/70">
-                {n.label}
-              </button>
+              <button key={n.id} type="button" onClick={() => scrollTo(n.id)} className="block w-full text-left py-2.5 text-sm font-medium text-gray-600">{n.label}</button>
             ))}
           </div>
         )}
       </header>
 
       {/* Hero */}
-      <section id="vision" className="relative min-h-[100svh] flex items-center pt-20">
-        <div className="absolute inset-0">
-          <img src="/foto5.jpg" alt="" className="w-full h-full object-cover opacity-30 hero-zoom" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#050816] via-[#050816]/80 to-[#050816]" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0A36F7]/20 to-transparent" />
-        </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full">
-          <div className="max-w-4xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-emerald-400 mb-8 animate-in">
-              <Sparkles size={14} /> Revolutionary club performance OS
+      <section id="overview" className="pt-28 pb-16 md:pt-32 md:pb-24 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-4">Performance management for US youth clubs</p>
+              <h1 className="text-4xl md:text-5xl lg:text-[3.25rem] font-black tracking-tight leading-[1.05] text-gray-900 mb-6">
+                Every session.<br />Every player.<br />Every metric — in one place.
+              </h1>
+              <p className="text-lg text-gray-600 leading-relaxed mb-8 max-w-xl">
+                DEPRO is a white-label platform for academies that need serious periodization,
+                physical testing, load monitoring and squad intelligence — under their own brand.
+              </p>
+              <div className="flex flex-wrap gap-3 mb-10">
+                <button type="button" onClick={() => scrollTo("platform")} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3.5 rounded-lg transition-colors">
+                  See live demo <ArrowRight size={18} />
+                </button>
+                <button type="button" onClick={() => scrollTo("example")} className="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-800 font-bold px-6 py-3.5 rounded-lg transition-colors">
+                  Example: Riverside FC
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
+                {[
+                  { v: "$15k", l: "Setup" },
+                  { v: "$1.5k", l: "/ month" },
+                  { v: "10%", l: "Partner comm." },
+                ].map((s) => (
+                  <div key={s.l}>
+                    <div className="text-2xl font-black text-gray-900">{s.v}</div>
+                    <div className="text-xs text-gray-500 font-medium">{s.l}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[0.95] mb-6 animate-in-delay-1">
-              Own your club&apos;s<br />
-              <span className="text-shimmer">entire performance stack.</span>
-            </h1>
-            <p className="text-lg md:text-xl text-white/60 max-w-2xl leading-relaxed mb-10 animate-in-delay-2">
-              DEPRO gives US clubs a private, branded platform — every training session,
-              every player stat, every physical test, every load metric — so coaches
-              coach and directors see real evolution.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 animate-in-delay-3">
-              <button type="button" onClick={() => scrollTo("platform")} className="inline-flex items-center justify-center gap-2 bg-depro-blue hover:bg-blue-600 text-white font-bold px-8 py-4 rounded-xl transition-colors">
-                Explore the platform <ArrowRight size={18} />
-              </button>
-              <button type="button" onClick={() => scrollTo("pricing")} className="inline-flex items-center justify-center gap-2 border border-white/20 hover:border-white/40 text-white font-bold px-8 py-4 rounded-xl transition-colors">
-                View pricing
-              </button>
+            <div>
+              <PlatformDemoCarousel accent={ACCENT} />
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-20 animate-in-delay-4">
-            {PROOF_STATS.map((s) => (
-              <div key={s.label} className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-                <div className="text-2xl md:text-3xl font-black text-white stat-number">{s.value}</div>
-                <div className="text-xs text-white/50 mt-1 leading-snug">{s.label}</div>
+      {/* Example club */}
+      <section id="example" className="py-20 bg-gray-50 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="max-w-2xl mb-12">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Concrete example</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">How {EXAMPLE_CLUB.name} uses DEPRO</h2>
+            <p className="text-gray-600 leading-relaxed">
+              A mid-size US academy with 5 teams. Technical director wants one system instead of Excel + Google Drive + WhatsApp.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6 mb-10">
+            <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 md:p-8 shadow-sm">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-14 h-14 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg">RF</div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-900">{EXAMPLE_CLUB.name}</h3>
+                  <p className="text-sm text-gray-500">{EXAMPLE_CLUB.city} · {EXAMPLE_CLUB.category}</p>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4 mb-6">
+                {[
+                  { icon: Users, label: "Players registered", value: String(EXAMPLE_CLUB.players) },
+                  { icon: Building2, label: "Teams", value: String(EXAMPLE_CLUB.teams) },
+                  { icon: Calendar, label: "Training schedule", value: EXAMPLE_CLUB.trainingDays },
+                  { icon: Target, label: "Coaching staff", value: `${EXAMPLE_CLUB.coaches} coaches` },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-4">
+                    <item.icon size={18} className="text-blue-600 flex-shrink-0" />
+                    <div>
+                      <div className="text-xs text-gray-400 font-semibold">{item.label}</div>
+                      <div className="font-bold text-gray-900">{item.value}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-gray-100 pt-6 space-y-4">
+                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Sample week — U15 Elite</h4>
+                {[
+                  { day: "Monday", session: "Session A · Extensive", load: "Low · 405 AU", note: "Technical possession · 45 min · RPE 3" },
+                  { day: "Wednesday", session: "Session B · Intensive", load: "High · 890 AU", note: "Pressing triggers · 75 min · RPE 7" },
+                  { day: "Friday", session: "Session C · Reactive", load: "Medium · 650 AU", note: "Transition game · 60 min · RPE 5" },
+                  { day: "Saturday", session: "Match vs NY Surf", load: "Peak · 720 AU", note: "Load auto-tracked post-game" },
+                ].map((row) => (
+                  <div key={row.day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                    <span className="font-bold text-gray-900 w-24 flex-shrink-0">{row.day}</span>
+                    <span className="font-semibold text-blue-700 w-44 flex-shrink-0">{row.session}</span>
+                    <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit">{row.load}</span>
+                    <span className="text-gray-500 text-xs">{row.note}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-bold text-gray-400 uppercase mb-3">Player snapshot</div>
+                <div className="font-black text-gray-900 mb-1">Jake Morrison · CM · #8</div>
+                <div className="text-xs text-gray-500 mb-4">U15 Elite · Premium plan</div>
+                <div className="space-y-2 text-xs">
+                  {[
+                    { t: "Endurance T3", v: "545 rectas", r: "Excellent (+9% vs avg)" },
+                    { t: "Sprint T3", v: "2.78 s", r: "Good (+4% vs avg)" },
+                    { t: "Weekly load", v: "Medium", r: "Within team range" },
+                  ].map((m) => (
+                    <div key={m.t} className="flex justify-between gap-2 py-2 border-b border-gray-50 last:border-0">
+                      <span className="text-gray-500">{m.t}</span>
+                      <span className="font-bold text-gray-800 text-right">{m.v}<br /><span className="text-green-600 font-semibold">{m.r}</span></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
+                <div className="text-xs font-bold text-green-700 uppercase mb-2">Director outcome</div>
+                <p className="text-sm text-green-900 leading-relaxed">
+                  "We finally show parents objective progress — not opinions. Sponsors see a professional operation."
+                </p>
+                <p className="text-xs text-green-700 mt-2 font-semibold">— Technical Director, Riverside FC</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Platform demos + photos */}
+      <section id="platform" className="py-20 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Platform walkthrough</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">See exactly what coaches and directors get</h2>
+            <p className="text-gray-600">Interactive demos below auto-play — click tabs to explore each module.</p>
+          </div>
+          <PlatformDemoCarousel accent={ACCENT} />
+          <div className="mt-20">
+            <h3 className="text-xl font-black text-gray-900 mb-2 text-center">Training environment & club culture</h3>
+            <p className="text-sm text-gray-500 text-center mb-8 max-w-xl mx-auto">DEPRO connects on-field work with the data layer directors need.</p>
+            <PlatformScreenshotGrid />
+          </div>
+        </div>
+      </section>
+
+      {/* Workflow */}
+      <section id="workflow" className="py-20 bg-gray-50 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="max-w-2xl mb-12">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Implementation</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">Live in 3 weeks. Not 3 months.</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {WORKFLOW.map((w) => (
+              <div key={w.step} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                <div className="text-3xl font-black text-blue-100 mb-2">{w.step}</div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 mb-2">
+                  <Clock size={12} /> {w.time}
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{w.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{w.desc}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* Problem → Solution */}
-      <section className="py-24 border-y border-white/5 bg-white/[0.02]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-red-400 mb-4 block">The problem</span>
-              <h2 className="text-3xl md:text-4xl font-black mb-6">Clubs are drowning in spreadsheets, PDFs & WhatsApp.</h2>
-              <ul className="space-y-4 text-white/60">
-                {[
-                  "Training plans live in 5 different places — none connected to results",
-                  "Physical data is collected once a year and never compared to the team",
-                  "Coaches can't see load vs performance — injuries feel random",
-                  "Directors have zero dashboard to prove development to parents & sponsors",
-                ].map((t) => (
-                  <li key={t} className="flex gap-3">
-                    <span className="text-red-400 flex-shrink-0 mt-0.5">✕</span>
-                    {t}
-                  </li>
-                ))}
-              </ul>
+          {/* Comparison table */}
+          <div className="mt-16 rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+              <h3 className="font-black text-gray-900">Why clubs switch from spreadsheets</h3>
             </div>
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-4 block">The DEPRO answer</span>
-              <h2 className="text-3xl md:text-4xl font-black mb-6">One platform. Your brand. Total visibility.</h2>
-              <ul className="space-y-4">
-                {[
-                  "Periodized micro & meso cycles delivered to coaches automatically",
-                  "Player tests rated vs team average — evolution visible in 3 clicks",
-                  "Load monitoring with scientific sRPE classification",
-                  "White-label: your logo, colors & identity on every screen & PDF",
-                ].map((t) => (
-                  <li key={t} className="flex gap-3 text-white/80">
-                    <CheckCircle2 size={18} className="text-emerald-400 flex-shrink-0 mt-0.5" />
-                    {t}
-                  </li>
-                ))}
-              </ul>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-left">
+                    <th className="px-6 py-3 text-xs font-bold text-gray-400 uppercase">Capability</th>
+                    <th className="px-4 py-3 text-xs font-bold text-blue-600 uppercase text-center">DEPRO</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase text-center">Spreadsheets</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase text-center">Generic apps</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPARE_ROWS.map((row) => (
+                    <tr key={row.feature} className="border-b border-gray-50">
+                      <td className="px-6 py-3 text-gray-700">{row.feature}</td>
+                      {["depro", "sheets", "generic"].map((k) => {
+                        const val = row[k];
+                        return (
+                          <td key={k} className="px-4 py-3 text-center">
+                            {val === true ? (
+                              <CheckCircle2 size={18} className="inline text-green-500" />
+                            ) : val === false ? (
+                              <span className="text-gray-300">—</span>
+                            ) : (
+                              <span className="text-xs font-semibold text-amber-600">{val}</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Interactive platform */}
-      <section id="platform" className="py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-depro-blue mb-3 block">Interactive walkthrough</span>
-            <h2 className="text-4xl md:text-5xl font-black mb-4">Click each module. See what clubs get.</h2>
-            <p className="text-white/50">Built for academy directors, technical coordinators & head coaches.</p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 mb-10">
-            {FEATURES.map((f) => {
-              const Icon = f.icon;
-              const active = f.id === activeFeature;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setActiveFeature(f.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold border transition-all ${
-                    active
-                      ? "bg-white text-black border-white shadow-lg scale-105"
-                      : "bg-white/5 text-white/60 border-white/10 hover:border-white/30"
-                  }`}
-                >
-                  <Icon size={16} /> {f.title.split(".")[0]}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-8 items-stretch">
-            <div
-              className="rounded-3xl border border-white/10 p-8 flex flex-col transition-all duration-300"
-              style={{ background: `linear-gradient(135deg, ${feature.color}18, transparent)` }}
-            >
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{ backgroundColor: feature.color + "30" }}>
-                <FeatureIcon size={24} style={{ color: feature.color }} />
-              </div>
-              <h3 className="text-2xl md:text-3xl font-black mb-3">{feature.headline}</h3>
-              <ul className="space-y-3 flex-1">
-                {feature.bullets.map((b) => (
-                  <li key={b} className="flex gap-2 text-white/70 text-sm">
-                    <ChevronRight size={16} className="flex-shrink-0 mt-0.5" style={{ color: feature.color }} />
-                    {b}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8 pt-6 border-t border-white/10 flex items-end justify-between">
-                <div>
-                  <div className="text-xs text-white/40 uppercase font-bold tracking-wider">{feature.stat.label}</div>
-                  <div className="text-4xl font-black stat-number" style={{ color: feature.color }}>{feature.stat.value}</div>
-                </div>
-                <Trophy size={40} className="text-white/10" />
-              </div>
-            </div>
-            <MockChart active={activeFeature === "tests"} />
-          </div>
-        </div>
-      </section>
-
-      {/* Results */}
-      <section id="results" className="py-24 bg-gradient-to-b from-transparent via-blue-950/20 to-transparent">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-6">
+      {/* Modules detail */}
+      <section className="py-20 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h2 className="text-3xl font-black text-center mb-12">Six modules. One operating system.</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { icon: LineChart, title: "See evolution", desc: "Track every player across T1, T2, T3 vs the team average — green, yellow, red automatically." },
-              { icon: Shield, title: "Your brand", desc: "Logo, primary & secondary colors on dashboard, sessions & PDF exports. Parents see YOUR club." },
-              { icon: Layers, title: "All age groups", desc: "Block 1 (U9–U12), Block 2 (U13–U15), Block 3 (U16–U19) — content auto-matched to category." },
-            ].map((card) => (
-              <div key={card.title} className="rounded-2xl bg-white/5 border border-white/10 p-6 hover:border-white/20 transition-colors group">
-                <card.icon size={28} className="text-depro-blue mb-4 group-hover:scale-110 transition-transform" />
-                <h3 className="font-black text-xl mb-2">{card.title}</h3>
-                <p className="text-sm text-white/55 leading-relaxed">{card.desc}</p>
+              { icon: Calendar, title: "Microcycle & mesocycle", desc: "Sessions A/B/C/D mapped to Mon–Wed–Fri. PDF export with club logo on every session." },
+              { icon: Users, title: "Squad & profiles", desc: "Filters by position, tests, source. Full player card with season test history." },
+              { icon: LineChart, title: "Physical testing", desc: "4 tests × 3 evaluations. Ratings vs team average — green/blue/amber/red automatic." },
+              { icon: TrendingUp, title: "Load monitoring", desc: "Volume × RPE × specificity. sRPE science. Weekly and monthly calendars." },
+              { icon: FileText, title: "Session PDFs", desc: "Print-ready plans: warm-up, main block, task designer, recommendations." },
+              { icon: Shield, title: "White-label branding", desc: "Your logo, primary & secondary colors on every screen, export and login." },
+            ].map((m) => (
+              <div key={m.title} className="rounded-xl border border-gray-200 p-5 hover:border-blue-200 hover:shadow-sm transition-all">
+                <m.icon size={22} className="text-blue-600 mb-3" />
+                <h3 className="font-bold text-gray-900 mb-2">{m.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{m.desc}</p>
               </div>
             ))}
           </div>
@@ -437,104 +394,93 @@ export default function USClubPitchPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-amber-400 mb-3 block">Investment</span>
-            <h2 className="text-4xl md:text-5xl font-black mb-4">Simple, premium pricing.</h2>
-            <p className="text-white/50 max-w-xl mx-auto">One setup. One monthly. Full platform ownership under your club brand.</p>
+      <section id="pricing" className="py-20 bg-gray-50 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center max-w-xl mx-auto mb-12">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Investment</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">Enterprise-grade. Simple pricing.</h2>
+            <p className="text-gray-600">One club license covers all teams, coaches and players within the organization.</p>
           </div>
-
-          <div className="max-w-lg mx-auto">
-            <div className="relative rounded-3xl border-2 border-amber-400/50 bg-gradient-to-b from-amber-400/10 to-transparent p-8 md:p-10 overflow-hidden">
-              <div className="absolute top-4 right-4 text-xs font-black uppercase tracking-wider bg-amber-400 text-black px-3 py-1 rounded-full">
-                Club license
+          <div className="max-w-md mx-auto">
+            <div className="rounded-2xl border-2 border-gray-900 bg-white p-8 shadow-lg">
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-6">Club license · annual value</div>
+              <div className="mb-1 text-sm text-gray-500">One-time setup & configuration</div>
+              <div className="text-5xl font-black text-gray-900 mb-6">{fmtUSD(SETUP_FEE)}</div>
+              <div className="border-t border-gray-100 pt-6 mb-6">
+                <div className="text-sm text-gray-500 mb-1">Monthly platform license</div>
+                <div className="text-4xl font-black text-gray-900">{fmtUSD(MONTHLY_FEE)}<span className="text-base font-semibold text-gray-400">/mo</span></div>
+                <div className="text-xs text-gray-400 mt-1">≈ {fmtUSD(MONTHLY_FEE * 12)}/year recurring</div>
               </div>
-              <div className="flex items-center gap-2 text-amber-400 text-sm font-bold mb-6">
-                <Zap size={16} /> White-label performance OS
-              </div>
-              <div className="mb-2">
-                <span className="text-white/50 text-sm">Setup (one-time)</span>
-                <div className="text-5xl font-black stat-number">{fmtUSD(SETUP_FEE)}</div>
-              </div>
-              <div className="text-white/30 text-2xl font-light my-4">+</div>
-              <div className="mb-8">
-                <span className="text-white/50 text-sm">Platform license</span>
-                <div className="text-4xl font-black stat-number">{fmtUSD(MONTHLY_FEE)}<span className="text-lg text-white/40 font-bold">/mo</span></div>
-              </div>
-              <ul className="space-y-3 mb-8 text-sm text-white/70">
+              <ul className="space-y-2.5 mb-8 text-sm text-gray-600">
                 {[
-                  "Unlimited coaches & teams within the club",
-                  "Full session library + periodization engine",
-                  "Physical testing + load monitoring suite",
-                  "Branded PDF session exports",
-                  "Dedicated onboarding & configuration",
-                  "Priority support",
-                ].map((item) => (
-                  <li key={item} className="flex gap-2">
-                    <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0 mt-0.5" />
-                    {item}
-                  </li>
+                  "Unlimited teams & coaches",
+                  "Full periodization engine",
+                  "Physical tests + load suite",
+                  "Branded PDF exports",
+                  "Onboarding & priority support",
+                  "Dedicated success contact",
+                ].map((i) => (
+                  <li key={i} className="flex gap-2"><CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />{i}</li>
                 ))}
               </ul>
-              <a
-                href="mailto:info@depro.es?subject=DEPRO%20US%20Club%20Demo"
-                className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-black transition-colors"
-              >
-                Book a live demo <ArrowRight size={18} />
+              <a href="mailto:info@depro.es?subject=DEPRO%20US%20Club%20Demo" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-white font-bold transition-colors">
+                <Mail size={16} /> Request live demo
               </a>
             </div>
+            <p className="text-center text-xs text-gray-400 mt-4">Example: {EXAMPLE_CLUB.name} — {fmtUSD(SETUP_FEE)} setup + {fmtUSD(MONTHLY_FEE)}/mo</p>
           </div>
         </div>
       </section>
 
-      {/* Partner calculator */}
-      <section id="partner" className="py-24 bg-gradient-to-br from-emerald-950/40 via-[#050816] to-sky-950/30 border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-5 gap-12 items-start">
-            <div className="lg:col-span-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-4">
-                <DollarSign size={14} /> Partner program
+      {/* Partner */}
+      <section id="partner" className="py-20 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="max-w-2xl mb-12">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Partner program</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">Your commission calculator</h2>
+            <p className="text-gray-600 leading-relaxed">
+              Close a club at {fmtUSD(SETUP_FEE)} setup + {fmtUSD(MONTHLY_FEE)}/mo and earn <strong>10%</strong> on both —
+              {fmtUSD(SETUP_FEE * COMMISSION_RATE)} upfront plus {fmtUSD(MONTHLY_FEE * COMMISSION_RATE)}/month recurring per club.
+            </p>
+          </div>
+          <PartnerCalculator />
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h2 className="text-2xl font-black mb-8 text-center">Common questions</h2>
+          <div className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto">
+            {FAQ.map((f) => (
+              <div key={f.q} className="bg-white rounded-xl border border-gray-200 p-5">
+                <h3 className="font-bold text-gray-900 text-sm mb-2">{f.q}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{f.a}</p>
               </div>
-              <h2 className="text-4xl font-black mb-4">Your earnings calculator.</h2>
-              <p className="text-white/55 leading-relaxed mb-6">
-                Close club deals in the US market and earn <strong className="text-white">10% commission</strong> on
-                setup fees plus <strong className="text-white">10% recurring</strong> on every monthly subscription —
-                for as long as the club stays active.
-              </p>
-              <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-sm text-white/60">
-                <strong className="text-white block mb-1">Example — 1 club closed:</strong>
-                {fmtUSD(SETUP_FEE * COMMISSION_RATE)} upfront + {fmtUSD(MONTHLY_FEE * COMMISSION_RATE)}/mo recurring
-              </div>
-            </div>
-            <div className="lg:col-span-3">
-              <PartnerCalculator />
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-20 border-t border-white/10">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <BarChart3 size={40} className="mx-auto text-depro-blue mb-6" />
-          <h2 className="text-3xl md:text-4xl font-black mb-4">Ready to show this to your next club?</h2>
-          <p className="text-white/50 mb-8">
-            DEPRO is live, battle-tested in European academies, and ready for US expansion.
-          </p>
+      <section className="py-16 border-t border-gray-100">
+        <div className="max-w-2xl mx-auto px-4 text-center">
+          <BarChart3 size={36} className="mx-auto text-blue-600 mb-4" />
+          <h2 className="text-2xl md:text-3xl font-black mb-3">Ready for your next club meeting?</h2>
+          <p className="text-gray-500 mb-8">Share this page. Run the demo. Close the deal.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="mailto:info@depro.es?subject=DEPRO%20US%20Partnership" className="btn-primary px-8 py-4 rounded-xl font-bold">
+            <a href="mailto:info@depro.es?subject=DEPRO%20US%20Partnership" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-lg">
               Partner with DEPRO
             </a>
-            <Link to="/" className="inline-flex items-center justify-center px-8 py-4 rounded-xl border border-white/20 text-white/70 hover:text-white font-bold transition-colors">
+            <Link to="/" className="inline-flex items-center justify-center px-8 py-3.5 rounded-lg border border-gray-300 text-gray-600 font-bold hover:border-gray-400">
               depro.es
             </Link>
           </div>
         </div>
       </section>
 
-      <footer className="py-8 border-t border-white/5 text-center text-xs text-white/30">
-        © {new Date().getFullYear()} DEPRO · Club Performance OS · Confidential partner deck
+      <footer className="py-8 border-t border-gray-100 text-center text-xs text-gray-400">
+        © {new Date().getFullYear()} DEPRO · Confidential partner presentation · /us-clubs
       </footer>
     </div>
   );
