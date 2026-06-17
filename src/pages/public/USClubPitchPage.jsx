@@ -616,8 +616,8 @@ export default function USClubPitchPage() {
               Navigate the full club dashboard
             </h2>
             <p className="text-gray-400 text-lg leading-relaxed">
-              Click through every module — dashboard, microcycle, mesocycle, squad, tests, loads and task designer.
-              This is how coaches and directors actually use DEPRO day to day.
+              Full Sub-15 A roster (22 players), mesocycle calendar, microcycle sessions with drill videos,
+              physical tests and cross-module navigation. This is how coaches and directors actually use DEPRO day to day.
             </p>
           </div>
           <ClubDashboardExplorer
