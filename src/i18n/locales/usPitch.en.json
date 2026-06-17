@@ -1,0 +1,215 @@
+{
+  "nav": {
+    "brand": "Club Platform · US",
+    "overview": "Overview",
+    "example": "Example club",
+    "platform": "Platform",
+    "explorer": "Live dashboard",
+    "roi": "Club ROI",
+    "workflow": "Workflow",
+    "pricing": "Pricing",
+    "partner": "Partner",
+    "partnerCta": "Partner calculator"
+  },
+  "hero": {
+    "eyebrow": "Performance management for US youth clubs",
+    "title1": "Every session.",
+    "title2": "Every player.",
+    "title3": "Every metric — in one place.",
+    "desc": "DEPRO is a white-label platform for academies that need serious periodization, physical testing, load monitoring and squad intelligence — under their own brand.",
+    "ctaExplorer": "Explore full dashboard",
+    "ctaFeatures": "All features",
+    "statSetup": "Setup",
+    "statMonthly": "/ month · all sessions configured",
+    "statPartner": "Partner comm."
+  },
+  "carousel": {
+    "title": "Already implemented in clubs",
+    "subtitle": "Live environments running DEPRO"
+  },
+  "example": {
+    "eyebrow": "Concrete example",
+    "title": "How {{club}} uses DEPRO",
+    "desc": "A high-performance academy with 5 teams. Technical director wants one system instead of Excel + Google Drive + WhatsApp.",
+    "players": "Players registered",
+    "teams": "Teams",
+    "schedule": "Training schedule",
+    "coaches": "Coaching staff",
+    "coachesValue": "{{count}} coaches",
+    "sampleWeek": "Sample week — U15 Elite",
+    "playerSnapshot": "Player snapshot",
+    "playerPlan": "U15 Elite · Premium plan",
+    "directorOutcome": "Director outcome",
+    "directorQuote": "\"We finally show parents objective progress — not opinions. Sponsors see a professional operation.\"",
+    "directorRole": "— Technical Director, Fundació Cornellà",
+    "week": {
+      "monday": { "day": "Monday", "session": "Session A · Extensive", "load": "Low · 405 AU", "note": "Technical possession · 45 min · RPE 3" },
+      "wednesday": { "day": "Wednesday", "session": "Session B · Intensive", "load": "High · 890 AU", "note": "Pressing triggers · 75 min · RPE 7" },
+      "friday": { "day": "Friday", "session": "Session C · Reactive", "load": "Medium · 650 AU", "note": "Transition game · 60 min · RPE 5" },
+      "saturday": { "day": "Saturday", "session": "Match vs Gimnàstic Manresa", "load": "Peak · 720 AU", "note": "Load auto-tracked post-game" }
+    },
+    "metrics": {
+      "endurance": { "t": "Endurance T3", "v": "545 rectas", "r": "Excellent (+9% vs avg)" },
+      "sprint": { "t": "Sprint T3", "v": "2.78 s", "r": "Good (+4% vs avg)" },
+      "load": { "t": "Weekly load", "v": "Medium", "r": "Within team range" }
+    }
+  },
+  "platform": {
+    "eyebrow": "Platform walkthrough",
+    "title": "Every feature, one operating system",
+    "desc": "Explore the live demo on the left — click any capability on the right to see it in action."
+  },
+  "explorer": {
+    "eyebrow": "Hands-on preview",
+    "title": "Navigate the full club dashboard",
+    "desc": "Full Sub-15 A roster (22 players), mesocycle calendar, microcycle sessions with drill previews, physical tests and cross-module navigation. This is how coaches and directors actually use DEPRO day to day.",
+    "footnote": "Branded preview · {{club}} · corporate green theme"
+  },
+  "roi": {
+    "eyebrow": "Return on investment",
+    "title": "What clubs actually gain",
+    "desc": "DEPRO is not just software — it replaces hours of manual planning, reduces preventable injuries, and gives directors a retention tool parents understand. Adjust the sliders to model your academy.",
+    "assumptionModel": "Assumption model",
+    "scenarios": {
+      "conservative": { "label": "Conservative", "desc": "Minimal assumptions — easy to defend in a board meeting" },
+      "realistic": { "label": "Realistic", "desc": "Based on Fundació Cornellà · our default reference academy" },
+      "ambitious": { "label": "Ambitious", "desc": "Full adoption — every coach & director uses DEPRO daily" }
+    },
+    "coachingStaff": "Coaching staff",
+    "registeredPlayers": "Registered players",
+    "avgAnnualFee": "Avg. annual fee per player",
+    "modelInputs": "Model inputs ({{scenario}})",
+    "inputCoach": "{{hours}} h/week saved per coach · ${{rate}}/h loaded cost",
+    "inputAdmin": "{{hours}} h/week admin & coordination saved",
+    "inputRetention": "{{pct}}% retention lift · ${{amount}}/player injury savings",
+    "vsHiring": "vs. hiring in-house",
+    "analystText": "A US performance analyst or periodization specialist typically costs <strong>{{analystCost}}/year</strong> (salary + tools). DEPRO year 2+ is <strong>{{deproCost}}/year</strong>",
+    "analystSaving": " — saving <strong>{{saving}}</strong> vs. that hire while covering every team.",
+    "estimatedValue": "Estimated annual value",
+    "totalBenefit": "Total quantified benefit vs. {{cost}} year-one investment",
+    "breakEven": "≈ {{cost}}/player/month · break-even: retain {{players}} players/yr",
+    "year1Roi": "Year 1 ROI",
+    "payback": "Payback period",
+    "year2Roi": "Year 2+ ROI",
+    "hoursSaved": "Hours saved / yr",
+    "paybackMo": "{{months}} mo",
+    "coachPlanning": "Coach planning time saved",
+    "adminSaved": "Admin & coordination saved",
+    "retention": "Retention ({{pct}}% fewer exits)",
+    "injuryLoad": "Injury & load management",
+    "year1Net": "Year 1 net gain",
+    "savedPerWeek": "Saved per week",
+    "savedPerWeekSub": "{{coaches}} coaches × {{coachH}} h + {{adminH}} h admin — sessions built by DEPRO",
+    "playersRetained": "Players retained / yr",
+    "playersRetainedSub": "{{pct}}% lift on {{players}} players ≈ {{value}} value",
+    "injuryAvoided": "Injury cost avoided",
+    "injuryAvoidedSub": "${{amount}}/player · industry benchmark −15–25% soft-tissue with load monitoring",
+    "benefitMultiplier": "Benefit vs. annual fee",
+    "benefitMultiplierSub": "{{benefit}} value on {{fee}}/yr after setup year",
+    "disclaimer": "Illustrative model for partner conversations — not a financial guarantee. Actual ROI depends on club adoption, staff workflows and retention dynamics. Analyst comparison based on typical US academy salary benchmarks ($55–75k)."
+  },
+  "workflow": {
+    "eyebrow": "Implementation",
+    "title": "Live in 3 weeks. Not 3 months.",
+    "steps": {
+      "01": { "title": "Onboarding & branding", "time": "Week 1", "desc": "We configure your logo, colors, teams, training days and age blocks. Coaches receive login credentials." },
+      "02": { "title": "Plans go live", "time": "Week 2", "desc": "Microcycles and mesocycles appear automatically per category. Coaches open Session B on Wednesday — everything is ready." },
+      "03": { "title": "Squad & tests baseline", "time": "Week 3", "desc": "Roster imported. T1 physical tests recorded. Platform calculates team averages — every rating is relative, not generic." },
+      "04": { "title": "Weekly loads & evolution", "time": "Ongoing", "desc": "Coaches log volume, RPE and specificity. Directors see weekly traffic lights and T1→T2→T3 player evolution." }
+    },
+    "compareTitle": "Why clubs switch from spreadsheets",
+    "capability": "Capability",
+    "depro": "DEPRO",
+    "spreadsheets": "Spreadsheets",
+    "generic": "Generic apps",
+    "compareRows": {
+      "branded": "Branded club platform (logo + colors)",
+      "periodization": "Periodized micro / meso cycles",
+      "tests": "Physical tests vs team average",
+      "loads": "Load monitoring (sRPE-based)",
+      "pdf": "Session PDF exports",
+      "multiTeam": "Multi-team academy support"
+    },
+    "partial": "Partial",
+    "addon": "Add-on",
+    "limited": "Limited"
+  },
+  "pricing": {
+    "eyebrow": "Investment",
+    "title": "Enterprise-grade. Simple pricing.",
+    "desc": "Standard DEPRO club license on the left — or a fully custom platform built from zero on the right, scoped and quoted per project.",
+    "enterprise": {
+      "badge": "Club license · full deployment",
+      "subtitle": "Best for 4+ teams · DEPRO configures every mesocycle",
+      "setupLabel": "One-time setup — branding, teams & platform onboarding",
+      "monthlyLabel": "Monthly platform license",
+      "yearRecurring": "≈ {{amount}}/year recurring",
+      "included": "<strong>Included every month:</strong> DEPRO configures all sessions (A, B, C, D) for every team and category in each mesocycle — microcycles, tasks, loads and PDFs, ready to run.",
+      "features": [
+        "Full mesocycle training setup — every session configured",
+        "Unlimited teams & coaches",
+        "Full periodization engine",
+        "Physical tests + load suite",
+        "Branded PDF exports",
+        "Onboarding & priority support",
+        "Dedicated success contact"
+      ],
+      "cta": "Request live demo"
+    },
+    "custom": {
+      "badge": "Custom quote",
+      "title": "Custom software · from zero",
+      "subtitle": "Your own platform — AI, GPS, branding and workflows built around your club",
+      "setupLabel": "Full product development — discovery, build, launch & integrations",
+      "price": "On request",
+      "priceNote": "Scoped quote after requirements · investment typically <strong>well above {{setupFee}}</strong> for the standard license",
+      "highlight": "<strong>Not the off-the-shelf DEPRO app.</strong> We design and develop proprietary software for your organization — AI models, GPS/wearables pipelines, dashboards and mobile experiences tailored to your staff.",
+      "nexgent": "Powered by <strong>Nexgent AI technology</strong> — enterprise-grade intelligence layer for load prediction, recommendations and data pipelines.",
+      "features": [
+        "Custom AI — load alerts, injury risk & session recommendations",
+        "GPS / wearables integration (Catapult, STATSports, WIMU, APIs…)",
+        "Bespoke analytics & automated reporting",
+        "Periodization, tests & loads — your methodology, your UX",
+        "White-label app & web · your brand end-to-end",
+        "Dedicated engineering & success team"
+      ],
+      "cta": "Request a scoped quote"
+    },
+    "footnote": "Standard license example: {{club}} — {{setup}} setup + {{monthly}}/mo. Custom builds are quoted <strong>on request</strong> and scale with scope — Nexgent AI, GPS and multi-team architectures included."
+  },
+  "partner": {
+    "eyebrow": "Partner program",
+    "title": "Your commission calculator",
+    "desc": "Close a club at {{setup}} setup + {{monthly}}/mo and earn <strong>10%</strong> on both — {{setupComm}} upfront plus {{monthlyComm}}/month recurring per club.",
+    "clubsClosed": "Clubs closed per year",
+    "horizon": "Recurring horizon (months)",
+    "dealTerms": "10% on every deal you close:",
+    "setupComm": "{{comm}} per club setup ({{setup}})",
+    "monthlyComm": "{{comm}}/month per active club ({{monthly}}/mo)",
+    "setupCommissions": "Setup commissions (one-time)",
+    "recurring": "Recurring ({{months}} mo)",
+    "totalEarnings": "Total partner earnings",
+    "whileSubscribed": "+ {{amount}}/mo while clubs stay subscribed"
+  },
+  "faq": {
+    "title": "Common questions",
+    "items": {
+      "size": { "q": "Is this only for large academies?", "a": "No. The sweet spot is 2–8 teams (80–200 players). Fundació Cornellà in our example runs 5 teams on one license." },
+      "training": { "q": "Do coaches need training?", "a": "1-hour onboarding call per staff. The UI is built for coaches, not data scientists." },
+      "monthly": { "q": "What does the monthly fee include?", "a": "Platform access plus full configuration of all training sessions for every mesocycle — every team, every session type, ready before coaches step on the field. No building plans from scratch." },
+      "individual": { "q": "What about individual player plans?", "a": "DEPRO also offers individual player subscriptions — clubs can upsell private physical plans to families." },
+      "data": { "q": "Who owns the data?", "a": "The club. Export anytime. We do not sell player data." }
+    }
+  },
+  "cta": {
+    "title": "Ready for your next club meeting?",
+    "desc": "Share this page. Run the demo. Close the deal.",
+    "partner": "Partner with DEPRO",
+    "home": "depro.es"
+  },
+  "footer": "© {{year}} DEPRO · Confidential partner presentation · /us-clubs",
+  "lang": {
+    "en": "English",
+    "es": "Español"
+  }
+}

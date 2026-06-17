@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import {
   ArrowRight, BarChart3, Building2, Calendar, CheckCircle2,
   ChevronRight, Clock, DollarSign, MapPin, Sparkles,
@@ -7,25 +8,16 @@ import {
 } from "lucide-react";
 import { PlatformHeroQuickTour, PlatformFeatureShowcase } from "../../components/pitch/PlatformDemoFrames";
 import { ClubDashboardExplorer } from "../../components/pitch/ClubDashboardExplorer";
+import USPitchLanguageSwitcher, { initUSPitchLanguage } from "../../components/pitch/USPitchLanguageSwitcher";
 
 const SETUP_FEE = 15000;
 const MONTHLY_FEE = 1500;
-const BUDGET_SETUP_FEE = 5000;
-const BUDGET_MONTHLY_FEE = 750;
 const COMMISSION_RATE = 0.1;
 const ACCENT = "#0A36F7";
 const EXAMPLE_ACCENT = "#0D8F4D";
+const NEXGENT_LOGO = "/LOGO NEXGENT.png";
 
-const NAV = [
-  { id: "overview", label: "Overview" },
-  { id: "example", label: "Example club" },
-  { id: "platform", label: "Platform" },
-  { id: "explorer", label: "Live dashboard" },
-  { id: "roi", label: "Club ROI" },
-  { id: "workflow", label: "Workflow" },
-  { id: "pricing", label: "Pricing" },
-  { id: "partner", label: "Partner" },
-];
+const NAV_IDS = ["overview", "example", "platform", "explorer", "roi", "workflow", "pricing", "partner"];
 
 const EXAMPLE_CLUB = {
   name: "Fundació Cornellà",
@@ -45,35 +37,28 @@ const IMPLEMENTED_CLUB_LOGOS = [
   { name: "Club Partner 4", src: "/LOGO CLUBS/WhatsApp Image 2026-06-17 at 10.45.54.jpeg" },
 ];
 
-const WORKFLOW = [
-  { step: "01", title: "Onboarding & branding", time: "Week 1", desc: "We configure your logo, colors, teams, training days and age blocks. Coaches receive login credentials." },
-  { step: "02", title: "Plans go live", time: "Week 2", desc: "Microcycles and mesocycles appear automatically per category. Coaches open Session B on Wednesday — everything is ready." },
-  { step: "03", title: "Squad & tests baseline", time: "Week 3", desc: "Roster imported. T1 physical tests recorded. Platform calculates team averages — every rating is relative, not generic." },
-  { step: "04", title: "Weekly loads & evolution", time: "Ongoing", desc: "Coaches log volume, RPE and specificity. Directors see weekly traffic lights and T1→T2→T3 player evolution." },
+const COMPARE_ROW_KEYS = [
+  { key: "branded", depro: true, sheets: false, generic: false },
+  { key: "periodization", depro: true, sheets: "partial", generic: false },
+  { key: "tests", depro: true, sheets: false, generic: "addon" },
+  { key: "loads", depro: true, sheets: false, generic: false },
+  { key: "pdf", depro: true, sheets: false, generic: "limited" },
+  { key: "multiTeam", depro: true, sheets: true, generic: "limited" },
 ];
 
-const COMPARE_ROWS = [
-  { feature: "Branded club platform (logo + colors)", depro: true, sheets: false, generic: false },
-  { feature: "Periodized micro / meso cycles", depro: true, sheets: "Partial", generic: false },
-  { feature: "Physical tests vs team average", depro: true, sheets: false, generic: "Add-on" },
-  { feature: "Load monitoring (sRPE-based)", depro: true, sheets: false, generic: false },
-  { feature: "Session PDF exports", depro: true, sheets: false, generic: "Limited" },
-  { feature: "Multi-team academy support", depro: true, sheets: true, generic: "Limited" },
-];
+const FAQ_KEYS = ["size", "training", "monthly", "individual", "data"];
 
-const FAQ = [
-  { q: "Is this only for large academies?", a: "No. The sweet spot is 2–8 teams (80–200 players). Fundació Cornellà in our example runs 5 teams on one license." },
-  { q: "Do coaches need training?", a: "1-hour onboarding call per staff. The UI is built for coaches, not data scientists." },
-  { q: "What does the monthly fee include?", a: "Platform access plus full configuration of all training sessions for every mesocycle — every team, every session type, ready before coaches step on the field. No building plans from scratch." },
-  { q: "What about individual player plans?", a: "DEPRO also offers individual player subscriptions — clubs can upsell private physical plans to families." },
-  { q: "Who owns the data?", a: "The club. Export anytime. We do not sell player data." },
-];
+const WORKFLOW_KEYS = ["01", "02", "03", "04"];
+
+const EXAMPLE_WEEK_KEYS = ["monday", "wednesday", "friday", "saturday"];
+const EXAMPLE_METRIC_KEYS = ["endurance", "sprint", "load"];
 
 function fmtUSD(n) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
 function ImplementedClubsCarousel() {
+  const { t } = useTranslation("usPitch");
   const [startIdx, setStartIdx] = useState(0);
   const visibleCount = 3;
   const logos = IMPLEMENTED_CLUB_LOGOS.length ? IMPLEMENTED_CLUB_LOGOS : [];
@@ -91,8 +76,8 @@ function ImplementedClubsCarousel() {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Already implemented in clubs</p>
-        <span className="text-xs text-gray-500">Live environments running DEPRO</span>
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">{t("carousel.title")}</p>
+        <span className="text-xs text-gray-500">{t("carousel.subtitle")}</span>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {visible.map((club, idx) => (
@@ -109,8 +94,6 @@ const ANALYST_ANNUAL_COST = 65000;
 
 const ROI_SCENARIOS = {
   conservative: {
-    label: "Conservative",
-    desc: "Minimal assumptions — easy to defend in a board meeting",
     hoursSavedPerCoachWeek: 1.5,
     coachHourlyRate: 40,
     adminHoursSavedWeek: 2,
@@ -119,8 +102,6 @@ const ROI_SCENARIOS = {
     injuryReductionPerPlayer: 60,
   },
   realistic: {
-    label: "Realistic",
-    desc: "Based on Fundació Cornellà · our default reference academy",
     hoursSavedPerCoachWeek: 2.5,
     coachHourlyRate: 45,
     adminHoursSavedWeek: 3,
@@ -129,8 +110,6 @@ const ROI_SCENARIOS = {
     injuryReductionPerPlayer: 120,
   },
   ambitious: {
-    label: "Ambitious",
-    desc: "Full adoption — every coach & director uses DEPRO daily",
     hoursSavedPerCoachWeek: 4,
     coachHourlyRate: 50,
     adminHoursSavedWeek: 5,
@@ -141,6 +120,7 @@ const ROI_SCENARIOS = {
 };
 
 function ClubROICalculator() {
+  const { t } = useTranslation("usPitch");
   const [coaches, setCoaches] = useState(EXAMPLE_CLUB.coaches);
   const [players, setPlayers] = useState(EXAMPLE_CLUB.players);
   const [annualFee, setAnnualFee] = useState(2800);
@@ -202,11 +182,10 @@ function ClubROICalculator() {
 
   return (
     <div>
-      {/* Scenario toggle */}
       <div className="mb-10">
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Assumption model</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t("roi.assumptionModel")}</p>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(ROI_SCENARIOS).map(([key, s]) => (
+          {Object.keys(ROI_SCENARIOS).map((key) => (
             <button
               key={key}
               type="button"
@@ -217,72 +196,82 @@ function ClubROICalculator() {
                   : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
               }`}
             >
-              {s.label}
+              {t(`roi.scenarios.${key}.label`)}
             </button>
           ))}
         </div>
-        <p className="text-xs text-gray-500 mt-2">{scenario.desc}</p>
+        <p className="text-xs text-gray-500 mt-2">{t(`roi.scenarios.${scenarioKey}.desc`)}</p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-10 mb-8">
         <div className="space-y-7">
           <div>
             <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
-              <span>Coaching staff</span>
+              <span>{t("roi.coachingStaff")}</span>
               <span className="text-gray-900 font-black">{coaches}</span>
             </label>
             <input type="range" min={2} max={20} value={coaches} onChange={(e) => setCoaches(Number(e.target.value))} className="w-full accent-blue-600" />
           </div>
           <div>
             <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
-              <span>Registered players</span>
+              <span>{t("roi.registeredPlayers")}</span>
               <span className="text-gray-900 font-black">{players}</span>
             </label>
             <input type="range" min={40} max={250} step={2} value={players} onChange={(e) => setPlayers(Number(e.target.value))} className="w-full accent-blue-600" />
           </div>
           <div>
             <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
-              <span>Avg. annual fee per player</span>
+              <span>{t("roi.avgAnnualFee")}</span>
               <span className="text-gray-900 font-black">{fmtUSD(annualFee)}</span>
             </label>
             <input type="range" min={1500} max={6000} step={100} value={annualFee} onChange={(e) => setAnnualFee(Number(e.target.value))} className="w-full accent-blue-600" />
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3 text-sm">
-            <p className="font-bold text-gray-900">Model inputs ({scenario.label.toLowerCase()})</p>
+            <p className="font-bold text-gray-900">
+              {t("roi.modelInputs", { scenario: t(`roi.scenarios.${scenarioKey}.label`).toLowerCase() })}
+            </p>
             <ul className="text-xs text-gray-600 space-y-1.5">
-              <li>{scenario.hoursSavedPerCoachWeek} h/week saved per coach · ${scenario.coachHourlyRate}/h loaded cost</li>
-              <li>{scenario.adminHoursSavedWeek} h/week admin & coordination saved</li>
-              <li>{(scenario.retentionLiftPct * 100).toFixed(1)}% retention lift · ${scenario.injuryReductionPerPlayer}/player injury savings</li>
+              <li>{t("roi.inputCoach", { hours: scenario.hoursSavedPerCoachWeek, rate: scenario.coachHourlyRate })}</li>
+              <li>{t("roi.inputAdmin", { hours: scenario.adminHoursSavedWeek })}</li>
+              <li>{t("roi.inputRetention", { pct: (scenario.retentionLiftPct * 100).toFixed(1), amount: scenario.injuryReductionPerPlayer })}</li>
             </ul>
           </div>
 
           <div className="rounded-xl border-2 border-dashed border-gray-300 bg-white p-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">vs. hiring in-house</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">{t("roi.vsHiring")}</p>
             <p className="text-sm text-gray-700 leading-relaxed">
-              A US performance analyst or periodization specialist typically costs{" "}
-              <strong className="text-gray-900">{fmtUSD(ANALYST_ANNUAL_COST)}/year</strong> (salary + tools).
-              DEPRO year 2+ is <strong className="text-gray-900">{fmtUSD(roi.yearTwoPlusCost)}/year</strong>
+              <Trans
+                i18nKey="roi.analystText"
+                ns="usPitch"
+                values={{ analystCost: fmtUSD(ANALYST_ANNUAL_COST), deproCost: fmtUSD(roi.yearTwoPlusCost) }}
+                components={{ strong: <strong className="text-gray-900" /> }}
+              />
               {roi.analystSavings > 0 && (
-                <> — saving <strong className="text-green-700">{fmtUSD(roi.analystSavings)}</strong> vs. that hire while covering every team.</>
+                <Trans
+                  i18nKey="roi.analystSaving"
+                  ns="usPitch"
+                  values={{ saving: fmtUSD(roi.analystSavings) }}
+                  components={{ strong: <strong className="text-green-700" /> }}
+                />
               )}
             </p>
           </div>
         </div>
 
         <div className="rounded-2xl border-2 border-gray-900 bg-white p-6 md:p-8 shadow-lg">
-          <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Estimated annual value</div>
+          <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">{t("roi.estimatedValue")}</div>
           <div className="text-4xl md:text-5xl font-black text-gray-900 mb-1">{fmtUSD(roi.totalBenefit)}</div>
-          <p className="text-sm text-gray-500 mb-2">Total quantified benefit vs. {fmtUSD(roi.yearOneCost)} year-one investment</p>
+          <p className="text-sm text-gray-500 mb-2">{t("roi.totalBenefit", { cost: fmtUSD(roi.yearOneCost) })}</p>
           <p className="text-xs text-blue-700 font-semibold mb-6">
-            ≈ {fmtUSD(roi.costPerPlayerMonth)}/player/month · break-even: retain {roi.breakEvenPlayersRetained.toFixed(1)} players/yr
+            {t("roi.breakEven", { cost: fmtUSD(roi.costPerPlayerMonth), players: roi.breakEvenPlayersRetained.toFixed(1) })}
           </p>
           <div className="grid grid-cols-2 gap-3 mb-6">
             {[
-              { l: "Year 1 ROI", v: `${Math.round(roi.yearOneROI)}%`, highlight: true },
-              { l: "Payback period", v: `${roi.paybackMonths} mo`, highlight: false },
-              { l: "Year 2+ ROI", v: `${Math.round(roi.yearTwoROI)}%`, highlight: false },
-              { l: "Hours saved / yr", v: `${roi.hoursSavedTotal.toLocaleString()}h`, highlight: false },
+              { l: t("roi.year1Roi"), v: `${Math.round(roi.yearOneROI)}%`, highlight: true },
+              { l: t("roi.payback"), v: t("roi.paybackMo", { months: roi.paybackMonths }), highlight: false },
+              { l: t("roi.year2Roi"), v: `${Math.round(roi.yearTwoROI)}%`, highlight: false },
+              { l: t("roi.hoursSaved"), v: `${roi.hoursSavedTotal.toLocaleString()}h`, highlight: false },
             ].map((s) => (
               <div key={s.l} className={`rounded-xl p-3 border ${s.highlight ? "border-blue-200 bg-blue-50" : "border-gray-100 bg-gray-50"}`}>
                 <div className="text-[10px] font-bold uppercase text-gray-400">{s.l}</div>
@@ -292,10 +281,10 @@ function ClubROICalculator() {
           </div>
           <div className="border-t border-gray-100 pt-4 space-y-2 text-sm">
             {[
-              { l: "Coach planning time saved", v: roi.coachTimeSaved },
-              { l: "Admin & coordination saved", v: roi.adminTimeSaved },
-              { l: `Retention (${(roi.retentionLiftPct * 100).toFixed(1)}% fewer exits)`, v: roi.retentionValue },
-              { l: "Injury & load management", v: roi.injurySavings },
+              { l: t("roi.coachPlanning"), v: roi.coachTimeSaved },
+              { l: t("roi.adminSaved"), v: roi.adminTimeSaved },
+              { l: t("roi.retention", { pct: (roi.retentionLiftPct * 100).toFixed(1) }), v: roi.retentionValue },
+              { l: t("roi.injuryLoad"), v: roi.injurySavings },
             ].map((row) => (
               <div key={row.l} className="flex justify-between gap-4">
                 <span className="text-gray-500">{row.l}</span>
@@ -303,7 +292,7 @@ function ClubROICalculator() {
               </div>
             ))}
             <div className="flex justify-between gap-4 pt-2 border-t border-gray-100 font-bold">
-              <span className="text-gray-900">Year 1 net gain</span>
+              <span className="text-gray-900">{t("roi.year1Net")}</span>
               <span className={roi.yearOneNet >= 0 ? "text-green-600" : "text-red-600"}>{fmtUSD(roi.yearOneNet)}</span>
             </div>
           </div>
@@ -315,26 +304,26 @@ function ClubROICalculator() {
           {
             icon: Clock,
             stat: `${roi.hoursSavedPerWeek}h`,
-            label: "Saved per week",
-            sub: `${coaches} coaches × ${scenario.hoursSavedPerCoachWeek} h + ${scenario.adminHoursSavedWeek} h admin — sessions built by DEPRO`,
+            label: t("roi.savedPerWeek"),
+            sub: t("roi.savedPerWeekSub", { coaches, coachH: scenario.hoursSavedPerCoachWeek, adminH: scenario.adminHoursSavedWeek }),
           },
           {
             icon: Users,
             stat: roi.playersRetained.toFixed(1),
-            label: "Players retained / yr",
-            sub: `${(roi.retentionLiftPct * 100).toFixed(1)}% lift on ${players} players ≈ ${fmtUSD(roi.retentionValue)} value`,
+            label: t("roi.playersRetained"),
+            sub: t("roi.playersRetainedSub", { pct: (roi.retentionLiftPct * 100).toFixed(1), players, value: fmtUSD(roi.retentionValue) }),
           },
           {
             icon: TrendingUp,
             stat: fmtUSD(roi.injurySavings),
-            label: "Injury cost avoided",
-            sub: `$${scenario.injuryReductionPerPlayer}/player · industry benchmark −15–25% soft-tissue with load monitoring`,
+            label: t("roi.injuryAvoided"),
+            sub: t("roi.injuryAvoidedSub", { amount: scenario.injuryReductionPerPlayer }),
           },
           {
             icon: DollarSign,
             stat: `${roi.benefitMultiplier.toFixed(1)}×`,
-            label: "Benefit vs. annual fee",
-            sub: `${fmtUSD(roi.totalBenefit)} value on ${fmtUSD(roi.yearTwoPlusCost)}/yr after setup year`,
+            label: t("roi.benefitMultiplier"),
+            sub: t("roi.benefitMultiplierSub", { benefit: fmtUSD(roi.totalBenefit), fee: fmtUSD(roi.yearTwoPlusCost) }),
           },
         ].map((item) => (
           <div key={item.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -347,14 +336,14 @@ function ClubROICalculator() {
       </div>
 
       <p className="text-[11px] text-gray-400 leading-relaxed text-center max-w-3xl mx-auto">
-        Illustrative model for partner conversations — not a financial guarantee. Actual ROI depends on club adoption,
-        staff workflows and retention dynamics. Analyst comparison based on typical US academy salary benchmarks ($55–75k).
+        {t("roi.disclaimer")}
       </p>
     </div>
   );
 }
 
 function PartnerCalculator() {
+  const { t } = useTranslation("usPitch");
   const [clubs, setClubs] = useState(4);
   const [months, setMonths] = useState(12);
 
@@ -376,37 +365,37 @@ function PartnerCalculator() {
       <div className="space-y-8">
         <div>
           <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
-            <span>Clubs closed per year</span>
+            <span>{t("partner.clubsClosed")}</span>
             <span className="text-gray-900 font-black text-xl">{clubs}</span>
           </label>
           <input type="range" min={1} max={24} value={clubs} onChange={(e) => setClubs(Number(e.target.value))} className="w-full accent-blue-600" />
         </div>
         <div>
           <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
-            <span>Recurring horizon (months)</span>
+            <span>{t("partner.horizon")}</span>
             <span className="text-gray-900 font-black text-xl">{months}</span>
           </label>
           <input type="range" min={1} max={36} value={months} onChange={(e) => setMonths(Number(e.target.value))} className="w-full accent-blue-600" />
         </div>
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 space-y-2">
-          <p className="font-semibold text-gray-900">10% on every deal you close:</p>
+          <p className="font-semibold text-gray-900">{t("partner.dealTerms")}</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>{fmtUSD(calc.setupComm)} per club setup ({fmtUSD(SETUP_FEE)})</li>
-            <li>{fmtUSD(calc.monthlyComm)}/month per active club ({fmtUSD(MONTHLY_FEE)}/mo)</li>
+            <li>{t("partner.setupComm", { comm: fmtUSD(calc.setupComm), setup: fmtUSD(SETUP_FEE) })}</li>
+            <li>{t("partner.monthlyComm", { comm: fmtUSD(calc.monthlyComm), monthly: fmtUSD(MONTHLY_FEE) })}</li>
           </ul>
         </div>
       </div>
       <div className="space-y-4">
         {[
-          { label: "Setup commissions (one-time)", value: calc.oneTime },
-          { label: `Recurring (${months} mo)`, value: calc.recurringTotal },
-          { label: "Total partner earnings", value: calc.yearOne, highlight: true },
+          { label: t("partner.setupCommissions"), value: calc.oneTime },
+          { label: t("partner.recurring", { months }), value: calc.recurringTotal },
+          { label: t("partner.totalEarnings"), value: calc.yearOne, highlight: true },
         ].map((r) => (
           <div key={r.label} className={`rounded-xl border p-5 ${r.highlight ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-white"}`}>
             <div className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">{r.label}</div>
             <div className={`font-black stat-number ${r.highlight ? "text-4xl text-blue-700" : "text-2xl text-gray-900"}`}>{fmtUSD(r.value)}</div>
             {r.highlight && (
-              <p className="text-sm text-gray-500 mt-2">+ {fmtUSD(calc.recurringPerMonth)}/mo while clubs stay subscribed</p>
+              <p className="text-sm text-gray-500 mt-2">{t("partner.whileSubscribed", { amount: fmtUSD(calc.recurringPerMonth) })}</p>
             )}
           </div>
         ))}
@@ -416,8 +405,13 @@ function PartnerCalculator() {
 }
 
 export default function USClubPitchPage() {
+  const { t, i18n } = useTranslation("usPitch");
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    initUSPitchLanguage(i18n);
+  }, [i18n]);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 12);
@@ -437,26 +431,32 @@ export default function USClubPitchPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <img src="/logo.png" alt="DEPRO" className="h-7 w-auto" />
-            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-gray-400">Club Platform · US</span>
+            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-gray-400">{t("nav.brand")}</span>
           </Link>
           <nav className="hidden lg:flex items-center gap-1">
-            {NAV.map((n) => (
-              <button key={n.id} type="button" onClick={() => scrollTo(n.id)} className="px-3 py-2 text-xs font-semibold text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-50">
-                {n.label}
+            {NAV_IDS.map((id) => (
+              <button key={id} type="button" onClick={() => scrollTo(id)} className="px-3 py-2 text-xs font-semibold text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-50">
+                {t(`nav.${id}`)}
               </button>
             ))}
           </nav>
-          <button type="button" onClick={() => scrollTo("partner")} className="hidden sm:flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
-            Partner calculator <ChevronRight size={14} />
-          </button>
+          <div className="hidden sm:flex items-center gap-2">
+            <USPitchLanguageSwitcher />
+            <button type="button" onClick={() => scrollTo("partner")} className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+              {t("nav.partnerCta")} <ChevronRight size={14} />
+            </button>
+          </div>
           <button type="button" className="lg:hidden p-2" onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
         {menuOpen && (
           <div className="lg:hidden border-t border-gray-100 px-4 py-3 bg-white space-y-1">
-            {NAV.map((n) => (
-              <button key={n.id} type="button" onClick={() => scrollTo(n.id)} className="block w-full text-left py-2.5 text-sm font-medium text-gray-600">{n.label}</button>
+            <div className="pb-3 mb-2 border-b border-gray-100">
+              <USPitchLanguageSwitcher />
+            </div>
+            {NAV_IDS.map((id) => (
+              <button key={id} type="button" onClick={() => scrollTo(id)} className="block w-full text-left py-2.5 text-sm font-medium text-gray-600">{t(`nav.${id}`)}</button>
             ))}
           </div>
         )}
@@ -467,27 +467,24 @@ export default function USClubPitchPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-4">Performance management for US youth clubs</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-4">{t("hero.eyebrow")}</p>
               <h1 className="text-4xl md:text-5xl lg:text-[3.25rem] font-black tracking-tight leading-[1.05] text-gray-900 mb-6">
-                Every session.<br />Every player.<br />Every metric — in one place.
+                {t("hero.title1")}<br />{t("hero.title2")}<br />{t("hero.title3")}
               </h1>
-              <p className="text-lg text-gray-600 leading-relaxed mb-8 max-w-xl">
-                DEPRO is a white-label platform for academies that need serious periodization,
-                physical testing, load monitoring and squad intelligence — under their own brand.
-              </p>
+              <p className="text-lg text-gray-600 leading-relaxed mb-8 max-w-xl">{t("hero.desc")}</p>
               <div className="flex flex-wrap gap-3 mb-10">
                 <button type="button" onClick={() => scrollTo("explorer")} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3.5 rounded-lg transition-colors">
-                  Explore full dashboard <ArrowRight size={18} />
+                  {t("hero.ctaExplorer")} <ArrowRight size={18} />
                 </button>
                 <button type="button" onClick={() => scrollTo("platform")} className="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-800 font-bold px-6 py-3.5 rounded-lg transition-colors">
-                  All features
+                  {t("hero.ctaFeatures")}
                 </button>
               </div>
               <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
                 {[
-                  { v: "$15k", l: "Setup" },
-                  { v: "$1.5k", l: "/ month · all sessions configured" },
-                  { v: "10%", l: "Partner comm." },
+                  { v: "$15k", l: t("hero.statSetup") },
+                  { v: "$1.5k", l: t("hero.statMonthly") },
+                  { v: "10%", l: t("hero.statPartner") },
                 ].map((s) => (
                   <div key={s.l}>
                     <div className="text-2xl font-black text-gray-900">{s.v}</div>
@@ -513,11 +510,9 @@ export default function USClubPitchPage() {
       <section id="example" className="py-20 bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="max-w-2xl mb-12">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Concrete example</p>
-            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">How {EXAMPLE_CLUB.name} uses DEPRO</h2>
-            <p className="text-gray-600 leading-relaxed">
-              A high-performance academy with 5 teams. Technical director wants one system instead of Excel + Google Drive + WhatsApp.
-            </p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t("example.eyebrow")}</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">{t("example.title", { club: EXAMPLE_CLUB.name })}</h2>
+            <p className="text-gray-600 leading-relaxed">{t("example.desc")}</p>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6 mb-10">
@@ -533,10 +528,10 @@ export default function USClubPitchPage() {
               </div>
               <div className="grid sm:grid-cols-2 gap-4 mb-6">
                 {[
-                  { icon: Users, label: "Players registered", value: String(EXAMPLE_CLUB.players) },
-                  { icon: Building2, label: "Teams", value: String(EXAMPLE_CLUB.teams) },
-                  { icon: Calendar, label: "Training schedule", value: EXAMPLE_CLUB.trainingDays },
-                  { icon: Target, label: "Coaching staff", value: `${EXAMPLE_CLUB.coaches} coaches` },
+                  { icon: Users, label: t("example.players"), value: String(EXAMPLE_CLUB.players) },
+                  { icon: Building2, label: t("example.teams"), value: String(EXAMPLE_CLUB.teams) },
+                  { icon: Calendar, label: t("example.schedule"), value: EXAMPLE_CLUB.trainingDays },
+                  { icon: Target, label: t("example.coaches"), value: t("example.coachesValue", { count: EXAMPLE_CLUB.coaches }) },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-4">
                     <item.icon size={18} className="flex-shrink-0" style={{ color: EXAMPLE_ACCENT }} />
@@ -548,47 +543,42 @@ export default function USClubPitchPage() {
                 ))}
               </div>
               <div className="border-t border-gray-100 pt-6 space-y-4">
-                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Sample week — U15 Elite</h4>
-                {[
-                  { day: "Monday", session: "Session A · Extensive", load: "Low · 405 AU", note: "Technical possession · 45 min · RPE 3" },
-                  { day: "Wednesday", session: "Session B · Intensive", load: "High · 890 AU", note: "Pressing triggers · 75 min · RPE 7" },
-                  { day: "Friday", session: "Session C · Reactive", load: "Medium · 650 AU", note: "Transition game · 60 min · RPE 5" },
-                  { day: "Saturday", session: "Match vs Gimnàstic Manresa", load: "Peak · 720 AU", note: "Load auto-tracked post-game" },
-                ].map((row) => (
-                  <div key={row.day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide">{t("example.sampleWeek")}</h4>
+                {EXAMPLE_WEEK_KEYS.map((key) => {
+                  const row = t(`example.week.${key}`, { returnObjects: true });
+                  return (
+                  <div key={key} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm border-b border-gray-50 pb-3 last:border-0 last:pb-0">
                     <span className="font-bold text-gray-900 w-24 flex-shrink-0">{row.day}</span>
                     <span className="font-semibold w-44 flex-shrink-0" style={{ color: EXAMPLE_ACCENT }}>{row.session}</span>
                     <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit">{row.load}</span>
                     <span className="text-gray-500 text-xs">{row.note}</span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <div className="text-xs font-bold text-gray-400 uppercase mb-3">Player snapshot</div>
+                <div className="text-xs font-bold text-gray-400 uppercase mb-3">{t("example.playerSnapshot")}</div>
                 <div className="font-black text-gray-900 mb-1">Pol García · CM · #8</div>
-                <div className="text-xs text-gray-500 mb-4">U15 Elite · Premium plan</div>
+                <div className="text-xs text-gray-500 mb-4">{t("example.playerPlan")}</div>
                 <div className="space-y-2 text-xs">
-                  {[
-                    { t: "Endurance T3", v: "545 rectas", r: "Excellent (+9% vs avg)" },
-                    { t: "Sprint T3", v: "2.78 s", r: "Good (+4% vs avg)" },
-                    { t: "Weekly load", v: "Medium", r: "Within team range" },
-                  ].map((m) => (
-                    <div key={m.t} className="flex justify-between gap-2 py-2 border-b border-gray-50 last:border-0">
+                  {EXAMPLE_METRIC_KEYS.map((key) => {
+                    const m = t(`example.metrics.${key}`, { returnObjects: true });
+                    return (
+                    <div key={key} className="flex justify-between gap-2 py-2 border-b border-gray-50 last:border-0">
                       <span className="text-gray-500">{m.t}</span>
                       <span className="font-bold text-gray-800 text-right">{m.v}<br /><span className="text-green-600 font-semibold">{m.r}</span></span>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
               <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
-                <div className="text-xs font-bold text-green-700 uppercase mb-2">Director outcome</div>
-                <p className="text-sm text-green-900 leading-relaxed">
-                  "We finally show parents objective progress — not opinions. Sponsors see a professional operation."
-                </p>
-                <p className="text-xs text-green-700 mt-2 font-semibold">— Technical Director, Fundació Cornellà</p>
+                <div className="text-xs font-bold text-green-700 uppercase mb-2">{t("example.directorOutcome")}</div>
+                <p className="text-sm text-green-900 leading-relaxed">{t("example.directorQuote")}</p>
+                <p className="text-xs text-green-700 mt-2 font-semibold">{t("example.directorRole")}</p>
               </div>
             </div>
           </div>
@@ -599,11 +589,9 @@ export default function USClubPitchPage() {
       <section id="platform" className="py-20 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="max-w-2xl mb-14">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Platform walkthrough</p>
-            <h2 className="text-3xl md:text-4xl font-black mb-4">Every feature, one operating system</h2>
-            <p className="text-gray-600 leading-relaxed">
-              Explore the live demo on the left — click any capability on the right to see it in action.
-            </p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t("platform.eyebrow")}</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">{t("platform.title")}</h2>
+            <p className="text-gray-600 leading-relaxed">{t("platform.desc")}</p>
           </div>
           <PlatformFeatureShowcase accent={ACCENT} />
         </div>
@@ -613,14 +601,9 @@ export default function USClubPitchPage() {
       <section id="explorer" className="py-20 md:py-28 bg-gray-900 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mb-10 md:mb-14">
-            <p className="text-xs font-bold uppercase tracking-widest text-green-400 mb-3">Hands-on preview</p>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4">
-              Navigate the full club dashboard
-            </h2>
-            <p className="text-gray-400 text-lg leading-relaxed">
-              Full Sub-15 A roster (22 players), mesocycle calendar, microcycle sessions with drill previews,
-              physical tests and cross-module navigation. This is how coaches and directors actually use DEPRO day to day.
-            </p>
+            <p className="text-xs font-bold uppercase tracking-widest text-green-400 mb-3">{t("explorer.eyebrow")}</p>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4">{t("explorer.title")}</h2>
+            <p className="text-gray-400 text-lg leading-relaxed">{t("explorer.desc")}</p>
           </div>
           <ClubDashboardExplorer
             club={{
@@ -631,9 +614,7 @@ export default function USClubPitchPage() {
               team: "Sub-15 A",
             }}
           />
-          <p className="text-center text-xs text-gray-500 mt-6">
-            Branded preview · {EXAMPLE_CLUB.name} · corporate green theme
-          </p>
+          <p className="text-center text-xs text-gray-500 mt-6">{t("explorer.footnote", { club: EXAMPLE_CLUB.name })}</p>
         </div>
       </section>
 
@@ -641,12 +622,9 @@ export default function USClubPitchPage() {
       <section id="roi" className="py-20 bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="max-w-2xl mb-12">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Return on investment</p>
-            <h2 className="text-3xl md:text-4xl font-black mb-4">What clubs actually gain</h2>
-            <p className="text-gray-600 leading-relaxed">
-              DEPRO is not just software — it replaces hours of manual planning, reduces preventable injuries,
-              and gives directors a retention tool parents understand. Adjust the sliders to model your academy.
-            </p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t("roi.eyebrow")}</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">{t("roi.title")}</h2>
+            <p className="text-gray-600 leading-relaxed">{t("roi.desc")}</p>
           </div>
           <ClubROICalculator />
         </div>
@@ -656,41 +634,43 @@ export default function USClubPitchPage() {
       <section id="workflow" className="py-20 bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="max-w-2xl mb-12">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Implementation</p>
-            <h2 className="text-3xl md:text-4xl font-black mb-4">Live in 3 weeks. Not 3 months.</h2>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t("workflow.eyebrow")}</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">{t("workflow.title")}</h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {WORKFLOW.map((w) => (
-              <div key={w.step} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                <div className="text-3xl font-black text-blue-100 mb-2">{w.step}</div>
+            {WORKFLOW_KEYS.map((step) => {
+              const w = t(`workflow.steps.${step}`, { returnObjects: true });
+              return (
+              <div key={step} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                <div className="text-3xl font-black text-blue-100 mb-2">{step}</div>
                 <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 mb-2">
                   <Clock size={12} /> {w.time}
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2">{w.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{w.desc}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Comparison table */}
           <div className="mt-16 rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-              <h3 className="font-black text-gray-900">Why clubs switch from spreadsheets</h3>
+              <h3 className="font-black text-gray-900">{t("workflow.compareTitle")}</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 text-left">
-                    <th className="px-6 py-3 text-xs font-bold text-gray-400 uppercase">Capability</th>
-                    <th className="px-4 py-3 text-xs font-bold text-blue-600 uppercase text-center">DEPRO</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase text-center">Spreadsheets</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase text-center">Generic apps</th>
+                    <th className="px-6 py-3 text-xs font-bold text-gray-400 uppercase">{t("workflow.capability")}</th>
+                    <th className="px-4 py-3 text-xs font-bold text-blue-600 uppercase text-center">{t("workflow.depro")}</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase text-center">{t("workflow.spreadsheets")}</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase text-center">{t("workflow.generic")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {COMPARE_ROWS.map((row) => (
-                    <tr key={row.feature} className="border-b border-gray-50">
-                      <td className="px-6 py-3 text-gray-700">{row.feature}</td>
+                  {COMPARE_ROW_KEYS.map((row) => (
+                    <tr key={row.key} className="border-b border-gray-50">
+                      <td className="px-6 py-3 text-gray-700">{t(`workflow.compareRows.${row.key}`)}</td>
                       {["depro", "sheets", "generic"].map((k) => {
                         const val = row[k];
                         return (
@@ -700,7 +680,7 @@ export default function USClubPitchPage() {
                             ) : val === false ? (
                               <span className="text-gray-300">—</span>
                             ) : (
-                              <span className="text-xs font-semibold text-amber-600">{val}</span>
+                              <span className="text-xs font-semibold text-amber-600">{t(`workflow.${val}`)}</span>
                             )}
                           </td>
                         );
@@ -718,85 +698,80 @@ export default function USClubPitchPage() {
       <section id="pricing" className="py-20 bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-xl mx-auto mb-12">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Investment</p>
-            <h2 className="text-3xl md:text-4xl font-black mb-4">Enterprise-grade. Simple pricing.</h2>
-            <p className="text-gray-600">
-              Two entry points: full white-glove deployment for large academies, or a lower-budget tier
-              with AI insights and GPS data built in.
-            </p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t("pricing.eyebrow")}</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">{t("pricing.title")}</h2>
+            <p className="text-gray-600">{t("pricing.desc")}</p>
           </div>
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto items-start">
             <div className="rounded-2xl border-2 border-gray-900 bg-white p-8 shadow-lg">
-              <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Club license · full deployment</div>
-              <p className="text-xs font-semibold text-gray-500 mb-6">Best for 4+ teams · DEPRO configures every mesocycle</p>
-              <div className="mb-1 text-sm text-gray-500">One-time setup — branding, teams & platform onboarding</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{t("pricing.enterprise.badge")}</div>
+              <p className="text-xs font-semibold text-gray-500 mb-6">{t("pricing.enterprise.subtitle")}</p>
+              <div className="mb-1 text-sm text-gray-500">{t("pricing.enterprise.setupLabel")}</div>
               <div className="text-5xl font-black text-gray-900 mb-6">{fmtUSD(SETUP_FEE)}</div>
               <div className="border-t border-gray-100 pt-6 mb-6">
-                <div className="text-sm text-gray-500 mb-1">Monthly platform license</div>
+                <div className="text-sm text-gray-500 mb-1">{t("pricing.enterprise.monthlyLabel")}</div>
                 <div className="text-4xl font-black text-gray-900">{fmtUSD(MONTHLY_FEE)}<span className="text-base font-semibold text-gray-400">/mo</span></div>
-                <div className="text-xs text-gray-400 mt-1">≈ {fmtUSD(MONTHLY_FEE * 12)}/year recurring</div>
+                <div className="text-xs text-gray-400 mt-1">{t("pricing.enterprise.yearRecurring", { amount: fmtUSD(MONTHLY_FEE * 12) })}</div>
                 <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-900 leading-relaxed">
-                  <strong className="font-bold">Included every month:</strong> DEPRO configures all sessions (A, B, C, D) for every team and category in each mesocycle — microcycles, tasks, loads and PDFs, ready to run.
+                  <Trans i18nKey="pricing.enterprise.included" ns="usPitch" components={{ strong: <strong className="font-bold" /> }} />
                 </div>
               </div>
               <ul className="space-y-2.5 mb-8 text-sm text-gray-600">
-                {[
-                  "Full mesocycle training setup — every session configured",
-                  "Unlimited teams & coaches",
-                  "Full periodization engine",
-                  "Physical tests + load suite",
-                  "Branded PDF exports",
-                  "Onboarding & priority support",
-                  "Dedicated success contact",
-                ].map((i) => (
-                  <li key={i} className="flex gap-2"><CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />{i}</li>
+                {(t("pricing.enterprise.features", { returnObjects: true }) || []).map((item) => (
+                  <li key={item} className="flex gap-2"><CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />{item}</li>
                 ))}
               </ul>
               <a href="mailto:info@depro.es?subject=DEPRO%20US%20Club%20Demo" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-white font-bold transition-colors">
-                <Mail size={16} /> Request live demo
+                <Mail size={16} /> {t("pricing.enterprise.cta")}
               </a>
             </div>
 
             <div className="rounded-2xl border-2 border-blue-200 bg-white p-8 shadow-lg relative">
               <span className="absolute -top-3 left-6 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-blue-600 text-white">
-                Lower budget · AI-powered
+                {t("pricing.custom.badge")}
               </span>
-              <div className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-2 mt-2">Performance intelligence</div>
-              <p className="text-xs font-semibold text-gray-500 mb-6">Ideal for 1–3 teams · smart automation & data integrations</p>
-              <div className="mb-1 text-sm text-gray-500">One-time setup — teams, branding & data connectors</div>
-              <div className="text-5xl font-black text-gray-900 mb-6">{fmtUSD(BUDGET_SETUP_FEE)}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-2 mt-2">{t("pricing.custom.title")}</div>
+              <p className="text-xs font-semibold text-gray-500 mb-6">{t("pricing.custom.subtitle")}</p>
+              <div className="mb-1 text-sm text-gray-500">{t("pricing.custom.setupLabel")}</div>
+              <div className="text-4xl md:text-5xl font-black text-gray-900 mb-2">{t("pricing.custom.price")}</div>
+              <p className="text-sm font-semibold text-gray-600 mb-4">
+                <Trans i18nKey="pricing.custom.priceNote" ns="usPitch" values={{ setupFee: fmtUSD(SETUP_FEE) }} components={{ strong: <strong className="text-gray-900" /> }} />
+              </p>
+              <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 mb-6">
+                <img src={NEXGENT_LOGO} alt="Nexgent" className="h-8 w-auto object-contain flex-shrink-0" />
+                <p className="text-xs text-gray-700 leading-relaxed">
+                  <Trans i18nKey="pricing.custom.nexgent" ns="usPitch" components={{ strong: <strong className="font-bold text-gray-900" /> }} />
+                </p>
+              </div>
               <div className="border-t border-gray-100 pt-6 mb-6">
-                <div className="text-sm text-gray-500 mb-1">Monthly platform license</div>
-                <div className="text-4xl font-black text-gray-900">{fmtUSD(BUDGET_MONTHLY_FEE)}<span className="text-base font-semibold text-gray-400">/mo</span></div>
-                <div className="text-xs text-gray-400 mt-1">≈ {fmtUSD(BUDGET_MONTHLY_FEE * 12)}/year recurring</div>
-                <div className="mt-4 rounded-lg border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-900 leading-relaxed">
-                  <strong className="font-bold">AI + GPS included:</strong> automated load alerts, session recommendations and external tracking data synced into one dashboard.
+                <div className="rounded-lg border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-900 leading-relaxed">
+                  <Trans i18nKey="pricing.custom.highlight" ns="usPitch" components={{ strong: <strong className="font-bold" /> }} />
                 </div>
               </div>
               <ul className="space-y-2.5 mb-8 text-sm text-gray-600">
-                {[
-                  { t: "AI load & injury risk alerts", icon: Sparkles },
-                  { t: "GPS / wearables import (Catapult, STATSports, WIMU…)", icon: MapPin },
-                  { t: "Automated weekly performance reports", icon: BarChart3 },
-                  { t: "Microcycle templates + task designer", icon: Calendar },
-                  { t: "Physical tests vs team average", icon: Target },
-                  { t: "sRPE load monitoring & traffic lights", icon: TrendingUp },
-                  { t: "Up to 3 teams · standard support", icon: Users },
-                ].map(({ t, icon: Icon }) => (
-                  <li key={t} className="flex gap-2">
+                {(t("pricing.custom.features", { returnObjects: true }) || []).map((item, i) => {
+                  const icons = [Sparkles, MapPin, BarChart3, Calendar, Building2, Users];
+                  const Icon = icons[i] || Sparkles;
+                  return (
+                  <li key={item} className="flex gap-2">
                     <Icon size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
-                    {t}
+                    {item}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
-              <a href="mailto:info@depro.es?subject=DEPRO%20US%20Performance%20Intelligence" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors">
-                <Mail size={16} /> Talk about this tier
+              <a href="mailto:info@depro.es?subject=DEPRO%20Custom%20Software%20Quote" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors">
+                <Mail size={16} /> {t("pricing.custom.cta")}
               </a>
             </div>
           </div>
           <p className="text-center text-xs text-gray-400 mt-6 max-w-2xl mx-auto">
-            Example full deployment: {EXAMPLE_CLUB.name} — {fmtUSD(SETUP_FEE)} setup + {fmtUSD(MONTHLY_FEE)}/mo.
-            Smaller academies often start on Performance Intelligence at {fmtUSD(BUDGET_SETUP_FEE)} + {fmtUSD(BUDGET_MONTHLY_FEE)}/mo.
+            <Trans
+              i18nKey="pricing.footnote"
+              ns="usPitch"
+              values={{ club: EXAMPLE_CLUB.name, setup: fmtUSD(SETUP_FEE), monthly: fmtUSD(MONTHLY_FEE) }}
+              components={{ strong: <strong className="text-gray-500" /> }}
+            />
           </p>
         </div>
       </section>
@@ -805,11 +780,20 @@ export default function USClubPitchPage() {
       <section id="partner" className="py-20 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="max-w-2xl mb-12">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Partner program</p>
-            <h2 className="text-3xl md:text-4xl font-black mb-4">Your commission calculator</h2>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t("partner.eyebrow")}</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">{t("partner.title")}</h2>
             <p className="text-gray-600 leading-relaxed">
-              Close a club at {fmtUSD(SETUP_FEE)} setup + {fmtUSD(MONTHLY_FEE)}/mo and earn <strong>10%</strong> on both —
-              {fmtUSD(SETUP_FEE * COMMISSION_RATE)} upfront plus {fmtUSD(MONTHLY_FEE * COMMISSION_RATE)}/month recurring per club.
+              <Trans
+                i18nKey="partner.desc"
+                ns="usPitch"
+                values={{
+                  setup: fmtUSD(SETUP_FEE),
+                  monthly: fmtUSD(MONTHLY_FEE),
+                  setupComm: fmtUSD(SETUP_FEE * COMMISSION_RATE),
+                  monthlyComm: fmtUSD(MONTHLY_FEE * COMMISSION_RATE),
+                }}
+                components={{ strong: <strong /> }}
+              />
             </p>
           </div>
           <PartnerCalculator />
@@ -819,12 +803,12 @@ export default function USClubPitchPage() {
       {/* FAQ */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl font-black mb-8 text-center">Common questions</h2>
+          <h2 className="text-2xl font-black mb-8 text-center">{t("faq.title")}</h2>
           <div className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto">
-            {FAQ.map((f) => (
-              <div key={f.q} className="bg-white rounded-xl border border-gray-200 p-5">
-                <h3 className="font-bold text-gray-900 text-sm mb-2">{f.q}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{f.a}</p>
+            {FAQ_KEYS.map((key) => (
+              <div key={key} className="bg-white rounded-xl border border-gray-200 p-5">
+                <h3 className="font-bold text-gray-900 text-sm mb-2">{t(`faq.items.${key}.q`)}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{t(`faq.items.${key}.a`)}</p>
               </div>
             ))}
           </div>
@@ -835,21 +819,21 @@ export default function USClubPitchPage() {
       <section className="py-16 border-t border-gray-100">
         <div className="max-w-2xl mx-auto px-4 text-center">
           <BarChart3 size={36} className="mx-auto text-blue-600 mb-4" />
-          <h2 className="text-2xl md:text-3xl font-black mb-3">Ready for your next club meeting?</h2>
-          <p className="text-gray-500 mb-8">Share this page. Run the demo. Close the deal.</p>
+          <h2 className="text-2xl md:text-3xl font-black mb-3">{t("cta.title")}</h2>
+          <p className="text-gray-500 mb-8">{t("cta.desc")}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a href="mailto:info@depro.es?subject=DEPRO%20US%20Partnership" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-lg">
-              Partner with DEPRO
+              {t("cta.partner")}
             </a>
             <Link to="/" className="inline-flex items-center justify-center px-8 py-3.5 rounded-lg border border-gray-300 text-gray-600 font-bold hover:border-gray-400">
-              depro.es
+              {t("cta.home")}
             </Link>
           </div>
         </div>
       </section>
 
       <footer className="py-8 border-t border-gray-100 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} DEPRO · Confidential partner presentation · /us-clubs
+        {t("footer", { year: new Date().getFullYear() })}
       </footer>
     </div>
   );
