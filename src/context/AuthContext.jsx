@@ -167,6 +167,9 @@ function buildUser(authUser, profile) {
       managedTeamIds: meta.managedTeamIds ?? profile.managedTeamIds ?? [],
       edad: profile.age ?? meta.edad ?? null,
       posicion: profile.position ?? meta.posicion ?? null,
+      subscriptionStatus: meta.subscriptionStatus ?? null,
+      subscriptionCancelAt: meta.subscriptionCancelAt ?? null,
+      stripeSubscriptionId: meta.stripeSubscriptionId ?? null,
     };
   }
 
@@ -202,6 +205,9 @@ function buildUser(authUser, profile) {
     team_role: meta.teamRole  ?? null,
     club:      club ?? playerClub,
     team,
+    subscriptionStatus: meta.subscriptionStatus ?? null,
+    subscriptionCancelAt: meta.subscriptionCancelAt ?? null,
+    stripeSubscriptionId: meta.stripeSubscriptionId ?? null,
   };
 }
 

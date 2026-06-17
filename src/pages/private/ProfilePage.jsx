@@ -1,8 +1,17 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera } from "lucide-react";
+import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera, CreditCard, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
+import {
+  isIndividualSubscriber,
+  getSubscriptionFromUser,
+  isSubscriptionActive,
+  cancelSubscription,
+  getPlanLabel,
+  getPlanPrice,
+  formatSubscriptionDate,
+} from "../../lib/subscription";
 
 function lsGet(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -79,6 +88,35 @@ export default function ProfilePage() {
   const [teams, setTeams]           = useState([]);     // equipos disponibles
   const [selectedTeam, setSelectedTeam] = useState(""); // id del equipo elegido
   const [joining, setJoining]       = useState(false);
+
+  // Suscripción individual
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelLoading, setCancelLoading]     = useState(false);
+  const [subMsg, setSubMsg]                   = useState(null);
+
+  const showSubscription = isIndividualSubscriber(user);
+  const subscription     = showSubscription ? getSubscriptionFromUser(user) : null;
+  const subActive        = isSubscriptionActive(subscription);
+  const subPendingCancel = subscription?.status === "cancel_at_period_end";
+
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true);
+    setSubMsg(null);
+    const res = await cancelSubscription(user);
+    setCancelLoading(false);
+    setShowCancelModal(false);
+    if (res.ok) {
+      setSubMsg({
+        type: "ok",
+        text: t("profile.subscription_cancel_success", {
+          date: formatSubscriptionDate(res.cancelAt),
+        }),
+      });
+      await refreshUser();
+    } else {
+      setSubMsg({ type: "error", text: res.error || t("profile.subscription_cancel_error") });
+    }
+  };
 
   // Club actual del jugador
   const [currentClub, setCurrentClub] = useState(null);
@@ -309,6 +347,101 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Suscripción individual */}
+      {showSubscription && subscription && (
+        <div className="bg-white border border-depro-border rounded-2xl p-6">
+          <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
+            <CreditCard size={18} className="text-depro-blue" /> {t("profile.subscription_title")}
+          </h2>
+          <p className="text-sm text-depro-gray mb-5">{t("profile.subscription_desc")}</p>
+
+          <div className="rounded-xl border border-depro-border p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="font-black text-depro-dark">{getPlanLabel(subscription.plan)}</div>
+                {getPlanPrice(subscription.plan) && (
+                  <div className="text-sm text-depro-gray mt-0.5">{getPlanPrice(subscription.plan)} · {t("profile.subscription_renews")}</div>
+                )}
+              </div>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full border flex-shrink-0 ${
+                subPendingCancel
+                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                  : subActive
+                    ? "bg-green-50 text-green-700 border-green-200"
+                    : "bg-depro-gray-light text-depro-gray border-depro-border"
+              }`}>
+                {subPendingCancel
+                  ? t("profile.subscription_cancel_pending", { date: formatSubscriptionDate(subscription.cancelAt) })
+                  : subActive
+                    ? t("profile.subscription_active")
+                    : t("profile.subscription_cancelled")}
+              </span>
+            </div>
+
+            <p className="text-xs text-depro-gray bg-depro-gray-light/60 rounded-lg px-3 py-2">
+              {t("profile.subscription_stripe_note")}
+            </p>
+
+            {subMsg && (
+              <div className={`text-sm px-3 py-2 rounded-lg border ${
+                subMsg.type === "ok"
+                  ? "bg-green-50 text-green-700 border-green-200"
+                  : "bg-red-50 text-red-700 border-red-200"
+              }`}>
+                {subMsg.text}
+              </div>
+            )}
+
+            {subActive && !subPendingCancel && (
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(true)}
+                className="text-sm font-semibold text-red-500 hover:text-red-600 transition-colors"
+              >
+                {t("profile.subscription_cancel_btn")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal cancelar suscripción */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-depro w-full max-w-md p-6">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h3 className="font-bold text-depro-dark text-lg">{t("profile.subscription_cancel_confirm_title")}</h3>
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(false)}
+                className="text-depro-gray hover:text-depro-dark p-1"
+                aria-label={t("common.cancel")}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-depro-gray mb-6">{t("profile.subscription_cancel_confirm_body")}</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm font-semibold text-depro-dark hover:bg-depro-gray-light transition-colors"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelSubscription}
+                disabled={cancelLoading}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {cancelLoading ? "…" : t("profile.subscription_cancel_confirm_yes")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Club asociado */}
       <div className="bg-white border border-depro-border rounded-2xl p-6">
