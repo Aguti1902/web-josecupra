@@ -324,18 +324,18 @@ function DemoLoads({ accent, step }) {
 
 function DemoTaskDesigner({ accent, step }) {
   const frameworks = [
-    { fw: "A", label: "Extensiva", color: "#3B82F6" },
-    { fw: "B", label: "Intensiva", color: "#F59E0B" },
-    { fw: "C", label: "Reactiva", color: "#EF4444" },
-    { fw: "D", label: "Complementaria", color: "#10B981" },
+    { fw: "A", label: "Extensive", color: "#3B82F6" },
+    { fw: "B", label: "Intensive", color: "#F59E0B" },
+    { fw: "C", label: "Reactive", color: "#EF4444" },
+    { fw: "D", label: "Complementary", color: "#10B981" },
   ];
   const fwIdx = step >= 3 ? 2 : step >= 2 ? 1 : 0;
   const activeFw = frameworks[fwIdx];
-  const tasks = ["Rondo posicional", "Transiciones 4v4", "Finalización"];
+  const tasks = ["Positional rondo", "4v4 transitions", "Finishing"];
   const params = [
-    { l: "Espacio", v: "30 × 20 m" },
-    { l: "Jugadores", v: "8v8 + 2 neutrales" },
-    { l: "Duración", v: "12 min × 3 series" },
+    { l: "Space", v: "30 × 20 m" },
+    { l: "Players", v: "8v8 + 2 neutrals" },
+    { l: "Duration", v: "12 min × 3 sets" },
   ];
 
   return (
