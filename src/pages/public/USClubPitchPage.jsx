@@ -11,6 +11,7 @@ const SETUP_FEE = 15000;
 const MONTHLY_FEE = 1500;
 const COMMISSION_RATE = 0.1;
 const ACCENT = "#0A36F7";
+const EXAMPLE_ACCENT = "#0D8F4D";
 
 const NAV = [
   { id: "overview", label: "Overview" },
@@ -23,14 +24,22 @@ const NAV = [
 ];
 
 const EXAMPLE_CLUB = {
-  name: "Riverside FC Academy",
-  city: "Westchester, NY",
+  name: "Fundació Cornellà",
+  city: "Cornellà de Llobregat, Barcelona",
   teams: 5,
   players: 94,
   coaches: 8,
   trainingDays: "Mon · Wed · Fri",
   category: "U13 – U19",
+  logo: "/LOGO CLUBS/CORNELLA.jpeg",
 };
+
+const IMPLEMENTED_CLUB_LOGOS = [
+  { name: "Fundació Cornellà", src: "/LOGO CLUBS/CORNELLA.jpeg" },
+  { name: "Club Partner 2", src: "/LOGO CLUBS/Logo_EBP.png" },
+  { name: "Club Partner 3", src: "/LOGO CLUBS/WhatsApp Image 2026-06-17 at 10.45.35.jpeg" },
+  { name: "Club Partner 4", src: "/LOGO CLUBS/WhatsApp Image 2026-06-17 at 10.45.54.jpeg" },
+];
 
 const WORKFLOW = [
   { step: "01", title: "Onboarding & branding", time: "Week 1", desc: "We configure your logo, colors, teams, training days and age blocks. Coaches receive login credentials." },
@@ -49,7 +58,7 @@ const COMPARE_ROWS = [
 ];
 
 const FAQ = [
-  { q: "Is this only for large academies?", a: "No. The sweet spot is 2–8 teams (80–200 players). Riverside FC in our example runs 5 teams on one license." },
+  { q: "Is this only for large academies?", a: "No. The sweet spot is 2–8 teams (80–200 players). Fundació Cornellà in our example runs 5 teams on one license." },
   { q: "Do coaches need training?", a: "1-hour onboarding call per staff. The UI is built for coaches, not data scientists." },
   { q: "What does the monthly fee include?", a: "Platform access plus full configuration of all training sessions for every mesocycle — every team, every session type, ready before coaches step on the field. No building plans from scratch." },
   { q: "What about individual player plans?", a: "DEPRO also offers individual player subscriptions — clubs can upsell private physical plans to families." },
@@ -58,6 +67,38 @@ const FAQ = [
 
 function fmtUSD(n) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+}
+
+function ImplementedClubsCarousel() {
+  const [startIdx, setStartIdx] = useState(0);
+  const visibleCount = 3;
+  const logos = IMPLEMENTED_CLUB_LOGOS.length ? IMPLEMENTED_CLUB_LOGOS : [];
+
+  useEffect(() => {
+    if (logos.length <= visibleCount) return undefined;
+    const t = setInterval(() => {
+      setStartIdx((i) => (i + 1) % logos.length);
+    }, 2300);
+    return () => clearInterval(t);
+  }, [logos.length]);
+
+  const visible = logos.map((_, i) => logos[(startIdx + i) % logos.length]).slice(0, visibleCount);
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Already implemented in clubs</p>
+        <span className="text-xs text-gray-500">Live environments running DEPRO</span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {visible.map((club, idx) => (
+          <div key={`${club.name}-${idx}`} className="h-20 rounded-xl border border-gray-200 bg-white px-3 py-2 flex items-center justify-center">
+            <img src={club.src} alt={club.name} className="max-h-full max-w-full object-contain" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const ANALYST_ANNUAL_COST = 65000;
@@ -75,7 +116,7 @@ const ROI_SCENARIOS = {
   },
   realistic: {
     label: "Realistic",
-    desc: "Based on Riverside FC · our default reference academy",
+    desc: "Based on Fundació Cornellà · our default reference academy",
     hoursSavedPerCoachWeek: 2.5,
     coachHourlyRate: 45,
     adminHoursSavedWeek: 3,
@@ -435,7 +476,7 @@ export default function USClubPitchPage() {
                   See live demo <ArrowRight size={18} />
                 </button>
                 <button type="button" onClick={() => scrollTo("example")} className="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-800 font-bold px-6 py-3.5 rounded-lg transition-colors">
-                  Example: Riverside FC
+                  Example: Fundació Cornellà
                 </button>
               </div>
               <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
@@ -458,6 +499,12 @@ export default function USClubPitchPage() {
         </div>
       </section>
 
+      <section className="py-10 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <ImplementedClubsCarousel />
+        </div>
+      </section>
+
       {/* Example club */}
       <section id="example" className="py-20 bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -465,14 +512,16 @@ export default function USClubPitchPage() {
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Concrete example</p>
             <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">How {EXAMPLE_CLUB.name} uses DEPRO</h2>
             <p className="text-gray-600 leading-relaxed">
-              A mid-size US academy with 5 teams. Technical director wants one system instead of Excel + Google Drive + WhatsApp.
+              A high-performance academy with 5 teams. Technical director wants one system instead of Excel + Google Drive + WhatsApp.
             </p>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6 mb-10">
             <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 md:p-8 shadow-sm">
               <div className="flex items-start gap-4 mb-6">
-                <div className="w-14 h-14 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg">RF</div>
+                <div className="w-14 h-14 rounded-xl border border-gray-200 bg-white p-1.5 flex items-center justify-center overflow-hidden">
+                  <img src={EXAMPLE_CLUB.logo} alt={EXAMPLE_CLUB.name} className="w-full h-full object-contain" />
+                </div>
                 <div>
                   <h3 className="text-xl font-black text-gray-900">{EXAMPLE_CLUB.name}</h3>
                   <p className="text-sm text-gray-500">{EXAMPLE_CLUB.city} · {EXAMPLE_CLUB.category}</p>
@@ -486,7 +535,7 @@ export default function USClubPitchPage() {
                   { icon: Target, label: "Coaching staff", value: `${EXAMPLE_CLUB.coaches} coaches` },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-4">
-                    <item.icon size={18} className="text-blue-600 flex-shrink-0" />
+                    <item.icon size={18} className="flex-shrink-0" style={{ color: EXAMPLE_ACCENT }} />
                     <div>
                       <div className="text-xs text-gray-400 font-semibold">{item.label}</div>
                       <div className="font-bold text-gray-900">{item.value}</div>
@@ -500,11 +549,11 @@ export default function USClubPitchPage() {
                   { day: "Monday", session: "Session A · Extensive", load: "Low · 405 AU", note: "Technical possession · 45 min · RPE 3" },
                   { day: "Wednesday", session: "Session B · Intensive", load: "High · 890 AU", note: "Pressing triggers · 75 min · RPE 7" },
                   { day: "Friday", session: "Session C · Reactive", load: "Medium · 650 AU", note: "Transition game · 60 min · RPE 5" },
-                  { day: "Saturday", session: "Match vs NY Surf", load: "Peak · 720 AU", note: "Load auto-tracked post-game" },
+                  { day: "Saturday", session: "Match vs Gimnàstic Manresa", load: "Peak · 720 AU", note: "Load auto-tracked post-game" },
                 ].map((row) => (
                   <div key={row.day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm border-b border-gray-50 pb-3 last:border-0 last:pb-0">
                     <span className="font-bold text-gray-900 w-24 flex-shrink-0">{row.day}</span>
-                    <span className="font-semibold text-blue-700 w-44 flex-shrink-0">{row.session}</span>
+                    <span className="font-semibold w-44 flex-shrink-0" style={{ color: EXAMPLE_ACCENT }}>{row.session}</span>
                     <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit">{row.load}</span>
                     <span className="text-gray-500 text-xs">{row.note}</span>
                   </div>
@@ -515,7 +564,7 @@ export default function USClubPitchPage() {
             <div className="space-y-4">
               <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div className="text-xs font-bold text-gray-400 uppercase mb-3">Player snapshot</div>
-                <div className="font-black text-gray-900 mb-1">Jake Morrison · CM · #8</div>
+                <div className="font-black text-gray-900 mb-1">Pol García · CM · #8</div>
                 <div className="text-xs text-gray-500 mb-4">U15 Elite · Premium plan</div>
                 <div className="space-y-2 text-xs">
                   {[
@@ -535,7 +584,7 @@ export default function USClubPitchPage() {
                 <p className="text-sm text-green-900 leading-relaxed">
                   "We finally show parents objective progress — not opinions. Sponsors see a professional operation."
                 </p>
-                <p className="text-xs text-green-700 mt-2 font-semibold">— Technical Director, Riverside FC</p>
+                <p className="text-xs text-green-700 mt-2 font-semibold">— Technical Director, Fundació Cornellà</p>
               </div>
             </div>
           </div>
