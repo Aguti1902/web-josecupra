@@ -102,7 +102,8 @@ function AppRoutes() {
       />
       <Route path="/comprar" element={<OnboardingPage />} />
       <Route path="/pago-exitoso" element={<PaymentSuccessPage />} />
-      <Route path="/us-clubs" element={<USClubPitchPage />} />
+      <Route path="/us-clubs" element={<USClubPitchPage variant="partner" />} />
+      <Route path="/clubs" element={<USClubPitchPage variant="client" />} />
 
       {/* ── Client App ─────────────────────────────────────────── */}
       <Route path="/dashboard" element={<ClientRoute><AppLayout><DashboardPage /></AppLayout></ClientRoute>} />

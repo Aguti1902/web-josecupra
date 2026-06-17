@@ -9,7 +9,8 @@
     "workflow": "Implementación",
     "pricing": "Precios",
     "partner": "Partner",
-    "partnerCta": "Calculadora partner"
+    "partnerCta": "Calculadora partner",
+    "clientCta": "Solicitar demo"
   },
   "hero": {
     "eyebrow": "Gestión del rendimiento para clubes juveniles en EE. UU.",
@@ -21,7 +22,9 @@
     "ctaFeatures": "Todas las funciones",
     "statSetup": "Setup",
     "statMonthly": "/ mes · todas las sesiones configuradas",
-    "statPartner": "Comisión partner"
+    "statPartner": "Comisión partner",
+    "statLive": "3 sem.",
+    "statLiveSub": "Despliegue completo"
   },
   "carousel": {
     "title": "Ya implantado en clubes",
@@ -205,9 +208,17 @@
     "title": "¿Listo para tu próxima reunión con un club?",
     "desc": "Comparte esta página. Ejecuta la demo. Cierra el acuerdo.",
     "partner": "Ser partner de DEPRO",
-    "home": "depro.es"
+    "home": "depro.es",
+    "clientTitle": "¿Listo para ver DEPRO en tu academia?",
+    "clientDesc": "Reserva una demo en vivo — te enseñamos la plataforma pensando en tu categoría y modelo de entrenamiento.",
+    "clientDemo": "Solicitar demo en vivo"
   },
-  "footer": "© {{year}} DEPRO · Presentación confidencial para partners · /us-clubs",
+  "footer": {
+    "copyrightPartner": "© {{year}} DEPRO · Presentación confidencial para partners · /us-clubs",
+    "copyrightClient": "© {{year}} DEPRO · Plataforma de rendimiento para clubes · /clubs",
+    "nexgent": "Desarrollos a medida con <strong>tecnología IA de Nexgent</strong>",
+    "nexgentDesc": "Inteligencia enterprise para predicción de carga, integración GPS/wearables y recomendaciones automáticas de sesión."
+  },
   "lang": {
     "en": "English",
     "es": "Español"

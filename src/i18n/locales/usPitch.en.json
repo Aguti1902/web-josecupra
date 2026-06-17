@@ -9,7 +9,8 @@
     "workflow": "Workflow",
     "pricing": "Pricing",
     "partner": "Partner",
-    "partnerCta": "Partner calculator"
+    "partnerCta": "Partner calculator",
+    "clientCta": "Request demo"
   },
   "hero": {
     "eyebrow": "Performance management for US youth clubs",
@@ -21,7 +22,9 @@
     "ctaFeatures": "All features",
     "statSetup": "Setup",
     "statMonthly": "/ month · all sessions configured",
-    "statPartner": "Partner comm."
+    "statPartner": "Partner comm.",
+    "statLive": "3 wks",
+    "statLiveSub": "Full deployment"
   },
   "carousel": {
     "title": "Already implemented in clubs",
@@ -205,9 +208,17 @@
     "title": "Ready for your next club meeting?",
     "desc": "Share this page. Run the demo. Close the deal.",
     "partner": "Partner with DEPRO",
-    "home": "depro.es"
+    "home": "depro.es",
+    "clientTitle": "Ready to see DEPRO in your academy?",
+    "clientDesc": "Book a live walkthrough — we show the platform with your category and training model in mind.",
+    "clientDemo": "Request live demo"
   },
-  "footer": "© {{year}} DEPRO · Confidential partner presentation · /us-clubs",
+  "footer": {
+    "copyrightPartner": "© {{year}} DEPRO · Confidential partner presentation · /us-clubs",
+    "copyrightClient": "© {{year}} DEPRO · Club performance platform · /clubs",
+    "nexgent": "Custom software builds powered by <strong>Nexgent AI technology</strong>",
+    "nexgentDesc": "Enterprise-grade intelligence for load prediction, GPS/wearables pipelines and automated session recommendations."
+  },
   "lang": {
     "en": "English",
     "es": "Español"

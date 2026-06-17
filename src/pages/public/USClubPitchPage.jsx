@@ -404,7 +404,39 @@ function PartnerCalculator() {
   );
 }
 
-export default function USClubPitchPage() {
+const PARTNER_ONLY_NAV = ["roi", "partner"];
+
+function PitchFooter({ variant }) {
+  const { t } = useTranslation("usPitch");
+  const isPartner = variant === "partner";
+
+  return (
+    <footer className="border-t border-gray-200 bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 pb-8 border-b border-gray-200">
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            <img src="/logo.png" alt="DEPRO" className="h-9 w-auto" />
+            <div className="hidden sm:block w-px h-8 bg-gray-200" />
+            <div className="flex items-center gap-3">
+              <img src={NEXGENT_LOGO} alt="Nexgent" className="h-8 w-auto object-contain" />
+              <div className="text-left max-w-xs">
+                <p className="text-xs font-bold text-gray-900 leading-snug">
+                  <Trans i18nKey="footer.nexgent" ns="usPitch" components={{ strong: <strong /> }} />
+                </p>
+                <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{t("footer.nexgentDesc")}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 text-center mt-6">
+          {t(isPartner ? "footer.copyrightPartner" : "footer.copyrightClient", { year: new Date().getFullYear() })}
+        </p>
+      </div>
+    </footer>
+  );
+}
+
+export function USClubPitchPage({ variant = "partner" }) {
   const { t, i18n } = useTranslation("usPitch");
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -418,6 +450,9 @@ export default function USClubPitchPage() {
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  const isPartner = variant === "partner";
+  const navIds = isPartner ? NAV_IDS : NAV_IDS.filter((id) => !PARTNER_ONLY_NAV.includes(id));
 
   const scrollTo = (id) => {
     setMenuOpen(false);
@@ -434,7 +469,7 @@ export default function USClubPitchPage() {
             <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-gray-400">{t("nav.brand")}</span>
           </Link>
           <nav className="hidden lg:flex items-center gap-1">
-            {NAV_IDS.map((id) => (
+            {navIds.map((id) => (
               <button key={id} type="button" onClick={() => scrollTo(id)} className="px-3 py-2 text-xs font-semibold text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-50">
                 {t(`nav.${id}`)}
               </button>
@@ -442,9 +477,15 @@ export default function USClubPitchPage() {
           </nav>
           <div className="hidden sm:flex items-center gap-2">
             <USPitchLanguageSwitcher />
-            <button type="button" onClick={() => scrollTo("partner")} className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
-              {t("nav.partnerCta")} <ChevronRight size={14} />
-            </button>
+            {isPartner ? (
+              <button type="button" onClick={() => scrollTo("partner")} className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+                {t("nav.partnerCta")} <ChevronRight size={14} />
+              </button>
+            ) : (
+              <a href="mailto:info@depro.es?subject=DEPRO%20Club%20Demo" className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+                {t("nav.clientCta")} <ChevronRight size={14} />
+              </a>
+            )}
           </div>
           <button type="button" className="lg:hidden p-2" onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -455,7 +496,7 @@ export default function USClubPitchPage() {
             <div className="pb-3 mb-2 border-b border-gray-100">
               <USPitchLanguageSwitcher />
             </div>
-            {NAV_IDS.map((id) => (
+            {navIds.map((id) => (
               <button key={id} type="button" onClick={() => scrollTo(id)} className="block w-full text-left py-2.5 text-sm font-medium text-gray-600">{t(`nav.${id}`)}</button>
             ))}
           </div>
@@ -480,12 +521,19 @@ export default function USClubPitchPage() {
                   {t("hero.ctaFeatures")}
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
-                {[
-                  { v: "$15k", l: t("hero.statSetup") },
-                  { v: "$1.5k", l: t("hero.statMonthly") },
-                  { v: "10%", l: t("hero.statPartner") },
-                ].map((s) => (
+              <div className={`grid gap-4 pt-6 border-t border-gray-100 ${isPartner ? "grid-cols-3" : "grid-cols-3"}`}>
+                {(isPartner
+                  ? [
+                      { v: "$15k", l: t("hero.statSetup") },
+                      { v: "$1.5k", l: t("hero.statMonthly") },
+                      { v: "10%", l: t("hero.statPartner") },
+                    ]
+                  : [
+                      { v: "$15k", l: t("hero.statSetup") },
+                      { v: "$1.5k", l: t("hero.statMonthly") },
+                      { v: t("hero.statLive"), l: t("hero.statLiveSub") },
+                    ]
+                ).map((s) => (
                   <div key={s.l}>
                     <div className="text-2xl font-black text-gray-900">{s.v}</div>
                     <div className="text-xs text-gray-500 font-medium">{s.l}</div>
@@ -618,7 +666,7 @@ export default function USClubPitchPage() {
         </div>
       </section>
 
-      {/* Club ROI */}
+      {isPartner && (
       <section id="roi" className="py-20 bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="max-w-2xl mb-12">
@@ -629,6 +677,7 @@ export default function USClubPitchPage() {
           <ClubROICalculator />
         </div>
       </section>
+      )}
 
       {/* Workflow */}
       <section id="workflow" className="py-20 bg-gray-50 border-b border-gray-100">
@@ -734,15 +783,9 @@ export default function USClubPitchPage() {
               <p className="text-xs font-semibold text-gray-500 mb-6">{t("pricing.custom.subtitle")}</p>
               <div className="mb-1 text-sm text-gray-500">{t("pricing.custom.setupLabel")}</div>
               <div className="text-4xl md:text-5xl font-black text-gray-900 mb-2">{t("pricing.custom.price")}</div>
-              <p className="text-sm font-semibold text-gray-600 mb-4">
+              <p className="text-sm font-semibold text-gray-600 mb-6">
                 <Trans i18nKey="pricing.custom.priceNote" ns="usPitch" values={{ setupFee: fmtUSD(SETUP_FEE) }} components={{ strong: <strong className="text-gray-900" /> }} />
               </p>
-              <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 mb-6">
-                <img src={NEXGENT_LOGO} alt="Nexgent" className="h-8 w-auto object-contain flex-shrink-0" />
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  <Trans i18nKey="pricing.custom.nexgent" ns="usPitch" components={{ strong: <strong className="font-bold text-gray-900" /> }} />
-                </p>
-              </div>
               <div className="border-t border-gray-100 pt-6 mb-6">
                 <div className="rounded-lg border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-900 leading-relaxed">
                   <Trans i18nKey="pricing.custom.highlight" ns="usPitch" components={{ strong: <strong className="font-bold" /> }} />
@@ -777,6 +820,7 @@ export default function USClubPitchPage() {
       </section>
 
       {/* Partner */}
+      {isPartner && (
       <section id="partner" className="py-20 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="max-w-2xl mb-12">
@@ -799,6 +843,7 @@ export default function USClubPitchPage() {
           <PartnerCalculator />
         </div>
       </section>
+      )}
 
       {/* FAQ */}
       <section className="py-20 bg-gray-50">
@@ -819,12 +864,18 @@ export default function USClubPitchPage() {
       <section className="py-16 border-t border-gray-100">
         <div className="max-w-2xl mx-auto px-4 text-center">
           <BarChart3 size={36} className="mx-auto text-blue-600 mb-4" />
-          <h2 className="text-2xl md:text-3xl font-black mb-3">{t("cta.title")}</h2>
-          <p className="text-gray-500 mb-8">{t("cta.desc")}</p>
+          <h2 className="text-2xl md:text-3xl font-black mb-3">{isPartner ? t("cta.title") : t("cta.clientTitle")}</h2>
+          <p className="text-gray-500 mb-8">{isPartner ? t("cta.desc") : t("cta.clientDesc")}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="mailto:info@depro.es?subject=DEPRO%20US%20Partnership" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-lg">
-              {t("cta.partner")}
-            </a>
+            {isPartner ? (
+              <a href="mailto:info@depro.es?subject=DEPRO%20US%20Partnership" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-lg">
+                {t("cta.partner")}
+              </a>
+            ) : (
+              <a href="mailto:info@depro.es?subject=DEPRO%20Club%20Demo" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-lg">
+                {t("cta.clientDemo")}
+              </a>
+            )}
             <Link to="/" className="inline-flex items-center justify-center px-8 py-3.5 rounded-lg border border-gray-300 text-gray-600 font-bold hover:border-gray-400">
               {t("cta.home")}
             </Link>
@@ -832,9 +883,9 @@ export default function USClubPitchPage() {
         </div>
       </section>
 
-      <footer className="py-8 border-t border-gray-100 text-center text-xs text-gray-400">
-        {t("footer", { year: new Date().getFullYear() })}
-      </footer>
+      <PitchFooter variant={variant} />
     </div>
   );
 }
+
+export default USClubPitchPage;
