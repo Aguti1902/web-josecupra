@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight, BarChart3, Building2, Calendar, CheckCircle2,
-  ChevronRight, Clock, DollarSign,
+  ChevronRight, Clock, DollarSign, MapPin, Sparkles,
   Mail, Menu, Target, TrendingUp, Users, X,
 } from "lucide-react";
 import { PlatformHeroQuickTour, PlatformFeatureShowcase } from "../../components/pitch/PlatformDemoFrames";
@@ -10,6 +10,8 @@ import { ClubDashboardExplorer } from "../../components/pitch/ClubDashboardExplo
 
 const SETUP_FEE = 15000;
 const MONTHLY_FEE = 1500;
+const BUDGET_SETUP_FEE = 5000;
+const BUDGET_MONTHLY_FEE = 750;
 const COMMISSION_RATE = 0.1;
 const ACCENT = "#0A36F7";
 const EXAMPLE_ACCENT = "#0D8F4D";
@@ -719,13 +721,14 @@ export default function USClubPitchPage() {
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Investment</p>
             <h2 className="text-3xl md:text-4xl font-black mb-4">Enterprise-grade. Simple pricing.</h2>
             <p className="text-gray-600">
-              One club license covers all teams, coaches and players. The monthly fee includes
-              full configuration of every training session across each mesocycle — coaches open the app and it&apos;s ready.
+              Two entry points: full white-glove deployment for large academies, or a lower-budget tier
+              with AI insights and GPS data built in.
             </p>
           </div>
-          <div className="max-w-md mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto items-start">
             <div className="rounded-2xl border-2 border-gray-900 bg-white p-8 shadow-lg">
-              <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-6">Club license · annual value</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Club license · full deployment</div>
+              <p className="text-xs font-semibold text-gray-500 mb-6">Best for 4+ teams · DEPRO configures every mesocycle</p>
               <div className="mb-1 text-sm text-gray-500">One-time setup — branding, teams & platform onboarding</div>
               <div className="text-5xl font-black text-gray-900 mb-6">{fmtUSD(SETUP_FEE)}</div>
               <div className="border-t border-gray-100 pt-6 mb-6">
@@ -753,8 +756,48 @@ export default function USClubPitchPage() {
                 <Mail size={16} /> Request live demo
               </a>
             </div>
-            <p className="text-center text-xs text-gray-400 mt-4">Example: {EXAMPLE_CLUB.name} — {fmtUSD(SETUP_FEE)} setup + {fmtUSD(MONTHLY_FEE)}/mo</p>
+
+            <div className="rounded-2xl border-2 border-blue-200 bg-white p-8 shadow-lg relative">
+              <span className="absolute -top-3 left-6 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-blue-600 text-white">
+                Lower budget · AI-powered
+              </span>
+              <div className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-2 mt-2">Performance intelligence</div>
+              <p className="text-xs font-semibold text-gray-500 mb-6">Ideal for 1–3 teams · smart automation & data integrations</p>
+              <div className="mb-1 text-sm text-gray-500">One-time setup — teams, branding & data connectors</div>
+              <div className="text-5xl font-black text-gray-900 mb-6">{fmtUSD(BUDGET_SETUP_FEE)}</div>
+              <div className="border-t border-gray-100 pt-6 mb-6">
+                <div className="text-sm text-gray-500 mb-1">Monthly platform license</div>
+                <div className="text-4xl font-black text-gray-900">{fmtUSD(BUDGET_MONTHLY_FEE)}<span className="text-base font-semibold text-gray-400">/mo</span></div>
+                <div className="text-xs text-gray-400 mt-1">≈ {fmtUSD(BUDGET_MONTHLY_FEE * 12)}/year recurring</div>
+                <div className="mt-4 rounded-lg border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-900 leading-relaxed">
+                  <strong className="font-bold">AI + GPS included:</strong> automated load alerts, session recommendations and external tracking data synced into one dashboard.
+                </div>
+              </div>
+              <ul className="space-y-2.5 mb-8 text-sm text-gray-600">
+                {[
+                  { t: "AI load & injury risk alerts", icon: Sparkles },
+                  { t: "GPS / wearables import (Catapult, STATSports, WIMU…)", icon: MapPin },
+                  { t: "Automated weekly performance reports", icon: BarChart3 },
+                  { t: "Microcycle templates + task designer", icon: Calendar },
+                  { t: "Physical tests vs team average", icon: Target },
+                  { t: "sRPE load monitoring & traffic lights", icon: TrendingUp },
+                  { t: "Up to 3 teams · standard support", icon: Users },
+                ].map(({ t, icon: Icon }) => (
+                  <li key={t} className="flex gap-2">
+                    <Icon size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+              <a href="mailto:info@depro.es?subject=DEPRO%20US%20Performance%20Intelligence" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors">
+                <Mail size={16} /> Talk about this tier
+              </a>
+            </div>
           </div>
+          <p className="text-center text-xs text-gray-400 mt-6 max-w-2xl mx-auto">
+            Example full deployment: {EXAMPLE_CLUB.name} — {fmtUSD(SETUP_FEE)} setup + {fmtUSD(MONTHLY_FEE)}/mo.
+            Smaller academies often start on Performance Intelligence at {fmtUSD(BUDGET_SETUP_FEE)} + {fmtUSD(BUDGET_MONTHLY_FEE)}/mo.
+          </p>
         </div>
       </section>
 
