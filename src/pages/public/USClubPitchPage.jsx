@@ -4,7 +4,7 @@ import { Trans, useTranslation } from "react-i18next";
 import {
   ArrowRight, BarChart3, Building2, Calendar, CheckCircle2,
   ChevronRight, Clock, DollarSign, MapPin, Sparkles,
-  Mail, Menu, Target, TrendingUp, Users, X,
+  Menu, Target, TrendingUp, Users, X,
 } from "lucide-react";
 import { PlatformHeroQuickTour, PlatformFeatureShowcase } from "../../components/pitch/PlatformDemoFrames";
 import { ClubDashboardExplorer } from "../../components/pitch/ClubDashboardExplorer";
@@ -412,21 +412,13 @@ function PitchFooter({ variant }) {
 
   return (
     <footer className="border-t border-gray-200 bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 pb-8 border-b border-gray-200">
-          <div className="flex flex-wrap items-center justify-center gap-6">
-            <img src="/logo.png" alt="DEPRO" className="h-9 w-auto" />
-            <div className="hidden sm:block w-px h-8 bg-gray-200" />
-            <div className="flex items-center gap-3">
-              <img src={NEXGENT_LOGO} alt="Nexgent" className="h-8 w-auto object-contain" />
-              <div className="text-left max-w-xs">
-                <p className="text-xs font-bold text-gray-900 leading-snug">
-                  <Trans i18nKey="footer.nexgent" ns="usPitch" components={{ strong: <strong /> }} />
-                </p>
-                <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{t("footer.nexgentDesc")}</p>
-              </div>
-            </div>
-          </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+        <div className="flex flex-col items-center text-center max-w-xl mx-auto pb-8 border-b border-gray-200">
+          <img src={NEXGENT_LOGO} alt="Nexgent" className="h-16 md:h-24 w-auto object-contain mb-6" />
+          <p className="text-sm md:text-base font-bold text-gray-900 leading-snug">
+            <Trans i18nKey="footer.nexgent" ns="usPitch" components={{ strong: <strong /> }} />
+          </p>
+          <p className="text-sm text-gray-500 mt-3 leading-relaxed">{t("footer.nexgentDesc")}</p>
         </div>
         <p className="text-xs text-gray-400 text-center mt-6">
           {t(isPartner ? "footer.copyrightPartner" : "footer.copyrightClient", { year: new Date().getFullYear() })}
@@ -466,7 +458,6 @@ export function USClubPitchPage({ variant = "partner" }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <img src="/logo.png" alt="DEPRO" className="h-7 w-auto" />
-            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-gray-400">{t("nav.brand")}</span>
           </Link>
           <nav className="hidden lg:flex items-center gap-1">
             {navIds.map((id) => (
@@ -477,14 +468,10 @@ export function USClubPitchPage({ variant = "partner" }) {
           </nav>
           <div className="hidden sm:flex items-center gap-2">
             <USPitchLanguageSwitcher />
-            {isPartner ? (
+            {isPartner && (
               <button type="button" onClick={() => scrollTo("partner")} className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
                 {t("nav.partnerCta")} <ChevronRight size={14} />
               </button>
-            ) : (
-              <a href="mailto:info@depro.es?subject=DEPRO%20Club%20Demo" className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
-                {t("nav.clientCta")} <ChevronRight size={14} />
-              </a>
             )}
           </div>
           <button type="button" className="lg:hidden p-2" onClick={() => setMenuOpen(!menuOpen)}>
@@ -765,14 +752,11 @@ export function USClubPitchPage({ variant = "partner" }) {
                   <Trans i18nKey="pricing.enterprise.included" ns="usPitch" components={{ strong: <strong className="font-bold" /> }} />
                 </div>
               </div>
-              <ul className="space-y-2.5 mb-8 text-sm text-gray-600">
+              <ul className="space-y-2.5 text-sm text-gray-600">
                 {(t("pricing.enterprise.features", { returnObjects: true }) || []).map((item) => (
                   <li key={item} className="flex gap-2"><CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />{item}</li>
                 ))}
               </ul>
-              <a href="mailto:info@depro.es?subject=DEPRO%20US%20Club%20Demo" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-white font-bold transition-colors">
-                <Mail size={16} /> {t("pricing.enterprise.cta")}
-              </a>
             </div>
 
             <div className="rounded-2xl border-2 border-blue-200 bg-white p-8 shadow-lg relative">
@@ -791,7 +775,7 @@ export function USClubPitchPage({ variant = "partner" }) {
                   <Trans i18nKey="pricing.custom.highlight" ns="usPitch" components={{ strong: <strong className="font-bold" /> }} />
                 </div>
               </div>
-              <ul className="space-y-2.5 mb-8 text-sm text-gray-600">
+              <ul className="space-y-2.5 text-sm text-gray-600">
                 {(t("pricing.custom.features", { returnObjects: true }) || []).map((item, i) => {
                   const icons = [Sparkles, MapPin, BarChart3, Calendar, Building2, Users];
                   const Icon = icons[i] || Sparkles;
@@ -803,9 +787,6 @@ export function USClubPitchPage({ variant = "partner" }) {
                   );
                 })}
               </ul>
-              <a href="mailto:info@depro.es?subject=DEPRO%20Custom%20Software%20Quote" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors">
-                <Mail size={16} /> {t("pricing.custom.cta")}
-              </a>
             </div>
           </div>
           <p className="text-center text-xs text-gray-400 mt-6 max-w-2xl mx-auto">
@@ -856,29 +837,6 @@ export function USClubPitchPage({ variant = "partner" }) {
                 <p className="text-sm text-gray-500 leading-relaxed">{t(`faq.items.${key}.a`)}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-16 border-t border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 text-center">
-          <BarChart3 size={36} className="mx-auto text-blue-600 mb-4" />
-          <h2 className="text-2xl md:text-3xl font-black mb-3">{isPartner ? t("cta.title") : t("cta.clientTitle")}</h2>
-          <p className="text-gray-500 mb-8">{isPartner ? t("cta.desc") : t("cta.clientDesc")}</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {isPartner ? (
-              <a href="mailto:info@depro.es?subject=DEPRO%20US%20Partnership" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-lg">
-                {t("cta.partner")}
-              </a>
-            ) : (
-              <a href="mailto:info@depro.es?subject=DEPRO%20Club%20Demo" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-lg">
-                {t("cta.clientDemo")}
-              </a>
-            )}
-            <Link to="/" className="inline-flex items-center justify-center px-8 py-3.5 rounded-lg border border-gray-300 text-gray-600 font-bold hover:border-gray-400">
-              {t("cta.home")}
-            </Link>
           </div>
         </div>
       </section>
