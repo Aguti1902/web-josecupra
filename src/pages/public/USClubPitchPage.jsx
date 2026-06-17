@@ -60,31 +60,77 @@ function fmtUSD(n) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
+const ANALYST_ANNUAL_COST = 65000;
+
+const ROI_SCENARIOS = {
+  conservative: {
+    label: "Conservative",
+    desc: "Minimal assumptions — easy to defend in a board meeting",
+    hoursSavedPerCoachWeek: 1.5,
+    coachHourlyRate: 40,
+    adminHoursSavedWeek: 2,
+    adminHourlyRate: 50,
+    retentionLiftPct: 0.01,
+    injuryReductionPerPlayer: 60,
+  },
+  realistic: {
+    label: "Realistic",
+    desc: "Based on Riverside FC · our default reference academy",
+    hoursSavedPerCoachWeek: 2.5,
+    coachHourlyRate: 45,
+    adminHoursSavedWeek: 3,
+    adminHourlyRate: 55,
+    retentionLiftPct: 0.025,
+    injuryReductionPerPlayer: 120,
+  },
+  ambitious: {
+    label: "Ambitious",
+    desc: "Full adoption — every coach & director uses DEPRO daily",
+    hoursSavedPerCoachWeek: 4,
+    coachHourlyRate: 50,
+    adminHoursSavedWeek: 5,
+    adminHourlyRate: 60,
+    retentionLiftPct: 0.04,
+    injuryReductionPerPlayer: 200,
+  },
+};
+
 function ClubROICalculator() {
   const [coaches, setCoaches] = useState(EXAMPLE_CLUB.coaches);
   const [players, setPlayers] = useState(EXAMPLE_CLUB.players);
   const [annualFee, setAnnualFee] = useState(2800);
+  const [scenarioKey, setScenarioKey] = useState("realistic");
+
+  const scenario = ROI_SCENARIOS[scenarioKey];
 
   const roi = useMemo(() => {
-    const hoursSavedPerCoachWeek = 2.5;
-    const coachHourlyRate = 45;
-    const adminHoursSavedWeek = 3;
-    const adminHourlyRate = 55;
-    const retentionLiftPct = 0.025;
-    const injuryReductionPerPlayer = 120;
+    const {
+      hoursSavedPerCoachWeek,
+      coachHourlyRate,
+      adminHoursSavedWeek,
+      adminHourlyRate,
+      retentionLiftPct,
+      injuryReductionPerPlayer,
+    } = scenario;
 
     const coachTimeSaved = coaches * hoursSavedPerCoachWeek * 52 * coachHourlyRate;
     const adminTimeSaved = adminHoursSavedWeek * 52 * adminHourlyRate;
     const retentionValue = players * retentionLiftPct * annualFee;
     const injurySavings = players * injuryReductionPerPlayer;
+    const playersRetained = players * retentionLiftPct;
 
     const totalBenefit = coachTimeSaved + adminTimeSaved + retentionValue + injurySavings;
     const yearOneCost = SETUP_FEE + MONTHLY_FEE * 12;
     const yearTwoPlusCost = MONTHLY_FEE * 12;
     const yearOneNet = totalBenefit - yearOneCost;
-    const yearOneROI = (yearOneNet / yearOneCost) * 100;
+    const yearOneROI = yearOneCost > 0 ? (yearOneNet / yearOneCost) * 100 : 0;
     const paybackMonths = totalBenefit > 0 ? Math.ceil((yearOneCost / totalBenefit) * 12) : 12;
-    const yearTwoROI = ((totalBenefit - yearTwoPlusCost) / yearTwoPlusCost) * 100;
+    const yearTwoROI = yearTwoPlusCost > 0 ? ((totalBenefit - yearTwoPlusCost) / yearTwoPlusCost) * 100 : 0;
+    const hoursSavedPerWeek = coaches * hoursSavedPerCoachWeek + adminHoursSavedWeek;
+    const hoursSavedTotal = hoursSavedPerWeek * 52;
+    const costPerPlayerMonth = players > 0 ? yearOneCost / players / 12 : 0;
+    const breakEvenPlayersRetained = annualFee > 0 ? yearOneCost / annualFee : 0;
+    const analystSavings = ANALYST_ANNUAL_COST - yearTwoPlusCost;
 
     return {
       coachTimeSaved,
@@ -98,13 +144,42 @@ function ClubROICalculator() {
       yearOneROI,
       yearTwoROI,
       paybackMonths,
-      hoursSavedTotal: coaches * hoursSavedPerCoachWeek * 52 + adminHoursSavedWeek * 52,
+      hoursSavedPerWeek,
+      hoursSavedTotal,
+      playersRetained,
+      retentionLiftPct,
+      costPerPlayerMonth,
+      breakEvenPlayersRetained,
+      analystSavings,
+      benefitMultiplier: yearTwoPlusCost > 0 ? totalBenefit / yearTwoPlusCost : 0,
     };
-  }, [coaches, players, annualFee]);
+  }, [coaches, players, annualFee, scenario]);
 
   return (
     <div>
-      <div className="grid lg:grid-cols-2 gap-10 mb-12">
+      {/* Scenario toggle */}
+      <div className="mb-10">
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Assumption model</p>
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(ROI_SCENARIOS).map(([key, s]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setScenarioKey(key)}
+              className={`text-sm font-bold px-4 py-2 rounded-lg border transition-all ${
+                scenarioKey === key
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-2">{scenario.desc}</p>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-10 mb-8">
         <div className="space-y-7">
           <div>
             <label className="flex justify-between text-sm font-semibold text-gray-700 mb-3">
@@ -127,17 +202,36 @@ function ClubROICalculator() {
             </label>
             <input type="range" min={1500} max={6000} step={100} value={annualFee} onChange={(e) => setAnnualFee(Number(e.target.value))} className="w-full accent-blue-600" />
           </div>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            Model based on {EXAMPLE_CLUB.name}: 2.5 h/week saved per coach (no manual plan building),
-            3 h/week admin time saved, 2.5% retention lift from data-driven parent communication,
-            and conservative injury-cost reduction via load monitoring.
-          </p>
+
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3 text-sm">
+            <p className="font-bold text-gray-900">Model inputs ({scenario.label.toLowerCase()})</p>
+            <ul className="text-xs text-gray-600 space-y-1.5">
+              <li>{scenario.hoursSavedPerCoachWeek} h/week saved per coach · ${scenario.coachHourlyRate}/h loaded cost</li>
+              <li>{scenario.adminHoursSavedWeek} h/week admin & coordination saved</li>
+              <li>{(scenario.retentionLiftPct * 100).toFixed(1)}% retention lift · ${scenario.injuryReductionPerPlayer}/player injury savings</li>
+            </ul>
+          </div>
+
+          <div className="rounded-xl border-2 border-dashed border-gray-300 bg-white p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">vs. hiring in-house</p>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              A US performance analyst or periodization specialist typically costs{" "}
+              <strong className="text-gray-900">{fmtUSD(ANALYST_ANNUAL_COST)}/year</strong> (salary + tools).
+              DEPRO year 2+ is <strong className="text-gray-900">{fmtUSD(roi.yearTwoPlusCost)}/year</strong>
+              {roi.analystSavings > 0 && (
+                <> — saving <strong className="text-green-700">{fmtUSD(roi.analystSavings)}</strong> vs. that hire while covering every team.</>
+              )}
+            </p>
+          </div>
         </div>
 
         <div className="rounded-2xl border-2 border-gray-900 bg-white p-6 md:p-8 shadow-lg">
           <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Estimated annual value</div>
           <div className="text-4xl md:text-5xl font-black text-gray-900 mb-1">{fmtUSD(roi.totalBenefit)}</div>
-          <p className="text-sm text-gray-500 mb-6">Total quantified benefit vs. {fmtUSD(roi.yearOneCost)} year-one investment</p>
+          <p className="text-sm text-gray-500 mb-2">Total quantified benefit vs. {fmtUSD(roi.yearOneCost)} year-one investment</p>
+          <p className="text-xs text-blue-700 font-semibold mb-6">
+            ≈ {fmtUSD(roi.costPerPlayerMonth)}/player/month · break-even: retain {roi.breakEvenPlayersRetained.toFixed(1)} players/yr
+          </p>
           <div className="grid grid-cols-2 gap-3 mb-6">
             {[
               { l: "Year 1 ROI", v: `${Math.round(roi.yearOneROI)}%`, highlight: true },
@@ -155,7 +249,7 @@ function ClubROICalculator() {
             {[
               { l: "Coach planning time saved", v: roi.coachTimeSaved },
               { l: "Admin & coordination saved", v: roi.adminTimeSaved },
-              { l: "Retention value (2.5% fewer exits)", v: roi.retentionValue },
+              { l: `Retention (${(roi.retentionLiftPct * 100).toFixed(1)}% fewer exits)`, v: roi.retentionValue },
               { l: "Injury & load management", v: roi.injurySavings },
             ].map((row) => (
               <div key={row.l} className="flex justify-between gap-4">
@@ -171,29 +265,29 @@ function ClubROICalculator() {
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           {
             icon: Clock,
-            stat: `${coaches * 2.5 + 3}h`,
+            stat: `${roi.hoursSavedPerWeek}h`,
             label: "Saved per week",
-            sub: `${coaches} coaches × 2.5 h + 3 h admin — sessions configured by DEPRO, not built manually`,
+            sub: `${coaches} coaches × ${scenario.hoursSavedPerCoachWeek} h + ${scenario.adminHoursSavedWeek} h admin — sessions built by DEPRO`,
           },
           {
             icon: Users,
-            stat: (players * 0.025).toFixed(1),
+            stat: roi.playersRetained.toFixed(1),
             label: "Players retained / yr",
-            sub: `At 2.5% retention lift, ${fmtUSD(annualFee)}/player ≈ ${fmtUSD(roi.retentionValue)} annual value`,
+            sub: `${(roi.retentionLiftPct * 100).toFixed(1)}% lift on ${players} players ≈ ${fmtUSD(roi.retentionValue)} value`,
           },
           {
             icon: TrendingUp,
             stat: fmtUSD(roi.injurySavings),
             label: "Injury cost avoided",
-            sub: "Conservative load-monitoring savings across your roster (industry avg. −15–25% soft-tissue)",
+            sub: `$${scenario.injuryReductionPerPlayer}/player · industry benchmark −15–25% soft-tissue with load monitoring`,
           },
           {
             icon: DollarSign,
-            stat: `${(roi.totalBenefit / roi.yearTwoPlusCost).toFixed(1)}×`,
+            stat: `${roi.benefitMultiplier.toFixed(1)}×`,
             label: "Benefit vs. annual fee",
             sub: `${fmtUSD(roi.totalBenefit)} value on ${fmtUSD(roi.yearTwoPlusCost)}/yr after setup year`,
           },
@@ -206,6 +300,11 @@ function ClubROICalculator() {
           </div>
         ))}
       </div>
+
+      <p className="text-[11px] text-gray-400 leading-relaxed text-center max-w-3xl mx-auto">
+        Illustrative model for partner conversations — not a financial guarantee. Actual ROI depends on club adoption,
+        staff workflows and retention dynamics. Analyst comparison based on typical US academy salary benchmarks ($55–75k).
+      </p>
     </div>
   );
 }
