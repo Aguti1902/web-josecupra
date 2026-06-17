@@ -404,7 +404,7 @@ function PartnerCalculator() {
   );
 }
 
-const PARTNER_ONLY_NAV = ["roi", "partner"];
+const PARTNER_ONLY_NAV = ["partner"];
 
 function PitchFooter({ variant }) {
   const { t } = useTranslation("usPitch");
@@ -653,7 +653,6 @@ export function USClubPitchPage({ variant = "partner" }) {
         </div>
       </section>
 
-      {isPartner && (
       <section id="roi" className="py-20 bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="max-w-2xl mb-12">
@@ -664,7 +663,6 @@ export function USClubPitchPage({ variant = "partner" }) {
           <ClubROICalculator />
         </div>
       </section>
-      )}
 
       {/* Workflow */}
       <section id="workflow" className="py-20 bg-gray-50 border-b border-gray-100">
