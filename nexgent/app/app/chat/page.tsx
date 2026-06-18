@@ -100,7 +100,7 @@ export default function ChatPage() {
           <input
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm w-32"
+            className="bg-depro-gray-light border border-depro-border rounded-lg px-3 py-1.5 text-sm w-32"
             placeholder="Tu nombre"
           />
           <button
@@ -125,34 +125,34 @@ export default function ChatPage() {
           <button
             key={c.id}
             onClick={() => setChannel(c.id)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${channel === c.id ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-400"}`}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${channel === c.id ? "bg-depro-blue text-white" : "bg-depro-gray-light text-depro-gray"}`}
           >
             {c.name}
           </button>
         ))}
       </div>
 
-      <div className="rounded-xl border border-slate-700 bg-slate-800/30 flex flex-col h-[420px]">
+      <div className="rounded-xl border border-depro-border bg-white flex flex-col h-[420px]">
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.map((m) => (
-            <div key={m.id} className="rounded-lg bg-slate-800/80 px-4 py-3">
-              <div className="flex justify-between text-xs text-slate-500 mb-1">
-                <span className="font-bold text-slate-300">{m.author}</span>
+            <div key={m.id} className="rounded-lg bg-depro-gray-light px-4 py-3">
+              <div className="flex justify-between text-xs text-depro-gray mb-1">
+                <span className="font-bold text-depro-dark">{m.author}</span>
                 <span>{new Date(m.created_at).toLocaleString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
               </div>
               <p className="text-sm">{m.content}</p>
             </div>
           ))}
         </div>
-        <div className="border-t border-slate-700 p-3 flex gap-2">
+        <div className="border-t border-depro-border p-3 flex gap-2">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             placeholder="Escribe un mensaje al canal..."
-            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-500"
+            className="flex-1 bg-white border border-depro-border rounded-lg px-4 py-2 text-sm outline-none focus:border-depro-blue"
           />
-          <button onClick={sendMessage} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500">
+          <button onClick={sendMessage} className="px-4 py-2 rounded-lg bg-depro-blue hover:bg-blue-500">
             <Send size={18} />
           </button>
         </div>

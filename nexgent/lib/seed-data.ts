@@ -58,24 +58,24 @@ export interface SavedSession {
 }
 
 export const DEMO_CLUB = {
-  name: "Real Madrid C.F.",
-  shortName: "RMCF",
-  accent: "#FEBE10",
-  accentDark: "#00529F",
+  name: "Sociedade Esportiva Palmeiras",
+  shortName: "Palmeiras",
+  accent: "#006437",
+  accentDark: "#FDB913",
 };
 
 export const DEMO_PLAYERS: Player[] = [
-  { id: "p1", name: "Courtois", position: "POR", avatar: "TC", loadBand: "optima", injuryRisk: "bajo" },
-  { id: "p2", name: "Carvajal", position: "LD", avatar: "DC", loadBand: "alta", injuryRisk: "medio" },
-  { id: "p3", name: "Rüdiger", position: "DFC", avatar: "AR", loadBand: "optima", injuryRisk: "bajo" },
-  { id: "p4", name: "Militão", position: "DFC", avatar: "EM", loadBand: "riesgo", injuryRisk: "alto" },
-  { id: "p5", name: "Mendy", position: "LI", avatar: "FM", loadBand: "optima", injuryRisk: "bajo" },
-  { id: "p6", name: "Tchouaméni", position: "MC", avatar: "AT", loadBand: "alta", injuryRisk: "medio" },
-  { id: "p7", name: "Valverde", position: "MC", avatar: "FV", loadBand: "optima", injuryRisk: "bajo" },
-  { id: "p8", name: "Bellingham", position: "MP", avatar: "JB", loadBand: "alta", injuryRisk: "medio" },
-  { id: "p9", name: "Rodrygo", position: "ED", avatar: "RO", loadBand: "optima", injuryRisk: "bajo" },
-  { id: "p10", name: "Vinícius", position: "EI", avatar: "VJ", loadBand: "riesgo", injuryRisk: "alto" },
-  { id: "p11", name: "Mbappé", position: "DC", avatar: "KM", loadBand: "alta", injuryRisk: "medio" },
+  { id: "p1", name: "Caio", position: "POR", avatar: "CM", loadBand: "optima", injuryRisk: "bajo" },
+  { id: "p2", name: "Vanderlan", position: "LI", avatar: "VN", loadBand: "alta", injuryRisk: "medio" },
+  { id: "p3", name: "Murilo", position: "DFC", avatar: "MU", loadBand: "optima", injuryRisk: "bajo" },
+  { id: "p4", name: "Luis Felipe", position: "DFC", avatar: "LF", loadBand: "riesgo", injuryRisk: "alto" },
+  { id: "p5", name: "Mayke", position: "LD", avatar: "MY", loadBand: "optima", injuryRisk: "bajo" },
+  { id: "p6", name: "Fabinho", position: "MC", avatar: "FB", loadBand: "alta", injuryRisk: "medio" },
+  { id: "p7", name: "Jailson", position: "MC", avatar: "JL", loadBand: "optima", injuryRisk: "bajo" },
+  { id: "p8", name: "Luis Guilherme", position: "MP", avatar: "LG", loadBand: "alta", injuryRisk: "medio" },
+  { id: "p9", name: "Estêvão", position: "ED", avatar: "ES", loadBand: "optima", injuryRisk: "bajo" },
+  { id: "p10", name: "Kevin", position: "EI", avatar: "KV", loadBand: "riesgo", injuryRisk: "alto" },
+  { id: "p11", name: "Luighi", position: "DC", avatar: "LH", loadBand: "alta", injuryRisk: "medio" },
 ];
 
 export const CHAT_CHANNELS: ChatChannel[] = [
@@ -87,11 +87,11 @@ export const CHAT_CHANNELS: ChatChannel[] = [
 ];
 
 export const SEED_CHAT_MESSAGES: ChatMessage[] = [
-  { id: "m1", channel_id: "tecnico", author: "Ancelotti", role: "Entrenador", content: "Mañana sesión técnico-táctica, intensidad media-alta. Vinícius en gestión de carga.", created_at: new Date(Date.now() - 3600000).toISOString() },
-  { id: "m2", channel_id: "tecnico", author: "Davide", role: "Ayudante", content: "Confirmado rondo 4v2 + posesión 8v8 en espacio reducido.", created_at: new Date(Date.now() - 3000000).toISOString() },
-  { id: "m3", channel_id: "medico", author: "Dr. Nieto", role: "Médico", content: "Militão: progresión a Fase 2 readaptación. No contacto todavía.", created_at: new Date(Date.now() - 7200000).toISOString() },
-  { id: "m4", channel_id: "scouting", author: "Juni", role: "Scouting", content: "Informe pendiente extremo izquierdo Sub-21 liga portuguesa.", created_at: new Date(Date.now() - 86400000).toISOString() },
-  { id: "m5", channel_id: "general", author: "Dirección", role: "Dirección", content: "Reunión staff viernes 10:00 — revisión microciclo pre-partido.", created_at: new Date(Date.now() - 172800000).toISOString() },
+  { id: "m1", channel_id: "tecnico", author: "Abel Ferreira", role: "Entrenador", content: "Mañana sesión técnico-táctica Sub-20, intensidad media. Kevin en gestión de carga.", created_at: new Date(Date.now() - 3600000).toISOString() },
+  { id: "m2", channel_id: "tecnico", author: "Vitor", role: "Ayudante", content: "Confirmado rondo 4v2 + posesión 8v8 en espacio reducido.", created_at: new Date(Date.now() - 3000000).toISOString() },
+  { id: "m3", channel_id: "medico", author: "Dr. Chefe", role: "Médico", content: "Luis Felipe: progresión a Fase 2 readaptación. No contacto todavía.", created_at: new Date(Date.now() - 7200000).toISOString() },
+  { id: "m4", channel_id: "scouting", author: "André", role: "Scouting", content: "Informe pendiente extremo izquierdo Sub-21 liga portuguesa.", created_at: new Date(Date.now() - 86400000).toISOString() },
+  { id: "m5", channel_id: "general", author: "Dirección", role: "Dirección", content: "Reunión staff viernes 10:00 — revisión microciclo pre-temporada.", created_at: new Date(Date.now() - 172800000).toISOString() },
 ];
 
 export const SEED_SCOUTING: ScoutingReport[] = [
@@ -151,15 +151,15 @@ export const VIDEO_EVENTS = [
 ];
 
 export const MEDICAL_PLAYERS = [
-  { name: "Militão", status: "Readaptación", phase: 2, progress: 55 },
-  { name: "Alaba", status: "Tratamiento", phase: 1, progress: 25 },
-  { name: "Camavinga", status: "Disponible", phase: 4, progress: 100 },
+  { name: "Luis Felipe", status: "Readaptación", phase: 2, progress: 55 },
+  { name: "Kevin", status: "Tratamiento", phase: 1, progress: 25 },
+  { name: "Estêvão", status: "Disponible", phase: 4, progress: 100 },
 ];
 
 export const YOUTH_SQUAD = [
-  { name: "Gonzalo", position: "DC", load: "Media", risk: "bajo" },
-  { name: "Yánez", position: "POR", load: "Baja", risk: "bajo" },
-  { name: "Franco", position: "MC", load: "Alta", risk: "medio" },
+  { name: "Luighi", position: "DC", load: "Media", risk: "bajo" },
+  { name: "Caio", position: "POR", load: "Baja", risk: "bajo" },
+  { name: "Fabinho", position: "MC", load: "Alta", risk: "medio" },
 ];
 
 export const EXEC_KPIS = [

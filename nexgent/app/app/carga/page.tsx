@@ -93,27 +93,27 @@ export default function CargaPage() {
   return (
     <div className="max-w-4xl space-y-6">
       <h1 className="text-2xl font-black">Control de carga</h1>
-      <p className="text-slate-400 text-sm">Importa export GPS (CSV/XLSX) de Catapult, STATSports, Polar, WIMU…</p>
+      <p className="text-depro-gray text-sm">Importa export GPS (CSV/XLSX) de Catapult, STATSports, Polar, WIMU…</p>
 
-      <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-600 rounded-xl p-10 cursor-pointer hover:border-amber-500/50 transition-colors">
-        <Upload className="text-slate-400 mb-3" size={32} />
+      <label className="flex flex-col items-center justify-center border-2 border-dashed border-depro-border rounded-xl p-10 cursor-pointer hover:border-amber-500/50 transition-colors">
+        <Upload className="text-depro-gray mb-3" size={32} />
         <span className="font-bold">Subir archivo GPS</span>
-        <span className="text-xs text-slate-500 mt-1">CSV o XLSX</span>
+        <span className="text-xs text-depro-gray mt-1">CSV o XLSX</span>
         <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
       </label>
 
       {headers.length > 0 && (
-        <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
+        <div className="rounded-xl border border-depro-border bg-white p-5 space-y-4">
           <h2 className="font-bold">Mapeo de columnas</h2>
-          <p className="text-xs text-slate-500">Indica qué columna de tu export corresponde a cada métrica.</p>
+          <p className="text-xs text-depro-gray">Indica qué columna de tu export corresponde a cada métrica.</p>
           <div className="grid sm:grid-cols-2 gap-3">
             {METRIC_KEYS.map(({ key, label }) => (
               <div key={key}>
-                <label className="text-xs text-slate-400">{label}</label>
+                <label className="text-xs text-depro-gray">{label}</label>
                 <select
                   value={mapping[key] || ""}
                   onChange={(e) => setMapping((m) => ({ ...m, [key]: e.target.value }))}
-                  className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"
+                  className="w-full mt-1 bg-white border border-depro-border rounded-lg px-3 py-2 text-sm"
                 >
                   <option value="">— Seleccionar —</option>
                   {headers.map((h) => (
@@ -123,11 +123,11 @@ export default function CargaPage() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-500">{rows.length} filas detectadas · Jugador: columna &quot;{headers[0]}&quot;</p>
+          <p className="text-xs text-depro-gray">{rows.length} filas detectadas · Jugador: columna &quot;{headers[0]}&quot;</p>
           <button
             onClick={classifyAll}
             disabled={loading || !mapping.distance}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-400 text-slate-900 font-bold text-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-depro-blue text-white font-bold text-sm disabled:opacity-50"
           >
             <Sparkles size={16} /> {loading ? "Clasificando con IA…" : "Importar y clasificar"}
           </button>
@@ -138,7 +138,7 @@ export default function CargaPage() {
         <div className="space-y-3">
           <h2 className="font-bold">Resultados</h2>
           {classified.map((p) => (
-            <div key={p.name} className="rounded-xl border border-slate-700 bg-slate-800/50 p-4 flex flex-wrap gap-4 items-start">
+            <div key={p.name} className="rounded-xl border border-depro-border bg-white shadow-sm p-4 flex flex-wrap gap-4 items-start">
               <div>
                 <p className="font-bold">{p.name}</p>
                 <span
@@ -148,18 +148,18 @@ export default function CargaPage() {
                   {p.band}
                 </span>
               </div>
-              <p className="text-sm text-slate-400 flex-1 min-w-[200px]">{p.explanation}</p>
+              <p className="text-sm text-depro-gray flex-1 min-w-[200px]">{p.explanation}</p>
             </div>
           ))}
         </div>
       )}
 
       {!rows.length && (
-        <div className="rounded-xl border border-slate-800 p-4">
-          <p className="text-xs text-slate-600 mb-3">Vista previa plantilla (demo):</p>
+        <div className="rounded-xl border border-depro-border p-4">
+          <p className="text-xs text-depro-gray mb-3">Vista previa plantilla (demo):</p>
           <div className="flex flex-wrap gap-2">
             {DEMO_PLAYERS.slice(0, 6).map((p) => (
-              <span key={p.id} className="text-xs px-2 py-1 rounded bg-slate-800" style={{ color: loadBandColor(p.loadBand) }}>
+              <span key={p.id} className="text-xs px-2 py-1 rounded bg-depro-gray-light" style={{ color: loadBandColor(p.loadBand) }}>
                 {p.name} · {p.loadBand}
               </span>
             ))}

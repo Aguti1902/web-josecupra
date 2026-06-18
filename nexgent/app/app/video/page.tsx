@@ -13,18 +13,18 @@ export default function VideoPage() {
     <div className="max-w-4xl space-y-6">
       <h1 className="text-2xl font-black">Rendimiento y vídeo</h1>
 
-      <div className="relative rounded-xl overflow-hidden border border-slate-700 bg-slate-900 aspect-video flex items-center justify-center">
+      <div className="relative rounded-xl overflow-hidden border border-depro-border bg-white aspect-video flex items-center justify-center">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950" />
         <div className="relative z-10 text-center">
           <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
             <Play size={28} className="text-white ml-1" />
           </div>
-          <p className="text-sm text-slate-400">Vídeo demo · Partido La Liga J38</p>
+          <p className="text-sm text-depro-gray">Vídeo demo · Partido La Liga J38</p>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-700 bg-slate-800/30 divide-y divide-slate-700">
-        <div className="px-4 py-3 font-bold text-sm text-slate-400 uppercase">Eventos detectados (demo)</div>
+      <div className="rounded-xl border border-depro-border bg-white divide-y divide-slate-700">
+        <div className="px-4 py-3 font-bold text-sm text-depro-gray uppercase">Eventos detectados (demo)</div>
         {VIDEO_EVENTS.map((ev) => (
           <div key={ev.time} className="px-4 py-3 flex items-center gap-4">
             <span className="font-mono text-sm text-amber-400 w-14">{ev.time}</span>
@@ -35,7 +35,7 @@ export default function VideoPage() {
         ))}
       </div>
 
-      <p className="text-xs text-slate-600 border border-slate-800 rounded-lg p-3">
+      <p className="text-xs text-depro-gray border border-depro-border rounded-lg p-3">
         MAQUETA — no hay detección real de eventos. Fase 2: pipeline CV + tracking + etiquetado automático.
       </p>
     </div>

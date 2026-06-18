@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NexGent — Plataforma IA para clubes de élite",
-  description: "Demo comercial NexGent para clubes de fútbol profesional",
+  title: "NexGent × DEPRO — Plataforma para clubes profesionales",
+  description: "Alianza NexGent y DEPRO: el software más completo para clubes de fútbol profesional. Demo Palmeiras.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

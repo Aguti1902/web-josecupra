@@ -1,7 +1,7 @@
 /**
  * DEMO vs PRODUCCIÓN
  * ------------------
- * DEMO: layout compartido con sidebar + header + selector de rol.
+ * DEMO: layout compartido estilo DEPRO — sidebar blanco, fondo gris claro.
  * PRODUCCIÓN: permisos por rol, club switcher, notificaciones.
  */
 
@@ -14,7 +14,7 @@ import {
   Home, MessageSquare, Calendar, ClipboardList, Activity,
   Video, Search, HeartPulse, Users, BarChart3, Sparkles,
 } from "lucide-react";
-import { DEMO_CLUB } from "@/lib/seed-data";
+import { PALMEIRAS } from "@/lib/club-config";
 
 const NAV = [
   { href: "/app/inicio", label: "Inicio", icon: Home, mock: true },
@@ -30,6 +30,7 @@ const NAV = [
 ];
 
 const ROLES = ["Entrenador", "Médico", "Scouting", "Dirección", "Cantera"];
+const CLUB_GREEN = PALMEIRAS.accent;
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -37,15 +38,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-100">
-      <aside className="w-60 flex-shrink-0 border-r border-slate-800 bg-slate-900 flex flex-col">
-        <div className="p-4 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-blue-700 flex items-center justify-center text-xs font-black">NG</div>
-            <div>
-              <p className="font-bold text-sm">NexGent</p>
-              <p className="text-[10px] text-slate-400 truncate">{DEMO_CLUB.name}</p>
+    <div className="min-h-screen flex bg-depro-gray-light text-depro-dark">
+      <aside className="w-60 flex-shrink-0 border-r border-depro-border bg-white flex flex-col shadow-sm">
+        <div className="p-4 border-b border-depro-border">
+          <Link href="/" className="flex items-center gap-2 mb-3">
+            <img src="/logo.png" alt="DEPRO" className="h-6 w-auto" />
+          </Link>
+          <div className="flex items-center gap-2.5">
+            <img src={PALMEIRAS.logo} alt={PALMEIRAS.shortName} className="w-9 h-9 object-contain rounded-lg border border-depro-border p-0.5 bg-white" />
+            <div className="min-w-0">
+              <p className="font-bold text-sm truncate">{PALMEIRAS.shortName}</p>
+              <p className="text-[10px] text-depro-gray truncate">{PALMEIRAS.team}</p>
             </div>
+          </div>
+          <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-depro-border">
+            <span className="text-[9px] text-depro-gray uppercase tracking-wide">Con</span>
+            <img src="/logo-nexgent.png" alt="NexGent" className="h-3.5 object-contain" />
           </div>
         </div>
         <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
@@ -56,37 +64,44 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 key={href}
                 href={href}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  active ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  active ? "text-white shadow-sm" : "text-depro-gray hover:bg-depro-gray-light hover:text-depro-dark"
                 }`}
+                style={active ? { backgroundColor: CLUB_GREEN } : undefined}
               >
                 <Icon size={18} />
                 <span className="flex-1">{label}</span>
-                {mock && <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">demo</span>}
+                {mock && (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${active ? "bg-white/20 text-white" : "bg-depro-gray-light text-depro-gray"}`}>
+                    demo
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
-        <div className="p-3 border-t border-slate-800 text-[10px] text-slate-500">
-          Demo comercial · NexGent
+        <div className="p-3 border-t border-depro-border">
+          <Link href="/" className="text-[10px] text-depro-gray hover:text-depro-blue font-semibold">
+            ← Volver al pitch
+          </Link>
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur flex items-center gap-4 px-5 flex-shrink-0">
-          <div className="flex-1 flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2 max-w-xl">
-            <Sparkles size={16} className="text-amber-400 flex-shrink-0" />
+        <header className="h-14 border-b border-depro-border bg-white flex items-center gap-4 px-5 flex-shrink-0">
+          <div className="flex-1 flex items-center gap-2 bg-depro-gray-light border border-depro-border rounded-lg px-3 py-2 max-w-xl">
+            <Sparkles size={16} className="text-depro-blue flex-shrink-0" />
             <input
               type="text"
               placeholder="Pregunta lo que quieras sobre el equipo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent text-sm w-full outline-none placeholder:text-slate-500"
+              className="bg-transparent text-sm w-full outline-none placeholder:text-depro-gray text-depro-dark"
             />
           </div>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium"
+            className="bg-white border border-depro-border rounded-lg px-3 py-2 text-sm font-medium text-depro-dark"
           >
             {ROLES.map((r) => (
               <option key={r} value={r}>{r}</option>

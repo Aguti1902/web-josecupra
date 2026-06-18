@@ -1,18 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #020617;
-  --foreground: #f8fafc;
-}
-
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
+  color: #333333;
+  background: #ffffff;
 }
 
 .stat-number {
   font-variant-numeric: tabular-nums;
+}
+
+@keyframes pulse-bar {
+  0%, 100% { width: 20%; }
+  50% { width: 85%; }
+}
+
+.animate-pulse-bar {
+  animation: pulse-bar 2.5s ease-in-out infinite;
+}
+
+@keyframes fade-slide {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-slide {
+  animation: fade-slide 0.4s ease-out;
 }

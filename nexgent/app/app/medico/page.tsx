@@ -13,9 +13,9 @@ export default function MedicoPage() {
     <div className="max-w-4xl space-y-6">
       <h1 className="text-2xl font-black">Médico</h1>
 
-      <div className="rounded-xl border border-slate-700 bg-slate-800/30 overflow-hidden">
+      <div className="rounded-xl border border-depro-border bg-white overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-800 text-slate-400 text-xs uppercase">
+          <thead className="bg-depro-gray-light text-depro-gray text-xs uppercase">
             <tr>
               <th className="px-4 py-3 text-left">Jugador</th>
               <th className="px-4 py-3 text-left">Estado</th>
@@ -24,9 +24,9 @@ export default function MedicoPage() {
           </thead>
           <tbody>
             {MEDICAL_PLAYERS.map((p) => (
-              <tr key={p.name} className="border-t border-slate-700">
+              <tr key={p.name} className="border-t border-depro-border">
                 <td className="px-4 py-3 font-bold">{p.name}</td>
-                <td className="px-4 py-3 text-slate-400">{p.status}</td>
+                <td className="px-4 py-3 text-depro-gray">{p.status}</td>
                 <td className="px-4 py-3">{PHASES[p.phase - 1]}</td>
               </tr>
             ))}
@@ -38,18 +38,18 @@ export default function MedicoPage() {
         <h2 className="font-bold">Readaptación · {focus.name}</h2>
         <div className="flex gap-2 mt-4 mb-2">
           {PHASES.map((ph, i) => (
-            <div key={ph} className={`flex-1 text-center text-xs py-2 rounded-lg font-bold ${i + 1 <= focus.phase ? "bg-amber-500 text-slate-900" : "bg-slate-800 text-slate-500"}`}>
+            <div key={ph} className={`flex-1 text-center text-xs py-2 rounded-lg font-bold ${i + 1 <= focus.phase ? "bg-amber-500 text-slate-900" : "bg-depro-gray-light text-depro-gray"}`}>
               {ph}
             </div>
           ))}
         </div>
-        <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
+        <div className="h-3 bg-depro-gray-light rounded-full overflow-hidden">
           <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${focus.progress}%` }} />
         </div>
-        <p className="text-xs text-slate-500 mt-2">{focus.progress}% completado</p>
+        <p className="text-xs text-depro-gray mt-2">{focus.progress}% completado</p>
       </div>
 
-      <p className="text-xs text-slate-600 border border-slate-800 rounded-lg p-3">MAQUETA — datos clínicos de ejemplo.</p>
+      <p className="text-xs text-depro-gray border border-depro-border rounded-lg p-3">MAQUETA — datos clínicos de ejemplo.</p>
     </div>
   );
 }
