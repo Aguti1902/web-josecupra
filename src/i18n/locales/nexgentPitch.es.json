@@ -7,6 +7,7 @@
     "advantages": "Ventajas",
     "compare": "Comparativa",
     "roadmap": "Roadmap",
+    "commission": "Comisiones",
     "slides": "Diapositivas",
     "demo": "Ver demo"
   },
@@ -24,7 +25,7 @@
   "hero": {
     "eyebrow": "Alianza estratégica · Clubes profesionales",
     "title": "El software más completo para clubes de fútbol profesional",
-    "desc": "NexGent y DEPRO unen IA, GPS, periodización, tests físicos, scouting y white-label en una sola plataforma — pensada para el staff, no para IT.",
+    "desc": "NexGent y DEPRO unen IA, GPS, periodización, tests, médico, cantera, vídeo, scouting y white-label en una plataforma enterprise — pensada para el staff de clubes de élite.",
     "ctaDemo": "Ver demo Palmeiras",
     "ctaExplore": "Explorar capacidades",
     "statModules": "Módulos integrados",
@@ -78,6 +79,11 @@
       "summary": "Una pantalla para dirección, cuerpo técnico y médico.",
       "bullets": ["Mesociclo y microciclo por equipo", "Próxima sesión y tests completados", "Cabecera con logo y colores del club"]
     },
+    "microcycle": {
+      "title": "Periodización meso/microciclo",
+      "summary": "Planificación semanal con sesiones A/B/C/D y partido integrado.",
+      "bullets": ["Mesociclos y bloques configurables", "Microciclo visual por día", "Sincronizado con tests y carga GPS"]
+    },
     "sessions": {
       "title": "Sesiones con IA táctica",
       "summary": "Describe el ejercicio en lenguaje natural → diagrama SVG.",
@@ -93,6 +99,16 @@
       "summary": "Ratings objetivos T1→T2→T3 vs media del equipo.",
       "bullets": ["4 tests × 3 evaluaciones", "Gráficas automáticas", "Verde / ámbar / rojo"]
     },
+    "medical": {
+      "title": "Departamento médico",
+      "summary": "Historial clínico, readaptación y alertas cruzadas con carga.",
+      "bullets": ["Fases de readaptación por jugador", "Alertas automáticas carga ↔ médico", "Sincronizado con chat del staff"]
+    },
+    "academy": {
+      "title": "Cantera y categorías",
+      "summary": "Seguimiento Sub-20 a Sub-13 sin hardware GPS obligatorio.",
+      "bullets": ["Proyección y promoción de talento", "Tests y ratings por categoría", "Familias ven el club, no un SaaS"]
+    },
     "chat": {
       "title": "Chat del staff + IA",
       "summary": "Canales por rol con resumen inteligente.",
@@ -102,6 +118,16 @@
       "title": "Scouting integrado",
       "summary": "Informes estructurados y seguimiento de objetivos.",
       "bullets": ["Físico, técnico, táctico, actitudinal", "Notas libres", "Histórico por jugador"]
+    },
+    "video": {
+      "title": "Análisis de vídeo",
+      "summary": "Tags automáticos, clips y vinculación con sesiones.",
+      "bullets": ["Tags IA: pressing, transiciones, finalización", "Timeline sincronizada con GPS", "Export para informes scouting"]
+    },
+    "direction": {
+      "title": "Dirección deportiva",
+      "summary": "KPIs ejecutivos: adherencia, carga, lesiones y cantera.",
+      "bullets": ["Dashboard dirección en tiempo real", "Comparativa entre equipos", "Informes para junta directiva"]
     },
     "pdf": {
       "title": "PDFs de sesión",
@@ -130,6 +156,7 @@
   "compare": {
     "eyebrow": "Comparativa",
     "title": "NexGent × DEPRO vs alternativas",
+    "desc": "Comparación honesta frente a Excel, WhatsApp y plataformas genéricas que no cubren médico, cantera ni IA táctica.",
     "capability": "Capacidad",
     "us": "NexGent × DEPRO",
     "sheets": "Excel / Sheets",
@@ -137,16 +164,33 @@
     "partial": "Parcial",
     "addon": "Extra $",
     "limited": "Limitado",
+    "categories": {
+      "core": "Núcleo operativo",
+      "performance": "Rendimiento y GPS",
+      "staff": "Staff e inteligencia",
+      "health": "Salud y readaptación",
+      "academy": "Cantera",
+      "enterprise": "Enterprise y soporte"
+    },
     "rows": [
       "White-label con logo y colores del club",
       "Periodización meso/microciclo",
-      "Tests físicos T1→T2→T3 con ratings",
+      "Task designer con frameworks A/B/C/D",
+      "PDF de sesión con branding del club",
       "Import GPS + clasificación IA",
+      "Tests físicos T1→T2→T3 con ratings",
+      "Semáforo de carga por jugador",
       "Sesiones con diagrama IA (SVG)",
-      "PDF de sesión con branding",
       "Chat staff + resumen IA",
-      "Scouting integrado",
-      "Multi-equipo y multi-categoría"
+      "Scouting integrado con histórico",
+      "Módulo médico y readaptación",
+      "Alertas cruzadas carga ↔ lesiones",
+      "Cantera multi-categoría (Sub-20 a Sub-13)",
+      "Proyección de talento sin GPS obligatorio",
+      "Análisis de vídeo con tags automáticos",
+      "KPIs dirección deportiva",
+      "Roles y permisos granulares por departamento",
+      "SLA y soporte dedicado para clubes pro"
     ]
   },
   "workflow": {
@@ -162,36 +206,131 @@
   },
   "roadmap": {
     "eyebrow": "Roadmap de desarrollo",
-    "title": "Cómo evoluciona el proyecto",
-    "desc": "Hitos claros desde el piloto con Palmeiras hasta la plataforma completa multi-club.",
-    "statusDone": "Completado",
-    "statusCurrent": "En curso",
-    "statusNext": "Próximo",
-    "statusFuture": "Planificado",
+    "title": "Cómo se construye el proyecto desde cero",
+    "desc": "Metodología completa para un software enterprise de clubes profesionales — desde la reunión de requisitos hasta el despliegue en producción.",
     "phases": [
       {
+        "phase": "Fase 0",
+        "period": "Semanas 1–2",
+        "duration": "Discovery",
+        "title": "Reunión de requisitos y alineamiento",
+        "subtitle": "Workshops con dirección, cuerpo técnico, médico y cantera del club.",
+        "items": ["Kick-off con stakeholders clave", "Mapa de procesos actuales (Excel, GPS, WhatsApp…)", "Priorización de módulos por departamento", "Documento funcional y criterios de éxito"]
+      },
+      {
         "phase": "Fase 1",
-        "period": "Mes 1–3",
-        "title": "Piloto Palmeiras + núcleo DEPRO",
-        "items": ["White-label Palmeiras en producción", "Dashboard, mesociclo y tests DEPRO", "Import GPS Catapult/STATSports", "Chat staff con persistencia"]
+        "period": "Semanas 3–6",
+        "duration": "Diseño",
+        "title": "Arquitectura, UX y prototipo validado",
+        "subtitle": "Definimos la plataforma antes de escribir código de producción.",
+        "items": ["Arquitectura técnica multi-tenant", "Design system white-label del club", "Prototipo navegable por rol (entrenador, médico, dirección)", "Validación con usuarios reales del staff"]
       },
       {
         "phase": "Fase 2",
-        "period": "Mes 4–6",
-        "title": "IA táctica y rendimiento",
-        "items": ["Sesiones: texto → diagrama SVG", "Clasificación IA de carga por jugador", "Resumen IA del chat staff", "PDF de sesión con branding club"]
+        "period": "Mes 2–4",
+        "duration": "MVP",
+        "title": "Núcleo operativo DEPRO",
+        "subtitle": "Dashboard, periodización, tests y plantilla en producción piloto.",
+        "items": ["Dashboard y microciclo por equipo", "Tests físicos con ratings T1→T3", "Import GPS Catapult / STATSports", "White-label: logo, colores, categorías"]
       },
       {
         "phase": "Fase 3",
-        "period": "Mes 7–9",
-        "title": "Scouting, médico y dirección",
-        "items": ["Informes scouting CRUD completos", "Módulo médico y readaptación", "KPIs dirección deportiva", "Integración vídeo (tags automáticos)"]
+        "period": "Mes 5–7",
+        "duration": "IA",
+        "title": "Capa NexGent: IA táctica y rendimiento",
+        "subtitle": "Sesiones inteligentes, clasificación de carga y chat del staff.",
+        "items": ["Sesiones: texto → diagrama SVG", "Clasificación IA de carga por jugador", "Chat staff con resumen IA", "PDF de sesión con branding club"]
       },
       {
         "phase": "Fase 4",
-        "period": "Mes 10–12",
-        "title": "Escala multi-club",
-        "items": ["Cantera sin hardware GPS obligatorio", "API abierta wearables", "App móvil staff", "Despliegue clubes adicionales"]
+        "period": "Mes 8–10",
+        "duration": "Pro",
+        "title": "Módulos avanzados: médico, cantera, vídeo, dirección",
+        "subtitle": "Los departamentos que diferencian a un club de élite.",
+        "items": ["Módulo médico y readaptación completo", "Cantera multi-categoría sin GPS obligatorio", "Scouting CRUD + análisis de vídeo", "KPIs dirección deportiva"]
+      },
+      {
+        "phase": "Fase 5",
+        "period": "Mes 11–12",
+        "duration": "Go-live",
+        "title": "QA, formación, piloto y despliegue",
+        "subtitle": "El club opera en producción con soporte dedicado.",
+        "items": ["Testing de carga y seguridad", "Formación presencial al staff", "Migración de datos históricos", "Go-live con SLA y soporte 24/7"]
+      }
+    ]
+  },
+  "modules": {
+    "groups": [
+      {
+        "title": "Operativa DEPRO",
+        "items": ["Periodización meso/micro", "Task designer A/B/C/D", "Tests físicos T1→T3", "PDFs de sesión", "White-label completo"]
+      },
+      {
+        "title": "Rendimiento",
+        "items": ["Import GPS multi-marca", "Semáforo de carga", "Clasificación IA", "Match-day integration", "Histórico por jugador"]
+      },
+      {
+        "title": "IA NexGent",
+        "items": ["Diagramas tácticos SVG", "Resumen chat staff", "Tags vídeo automáticos", "Alertas inteligentes", "Recomendaciones de carga"]
+      },
+      {
+        "title": "Departamentos",
+        "items": ["Médico y readaptación", "Cantera Sub-20→Sub-13", "Scouting integrado", "Dirección deportiva", "Análisis de vídeo"]
+      }
+    ]
+  },
+  "commission": {
+    "eyebrow": "Para comerciales",
+    "sectionTitle": "Calculadora de comisiones",
+    "sectionDesc": "Los comerciales de NexGent se llevan un 7% de cada venta cerrada. Un desarrollo de estas características para clubes de Primera puede superar el millón de euros — la comisión refleja el valor real del proyecto.",
+    "title": "Simula tu comisión (7%)",
+    "desc": "Ajusta el tier del club o personaliza setup, licencia anual y duración del contrato.",
+    "tierLabel": "Tier del club",
+    "modeDetailed": "Setup + licencia anual",
+    "modeSimple": "Valor total del proyecto",
+    "setup": "Setup / desarrollo inicial",
+    "annual": "Licencia anual",
+    "perYear": "/año",
+    "contractYears": "Duración contrato",
+    "years": "años",
+    "totalProject": "Valor total del proyecto",
+    "totalContract": "Valor total contrato",
+    "rate": "Comisión",
+    "yourCommission": "Tu comisión (7%)",
+    "monthlyEquiv": "≈ {{amount}}/mes durante el contrato",
+    "disclaimer": "Importes orientativos para clubes profesionales. Proyectos de Primera División europea o Sudamericana pueden superar €1M–€3M en setup + licencias plurianuales. La comisión se abona sobre el importe facturado y cerrado.",
+    "tiers": [
+      {
+        "id": "segunda",
+        "name": "Segunda / Semi-pro",
+        "range": "€150K – €350K",
+        "setupDefault": 120000,
+        "annualDefault": 80000,
+        "note": "Clubes de segunda división o academias profesionales con 2-4 equipos."
+      },
+      {
+        "id": "primera",
+        "name": "Primera División",
+        "range": "€400K – €900K",
+        "setupDefault": 180000,
+        "annualDefault": 320000,
+        "note": "Clubes de Primera con plantilla profesional, GPS, médico y cantera completa."
+      },
+      {
+        "id": "elite",
+        "name": "Top 5 Europa / Libertadores",
+        "range": "€1M – €3M+",
+        "setupDefault": 800000,
+        "annualDefault": 650000,
+        "note": "Clubes de élite mundial: personalización total, integraciones enterprise, SLA 24/7."
+      },
+      {
+        "id": "custom",
+        "name": "Personalizado",
+        "range": "A medida",
+        "setupDefault": 500000,
+        "annualDefault": 400000,
+        "note": "Define manualmente setup, licencia y años según la propuesta comercial."
       }
     ]
   },
@@ -260,7 +399,26 @@
       "sessionTitle": "Sesión B · Técnico-táctico",
       "pdfReady": "PDF listo · logo y colores Palmeiras",
       "brandPreview": "Vista previa white-label",
-      "brandApplied": "Branding aplicado a todos los módulos"
+      "brandApplied": "Branding aplicado a todos los módulos",
+      "medicalTitle": "Departamento médico",
+      "medStatus_readapt": "Readaptación",
+      "medStatus_available": "Disponible",
+      "medStatus_alert": "Alerta médica",
+      "medAlertSync": "Alerta sincronizada con carga GPS y chat staff",
+      "academyLabel": "Cantera Palmeiras",
+      "prospect": "Prospectos",
+      "promoted": "Promovidos",
+      "academyNoGps": "Cantera operativa sin hardware GPS obligatorio",
+      "tagPress": "Pressing",
+      "tagTransition": "Transición",
+      "tagFinish": "Finalización",
+      "videoAiTags": "Tags IA aplicados · clip exportado",
+      "directionTitle": "Panel dirección deportiva",
+      "kpiAdherence": "Adherencia plan",
+      "kpiLoad": "Carga plantilla",
+      "kpiInjuries": "Lesiones vs LY",
+      "kpiProspects": "Promociones cantera",
+      "microSynced": "Microciclo sincronizado con tests y GPS"
     }
   }
 }

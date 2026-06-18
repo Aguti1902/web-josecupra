@@ -12,6 +12,7 @@ const NAV_KEYS = [
   { id: "ventajas", key: "nav.advantages" },
   { id: "roadmap", key: "nav.roadmap" },
   { id: "comparativa", key: "nav.compare" },
+  { id: "comisiones", key: "nav.commission" },
 ];
 
 export function PitchNav() {
@@ -38,10 +39,8 @@ export function PitchNav() {
   return (
     <header className={`fixed top-0 inset-x-0 z-50 transition-all ${scrolled ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100" : "bg-white"}`}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-        <Link to="/nexgent" className="flex items-center gap-3 flex-shrink-0">
-          <img src={NEXGENT_LOGO} alt="NexGent" className="h-10 md:h-12 w-auto object-contain" />
-          <span className="hidden sm:inline text-gray-300 text-lg">×</span>
-          <img src={DEPRO_LOGO} alt="DEPRO" className="hidden sm:block h-8 md:h-9 w-auto object-contain" />
+        <Link to="/nexgent" className="flex-shrink-0 text-sm font-black text-gray-900 hover:text-blue-600 transition-colors">
+          NexGent <span className="text-gray-300 font-light mx-1">×</span> DEPRO
         </Link>
         <nav className="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
           {NAV_KEYS.map(({ id, key }) => (

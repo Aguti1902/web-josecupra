@@ -7,6 +7,7 @@
     "advantages": "Advantages",
     "compare": "Compare",
     "roadmap": "Roadmap",
+    "commission": "Commission",
     "slides": "Slides",
     "demo": "View demo"
   },
@@ -24,7 +25,7 @@
   "hero": {
     "eyebrow": "Strategic alliance · Professional clubs",
     "title": "The most complete software for professional football clubs",
-    "desc": "NexGent and DEPRO unite AI, GPS, periodization, physical tests, scouting and white-label in one platform — built for staff, not IT.",
+    "desc": "NexGent and DEPRO unite AI, GPS, periodization, testing, medical, academy, video, scouting and white-label in an enterprise platform — built for elite club staff.",
     "ctaDemo": "View Palmeiras demo",
     "ctaExplore": "Explore capabilities",
     "statModules": "Integrated modules",
@@ -78,6 +79,11 @@
       "summary": "One screen for management, coaching staff and medical.",
       "bullets": ["Meso and microcycle per team", "Next session and completed tests", "Header with club logo and colors"]
     },
+    "microcycle": {
+      "title": "Meso/microcycle periodization",
+      "summary": "Weekly planning with sessions A/B/C/D and match integrated.",
+      "bullets": ["Configurable mesocycles and blocks", "Visual microcycle by day", "Synced with tests and GPS load"]
+    },
     "sessions": {
       "title": "Sessions with tactical AI",
       "summary": "Describe the drill in natural language → SVG diagram.",
@@ -93,6 +99,16 @@
       "summary": "Objective T1→T2→T3 ratings vs team average.",
       "bullets": ["4 tests × 3 evaluations", "Automatic charts", "Green / amber / red"]
     },
+    "medical": {
+      "title": "Medical department",
+      "summary": "Clinical history, rehab and cross-alerts with load.",
+      "bullets": ["Rehab phases per player", "Automatic load ↔ medical alerts", "Synced with staff chat"]
+    },
+    "academy": {
+      "title": "Academy and categories",
+      "summary": "U-20 to U-13 tracking without mandatory GPS hardware.",
+      "bullets": ["Talent projection and promotion", "Tests and ratings per category", "Families see the club, not generic SaaS"]
+    },
     "chat": {
       "title": "Staff chat + AI",
       "summary": "Role-based channels with smart summary.",
@@ -102,6 +118,16 @@
       "title": "Integrated scouting",
       "summary": "Structured reports and target tracking.",
       "bullets": ["Physical, technical, tactical, attitudinal", "Free-form notes", "Player history"]
+    },
+    "video": {
+      "title": "Video analysis",
+      "summary": "Auto tags, clips and session linking.",
+      "bullets": ["AI tags: pressing, transitions, finishing", "Timeline synced with GPS", "Export for scouting reports"]
+    },
+    "direction": {
+      "title": "Sporting director",
+      "summary": "Executive KPIs: adherence, load, injuries and academy.",
+      "bullets": ["Real-time director dashboard", "Cross-team comparison", "Board-ready reports"]
     },
     "pdf": {
       "title": "Session PDFs",
@@ -130,6 +156,7 @@
   "compare": {
     "eyebrow": "Comparison",
     "title": "NexGent × DEPRO vs alternatives",
+    "desc": "Honest comparison vs Excel, WhatsApp and generic platforms that don't cover medical, academy or tactical AI.",
     "capability": "Capability",
     "us": "NexGent × DEPRO",
     "sheets": "Excel / Sheets",
@@ -137,16 +164,33 @@
     "partial": "Partial",
     "addon": "Extra $",
     "limited": "Limited",
+    "categories": {
+      "core": "Core operations",
+      "performance": "Performance & GPS",
+      "staff": "Staff & intelligence",
+      "health": "Health & rehab",
+      "academy": "Academy",
+      "enterprise": "Enterprise & support"
+    },
     "rows": [
       "White-label with club logo and colors",
       "Meso/microcycle periodization",
-      "Physical tests T1→T2→T3 with ratings",
-      "GPS import + AI classification",
-      "Sessions with AI diagram (SVG)",
+      "Task designer with A/B/C/D frameworks",
       "Branded session PDF",
+      "GPS import + AI classification",
+      "Physical tests T1→T2→T3 with ratings",
+      "Per-player load traffic light",
+      "Sessions with AI diagram (SVG)",
       "Staff chat + AI summary",
-      "Integrated scouting",
-      "Multi-team and multi-category"
+      "Integrated scouting with history",
+      "Medical module and rehab",
+      "Cross-alerts load ↔ injuries",
+      "Multi-category academy (U-20 to U-13)",
+      "Talent projection without mandatory GPS",
+      "Video analysis with auto tags",
+      "Sporting director KPIs",
+      "Granular roles and permissions",
+      "Dedicated SLA for pro clubs"
     ]
   },
   "workflow": {
@@ -162,36 +206,131 @@
   },
   "roadmap": {
     "eyebrow": "Development roadmap",
-    "title": "How the project evolves",
-    "desc": "Clear milestones from the Palmeiras pilot to the full multi-club platform.",
-    "statusDone": "Done",
-    "statusCurrent": "In progress",
-    "statusNext": "Next",
-    "statusFuture": "Planned",
+    "title": "How the project is built from scratch",
+    "desc": "Full methodology for enterprise pro-club software — from requirements workshop to production deployment.",
     "phases": [
       {
+        "phase": "Phase 0",
+        "period": "Weeks 1–2",
+        "duration": "Discovery",
+        "title": "Requirements workshop and alignment",
+        "subtitle": "Workshops with management, coaching staff, medical and academy.",
+        "items": ["Kick-off with key stakeholders", "Current process map (Excel, GPS, WhatsApp…)", "Module prioritization by department", "Functional spec and success criteria"]
+      },
+      {
         "phase": "Phase 1",
-        "period": "Month 1–3",
-        "title": "Palmeiras pilot + DEPRO core",
-        "items": ["Palmeiras white-label in production", "DEPRO dashboard, mesocycle and tests", "Catapult/STATSports GPS import", "Staff chat with persistence"]
+        "period": "Weeks 3–6",
+        "duration": "Design",
+        "title": "Architecture, UX and validated prototype",
+        "subtitle": "We define the platform before writing production code.",
+        "items": ["Multi-tenant technical architecture", "Club white-label design system", "Role-based clickable prototype", "Validation with real staff users"]
       },
       {
         "phase": "Phase 2",
-        "period": "Month 4–6",
-        "title": "Tactical AI and performance",
-        "items": ["Sessions: text → SVG diagram", "AI load classification per player", "Staff chat AI summary", "Branded session PDF"]
+        "period": "Month 2–4",
+        "duration": "MVP",
+        "title": "DEPRO operational core",
+        "subtitle": "Dashboard, periodization, tests and squad in pilot production.",
+        "items": ["Dashboard and microcycle per team", "Physical tests with T1→T3 ratings", "Catapult / STATSports GPS import", "White-label: logo, colors, categories"]
       },
       {
         "phase": "Phase 3",
-        "period": "Month 7–9",
-        "title": "Scouting, medical and director",
-        "items": ["Full scouting report CRUD", "Medical module and rehab", "Sporting director KPIs", "Video integration (auto tags)"]
+        "period": "Month 5–7",
+        "duration": "AI",
+        "title": "NexGent layer: tactical AI and performance",
+        "subtitle": "Smart sessions, load classification and staff chat.",
+        "items": ["Sessions: text → SVG diagram", "AI load classification per player", "Staff chat with AI summary", "Branded session PDF"]
       },
       {
         "phase": "Phase 4",
-        "period": "Month 10–12",
-        "title": "Multi-club scale",
-        "items": ["Academy without mandatory GPS hardware", "Open wearables API", "Staff mobile app", "Additional club rollouts"]
+        "period": "Month 8–10",
+        "duration": "Pro",
+        "title": "Advanced modules: medical, academy, video, director",
+        "subtitle": "The departments that differentiate an elite club.",
+        "items": ["Full medical and rehab module", "Multi-category academy without mandatory GPS", "Scouting CRUD + video analysis", "Sporting director KPIs"]
+      },
+      {
+        "phase": "Phase 5",
+        "period": "Month 11–12",
+        "duration": "Go-live",
+        "title": "QA, training, pilot and deployment",
+        "subtitle": "The club operates in production with dedicated support.",
+        "items": ["Load and security testing", "On-site staff training", "Historical data migration", "Go-live with SLA and 24/7 support"]
+      }
+    ]
+  },
+  "modules": {
+    "groups": [
+      {
+        "title": "DEPRO operations",
+        "items": ["Meso/micro periodization", "Task designer A/B/C/D", "Physical tests T1→T3", "Session PDFs", "Full white-label"]
+      },
+      {
+        "title": "Performance",
+        "items": ["Multi-brand GPS import", "Load traffic light", "AI classification", "Match-day integration", "Player history"]
+      },
+      {
+        "title": "NexGent AI",
+        "items": ["Tactical SVG diagrams", "Staff chat summary", "Auto video tags", "Smart alerts", "Load recommendations"]
+      },
+      {
+        "title": "Departments",
+        "items": ["Medical and rehab", "Academy U-20→U-13", "Integrated scouting", "Sporting director", "Video analysis"]
+      }
+    ]
+  },
+  "commission": {
+    "eyebrow": "For sales reps",
+    "sectionTitle": "Commission calculator",
+    "sectionDesc": "NexGent sales reps earn 7% on every closed deal. A build of this scope for top-tier clubs can exceed €1M — commission reflects real project value.",
+    "title": "Simulate your commission (7%)",
+    "desc": "Adjust club tier or customize setup, annual license and contract length.",
+    "tierLabel": "Club tier",
+    "modeDetailed": "Setup + annual license",
+    "modeSimple": "Total project value",
+    "setup": "Setup / initial development",
+    "annual": "Annual license",
+    "perYear": "/yr",
+    "contractYears": "Contract length",
+    "years": "years",
+    "totalProject": "Total project value",
+    "totalContract": "Total contract value",
+    "rate": "Commission",
+    "yourCommission": "Your commission (7%)",
+    "monthlyEquiv": "≈ {{amount}}/mo over the contract",
+    "disclaimer": "Indicative amounts for professional clubs. Top European or South American first-division projects can exceed €1M–€3M in setup + multi-year licenses. Commission paid on invoiced and closed amount.",
+    "tiers": [
+      {
+        "id": "segunda",
+        "name": "Second / Semi-pro",
+        "range": "€150K – €350K",
+        "setupDefault": 120000,
+        "annualDefault": 80000,
+        "note": "Second division clubs or pro academies with 2-4 teams."
+      },
+      {
+        "id": "primera",
+        "name": "First Division",
+        "range": "€400K – €900K",
+        "setupDefault": 180000,
+        "annualDefault": 320000,
+        "note": "First division with full pro squad, GPS, medical and academy."
+      },
+      {
+        "id": "elite",
+        "name": "Top 5 Europe / Libertadores",
+        "range": "€1M – €3M+",
+        "setupDefault": 800000,
+        "annualDefault": 650000,
+        "note": "World elite: full customization, enterprise integrations, 24/7 SLA."
+      },
+      {
+        "id": "custom",
+        "name": "Custom",
+        "range": "Tailored",
+        "setupDefault": 500000,
+        "annualDefault": 400000,
+        "note": "Manually set setup, license and years per commercial proposal."
       }
     ]
   },
@@ -260,7 +399,26 @@
       "sessionTitle": "Session B · Technical-tactical",
       "pdfReady": "PDF ready · Palmeiras logo & colors",
       "brandPreview": "White-label preview",
-      "brandApplied": "Branding applied to all modules"
+      "brandApplied": "Branding applied to all modules",
+      "medicalTitle": "Medical department",
+      "medStatus_readapt": "Rehab",
+      "medStatus_available": "Available",
+      "medStatus_alert": "Medical alert",
+      "medAlertSync": "Alert synced with GPS load and staff chat",
+      "academyLabel": "Palmeiras academy",
+      "prospect": "Prospects",
+      "promoted": "Promoted",
+      "academyNoGps": "Academy operational without mandatory GPS hardware",
+      "tagPress": "Pressing",
+      "tagTransition": "Transition",
+      "tagFinish": "Finishing",
+      "videoAiTags": "AI tags applied · clip exported",
+      "directionTitle": "Sporting director panel",
+      "kpiAdherence": "Plan adherence",
+      "kpiLoad": "Squad load",
+      "kpiInjuries": "Injuries vs LY",
+      "kpiProspects": "Academy promotions",
+      "microSynced": "Microcycle synced with tests and GPS"
     }
   }
 }

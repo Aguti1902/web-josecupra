@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import {
   Activity, Brain, Calendar, CheckCircle2, ChevronRight, Download,
-  MessageSquare, Search, Shield, Sparkles, TrendingUp, Users, Zap,
+  HeartPulse, MessageSquare, Search, Shield, Sparkles, TrendingUp, Users, Video, Zap,
+  GraduationCap, BarChart3,
 } from "lucide-react";
 import { PALMEIRAS } from "../../../lib/nexgentConfig";
 
@@ -489,13 +490,190 @@ export function DemoBrand({ step }) {
   );
 }
 
+export function DemoMedical({ step }) {
+  const { t } = useTranslation("nexgentPitch");
+  const players = [
+    { n: "Luis Felipe", status: "readapt", phase: step >= 1 ? "Fase 2" : "—", color: "#F59E0B" },
+    { n: "Murilo", status: "available", phase: step >= 2 ? "100%" : "—", color: "#22C55E" },
+    { n: "Rony", status: "alert", phase: step >= 3 ? "Revisión" : "—", color: "#EF4444" },
+  ];
+  return (
+    <BrowserFrame title="médico / readaptación">
+      <div className="flex gap-3">
+        <SidebarMini active="squad" t={t} />
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <HeartPulse size={14} className="text-red-500" />
+            <span className="text-xs font-black text-gray-900">{t("demos.ui.medicalTitle")}</span>
+          </div>
+          {players.map((p, i) => (
+            <div key={p.n} className={`flex items-center justify-between bg-white rounded-lg border px-2.5 py-2 transition-all duration-500 ${step > i ? "opacity-100" : "opacity-35"}`}>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-[8px] font-black">{p.n[0]}</div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-900">{p.n}</div>
+                  <div className="text-[8px] text-gray-400">{t(`demos.ui.medStatus_${p.status}`)}</div>
+                </div>
+              </div>
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: p.color + "20", color: p.color }}>{p.phase}</span>
+            </div>
+          ))}
+          {step >= 4 && (
+            <div className="text-[9px] font-bold text-amber-700 bg-amber-50 rounded-lg px-2 py-1.5 flex items-center gap-1">
+              <Sparkles size={10} /> {t("demos.ui.medAlertSync")}
+            </div>
+          )}
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
+export function DemoAcademy({ step }) {
+  const { t } = useTranslation("nexgentPitch");
+  const categories = ["Sub-20", "Sub-17", "Sub-15", "Sub-13"];
+  const active = step >= 3 ? 3 : step >= 2 ? 2 : step >= 1 ? 1 : 0;
+  return (
+    <BrowserFrame title="cantera / categorías">
+      <div className="flex gap-3">
+        <div className="w-28 flex-shrink-0 border-r border-gray-200 pr-3 space-y-0.5">
+          <div className="text-[8px] font-bold text-gray-400 uppercase mb-2 px-2">{t("demos.ui.academyLabel")}</div>
+          {categories.map((c, i) => (
+            <div key={c} className={`px-2 py-1.5 rounded-lg text-[9px] font-semibold transition-all duration-300 ${i === active ? "text-white shadow-sm" : "text-gray-500"}`} style={i === active ? { backgroundColor: CLUB } : {}}>
+              {c}
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <GraduationCap size={14} style={{ color: CLUB }} />
+            <span className="text-xs font-black text-gray-900">{categories[active]}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {[
+              { l: t("demos.ui.players"), v: step >= 1 ? "38" : "—" },
+              { l: t("demos.ui.prospect"), v: step >= 2 ? "12" : "—" },
+              { l: t("demos.ui.promoted"), v: step >= 3 ? "3" : "—" },
+            ].map((s) => (
+              <div key={s.l} className="bg-white rounded-lg border border-gray-100 p-2 text-center">
+                <div className="text-lg font-black">{s.v}</div>
+                <div className="text-[8px] text-gray-400 font-bold uppercase">{s.l}</div>
+              </div>
+            ))}
+          </div>
+          {step >= 4 && (
+            <div className="text-[9px] text-green-700 font-bold bg-green-50 rounded-lg px-2 py-1.5">{t("demos.ui.academyNoGps")}</div>
+          )}
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
+export function DemoVideo({ step }) {
+  const { t } = useTranslation("nexgentPitch");
+  const tags = [t("demos.ui.tagPress"), t("demos.ui.tagTransition"), t("demos.ui.tagFinish")];
+  return (
+    <BrowserFrame title="vídeo / análisis">
+      <div className="flex gap-3">
+        <SidebarMini active="plan" t={t} />
+        <div className="flex-1 space-y-2">
+          <div className="rounded-lg bg-gray-900 h-24 relative overflow-hidden flex items-center justify-center">
+            <Video size={28} className="text-white/40" />
+            {step >= 1 && (
+              <div className="absolute bottom-2 left-2 right-2 h-1 bg-white/20 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500 transition-all duration-700" style={{ width: `${25 + step * 18}%` }} />
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {tags.map((tag, i) => (
+              <span key={tag} className={`text-[8px] font-bold px-2 py-0.5 rounded-full border transition-all duration-500 ${step > i ? "bg-green-50 border-green-200 text-green-800" : "border-gray-200 text-gray-400"}`}>
+                {tag}
+              </span>
+            ))}
+          </div>
+          {step >= 3 && (
+            <div className="text-[9px] font-bold text-blue-700 flex items-center gap-1">
+              <Sparkles size={10} /> {t("demos.ui.videoAiTags")}
+            </div>
+          )}
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
+export function DemoDirection({ step }) {
+  const { t } = useTranslation("nexgentPitch");
+  const kpis = [
+    { l: t("demos.ui.kpiAdherence"), v: step >= 1 ? "94%" : "—", c: "#22C55E" },
+    { l: t("demos.ui.kpiLoad"), v: step >= 2 ? "Óptima" : "—", c: "#0A36F7" },
+    { l: t("demos.ui.kpiInjuries"), v: step >= 3 ? "-18%" : "—", c: "#22C55E" },
+    { l: t("demos.ui.kpiProspects"), v: step >= 4 ? "+6" : "—", c: CLUB },
+  ];
+  return (
+    <BrowserFrame title="dirección / kpis">
+      <div className="flex gap-3">
+        <SidebarMini active="dash" t={t} />
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <BarChart3 size={14} style={{ color: CLUB }} />
+            <span className="text-xs font-black text-gray-900">{t("demos.ui.directionTitle")}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {kpis.map((k, i) => (
+              <div key={k.l} className={`bg-white rounded-lg border border-gray-100 p-2 transition-all duration-500 ${step > i ? "opacity-100" : "opacity-40"}`}>
+                <div className="text-[8px] text-gray-400 font-bold uppercase">{k.l}</div>
+                <div className="text-sm font-black" style={{ color: k.c }}>{k.v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
+export function DemoMicrocycle({ step }) {
+  const { t } = useTranslation("nexgentPitch");
+  const days = ["L", "M", "X", "J", "V", "S", "D"];
+  const sessions = ["A", "—", "B", "C", "—", "Match", "—"];
+  return (
+    <BrowserFrame title="microciclo / semana">
+      <div className="flex gap-3">
+        <SidebarMini active="plan" t={t} />
+        <div className="flex-1">
+          <div className="text-xs font-black text-gray-900 mb-2">{t("demos.ui.weekTeam")}</div>
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((d, i) => (
+              <div key={d} className={`text-center rounded-lg border p-1.5 transition-all duration-500 ${step > i ? "border-green-200 bg-green-50" : "border-gray-100 opacity-40"}`}>
+                <div className="text-[8px] font-bold text-gray-400">{d}</div>
+                <div className="text-[10px] font-black mt-0.5" style={{ color: sessions[i] === "Match" ? "#EF4444" : CLUB }}>{sessions[i]}</div>
+              </div>
+            ))}
+          </div>
+          {step >= 4 && (
+            <div className="mt-2 text-[9px] font-bold text-green-700">{t("demos.ui.microSynced")}</div>
+          )}
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
 const DEMO_MAP = {
   dashboard: DemoDashboard,
+  microcycle: DemoMicrocycle,
   sessions: DemoSessions,
   loads: DemoLoads,
   tests: DemoTests,
+  medical: DemoMedical,
+  academy: DemoAcademy,
   chat: DemoChat,
   scouting: DemoScouting,
+  video: DemoVideo,
+  direction: DemoDirection,
   pdf: DemoPdf,
   brand: DemoBrand,
 };
@@ -519,7 +697,10 @@ export function HeroAnimatedDemo() {
   return <Demo step={step} />;
 }
 
-const FEATURE_IDS = ["dashboard", "sessions", "loads", "tests", "chat", "scouting", "pdf", "brand"];
+const FEATURE_IDS = [
+  "dashboard", "microcycle", "sessions", "loads", "tests",
+  "medical", "academy", "chat", "scouting", "video", "direction", "pdf", "brand",
+];
 
 export default function NexGentFeatureShowcase() {
   const { t } = useTranslation("nexgentPitch");
@@ -541,7 +722,7 @@ export default function NexGentFeatureShowcase() {
       </div>
       <div>
         <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">{t("platform.capabilities")}</p>
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-[620px] overflow-y-auto pr-1 scrollbar-thin">
           {FEATURE_IDS.map((id, i) => {
             const active = i === idx;
             const bullets = t(`features.${id}.bullets`, { returnObjects: true });
