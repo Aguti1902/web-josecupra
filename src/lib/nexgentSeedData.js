@@ -79,30 +79,110 @@ export const SEED_SESSIONS = [
   },
 ];
 
-export const MICROCYCLE = [
-  { day: "Lun", label: "Recuperación activa", type: "recovery", rpe: 3, duration: "45 min" },
-  { day: "Mar", label: "Fuerza + técnico", type: "strength", rpe: 6, duration: "75 min" },
-  { day: "Mié", label: "Técnico-táctico", type: "tactical", rpe: 7, duration: "90 min" },
-  { day: "Jue", label: "Velocidad", type: "speed", rpe: 8, duration: "60 min" },
-  { day: "Vie", label: "Activación pre-partido", type: "activation", rpe: 5, duration: "50 min" },
-  { day: "Sáb", label: "Partido · Paulistão", type: "match", rpe: 9, duration: "90 min" },
-  { day: "Dom", label: "Descanso", type: "rest", rpe: 0, duration: "—" },
-];
-
 export const MESO_PHASES = [
-  { name: "Pretemporada", weeks: "1–4", focus: "Base aeróbica y adaptación táctica" },
-  { name: "Acumulación", weeks: "5–12", focus: "Volumen e intensidad progresiva" },
-  { name: "Competición", weeks: "13–24", active: true, focus: "Mantenimiento + gestión carga" },
-  { name: "Descarga", weeks: "25–26", focus: "Recuperación y microciclo tapering" },
+  { name: "Pretemporada", weeks: "1–4", weekStart: 1, weekEnd: 4, focus: "Base aeróbica y adaptación táctica", volume: 72, intensity: 55, sessions: 16, objectives: ["Adaptación al modelo de juego", "Base aeróbica general", "Integración nuevos fichajes"] },
+  { name: "Acumulación", weeks: "5–12", weekStart: 5, weekEnd: 12, focus: "Volumen e intensidad progresiva", volume: 85, intensity: 68, sessions: 32, objectives: ["Incremento HSR progresivo", "Consolidación pressing alto", "Doble jornada semanal"] },
+  { name: "Competición", weeks: "13–24", weekStart: 13, weekEnd: 24, active: true, focus: "Mantenimiento + gestión carga", volume: 78, intensity: 74, sessions: 28, objectives: ["Gestión rotaciones", "Mantenimiento rendimiento", "Prevención lesiones"] },
+  { name: "Descarga", weeks: "25–26", weekStart: 25, weekEnd: 26, focus: "Recuperación y microciclo tapering", volume: 55, intensity: 45, sessions: 6, objectives: ["Tapering pre-playoffs", "Recuperación neuromuscular", "Ajuste táctico final"] },
 ];
 
 export const SEASON_BLOCKS = [
-  { month: "Ene", block: "Pretemporada", load: 65 },
-  { month: "Feb", block: "Acumulación", load: 78 },
-  { month: "Mar", block: "Acumulación", load: 82 },
-  { month: "Abr", block: "Competición", load: 88 },
-  { month: "May", block: "Competición", load: 85 },
-  { month: "Jun", block: "Competición", load: 90 },
+  { month: "Ene", block: "Pretemporada", load: 65, intensity: 52, matches: 2 },
+  { month: "Feb", block: "Acumulación", load: 78, intensity: 62, matches: 4 },
+  { month: "Mar", block: "Acumulación", load: 82, intensity: 68, matches: 5 },
+  { month: "Abr", block: "Competición", load: 88, intensity: 72, matches: 6 },
+  { month: "May", block: "Competición", load: 85, intensity: 75, matches: 5 },
+  { month: "Jun", block: "Competición", load: 90, intensity: 78, matches: 4 },
+  { month: "Jul", block: "Descarga", load: 58, intensity: 48, matches: 2 },
+];
+
+export const PLANNING_OVERVIEW = {
+  season: "2026",
+  competition: "Paulistão Sub-20 + Copa SP",
+  currentWeek: 24,
+  totalWeeks: 26,
+  matchesPlayed: 18,
+  wins: 12,
+  draws: 3,
+  losses: 3,
+  avgRpe: 6.4,
+  adherence: 94,
+  avgWeeklyLoad: 28900,
+  injured: 2,
+  nextMatch: { opponent: "Corinthians", date: "Sáb 21 Jun · 15:00", venue: "Allianz Parque", round: "J19 Paulistão" },
+};
+
+export const SEASON_MATCHES = [
+  { id: "m1", date: "14 Jun", opponent: "São Paulo", result: "W 2-1", venue: "Morumbi", round: "J18", played: true },
+  { id: "m2", date: "21 Jun", opponent: "Corinthians", result: null, venue: "Allianz Parque", round: "J19", played: false, highlight: true },
+  { id: "m3", date: "28 Jun", opponent: "Santos", result: null, venue: "Vila Belmiro", round: "J20", played: false },
+  { id: "m4", date: "5 Jul", opponent: "Grêmio", result: null, venue: "Allianz Parque", round: "Copa SP · Octavos", played: false },
+  { id: "m5", date: "12 Jul", opponent: "Flamengo", result: null, venue: "Ninho do Urubu", round: "J21", played: false },
+];
+
+export const MICROCYCLE = [
+  {
+    id: "mon", day: "Lun", date: "16 Jun", label: "Recuperación activa", type: "recovery", sessionType: "A",
+    rpe: 3, duration: "45 min", load: 3200, players: 22,
+    objectives: ["Recuperación post-partido", "Movilidad articular", "Feedback individual"],
+    blocks: ["Bici 10 min", "Piscina 15 min", "Estiramientos 12 min", "Charla táctica 8 min"],
+    notes: "Luis Felipe y Kevin en protocolo adaptado. Resto plantilla completa.",
+  },
+  {
+    id: "tue", day: "Mar", date: "17 Jun", label: "Fuerza + técnico", type: "strength", sessionType: "B",
+    rpe: 6, duration: "75 min", load: 4100, players: 20,
+    objectives: ["Fuerza máxima tren inferior", "Técnica individual", "Core y estabilidad"],
+    blocks: ["Activación 10 min", "Gimnasio 25 min", "Rondos 4v2 15 min", "Finalización 15 min", "Vuelta calma 10 min"],
+    notes: "Estêvão carga controlada (90 min partido previo). Vanderlan HSR monitorizado.",
+  },
+  {
+    id: "wed", day: "Mié", date: "18 Jun", label: "Técnico-táctico", type: "tactical", sessionType: "B",
+    rpe: 7, duration: "90 min", load: 5800, players: 21,
+    objectives: ["Pressing alto zona alta", "Posesión en espacio reducido", "Transiciones 4v4"],
+    blocks: ["Rondo 5v2 12 min", "Pressing triggers 8v8 25 min", "Posesión 3v3+3 20 min", "Partido condicionado 25 min"],
+    notes: "Sesión principal del microciclo. Objetivo: intensidad >85% HSR en bloque 2.",
+  },
+  {
+    id: "thu", day: "Jue", date: "19 Jun", label: "Velocidad", type: "speed", sessionType: "C",
+    rpe: 8, duration: "60 min", load: 3900, players: 19,
+    objectives: ["Sprints máximos", "Reacción y cambio de dirección", "Activación neuromuscular"],
+    blocks: ["Movilidad 8 min", "Sprints 20 m × 8 20 min", "Transiciones 4v4 20 min", "Core 12 min"],
+    notes: "Kevin excluido. Luighi y Estêvão prioridad en sprints.",
+  },
+  {
+    id: "fri", day: "Vie", date: "20 Jun", label: "Activación pre-partido", type: "activation", sessionType: "C",
+    rpe: 5, duration: "50 min", load: 2900, players: 20,
+    objectives: ["Activación neuromuscular", "Set pieces ofensivos", "Ajuste táctico rival"],
+    blocks: ["Activación 10 min", "Rondo 8 min", "SP corners 15 min", "Partido reducido 12 min", "Charla rival 5 min"],
+    notes: "Corinthians: bloque bajo + transición rápida. Repaso vídeo 09:00.",
+  },
+  {
+    id: "sat", day: "Sáb", date: "21 Jun", label: "Partido · Paulistão", type: "match", sessionType: "—",
+    rpe: 9, duration: "90 min", load: 7200, players: 18,
+    objectives: ["Victoria J19", "Presión alta sostenida", "Control transiciones"],
+    blocks: ["Calentamiento 25 min", "Partido 90 min", "Recuperación inmediata 15 min"],
+    notes: "Convocatoria prevista: 18 jugadores. Caio titular. Luis Felipe fuera.",
+  },
+  {
+    id: "sun", day: "Dom", date: "22 Jun", label: "Descanso", type: "rest", sessionType: "—",
+    rpe: 0, duration: "—", load: 800, players: 0,
+    objectives: ["Recuperación completa"],
+    blocks: [],
+    notes: "Día libre. Opcional movilidad en casa.",
+  },
+];
+
+export const WEEKLY_OBJECTIVES = [
+  { area: "Físico", target: "Carga semanal 28.500–30.000 AU", status: "on_track", detail: "Proyección actual: 29.100 AU" },
+  { area: "Táctico", target: "Pressing alto >12 recuperaciones/partido", status: "on_track", detail: "Media últimos 3 partidos: 14.3" },
+  { area: "Técnico", target: "Posesión en campo rival >42%", status: "attention", detail: "Media 38% — ajustar salida de balón" },
+  { area: "Médico", target: "0 nuevas lesiones musculares", status: "on_track", detail: "Kevin en gestión, Luis Felipe readaptación" },
+];
+
+export const TACTICAL_PRIORITIES = [
+  { title: "Presión tras pérdida", desc: "Trigger inmediato en zona alta cuando rival recibe de espaldas", progress: 82 },
+  { title: "Amplitud en bandas", desc: "Extremos fijando laterales para abrir central", progress: 75 },
+  { title: "Salida 3+2", desc: "Portero + 3 + pivote en construcción vs bloque medio", progress: 68 },
 ];
 
 export const VIDEO_EVENTS = [

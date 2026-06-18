@@ -1,14 +1,15 @@
 import { useMemo, useState } from "react";
 import {
   Activity, Calendar, CheckCircle, ClipboardList, FileText, MessageSquare, Play,
-  Save, Search, Send, Sparkles, Trash2, TrendingUp, Upload, Users,
+  Save, Search, Send, Sparkles, Target, Trash2, TrendingUp, Upload, Users,
 } from "lucide-react";
 import { PALMEIRAS } from "../../../../lib/nexgentConfig";
 import {
   CHAT_CHANNELS, DEMO_PLAYERS, EMPTY_DIAGRAM, GPS_DEMO_ROWS,
-  KEY_MOMENTS, MEDICAL_RECORDS, MESO_PHASES, MICROCYCLE, PLAYER_TESTS,
-  SCOUTING_PROFILES, SEASON_BLOCKS, SEED_CHAT_MESSAGES, SEED_SESSIONS,
-  TRAINING_SESSIONS, VIDEO_CLIPS, WEEKLY_LOAD, YOUTH_CATEGORIES, YOUTH_SQUAD,
+  KEY_MOMENTS, MEDICAL_RECORDS, MESO_PHASES, MICROCYCLE, PLANNING_OVERVIEW,
+  PLAYER_TESTS, SCOUTING_PROFILES, SEASON_BLOCKS, SEASON_MATCHES, SEED_CHAT_MESSAGES,
+  SEED_SESSIONS, TACTICAL_PRIORITIES, TRAINING_SESSIONS, VIDEO_CLIPS, WEEKLY_LOAD,
+  WEEKLY_OBJECTIVES, YOUTH_CATEGORIES, YOUTH_SQUAD,
   generateDiagramFromPrompt, loadBandColor, mockAiSummary, mockClassifyLoad, riskColor,
 } from "../../../../lib/nexgentSeedData";
 import NexGentClubBanner from "../NexGentClubBanner";
@@ -206,50 +207,282 @@ export function PlantillaPanel() {
   );
 }
 
+function SeasonLoadChart({ data, accent }) {
+  const maxLoad = Math.max(...data.map((d) => d.load));
+  const maxIntensity = Math.max(...data.map((d) => d.intensity));
+  return (
+    <div className="space-y-4">
+      <div className="flex items-end gap-2 sm:gap-4 h-40">
+        {data.map((b) => (
+          <div key={b.month} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+            <div className="w-full flex items-end justify-center gap-0.5" style={{ height: "120px" }}>
+              <div className="w-[45%] rounded-t-sm opacity-90" style={{ height: `${(b.load / maxLoad) * 100}%`, backgroundColor: accent, minHeight: "8px" }} title={`Volumen ${b.load}%`} />
+              <div className="w-[45%] rounded-t-sm opacity-70" style={{ height: `${(b.intensity / maxIntensity) * 100}%`, backgroundColor: "#F59E0B", minHeight: "8px" }} title={`Intensidad ${b.intensity}%`} />
+            </div>
+            <span className="text-[10px] font-bold text-depro-gray">{b.month}</span>
+            <span className="text-[9px] text-depro-gray text-center leading-tight truncate w-full">{b.block}</span>
+            <span className="text-[9px] text-depro-gray">{b.matches} PJ</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-4 text-xs text-depro-gray">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ backgroundColor: accent }} /> Volumen</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-500" /> Intensidad</span>
+      </div>
+    </div>
+  );
+}
+
+function ObjectiveStatus({ status }) {
+  const styles = {
+    on_track: { bg: "bg-green-50 text-green-700 border-green-200", label: "En objetivo" },
+    attention: { bg: "bg-amber-50 text-amber-700 border-amber-200", label: "Atención" },
+    risk: { bg: "bg-red-50 text-red-700 border-red-200", label: "Riesgo" },
+  };
+  const s = styles[status] ?? styles.on_track;
+  return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${s.bg}`}>{s.label}</span>;
+}
+
 export function PlanificacionPanel() {
+  const ov = PLANNING_OVERVIEW;
+  const activePhase = MESO_PHASES.find((p) => p.active) ?? MESO_PHASES[2];
+  const [selectedDay, setSelectedDay] = useState(MICROCYCLE.find((d) => d.type === "tactical") ?? MICROCYCLE[2]);
+  const weekProgress = Math.round((ov.currentWeek / ov.totalWeeks) * 100);
+
   return (
     <div className="w-full space-y-6">
-      <PageTitle sub="Temporada 2026 · Paulistão Sub-20">Planificación</PageTitle>
-      <div>
-        <h2 className="font-bold text-sm text-depro-gray uppercase mb-3">Temporada · Mesociclos</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {MESO_PHASES.map((phase) => (
-            <div key={phase.name} className={`rounded-xl border p-4 ${phase.active ? "border-green-600 bg-green-50" : "border-depro-border bg-white"}`}>
-              <p className="font-black text-depro-dark">{phase.name}</p>
-              <p className="text-xs text-depro-gray mt-1">Semanas {phase.weeks}</p>
-              <p className="text-xs mt-2 leading-relaxed">{phase.focus}</p>
-            </div>
-          ))}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <PageTitle sub={`${ov.competition} · Semana ${ov.currentWeek} de ${ov.totalWeeks}`}>Planificación</PageTitle>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="px-3 py-1.5 rounded-lg bg-green-50 text-green-800 border border-green-200 font-bold">{activePhase.name}</span>
+          <span className="text-depro-gray">Actualizado 19 Jun 2026</span>
         </div>
       </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+        {[
+          { label: "Semana actual", value: `${ov.currentWeek}/${ov.totalWeeks}`, sub: `${weekProgress}% temporada` },
+          { label: "Balance", value: `${ov.wins}V ${ov.draws}E ${ov.losses}D`, sub: `${ov.matchesPlayed} partidos` },
+          { label: "RPE medio", value: ov.avgRpe, sub: "Últimas 4 semanas" },
+          { label: "Adherencia plan", value: `${ov.adherence}%`, sub: "Asistencia + cumplimiento" },
+          { label: "Carga semanal", value: `${(ov.avgWeeklyLoad / 1000).toFixed(1)}k AU`, sub: "PlayerLoad Catapult" },
+          { label: "Lesionados", value: ov.injured, sub: "En protocolo activo" },
+        ].map((k) => (
+          <div key={k.label} className="rounded-xl border border-depro-border bg-white p-4 shadow-sm">
+            <p className="text-xl font-black" style={{ color: ACCENT }}>{k.value}</p>
+            <p className="text-xs font-bold mt-1">{k.label}</p>
+            <p className="text-[10px] text-depro-gray">{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
       <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
-        <h2 className="font-bold mb-1">Carga de temporada</h2>
-        <p className="text-xs text-depro-gray mb-4">Volumen relativo por mes (%)</p>
-        <div className="flex items-end gap-3 h-32">
-          {SEASON_BLOCKS.map((b) => (
-            <div key={b.month} className="flex-1 flex flex-col items-center gap-1">
-              <div className="w-full rounded-t-md" style={{ height: `${b.load}%`, backgroundColor: ACCENT, maxHeight: "100px" }} />
-              <span className="text-[10px] font-bold text-depro-gray">{b.month}</span>
-              <span className="text-[9px] text-depro-gray text-center leading-tight">{b.block}</span>
-            </div>
-          ))}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h2 className="font-bold">Línea temporal · Temporada {ov.season}</h2>
+          <span className="text-xs text-depro-gray">Semana {ov.currentWeek} · {activePhase.focus}</span>
+        </div>
+        <div className="relative h-3 bg-depro-gray-light rounded-full overflow-hidden mb-2">
+          <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${weekProgress}%`, backgroundColor: ACCENT }} />
+          {MESO_PHASES.map((ph) => {
+            const left = ((ph.weekStart - 1) / ov.totalWeeks) * 100;
+            const width = ((ph.weekEnd - ph.weekStart + 1) / ov.totalWeeks) * 100;
+            return (
+              <div
+                key={ph.name}
+                className={`absolute top-0 h-full border-r border-white/30 ${ph.active ? "opacity-100" : "opacity-40"}`}
+                style={{ left: `${left}%`, width: `${width}%`, backgroundColor: ph.active ? `${ACCENT}44` : "transparent" }}
+                title={ph.name}
+              />
+            );
+          })}
+        </div>
+        <div className="flex justify-between text-[10px] text-depro-gray font-bold">
+          <span>S1</span>
+          <span>S8</span>
+          <span>S16</span>
+          <span className="text-green-700">← S{ov.currentWeek}</span>
+          <span>S{ov.totalWeeks}</span>
         </div>
       </div>
-      <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
-        <h2 className="font-bold mb-4">Microciclo · Semana 24</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-          {MICROCYCLE.map((d) => (
-            <div
-              key={d.day}
-              className={`rounded-lg border p-3 text-center ${d.type === "rest" ? "opacity-60 bg-depro-gray-light" : "bg-white"}`}
-              style={{ borderColor: d.type === "match" ? "#EF4444" : TYPE_COLORS[d.type] ?? "#E5E7EB" }}
-            >
-              <p className="text-xs font-bold text-depro-gray">{d.day}</p>
-              <p className="text-[11px] font-semibold mt-2 leading-tight">{d.label}</p>
-              {d.rpe > 0 && <p className="text-[10px] text-depro-gray mt-1">RPE {d.rpe} · {d.duration}</p>}
+
+      <div className="grid xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 space-y-6">
+          <div>
+            <h2 className="font-bold text-sm text-depro-gray uppercase mb-3">Mesociclos · Macrociclo {ov.season}</h2>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {MESO_PHASES.map((phase) => (
+                <div key={phase.name} className={`rounded-xl border p-4 transition-shadow ${phase.active ? "border-green-600 bg-green-50 shadow-sm ring-1 ring-green-600/20" : "border-depro-border bg-white"}`}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <p className="font-black text-depro-dark">{phase.name}</p>
+                      <p className="text-xs text-depro-gray">Semanas {phase.weeks}</p>
+                    </div>
+                    {phase.active && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-600 text-white">Activo</span>}
+                  </div>
+                  <p className="text-xs leading-relaxed text-depro-dark mb-3">{phase.focus}</p>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {[
+                      { label: "Volumen", val: `${phase.volume}%` },
+                      { label: "Intensidad", val: `${phase.intensity}%` },
+                      { label: "Sesiones", val: phase.sessions },
+                    ].map(({ label, val }) => (
+                      <div key={label} className="rounded-lg bg-white/80 border border-depro-border/50 p-2 text-center">
+                        <p className="text-[10px] text-depro-gray">{label}</p>
+                        <p className="text-sm font-black">{val}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <ul className="space-y-1">
+                    {phase.objectives.map((obj) => (
+                      <li key={obj} className="text-[11px] text-depro-gray flex items-start gap-1.5">
+                        <CheckCircle size={12} className="text-green-600 flex-shrink-0 mt-0.5" /> {obj}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
+            <h2 className="font-bold mb-1">Carga de temporada</h2>
+            <p className="text-xs text-depro-gray mb-4">Volumen e intensidad relativos por mes · partidos jugados (PJ)</p>
+            <SeasonLoadChart data={SEASON_BLOCKS} accent={ACCENT} />
+          </div>
         </div>
+
+        <div className="space-y-4">
+          <div className="rounded-xl border-2 border-green-600 bg-green-50 p-5 shadow-sm">
+            <p className="text-[10px] font-bold uppercase text-green-800 mb-1">Próximo partido</p>
+            <p className="text-xl font-black">{ov.nextMatch.opponent}</p>
+            <p className="text-sm text-depro-gray mt-1">{ov.nextMatch.date}</p>
+            <p className="text-xs text-depro-gray">{ov.nextMatch.venue} · {ov.nextMatch.round}</p>
+          </div>
+          <div className="rounded-xl border border-depro-border bg-white p-4 shadow-sm">
+            <h2 className="font-bold text-sm mb-3 flex items-center gap-2"><Calendar size={16} /> Calendario</h2>
+            <div className="space-y-2">
+              {SEASON_MATCHES.map((m) => (
+                <div key={m.id} className={`flex items-center gap-3 rounded-lg p-3 border ${m.highlight ? "border-green-600 bg-green-50" : "border-depro-border"}`}>
+                  <div className="text-center w-12 flex-shrink-0">
+                    <p className="text-[10px] text-depro-gray">{m.date.split(" ")[0]}</p>
+                    <p className="text-xs font-bold">{m.date.split(" ")[1] ?? ""}</p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm truncate">{m.opponent}</p>
+                    <p className="text-[10px] text-depro-gray">{m.round} · {m.venue}</p>
+                  </div>
+                  {m.played ? (
+                    <span className="text-xs font-bold text-green-700">{m.result}</span>
+                  ) : (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-depro-gray-light text-depro-gray">Próximo</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-depro-border bg-white p-4 shadow-sm">
+            <h2 className="font-bold text-sm mb-3 flex items-center gap-2"><Target size={16} /> Prioridades tácticas</h2>
+            <div className="space-y-3">
+              {TACTICAL_PRIORITIES.map((p) => (
+                <div key={p.title}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-bold">{p.title}</span>
+                    <span className="text-depro-gray">{p.progress}%</span>
+                  </div>
+                  <div className="h-1.5 bg-depro-gray-light rounded-full overflow-hidden mb-1">
+                    <div className="h-full rounded-full" style={{ width: `${p.progress}%`, backgroundColor: ACCENT }} />
+                  </div>
+                  <p className="text-[10px] text-depro-gray">{p.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 className="font-bold">Microciclo · Semana {ov.currentWeek}</h2>
+          <span className="text-xs text-depro-gray">Carga proyectada: {(MICROCYCLE.reduce((s, d) => s + d.load, 0) / 1000).toFixed(1)}k AU</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+          {MICROCYCLE.map((d) => {
+            const selected = selectedDay?.id === d.id;
+            return (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => setSelectedDay(d)}
+                className={`rounded-xl border p-3 text-left transition-all ${selected ? "ring-2 ring-green-600 border-green-600 bg-green-50" : d.type === "rest" ? "opacity-60 bg-depro-gray-light border-depro-border" : "bg-white border-depro-border hover:border-green-600/40"}`}
+                style={{ borderTopWidth: "3px", borderTopColor: TYPE_COLORS[d.type] ?? "#E5E7EB" }}
+              >
+                <p className="text-xs font-bold text-depro-gray">{d.day}</p>
+                <p className="text-[10px] text-depro-gray">{d.date}</p>
+                <p className="text-[11px] font-semibold mt-2 leading-tight line-clamp-2">{d.label}</p>
+                {d.sessionType !== "—" && (
+                  <span className="inline-block mt-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-depro-gray-light">Sesión {d.sessionType}</span>
+                )}
+                {d.rpe > 0 && <p className="text-[10px] text-depro-gray mt-1">RPE {d.rpe} · {(d.load / 1000).toFixed(1)}k AU</p>}
+              </button>
+            );
+          })}
+        </div>
+
+        {selectedDay && (
+          <div className="grid lg:grid-cols-3 gap-6 pt-4 border-t border-depro-border">
+            <div className="lg:col-span-2 space-y-4">
+              <div>
+                <h3 className="font-bold text-lg">{selectedDay.label}</h3>
+                <p className="text-sm text-depro-gray">{selectedDay.day} {selectedDay.date} · {selectedDay.duration} · {selectedDay.players} jugadores convocados</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase text-depro-gray mb-2">Objetivos</p>
+                <ul className="space-y-1">
+                  {selectedDay.objectives.map((o) => (
+                    <li key={o} className="text-sm flex items-center gap-2"><CheckCircle size={14} className="text-green-600" /> {o}</li>
+                  ))}
+                </ul>
+              </div>
+              {selectedDay.blocks.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold uppercase text-depro-gray mb-2">Bloques</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDay.blocks.map((b, i) => (
+                      <span key={b} className="text-xs px-3 py-1.5 rounded-lg border border-depro-border bg-depro-gray-light/50">
+                        <span className="text-depro-gray mr-1">{i + 1}.</span>{b}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="text-sm text-depro-gray italic border-l-2 border-amber-400 pl-3">{selectedDay.notes}</p>
+            </div>
+            <div className="space-y-3">
+              <div className="rounded-lg border border-depro-border p-4 bg-depro-gray-light/30">
+                <p className="text-[10px] uppercase font-bold text-depro-gray">Carga del día</p>
+                <p className="text-2xl font-black mt-1" style={{ color: ACCENT }}>{selectedDay.load.toLocaleString()} AU</p>
+                <div className="mt-3 h-2 bg-white rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${Math.min(100, (selectedDay.load / 7200) * 100)}%`, backgroundColor: TYPE_COLORS[selectedDay.type] ?? ACCENT }} />
+                </div>
+                <p className="text-[10px] text-depro-gray mt-2">Referencia partido: 7.200 AU</p>
+              </div>
+              <div className="rounded-lg border border-depro-border p-4">
+                <p className="text-[10px] uppercase font-bold text-depro-gray mb-2">Objetivos semanales</p>
+                <div className="space-y-2">
+                  {WEEKLY_OBJECTIVES.map((o) => (
+                    <div key={o.area} className="text-xs">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span className="font-bold">{o.area}</span>
+                        <ObjectiveStatus status={o.status} />
+                      </div>
+                      <p className="text-depro-gray">{o.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
