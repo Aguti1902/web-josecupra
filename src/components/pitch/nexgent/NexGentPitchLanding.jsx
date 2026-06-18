@@ -1,14 +1,14 @@
-import { Fragment, useEffect } from "react";
+import { Fragment } from "react";
 import {
   ArrowRight, BarChart3, Brain, Building2, Calendar, CheckCircle2,
   ChevronRight, Clock, Shield, Sparkles, Target, TrendingUp, Users, Zap,
   X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
 import { PitchNav, PitchFooter, PitchCtaLink } from "./PitchLayout";
 import NexGentFeatureShowcase, { HeroAnimatedDemo } from "./NexGentFeatureDemos";
 import NexGentCommissionCalculator from "./NexGentCommissionCalculator";
+import { ClubDashboardExplorer } from "../ClubDashboardExplorer";
 import { COMPARE_VALUES, COMPARE_CATEGORIES } from "../../../lib/nexgentCompareData";
 import {
   PALMEIRAS, DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, nexgentDemoUrl, nexgentSlidesUrl,
@@ -46,7 +46,6 @@ function CompareCell({ value, t }) {
 
 export default function NexGentPitchLanding() {
   const { t } = useTranslation("nexgentPitch");
-  const location = useLocation();
   const demoUrl = nexgentDemoUrl();
   const slidesUrl = nexgentSlidesUrl();
   const compareRows = t("compare.rows", { returnObjects: true });
@@ -57,12 +56,6 @@ export default function NexGentPitchLanding() {
   const moduleGroups = t("modules.groups", { returnObjects: true });
 
   let lastCategory = null;
-
-  useEffect(() => {
-    if (!location.hash) return;
-    const id = location.hash.replace(/^#/, "");
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  }, [location.hash]);
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -197,6 +190,26 @@ export default function NexGentPitchLanding() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="demo" className="py-20 md:py-28 bg-gray-900 border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="max-w-3xl mb-10 md:mb-14">
+            <p className="text-xs font-bold uppercase tracking-widest text-green-400 mb-3">{t("demo.eyebrow")}</p>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4">{t("demo.title", { club: PALMEIRAS.shortName })}</h2>
+            <p className="text-gray-400 text-lg leading-relaxed">{t("demo.desc")}</p>
+          </div>
+          <ClubDashboardExplorer
+            club={{
+              name: PALMEIRAS.name,
+              abbrev: PALMEIRAS.abbrev,
+              logo: PALMEIRAS.logo,
+              accent: PALMEIRAS.accent,
+              team: PALMEIRAS.team,
+            }}
+          />
+          <p className="text-center text-xs text-gray-500 mt-6">{t("demo.footnote", { club: PALMEIRAS.shortName })}</p>
         </div>
       </section>
 

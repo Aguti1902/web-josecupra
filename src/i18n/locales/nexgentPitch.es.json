@@ -66,6 +66,13 @@
     "directorQuote": "Por fin tenemos rendimiento, planificación y scouting en un solo sitio — con la cara de Palmeiras.",
     "directorRole": "Dirección deportiva · Demo"
   },
+  "demo": {
+    "eyebrow": "Dashboard interactivo",
+    "title": "Explora el dashboard de {{club}}",
+    "desc": "Navega por periodización, plantilla, tests y cargas GPS como si fueras el cuerpo técnico — con los colores y logo del club.",
+    "back": "Volver al pitch",
+    "footnote": "Dashboard interactivo · Datos de ejemplo · {{club}}"
+  },
   "platform": {
     "eyebrow": "Plataforma completa",
     "title": "Todo lo que puede hacer el software",

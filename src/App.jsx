@@ -14,6 +14,7 @@ import USClubPitchPage from "./pages/public/USClubPitchPage";
 import NexGentLauncherPage from "./pages/public/NexGentLauncherPage";
 import NexGentPitchPage from "./pages/public/NexGentPitchPage";
 import NexGentPresentationPage from "./pages/public/NexGentPresentationPage";
+import NexGentDemoPage from "./pages/public/NexGentDemoPage";
 
 // Private (client app)
 import AppLayout from "./components/private/AppLayout";
@@ -110,6 +111,7 @@ function AppRoutes() {
       <Route path="/nexgent" element={<NexGentLauncherPage />} />
       <Route path="/nexgent/pitch" element={<NexGentPitchPage />} />
       <Route path="/nexgent/presentacion" element={<NexGentPresentationPage />} />
+      <Route path="/nexgent/demo" element={<NexGentDemoPage />} />
 
       {/* ── Client App ─────────────────────────────────────────── */}
       <Route path="/dashboard" element={<ClientRoute><AppLayout><DashboardPage /></AppLayout></ClientRoute>} />

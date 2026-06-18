@@ -19,7 +19,9 @@ export const PALMEIRAS = {
 };
 
 export const LOCAL_SLIDES_PATH = "/nexgent/presentacion";
-export const LOCAL_DEMO_FALLBACK = "/nexgent/pitch#palmeiras";
+export const LOCAL_DEMO_PATH = "/nexgent/demo";
+/** @deprecated Usar LOCAL_DEMO_PATH */
+export const LOCAL_DEMO_FALLBACK = LOCAL_DEMO_PATH;
 
 export const NEXGENT_APP = (import.meta.env.VITE_NEXGENT_URL || "").replace(/\/$/, "");
 
@@ -36,10 +38,9 @@ function isSameOriginNexGentApp() {
   }
 }
 
-/** Demo interactiva NexGent — app externa o sección Palmeiras en el pitch local */
+/** Demo interactiva Palmeiras — dashboard local en el sitio DEPRO */
 export function nexgentDemoUrl() {
-  if (!NEXGENT_APP || isSameOriginNexGentApp()) return LOCAL_DEMO_FALLBACK;
-  return `${NEXGENT_APP}/app/inicio`;
+  return LOCAL_DEMO_PATH;
 }
 
 /** Presentación diapositivas — siempre en el sitio DEPRO */

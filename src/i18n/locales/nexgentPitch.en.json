@@ -66,6 +66,13 @@
     "directorQuote": "We finally have performance, planning and scouting in one place — with Palmeiras branding.",
     "directorRole": "Sporting director · Demo"
   },
+  "demo": {
+    "eyebrow": "Interactive dashboard",
+    "title": "Explore the {{club}} dashboard",
+    "desc": "Browse periodization, squad, tests and GPS load as if you were on the coaching staff — with club colors and logo.",
+    "back": "Back to pitch",
+    "footnote": "Interactive dashboard · Sample data · {{club}}"
+  },
   "platform": {
     "eyebrow": "Full platform",
     "title": "Everything the software can do",
