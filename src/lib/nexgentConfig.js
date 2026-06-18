@@ -18,13 +18,37 @@ export const PALMEIRAS = {
   trainingDays: "Seg · Qua · Sex",
 };
 
+export const LOCAL_SLIDES_PATH = "/nexgent/presentacion";
+export const LOCAL_DEMO_FALLBACK = "/nexgent/pitch#palmeiras";
+
 export const NEXGENT_APP = (import.meta.env.VITE_NEXGENT_URL || "").replace(/\/$/, "");
 
-export function nexgentUrl(path) {
-  return NEXGENT_APP ? `${NEXGENT_APP}${path}` : null;
+export function isExternalHref(href) {
+  return typeof href === "string" && /^https?:\/\//i.test(href);
 }
 
-/** Presentación diapositivas — local en Vite o app NexGent externa */
+function isSameOriginNexGentApp() {
+  if (!NEXGENT_APP || typeof window === "undefined") return false;
+  try {
+    return new URL(NEXGENT_APP).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+/** Demo interactiva NexGent — app externa o sección Palmeiras en el pitch local */
+export function nexgentDemoUrl() {
+  if (!NEXGENT_APP || isSameOriginNexGentApp()) return LOCAL_DEMO_FALLBACK;
+  return `${NEXGENT_APP}/app/inicio`;
+}
+
+/** Presentación diapositivas — siempre en el sitio DEPRO */
 export function nexgentSlidesUrl() {
-  return NEXGENT_APP ? `${NEXGENT_APP}/presentacion` : "/nexgent/presentacion";
+  return LOCAL_SLIDES_PATH;
+}
+
+/** @deprecated Usar nexgentDemoUrl() */
+export function nexgentUrl(path) {
+  if (!NEXGENT_APP || isSameOriginNexGentApp()) return null;
+  return `${NEXGENT_APP}${path}`;
 }

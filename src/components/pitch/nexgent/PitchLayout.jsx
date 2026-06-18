@@ -2,8 +2,24 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Menu, X } from "lucide-react";
-import { DEPRO_LOGO, NEXGENT_LOGO, nexgentUrl } from "../../../lib/nexgentConfig";
+import { DEPRO_LOGO, NEXGENT_LOGO, isExternalHref, nexgentDemoUrl } from "../../../lib/nexgentConfig";
 import NexGentPitchLanguageSwitcher, { initNexGentPitchLanguage } from "./NexGentPitchLanguageSwitcher";
+
+export function PitchCtaLink({ href, className, style, children }) {
+  if (!href) return null;
+  if (isExternalHref(href)) {
+    return (
+      <a href={href} className={className} style={style} target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link to={href} className={className} style={style}>
+      {children}
+    </Link>
+  );
+}
 
 const NAV_KEYS = [
   { id: "alianza", key: "nav.alliance" },
@@ -19,7 +35,7 @@ export function PitchNav() {
   const { t, i18n } = useTranslation("nexgentPitch");
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const demoUrl = nexgentUrl("/app/inicio");
+  const demoUrl = nexgentDemoUrl();
 
   useEffect(() => {
     initNexGentPitchLanguage(i18n);
@@ -51,11 +67,9 @@ export function PitchNav() {
         </nav>
         <div className="flex items-center gap-2 flex-shrink-0">
           <NexGentPitchLanguageSwitcher />
-          {demoUrl && (
-            <a href={demoUrl} className="hidden md:inline-flex text-xs font-bold text-white px-3 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ backgroundColor: "#0A36F7" }}>
-              {t("nav.demo")}
-            </a>
-          )}
+          <PitchCtaLink href={demoUrl} className="hidden md:inline-flex text-xs font-bold text-white px-3 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ backgroundColor: "#0A36F7" }}>
+            {t("nav.demo")}
+          </PitchCtaLink>
           <button type="button" className="lg:hidden p-2" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -66,9 +80,7 @@ export function PitchNav() {
           {NAV_KEYS.map(({ id, key }) => (
             <button key={id} type="button" onClick={() => scrollTo(id)} className="block w-full text-left py-2.5 text-sm font-medium text-gray-600">{t(key)}</button>
           ))}
-          {demoUrl && (
-            <a href={demoUrl} className="block py-2.5 text-sm font-bold text-blue-600">{t("nav.demo")}</a>
-          )}
+          <PitchCtaLink href={demoUrl} className="block py-2.5 text-sm font-bold text-blue-600">{t("nav.demo")}</PitchCtaLink>
         </div>
       )}
     </header>

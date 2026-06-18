@@ -5,7 +5,8 @@ import {
   ArrowLeft, ArrowRight, BarChart3, Brain, Calendar, CheckCircle2,
   ChevronLeft, ChevronRight, Clock, Shield, Sparkles, Target, TrendingUp, Users, X, Zap,
 } from "lucide-react";
-import { DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, PALMEIRAS, nexgentUrl } from "../../../lib/nexgentConfig.js";
+import { DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, PALMEIRAS, nexgentDemoUrl } from "../../../lib/nexgentConfig.js";
+import { PitchCtaLink } from "./PitchLayout.jsx";
 import {
   PITCH_STATS, FEATURES, MODULE_GROUPS, ROADMAP_PHASES, COMPARE_ROWS,
   COMMISSION_TIERS, WORKFLOW_STEPS, ADVANTAGES, PALMEIRAS_STATS,
@@ -117,7 +118,7 @@ function SlideBullets({ items, size = "md" }) {
 }
 
 export default function NexGentPresentationDeck() {
-  const demoUrl = nexgentUrl("/app/inicio");
+  const demoUrl = nexgentDemoUrl();
   const [idx, setIdx] = useState(0);
   const total = SLIDES.length;
   const slide = SLIDES[idx];
@@ -405,15 +406,9 @@ export default function NexGentPresentationDeck() {
                 Demo interactiva Palmeiras · {FEATURES.length} módulos con demo animada · Roadmap 12 meses desde requisitos
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                {demoUrl ? (
-                  <a href={demoUrl} className="inline-flex items-center justify-center gap-2 text-white font-black px-8 py-4 rounded-xl" style={{ backgroundColor: ACCENT }}>
-                    Ver la demo <ArrowRight size={20} />
-                  </a>
-                ) : (
-                  <Link to="/nexgent/pitch#palmeiras" className="inline-flex items-center justify-center gap-2 text-white font-black px-8 py-4 rounded-xl" style={{ backgroundColor: ACCENT }}>
-                    Ver la demo <ArrowRight size={20} />
-                  </Link>
-                )}
+                <PitchCtaLink href={demoUrl} className="inline-flex items-center justify-center gap-2 text-white font-black px-8 py-4 rounded-xl" style={{ backgroundColor: ACCENT }}>
+                  Ver la demo <ArrowRight size={20} />
+                </PitchCtaLink>
                 <Link to="/nexgent/pitch" className="inline-flex items-center justify-center gap-2 border-2 border-gray-900 text-gray-900 font-black px-8 py-4 rounded-xl hover:bg-gray-900 hover:text-white transition-colors">
                   Volver al pitch
                 </Link>

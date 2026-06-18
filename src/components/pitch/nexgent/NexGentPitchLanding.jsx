@@ -1,17 +1,17 @@
-import { Fragment } from "react";
+import { Fragment, useEffect } from "react";
 import {
   ArrowRight, BarChart3, Brain, Building2, Calendar, CheckCircle2,
   ChevronRight, Clock, Shield, Sparkles, Target, TrendingUp, Users, Zap,
   X,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { PitchNav, PitchFooter } from "./PitchLayout";
+import { useLocation } from "react-router-dom";
+import { PitchNav, PitchFooter, PitchCtaLink } from "./PitchLayout";
 import NexGentFeatureShowcase, { HeroAnimatedDemo } from "./NexGentFeatureDemos";
 import NexGentCommissionCalculator from "./NexGentCommissionCalculator";
 import { COMPARE_VALUES, COMPARE_CATEGORIES } from "../../../lib/nexgentCompareData";
 import {
-  PALMEIRAS, DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, nexgentUrl, nexgentSlidesUrl,
+  PALMEIRAS, DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, nexgentDemoUrl, nexgentSlidesUrl,
 } from "../../../lib/nexgentConfig";
 
 const ACCENT = DEPRO_ACCENT;
@@ -44,14 +44,10 @@ function CompareCell({ value, t }) {
   );
 }
 
-function ExternalCta({ href, className, style, children }) {
-  if (!href) return null;
-  return <a href={href} className={className} style={style}>{children}</a>;
-}
-
 export default function NexGentPitchLanding() {
   const { t } = useTranslation("nexgentPitch");
-  const demoUrl = nexgentUrl("/app/inicio");
+  const location = useLocation();
+  const demoUrl = nexgentDemoUrl();
   const slidesUrl = nexgentSlidesUrl();
   const compareRows = t("compare.rows", { returnObjects: true });
   const compareCategories = t("compare.categories", { returnObjects: true });
@@ -61,6 +57,12 @@ export default function NexGentPitchLanding() {
   const moduleGroups = t("modules.groups", { returnObjects: true });
 
   let lastCategory = null;
+
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.replace(/^#/, "");
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  }, [location.hash]);
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -79,9 +81,9 @@ export default function NexGentPitchLanding() {
               <h1 className="text-4xl md:text-5xl lg:text-[3.25rem] font-black tracking-tight leading-[1.05] text-gray-900 mb-6">{t("hero.title")}</h1>
               <p className="text-lg text-gray-600 leading-relaxed mb-8 max-w-xl">{t("hero.desc")}</p>
               <div className="flex flex-wrap gap-3 mb-10">
-                <ExternalCta href={demoUrl} className="inline-flex items-center gap-2 text-white font-bold px-6 py-3.5 rounded-lg transition-colors hover:opacity-90" style={{ backgroundColor: ACCENT }}>
+                <PitchCtaLink href={demoUrl} className="inline-flex items-center gap-2 text-white font-bold px-6 py-3.5 rounded-lg transition-colors hover:opacity-90" style={{ backgroundColor: ACCENT }}>
                   {t("hero.ctaDemo")} <ArrowRight size={18} />
-                </ExternalCta>
+                </PitchCtaLink>
                 <a href="#plataforma" className="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-800 font-bold px-6 py-3.5 rounded-lg transition-colors">
                   {t("hero.ctaExplore")}
                 </a>
@@ -166,9 +168,9 @@ export default function NexGentPitchLanding() {
                   </div>
                 ))}
               </div>
-              <ExternalCta href={demoUrl} className="inline-flex items-center gap-2 font-bold text-sm px-5 py-2.5 rounded-lg text-white transition-opacity hover:opacity-90" style={{ backgroundColor: CLUB_ACCENT }}>
+              <PitchCtaLink href={demoUrl} className="inline-flex items-center gap-2 font-bold text-sm px-5 py-2.5 rounded-lg text-white transition-opacity hover:opacity-90" style={{ backgroundColor: CLUB_ACCENT }}>
                 {t("palmeiras.openDashboard")} <ChevronRight size={16} />
-              </ExternalCta>
+              </PitchCtaLink>
             </div>
             <div className="space-y-4">
               <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -377,28 +379,26 @@ export default function NexGentPitchLanding() {
         </div>
       </section>
 
-      {(slidesUrl || demoUrl) && (
-        <section className="py-20 md:py-28">
+      <section className="py-20 md:py-28">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
             <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">{t("cta.title")}</h2>
             <p className="text-gray-600 text-lg leading-relaxed mb-10">{t("cta.desc")}</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                to={slidesUrl}
+              <PitchCtaLink
+                href={slidesUrl}
                 className="inline-flex items-center gap-2 w-full sm:w-auto justify-center border-2 border-gray-900 text-gray-900 font-black px-8 py-4 rounded-xl hover:bg-gray-900 hover:text-white transition-colors"
               >
                 {t("cta.slides")} <ArrowRight size={20} />
-              </Link>
-              <ExternalCta href={demoUrl} className="inline-flex items-center gap-2 w-full sm:w-auto justify-center text-white font-black px-8 py-4 rounded-xl shadow-depro hover:opacity-90 transition-opacity" style={{ backgroundColor: ACCENT }}>
+              </PitchCtaLink>
+              <PitchCtaLink href={demoUrl} className="inline-flex items-center gap-2 w-full sm:w-auto justify-center text-white font-black px-8 py-4 rounded-xl shadow-depro hover:opacity-90 transition-opacity" style={{ backgroundColor: ACCENT }}>
                 {t("cta.demo")} <ArrowRight size={20} />
-              </ExternalCta>
+              </PitchCtaLink>
             </div>
             <p className="text-xs text-gray-400 mt-8 flex items-center justify-center gap-2">
               <Clock size={14} /> {t("cta.footnote")}
             </p>
           </div>
         </section>
-      )}
 
       <PitchFooter />
     </div>
