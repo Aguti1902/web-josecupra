@@ -1,0 +1,266 @@
+{
+  "lang": { "en": "English", "es": "Español" },
+  "nav": {
+    "alliance": "Alianza",
+    "palmeiras": "Palmeiras",
+    "platform": "Plataforma",
+    "advantages": "Ventajas",
+    "compare": "Comparativa",
+    "roadmap": "Roadmap",
+    "slides": "Diapositivas",
+    "demo": "Ver demo"
+  },
+  "cover": {
+    "eyebrow": "Alianza estratégica · Clubes profesionales",
+    "title": "El software más completo para clubes de fútbol profesional",
+    "desc": "NexGent y DEPRO se han unido para ofrecer periodización, tests, GPS, IA táctica, scouting y white-label en una sola plataforma.",
+    "cta": "Ver presentación completa",
+    "stats": {
+      "modules": "Módulos integrados",
+      "ai": "Sesiones · Carga · Chat",
+      "whitelabel": "White-label club"
+    }
+  },
+  "hero": {
+    "eyebrow": "Alianza estratégica · Clubes profesionales",
+    "title": "El software más completo para clubes de fútbol profesional",
+    "desc": "NexGent y DEPRO unen IA, GPS, periodización, tests físicos, scouting y white-label en una sola plataforma — pensada para el staff, no para IT.",
+    "ctaDemo": "Ver demo Palmeiras",
+    "ctaExplore": "Explorar capacidades",
+    "statModules": "Módulos integrados",
+    "statAi": "Sesiones · Carga · Chat",
+    "statWhitelabel": "White-label club"
+  },
+  "alliance": {
+    "eyebrow": "Transparencia total",
+    "title": "NexGent + DEPRO = una sola plataforma",
+    "desc": "No es un rebrand ni un plugin. Es una alianza donde cada empresa aporta lo suyo: DEPRO la base operativa probada en clubes; NexGent la capa de inteligencia y módulos de élite.",
+    "nexgentTitle": "NexGent",
+    "deproTitle": "DEPRO",
+    "nexgentBullets": [
+      "IA táctica: texto → diagrama SVG",
+      "Clasificación inteligente de carga GPS",
+      "Chat del staff con resumen IA",
+      "Scouting, dirección deportiva, cantera"
+    ],
+    "deproBullets": [
+      "Periodización meso/microciclo",
+      "Tests físicos con ratings automáticos",
+      "White-label: logo, colores, equipos",
+      "PDFs de sesión y adherencia al plan"
+    ]
+  },
+  "palmeiras": {
+    "eyebrow": "Demo en vivo",
+    "title": "Así se ve con {{club}}",
+    "desc": "El dashboard demo replica el diseño DEPRO real — sidebar claro, banner del club, cards de entrenador — con los colores verde y oro de Palmeiras.",
+    "players": "Jugadores",
+    "teams": "Equipos",
+    "training": "Entrenamientos",
+    "staff": "Staff técnico",
+    "staffValue": "{{count}} entrenadores",
+    "openDashboard": "Abrir dashboard Palmeiras",
+    "snapshot": "Snapshot jugador",
+    "playerPlan": "Sub-20 · Semana 24",
+    "directorQuote": "Por fin tenemos rendimiento, planificación y scouting en un solo sitio — con la cara de Palmeiras.",
+    "directorRole": "Dirección deportiva · Demo"
+  },
+  "platform": {
+    "eyebrow": "Plataforma completa",
+    "title": "Todo lo que puede hacer el software",
+    "desc": "Cada módulo con demo animada. Clic en la lista para ver cómo funciona.",
+    "demoHint": "Demo animada · clic en módulo para cambiar",
+    "capabilities": "Capacidades completas"
+  },
+  "features": {
+    "dashboard": {
+      "title": "Dashboard del club",
+      "summary": "Una pantalla para dirección, cuerpo técnico y médico.",
+      "bullets": ["Mesociclo y microciclo por equipo", "Próxima sesión y tests completados", "Cabecera con logo y colores del club"]
+    },
+    "sessions": {
+      "title": "Sesiones con IA táctica",
+      "summary": "Describe el ejercicio en lenguaje natural → diagrama SVG.",
+      "bullets": ["Generación JSON estricta", "Task designer integrado", "PDF con branding del club"]
+    },
+    "loads": {
+      "title": "Control de carga GPS",
+      "summary": "Import Catapult, STATSports, Polar, WIMU…",
+      "bullets": ["Mapeo de columnas flexible", "Clasificación IA por jugador", "Semáforo óptima / alta / riesgo"]
+    },
+    "tests": {
+      "title": "Tests físicos",
+      "summary": "Ratings objetivos T1→T2→T3 vs media del equipo.",
+      "bullets": ["4 tests × 3 evaluaciones", "Gráficas automáticas", "Verde / ámbar / rojo"]
+    },
+    "chat": {
+      "title": "Chat del staff + IA",
+      "summary": "Canales por rol con resumen inteligente.",
+      "bullets": ["Cuerpo técnico, médico, scouting", "Persistencia en tiempo real", "Resumen IA en 2-3 líneas"]
+    },
+    "scouting": {
+      "title": "Scouting integrado",
+      "summary": "Informes estructurados y seguimiento de objetivos.",
+      "bullets": ["Físico, técnico, táctico, actitudinal", "Notas libres", "Histórico por jugador"]
+    },
+    "pdf": {
+      "title": "PDFs de sesión",
+      "summary": "Plan profesional listo para el campo.",
+      "bullets": ["Logo y colores del club", "Vídeos de calentamiento", "Export en un clic"]
+    },
+    "brand": {
+      "title": "White-label completo",
+      "summary": "Tu club en cada pantalla — no una app genérica.",
+      "bullets": ["Logo, colores, equipos", "Familias ven Palmeiras", "Multi-categoría"]
+    }
+  },
+  "advantages": {
+    "eyebrow": "Ventajas competitivas",
+    "title": "Por qué NexGent × DEPRO gana",
+    "desc": "Frente a Excel, WhatsApp y plataformas genéricas que no entienden el día a día del staff.",
+    "items": [
+      { "title": "IA que entiende fútbol", "desc": "Diagramas tácticos, clasificación de carga y resúmenes del staff en lenguaje natural." },
+      { "title": "Cero fricción con vuestro GPS", "desc": "Catapult, STATSports, Polar, WIMU… importáis el CSV y la plataforma mapea columnas." },
+      { "title": "White-label real", "desc": "Palmeiras en cada pantalla. Jugadores, familias y staff ven al club — no un SaaS genérico." },
+      { "title": "Un solo cerebro de datos", "desc": "Rendimiento, salud, planificación y scouting conectados sin duplicar datos." },
+      { "title": "Periodización DEPRO", "desc": "Mesociclos, microciclos, tests y adherencia al plan — base operativa probada." },
+      { "title": "NexGent encima", "desc": "Capa de IA y módulos pro que elevan lo que DEPRO ya hace bien." }
+    ]
+  },
+  "compare": {
+    "eyebrow": "Comparativa",
+    "title": "NexGent × DEPRO vs alternativas",
+    "capability": "Capacidad",
+    "us": "NexGent × DEPRO",
+    "sheets": "Excel / Sheets",
+    "generic": "SaaS genérico",
+    "partial": "Parcial",
+    "addon": "Extra $",
+    "limited": "Limitado",
+    "rows": [
+      "White-label con logo y colores del club",
+      "Periodización meso/microciclo",
+      "Tests físicos T1→T2→T3 con ratings",
+      "Import GPS + clasificación IA",
+      "Sesiones con diagrama IA (SVG)",
+      "PDF de sesión con branding",
+      "Chat staff + resumen IA",
+      "Scouting integrado",
+      "Multi-equipo y multi-categoría"
+    ]
+  },
+  "workflow": {
+    "eyebrow": "Flujo de trabajo",
+    "title": "De la planificación al campo",
+    "desc": "Cuatro pasos que el staff ya conoce — digitalizados y conectados.",
+    "steps": [
+      { "title": "Planificar", "desc": "Mesociclo y microciclo por equipo. Sesiones asignadas por día." },
+      { "title": "Preparar", "desc": "Sesiones IA, PDF con logo del club, tests y calentamientos." },
+      { "title": "Monitorizar", "desc": "GPS importado, semáforo de carga, chat staff y alertas médicas." },
+      { "title": "Decidir", "desc": "Scouting, KPIs de dirección y readaptación en una sola vista." }
+    ]
+  },
+  "roadmap": {
+    "eyebrow": "Roadmap de desarrollo",
+    "title": "Cómo evoluciona el proyecto",
+    "desc": "Hitos claros desde el piloto con Palmeiras hasta la plataforma completa multi-club.",
+    "statusDone": "Completado",
+    "statusCurrent": "En curso",
+    "statusNext": "Próximo",
+    "statusFuture": "Planificado",
+    "phases": [
+      {
+        "phase": "Fase 1",
+        "period": "Mes 1–3",
+        "title": "Piloto Palmeiras + núcleo DEPRO",
+        "items": ["White-label Palmeiras en producción", "Dashboard, mesociclo y tests DEPRO", "Import GPS Catapult/STATSports", "Chat staff con persistencia"]
+      },
+      {
+        "phase": "Fase 2",
+        "period": "Mes 4–6",
+        "title": "IA táctica y rendimiento",
+        "items": ["Sesiones: texto → diagrama SVG", "Clasificación IA de carga por jugador", "Resumen IA del chat staff", "PDF de sesión con branding club"]
+      },
+      {
+        "phase": "Fase 3",
+        "period": "Mes 7–9",
+        "title": "Scouting, médico y dirección",
+        "items": ["Informes scouting CRUD completos", "Módulo médico y readaptación", "KPIs dirección deportiva", "Integración vídeo (tags automáticos)"]
+      },
+      {
+        "phase": "Fase 4",
+        "period": "Mes 10–12",
+        "title": "Escala multi-club",
+        "items": ["Cantera sin hardware GPS obligatorio", "API abierta wearables", "App móvil staff", "Despliegue clubes adicionales"]
+      }
+    ]
+  },
+  "cta": {
+    "title": "¿Listo para verlo en acción?",
+    "desc": "Explora la demo interactiva con Palmeiras o revisa la presentación completa diapositiva a diapositiva.",
+    "slides": "Ver presentación más completa por diapositivas",
+    "demo": "Ver la demo",
+    "footnote": "Demo Palmeiras · Sin registro · Datos de ejemplo"
+  },
+  "footer": {
+    "headline": "NexGent y DEPRO se han unido para crear el software más completo a nivel de clubes de fútbol profesional.",
+    "desc": "NexGent aporta inteligencia artificial, integración GPS y módulos avanzados. DEPRO aporta periodización, tests físicos, white-label y experiencia operativa.",
+    "copyright": "© {{year}} NexGent × DEPRO · Demo comercial · Palmeiras"
+  },
+  "demos": {
+    "clubName": "Palmeiras · Sub-20",
+    "ui": {
+      "dashboard": "Dashboard",
+      "microcycle": "Microciclo",
+      "squad": "Plantilla",
+      "tests": "Tests",
+      "loads": "Cargas",
+      "sessions": "Sesiones",
+      "chat": "Chat",
+      "scouting": "Scouting",
+      "players": "Jugadores",
+      "sessionsCount": "Sesiones",
+      "testsDone": "Tests",
+      "nextSession": "Próxima sesión",
+      "nextSessionValue": "Hoy 09:30 · Técnico-táctico",
+      "weekTeam": "Semana 24 · Mesociclo 3",
+      "weeklyLoad": "Carga semanal",
+      "loadOptimal": "Óptima",
+      "loadHigh": "Alta",
+      "loadRisk": "Riesgo",
+      "aiSummary": "Resumen IA generado",
+      "exportPdf": "Exportar PDF",
+      "ratedVsAvg": "Valorado vs <strong>media equipo</strong>",
+      "excellentRating": "Rating excelente · +9% vs media",
+      "importGps": "Import GPS completado",
+      "scoutingReport": "Informe scouting guardado",
+      "playerLegend": "Jugador",
+      "teamAvgLegend": "Media equipo",
+      "playerCol": "Jugador",
+      "endurance": "Resistencia",
+      "sprint": "Sprint 30m",
+      "aiPrompt": "Generador IA táctica",
+      "promptText": "Posesión 3v3 en espacio reducido, 2 toques, presión alta tras pérdida",
+      "diagramReady": "Diagrama SVG generado · listo para PDF",
+      "channelCoach": "Cuerpo técnico",
+      "channelMed": "Médico",
+      "channelScout": "Scouting",
+      "chatMsg1": "Sesión técnica mañana 09:30 — intensidad media, foco en transiciones",
+      "chatMsg2": "Luis Felipe Fase 2 readaptación — disponible parcial jueves",
+      "chatMsg3": "Matheus Cunha destacó en partido Sub-20 — informe pendiente",
+      "aiSummaryText": "3 temas activos: sesión técnica mañana, readaptación LF parcial jueves, informe scouting MC pendiente.",
+      "attrPhysical": "Físico",
+      "attrTechnical": "Técnico",
+      "attrTactical": "Táctico",
+      "attrAttitude": "Actitudinal",
+      "scoutTarget": "Informe · Matheus Cunha",
+      "pdfLine1": "Calentamiento: movilidad + rondo 8v2 (12 min)",
+      "pdfLine2": "Bloque principal: posesión 3v3 + transiciones (25 min)",
+      "pdfLine3": "Task designer: finalización + pressing (20 min)",
+      "sessionTitle": "Sesión B · Técnico-táctico",
+      "pdfReady": "PDF listo · logo y colores Palmeiras",
+      "brandPreview": "Vista previa white-label",
+      "brandApplied": "Branding aplicado a todos los módulos"
+    }
+  }
+}

@@ -11,6 +11,8 @@ import usPitchDemosEn from "./locales/usPitch.demos.en.json";
 import usPitchDemosEs from "./locales/usPitch.demos.es.json";
 import usPitchExplorerEn from "./locales/usPitch.explorer.en.json";
 import usPitchExplorerEs from "./locales/usPitch.explorer.es.json";
+import nexgentPitchEn from "./locales/nexgentPitch.en.json";
+import nexgentPitchEs from "./locales/nexgentPitch.es.json";
 
 const mergeUsPitch = (base, demos, explorer) => ({ ...base, ...demos, ...explorer });
 
@@ -19,9 +21,9 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      es: { translation: es, usPitch: mergeUsPitch(usPitchEs, usPitchDemosEs, usPitchExplorerEs) },
-      en: { translation: en, usPitch: mergeUsPitch(usPitchEn, usPitchDemosEn, usPitchExplorerEn) },
-      ca: { translation: ca, usPitch: mergeUsPitch(usPitchEn, usPitchDemosEn, usPitchExplorerEn) },
+      es: { translation: es, usPitch: mergeUsPitch(usPitchEs, usPitchDemosEs, usPitchExplorerEs), nexgentPitch: nexgentPitchEs },
+      en: { translation: en, usPitch: mergeUsPitch(usPitchEn, usPitchDemosEn, usPitchExplorerEn), nexgentPitch: nexgentPitchEn },
+      ca: { translation: ca, usPitch: mergeUsPitch(usPitchEn, usPitchDemosEn, usPitchExplorerEn), nexgentPitch: nexgentPitchEn },
     },
     fallbackLng: "es",
     supportedLngs: ["es", "en", "ca"],

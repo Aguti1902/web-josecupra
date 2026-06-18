@@ -12,6 +12,7 @@ import OnboardingPage from "./pages/public/OnboardingPage";
 import PaymentSuccessPage from "./pages/public/PaymentSuccessPage";
 import USClubPitchPage from "./pages/public/USClubPitchPage";
 import NexGentLauncherPage from "./pages/public/NexGentLauncherPage";
+import NexGentPitchPage from "./pages/public/NexGentPitchPage";
 
 // Private (client app)
 import AppLayout from "./components/private/AppLayout";
@@ -106,6 +107,7 @@ function AppRoutes() {
       <Route path="/us-clubs" element={<USClubPitchPage variant="partner" />} />
       <Route path="/clubs" element={<USClubPitchPage variant="client" />} />
       <Route path="/nexgent" element={<NexGentLauncherPage />} />
+      <Route path="/nexgent/pitch" element={<NexGentPitchPage />} />
 
       {/* ── Client App ─────────────────────────────────────────── */}
       <Route path="/dashboard" element={<ClientRoute><AppLayout><DashboardPage /></AppLayout></ClientRoute>} />

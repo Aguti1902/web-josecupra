@@ -1,5 +1,5 @@
-import NexGentPitchLanding from "../../components/pitch/nexgent/NexGentPitchLanding";
+import NexGentCoverPage from "./NexGentCoverPage";
 
 export default function NexGentLauncherPage() {
-  return <NexGentPitchLanding />;
+  return <NexGentCoverPage />;
 }
