@@ -8,7 +8,6 @@ import { useTranslation } from "react-i18next";
 import { PitchNav, PitchFooter, PitchCtaLink } from "./PitchLayout";
 import NexGentFeatureShowcase, { HeroAnimatedDemo } from "./NexGentFeatureDemos";
 import NexGentCommissionCalculator from "./NexGentCommissionCalculator";
-import { ClubDashboardExplorer } from "../ClubDashboardExplorer";
 import { COMPARE_VALUES, COMPARE_CATEGORIES } from "../../../lib/nexgentCompareData";
 import {
   PALMEIRAS, DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, nexgentDemoUrl, nexgentSlidesUrl,
@@ -190,26 +189,6 @@ export default function NexGentPitchLanding() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section id="demo" className="py-20 md:py-28 bg-gray-900 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="max-w-3xl mb-10 md:mb-14">
-            <p className="text-xs font-bold uppercase tracking-widest text-green-400 mb-3">{t("demo.eyebrow")}</p>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4">{t("demo.title", { club: PALMEIRAS.shortName })}</h2>
-            <p className="text-gray-400 text-lg leading-relaxed">{t("demo.desc")}</p>
-          </div>
-          <ClubDashboardExplorer
-            club={{
-              name: PALMEIRAS.name,
-              abbrev: PALMEIRAS.abbrev,
-              logo: PALMEIRAS.logo,
-              accent: PALMEIRAS.accent,
-              team: PALMEIRAS.team,
-            }}
-          />
-          <p className="text-center text-xs text-gray-500 mt-6">{t("demo.footnote", { club: PALMEIRAS.shortName })}</p>
         </div>
       </section>
 
