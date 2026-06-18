@@ -41,6 +41,7 @@ export const SEED_SESSIONS = [
     description: "Máximo 2 toques, amplitud en bandas",
     diagram: {
       space: { width: 25, height: 20 },
+      workZone: { x: 4, y: 4, width: 17, height: 12 },
       players: [
         { team: "A", x: 12, y: 10 }, { team: "A", x: 8, y: 8 }, { team: "A", x: 16, y: 8 }, { team: "A", x: 12, y: 6 },
         { team: "B", x: 10, y: 14 }, { team: "B", x: 14, y: 14 },
@@ -54,6 +55,7 @@ export const SEED_SESSIONS = [
     description: "Espacio 20x15m, trigger pressing tras pérdida",
     diagram: {
       space: { width: 20, height: 15 },
+      workZone: { x: 0, y: 0, width: 20, height: 15 },
       players: [
         { team: "A", x: 10, y: 7 }, { team: "A", x: 7, y: 5 }, { team: "A", x: 13, y: 5 },
         { team: "B", x: 10, y: 11 }, { team: "B", x: 7, y: 13 }, { team: "B", x: 13, y: 13 },
@@ -67,6 +69,7 @@ export const SEED_SESSIONS = [
     description: "Presión alta tras pérdida en zona alta",
     diagram: {
       space: { width: 30, height: 20 },
+      workZone: { x: 3, y: 5, width: 24, height: 12 },
       players: [
         { team: "A", x: 15, y: 10 }, { team: "A", x: 10, y: 8 }, { team: "A", x: 20, y: 8 },
         { team: "B", x: 15, y: 14 }, { team: "B", x: 12, y: 16 }, { team: "B", x: 18, y: 16 },
@@ -204,22 +207,190 @@ export const EMPTY_DIAGRAM = {
 
 export const PRESET_PROMPTS = {
   "posesión 3 contra 3": {
-    space: { width: 20, height: 15 },
+    space: { width: 30, height: 20 },
+    workZone: { x: 5, y: 2.5, width: 20, height: 15 },
     players: [
-      { team: "A", x: 10, y: 7 }, { team: "A", x: 7, y: 5 }, { team: "A", x: 13, y: 5 },
-      { team: "B", x: 10, y: 11 }, { team: "B", x: 7, y: 13 }, { team: "B", x: 13, y: 13 },
+      { team: "A", x: 15, y: 10 }, { team: "A", x: 12, y: 8 }, { team: "A", x: 18, y: 8 },
+      { team: "B", x: 15, y: 14 }, { team: "B", x: 12, y: 16 }, { team: "B", x: 18, y: 16 },
     ],
     arrows: [],
   },
   "rondo 4v2": {
     space: { width: 25, height: 20 },
+    workZone: { x: 4, y: 4, width: 17, height: 12 },
     players: [
       { team: "A", x: 12, y: 10 }, { team: "A", x: 8, y: 8 }, { team: "A", x: 16, y: 8 }, { team: "A", x: 12, y: 6 },
       { team: "B", x: 10, y: 14 }, { team: "B", x: 14, y: 14 },
     ],
     arrows: [{ from: { x: 12, y: 10 }, to: { x: 16, y: 8 } }],
   },
+  "pressing 8v8": {
+    space: { width: 30, height: 20 },
+    workZone: { x: 3, y: 5, width: 24, height: 12 },
+    players: [
+      { team: "A", x: 15, y: 10 }, { team: "A", x: 10, y: 8 }, { team: "A", x: 20, y: 8 },
+      { team: "A", x: 12, y: 12 }, { team: "B", x: 15, y: 14 }, { team: "B", x: 12, y: 16 },
+      { team: "B", x: 18, y: 16 }, { team: "B", x: 20, y: 14 },
+    ],
+    arrows: [{ from: { x: 15, y: 10 }, to: { x: 15, y: 14 } }],
+  },
+  "cuadrado 20x20": {
+    space: { width: 30, height: 20 },
+    workZone: { x: 5, y: 0, width: 20, height: 20 },
+    players: [
+      { team: "A", x: 15, y: 10 }, { team: "A", x: 10, y: 10 }, { team: "A", x: 20, y: 10 },
+      { team: "B", x: 15, y: 15 }, { team: "B", x: 10, y: 15 }, { team: "B", x: 20, y: 15 },
+    ],
+    arrows: [],
+  },
 };
+
+/** Genera diagrama desde prompt — detecta tipo de ejercicio y zona de trabajo */
+export function generateDiagramFromPrompt(prompt) {
+  const p = prompt.toLowerCase();
+  if (p.includes("rondo") || p.includes("4v2") || p.includes("4 contra 2")) {
+    return JSON.parse(JSON.stringify(PRESET_PROMPTS["rondo 4v2"]));
+  }
+  if ((p.includes("3") && p.includes("contra")) || p.includes("3v3") || p.includes("3 contra 3")) {
+    return JSON.parse(JSON.stringify(PRESET_PROMPTS["posesión 3 contra 3"]));
+  }
+  if (p.includes("8v8") || p.includes("8 contra 8") || p.includes("pressing")) {
+    return JSON.parse(JSON.stringify(PRESET_PROMPTS["pressing 8v8"]));
+  }
+  if (p.includes("cuadrado") || p.includes("20x20") || p.includes("20 x 20")) {
+    return JSON.parse(JSON.stringify(PRESET_PROMPTS["cuadrado 20x20"]));
+  }
+  if (p.includes("reducido") || p.includes("espacio")) {
+    const d = JSON.parse(JSON.stringify(PRESET_PROMPTS["posesión 3 contra 3"]));
+    d.workZone = { x: 8, y: 4, width: 14, height: 12 };
+    return d;
+  }
+  return JSON.parse(JSON.stringify(SEED_SESSIONS[0].diagram));
+}
+
+export const TRAINING_SESSIONS = [
+  {
+    id: "ts1",
+    day: "Miércoles 18 Jun",
+    type: "B",
+    title: "Sesión B · Intensivo",
+    duration: "75 min",
+    rpe: 7,
+    focus: "Presión alta · recuperación en zona alta · estímulo anaeróbico",
+    tasks: [
+      { block: "Calentamiento", name: "Activación + sprints", duration: "10 min", detail: "4×15 m aceleraciones progresivas" },
+      { block: "Calentamiento", name: "Rondo 5v2 alto tempo", duration: "12 min", detail: "1 toque cuando sea posible · pressing inmediato" },
+      { block: "Principal", name: "Pressing triggers 8v8", duration: "25 min", detail: "Zona 24×12 m · trigger tras pérdida en campo rival" },
+      { block: "Principal", name: "Posesión 3v3+3", duration: "15 min", detail: "Cuadrado 20×15 m · máx. 2 toques" },
+      { block: "Vuelta calma", name: "Estiramientos + foam", duration: "8 min", detail: "Isquios · aductores · gemelos" },
+    ],
+  },
+  {
+    id: "ts2",
+    day: "Viernes 20 Jun",
+    type: "C",
+    title: "Sesión C · Reactivo",
+    duration: "60 min",
+    rpe: 5,
+    focus: "Velocidad de reacción · transiciones · activación neuromuscular",
+    tasks: [
+      { block: "Calentamiento", name: "Movilidad articular", duration: "8 min", detail: "Cadera · tobillo · columna" },
+      { block: "Principal", name: "Sprints 20 m reactivos", duration: "15 min", detail: "6×20 m · 90 s recuperación" },
+      { block: "Principal", name: "Transiciones 4v4+2", duration: "20 min", detail: "Campo 30×20 m · 2 jokers en bandas" },
+      { block: "Complementario", name: "Core + estabilidad", duration: "10 min", detail: "Planchas · pallof · bird-dog" },
+    ],
+  },
+  {
+    id: "ts3",
+    day: "Lunes 16 Jun",
+    type: "A",
+    title: "Sesión A · Extensivo",
+    duration: "45 min",
+    rpe: 3,
+    focus: "Recuperación activa post-partido · movilidad · baja intensidad",
+    tasks: [
+      { block: "Calentamiento", name: "Bici estática", duration: "10 min", detail: "RPE 3 · 60 rpm" },
+      { block: "Principal", name: "Piscina / hidroterapia", duration: "20 min", detail: "Marcha acuática · movilidad" },
+      { block: "Vuelta calma", name: "Yoga / estiramientos", duration: "15 min", detail: "Cadena posterior completa" },
+    ],
+  },
+];
+
+export const SCOUTING_PROFILES = [
+  { id: "s1", player_name: "João Silva", age: 19, position: "EI", club: "Sporting CP Sub-23", league: "Liga Revelação", nationality: "Portugal", height: "1.78 m", foot: "Zurdo", marketValue: "€1.2M", contract: "Jun 2027", scout: "André Costa", scoutedAt: "2026-05-12", status: "Seguimiento activo", physical: 8, technical: 7, tactical: 6, attitudinal: 9, strengths: ["1v1", "Velocidad", "Regate"], weaknesses: ["Lectura defensiva", "Juego aéreo"], notes: "Extremo zurdo con gran capacidad de desborde. Necesita mejorar lectura defensiva en transiciones." },
+  { id: "s2", player_name: "Marco Rossi", age: 21, position: "MC", club: "Empoli Primavera", league: "Primavera 1", nationality: "Italia", height: "1.82 m", foot: "Diestro", marketValue: "€800K", contract: "Jun 2026", scout: "André Costa", scoutedAt: "2026-04-28", status: "Informe enviado", physical: 7, technical: 8, tactical: 8, attitudinal: 7, strengths: ["Pase largo", "Visión", "Anticipación"], weaknesses: ["Velocidad", "Duels físicos"], notes: "Mediocentro organizador. Encaja en perfil de rotación para competiciones internacionales." },
+  { id: "s3", player_name: "Pedro Henrique", age: 20, position: "DFC", club: "Fluminense Sub-20", league: "Copa SP", nationality: "Brasil", height: "1.89 m", foot: "Diestro", marketValue: "€600K", contract: "Dic 2026", scout: "Ricardo Lima", scoutedAt: "2026-06-02", status: "Seguimiento activo", physical: 9, technical: 6, tactical: 7, attitudinal: 8, strengths: ["Juego aéreo", "Salida de balón", "Ritmo"], weaknesses: ["Velocidad lateral", "Marcaje 1v1"], notes: "Central rápido con buen juego aéreo. Proyección a primer equipo en 12-18 meses." },
+  { id: "s4", player_name: "Lucas Mendes", age: 18, position: "ED", club: "Benfica Sub-23", league: "Liga Revelação", nationality: "Portugal", height: "1.75 m", foot: "Diestro", marketValue: "€2.5M", contract: "Jun 2028", scout: "André Costa", scoutedAt: "2026-06-10", status: "Prioridad alta", physical: 8, technical: 9, tactical: 7, attitudinal: 8, strengths: ["Finalización", "Desmarque", "Ambidextrismo"], weaknesses: ["Defensa posicional", "Experiencia"], notes: "Perfil similar a Estêvão. Comparativa directa en informe adjunto. Recomendación: seguimiento mensual." },
+  { id: "s5", player_name: "Felipe Costa", age: 22, position: "POR", club: "Grêmio Sub-20", league: "Brasileiro Sub-20", nationality: "Brasil", height: "1.91 m", foot: "Diestro", marketValue: "€400K", contract: "Dic 2027", scout: "Ricardo Lima", scoutedAt: "2026-05-20", status: "En observación", physical: 8, technical: 7, tactical: 8, attitudinal: 9, strengths: ["Reflejos", "Juego con pies", "Comunicación"], weaknesses: ["Salidas altas", "1v1"], notes: "Portero con buen juego de pies. Perfil para cantera como 2.º portero." },
+  { id: "s6", player_name: "Matías Álvarez", age: 20, position: "MP", club: "River Plate Reserva", league: "LPF Reserva", nationality: "Argentina", height: "1.77 m", foot: "Zurdo", marketValue: "€1.8M", contract: "Dic 2028", scout: "Carlos Méndez", scoutedAt: "2026-06-08", status: "Seguimiento activo", physical: 7, technical: 9, tactical: 8, attitudinal: 7, strengths: ["Creatividad", "Pase filtrado", "Tiro lejano"], weaknesses: ["Intensidad defensiva", "Consistencia"], notes: "Enganche clásico con gran calidad técnica. Evaluar adaptación al ritmo brasileño." },
+  { id: "s7", player_name: "Thiago Santos", age: 19, position: "LI", club: "Santos FC Sub-20", league: "Copa SP", nationality: "Brasil", height: "1.80 m", foot: "Zurdo", marketValue: "€550K", contract: "Jun 2027", scout: "Ricardo Lima", scoutedAt: "2026-05-30", status: "Informe pendiente", physical: 8, technical: 7, tactical: 7, attitudinal: 8, strengths: ["Proyección", "Centros", "Resistencia"], weaknesses: ["Marcaje", "Decisiones bajo presión"], notes: "Lateral ofensivo con buena proyección. Comparar con Vanderlan en plantilla." },
+  { id: "s8", player_name: "Gabriel Oliveira", age: 17, position: "DC", club: "Corinthians Sub-17", league: "Copa SP Sub-17", nationality: "Brasil", height: "1.84 m", foot: "Diestro", marketValue: "€300K", contract: "Jun 2029", scout: "Marcos Silva", scoutedAt: "2026-06-14", status: "Cantera · Proyección", physical: 7, technical: 6, tactical: 6, attitudinal: 9, strengths: ["Actitud", "Juego aéreo", "Instinto goleador"], weaknesses: ["Técnica bajo presión", "Físico"], notes: "Delantero joven con instinto goleador. Proyección Sub-20 en 2 temporadas." },
+];
+
+export const MEDICAL_RECORDS = [
+  {
+    id: "m1", name: "Luis Felipe", status: "Readaptación", injury: "Esguince grado II tobillo derecho",
+    date: "2026-05-28", phase: 2, progress: 55, doctor: "Dr. Roberto Chefe",
+    history: [
+      { date: "2026-05-28", event: "Lesión en entrenamiento — giro forzado", type: "incident" },
+      { date: "2026-05-29", event: "RM tobillo — esguince LTI grado II", type: "imaging" },
+      { date: "2026-06-02", event: "Inicio Fase 1 — descarga + crioterapia", type: "treatment" },
+      { date: "2026-06-10", event: "Progresión Fase 2 — carrera en piscina", type: "treatment" },
+      { date: "2026-06-18", event: "Inicio carrera en campo — 50% intensidad", type: "milestone" },
+    ],
+    imaging: [
+      { type: "RM", label: "Tobillo derecho · RM", date: "2026-05-29", finding: "Edema óseo navicular. LTI parcial grado II." },
+      { type: "RX", label: "Tobillo AP/Lateral", date: "2026-05-28", finding: "Sin fractura. Alineación conservada." },
+    ],
+    restrictions: "Sin contacto · Sin cambios de dirección · Carga GPS limitada 60%",
+  },
+  {
+    id: "m2", name: "Kevin", status: "Tratamiento", injury: "Sobrecarga isquiosurales izquierdo",
+    date: "2026-06-12", phase: 1, progress: 25, doctor: "Dr. Ana Paula",
+    history: [
+      { date: "2026-06-12", event: "Molestia post-partido — isquio izquierdo", type: "incident" },
+      { date: "2026-06-13", event: "Ecografía — microdesgarro fibras isquio", type: "imaging" },
+      { date: "2026-06-14", event: "Inicio tratamiento conservador", type: "treatment" },
+    ],
+    imaging: [
+      { type: "ECO", label: "Ecografía isquio izq.", date: "2026-06-13", finding: "Microdesgarro 8 mm zona media. Sin hematoma." },
+    ],
+    restrictions: "Entrenamiento adaptado · Sin sprints · RPE máx. 4",
+  },
+  {
+    id: "m3", name: "Estêvão", status: "Disponible", injury: "—",
+    date: "—", phase: 4, progress: 100, doctor: "Dr. Roberto Chefe",
+    history: [
+      { date: "2026-06-01", event: "Revisión preventiva — OK", type: "checkup" },
+      { date: "2026-06-15", event: "Test isocinético — simetría 98%", type: "milestone" },
+    ],
+    imaging: [],
+    restrictions: "Sin restricciones",
+  },
+  {
+    id: "m4", name: "Vanderlan", status: "Disponible", injury: "—",
+    date: "—", phase: 4, progress: 100, doctor: "Dr. Ana Paula",
+    history: [
+      { date: "2026-05-15", event: "Alta tras contractura gemelo", type: "milestone" },
+      { date: "2026-06-10", event: "Control carga — dentro de parámetros", type: "checkup" },
+    ],
+    imaging: [
+      { type: "RX", label: "Control gemelo", date: "2026-05-10", finding: "Sin calcificaciones. Tejidos blandos normales." },
+    ],
+    restrictions: "Sin restricciones · Monitorizar carga HSR",
+  },
+];
+
+export const KEY_MOMENTS = [
+  { id: "k1", time: "12:34", label: "Presión alta recuperada", type: "positive", tags: ["pressing", "transición", "recuperación"] },
+  { id: "k2", time: "23:08", label: "Pérdida en zona de salida", type: "negative", tags: ["pérdida", "salida", "error"] },
+  { id: "k3", time: "31:45", label: "Transición rápida 4v3", type: "positive", tags: ["transición", "contraataque", "4v3"] },
+  { id: "k4", time: "44:12", label: "Línea defensiva rota", type: "negative", tags: ["defensa", "línea", "error"] },
+  { id: "k5", time: "67:03", label: "Presión tras saque de banda", type: "positive", tags: ["pressing", "banda", "recuperación"] },
+  { id: "k6", time: "78:22", label: "Estêvão — regate + pase filtrado", type: "positive", tags: ["estêvão", "regate", "pase", "1v1"] },
+  { id: "k7", time: "82:15", label: "Corner corto — gol anulado", type: "negative", tags: ["corner", "gol", "anulado"] },
+  { id: "k8", time: "85:40", label: "Luighi — remate de cabeza", type: "positive", tags: ["luighi", "remate", "cabeza", "gol"] },
+];
 
 export function mockAiSummary(messages) {
   if (!messages.length) return "No hay mensajes en este canal.";

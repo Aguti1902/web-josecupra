@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import {
-  Activity, Calendar, CheckCircle, ClipboardList, MessageSquare, Play, Plus,
-  Save, Send, Sparkles, Trash2, TrendingUp, Upload, Users, X,
+  Activity, Calendar, CheckCircle, ClipboardList, FileText, MessageSquare, Play,
+  Save, Search, Send, Sparkles, Trash2, TrendingUp, Upload, Users,
 } from "lucide-react";
 import { PALMEIRAS } from "../../../../lib/nexgentConfig";
 import {
-  CHAT_CHANNELS, DEMO_PLAYERS, EMPTY_DIAGRAM, EXEC_KPIS, GPS_DEMO_ROWS,
-  MEDICAL_PLAYERS, MESO_PHASES, MICROCYCLE, PLAYER_TESTS, PRESET_PROMPTS,
-  SEASON_BLOCKS, SEED_CHAT_MESSAGES, SEED_SCOUTING, SEED_SESSIONS, VIDEO_CLIPS,
-  VIDEO_EVENTS, WEEKLY_LOAD, YOUTH_CATEGORIES, YOUTH_SQUAD, loadBandColor,
-  mockAiSummary, mockClassifyLoad, riskColor,
+  CHAT_CHANNELS, DEMO_PLAYERS, EMPTY_DIAGRAM, GPS_DEMO_ROWS,
+  KEY_MOMENTS, MEDICAL_RECORDS, MESO_PHASES, MICROCYCLE, PLAYER_TESTS,
+  SCOUTING_PROFILES, SEASON_BLOCKS, SEED_CHAT_MESSAGES, SEED_SESSIONS,
+  TRAINING_SESSIONS, VIDEO_CLIPS, WEEKLY_LOAD, YOUTH_CATEGORIES, YOUTH_SQUAD,
+  generateDiagramFromPrompt, loadBandColor, mockAiSummary, mockClassifyLoad, riskColor,
 } from "../../../../lib/nexgentSeedData";
 import NexGentClubBanner from "../NexGentClubBanner";
 import PitchDiagram from "./PitchDiagram";
@@ -71,7 +71,7 @@ export function InicioPanel({ onNavigate }) {
   ];
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="w-full space-y-6">
       <NexGentClubBanner team={PALMEIRAS.team} role="Entrenador" />
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -131,7 +131,7 @@ export function PlantillaPanel() {
   const tests = PLAYER_TESTS[selected?.id];
 
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="w-full space-y-6">
       <PageTitle sub={`${PALMEIRAS.team} · ${DEMO_PLAYERS.length} jugadores`}>Plantilla</PageTitle>
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 rounded-xl border border-depro-border bg-white overflow-hidden shadow-sm">
@@ -208,7 +208,7 @@ export function PlantillaPanel() {
 
 export function PlanificacionPanel() {
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="w-full space-y-6">
       <PageTitle sub="Temporada 2026 · Paulistão Sub-20">Planificación</PageTitle>
       <div>
         <h2 className="font-bold text-sm text-depro-gray uppercase mb-3">Temporada · Mesociclos</h2>
@@ -256,6 +256,8 @@ export function PlanificacionPanel() {
 }
 
 export function SesionesPanel() {
+  const [tab, setTab] = useState("sesiones");
+  const [selectedSession, setSelectedSession] = useState(TRAINING_SESSIONS[0]);
   const [prompt, setPrompt] = useState("");
   const [diagram, setDiagram] = useState(EMPTY_DIAGRAM);
   const [bank, setBank] = useState(SEED_SESSIONS);
@@ -267,116 +269,219 @@ export function SesionesPanel() {
     if (!prompt.trim()) return;
     setGenerating(true);
     setTimeout(() => {
-      const key = Object.keys(PRESET_PROMPTS).find((k) => prompt.toLowerCase().includes(k.split(" ")[0]));
-      setDiagram(key ? { ...PRESET_PROMPTS[key] } : SEED_SESSIONS[0].diagram);
+      setDiagram(generateDiagramFromPrompt(prompt));
       setGenerating(false);
-    }, 800);
+    }, 900);
   };
 
-  const saveSession = () => {
-    const session = {
+  const saveTask = () => {
+    const task = {
       id: crypto.randomUUID(),
-      title: title || prompt.slice(0, 40) || "Sesión sin título",
+      title: title || prompt.slice(0, 40) || "Tarea sin título",
       description: prompt,
       diagram,
     };
-    setBank([session, ...bank]);
+    setBank([task, ...bank]);
     setTitle("");
   };
 
   return (
-    <div className="max-w-5xl space-y-6">
-      <PageTitle sub="Describe el ejercicio o dibújalo en el campo">Sesiones y tareas</PageTitle>
-      <div className="rounded-xl border border-depro-border bg-white p-4 space-y-3 shadow-sm">
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder='Ej: "posesión 3 contra 3 en espacio reducido, máximo dos toques"'
-          rows={2}
-          className="w-full border border-depro-border rounded-lg px-4 py-3 text-sm outline-none focus:border-green-600 resize-none"
-        />
-        <button type="button" onClick={generate} disabled={generating} className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-bold text-sm disabled:opacity-50" style={{ backgroundColor: ACCENT }}>
-          <Sparkles size={16} /> {generating ? "Generando diagrama…" : "Generar con IA"}
-        </button>
+    <div className="w-full space-y-6">
+      <PageTitle sub="Planificación de entrenamientos y diseño de tareas con IA">Sesiones y tareas</PageTitle>
+      <div className="flex gap-2 border-b border-depro-border pb-1">
+        {[
+          { id: "sesiones", label: "Sesiones de entrenamiento" },
+          { id: "tareas", label: "Diseñador de tareas (IA)" },
+        ].map(({ id, label }) => (
+          <button key={id} type="button" onClick={() => setTab(id)} className={`px-4 py-2 text-sm font-bold border-b-2 -mb-[5px] transition-colors ${tab === id ? "border-green-700 text-green-800" : "border-transparent text-depro-gray hover:text-depro-dark"}`}>
+            {label}
+          </button>
+        ))}
       </div>
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold">Diagrama táctico</h2>
-            <div className="flex gap-2">
-              <select value={selectedTeam} onChange={(e) => setSelectedTeam(e.target.value)} className="bg-depro-gray-light border border-depro-border rounded px-2 py-1 text-xs">
-                <option value="A">Equipo A</option>
-                <option value="B">Equipo B</option>
-              </select>
-              <button type="button" onClick={() => setDiagram(EMPTY_DIAGRAM)} className="p-2 rounded-lg bg-depro-gray-light text-depro-gray hover:text-red-500">
-                <Trash2 size={16} />
+
+      {tab === "sesiones" && (
+        <div className="grid xl:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <h2 className="font-bold text-sm text-depro-gray uppercase">Semana 24</h2>
+            {TRAINING_SESSIONS.map((s) => (
+              <button key={s.id} type="button" onClick={() => setSelectedSession(s)} className={`w-full text-left rounded-xl border p-4 transition-colors ${selectedSession?.id === s.id ? "border-green-600 bg-green-50" : "border-depro-border bg-white hover:border-green-600/30"}`}>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: s.type === "A" ? "#3B82F6" : s.type === "B" ? "#F59E0B" : "#EF4444" }}>Sesión {s.type}</span>
+                  <span className="text-[10px] text-depro-gray">{s.duration} · RPE {s.rpe}</span>
+                </div>
+                <p className="font-bold text-sm">{s.title}</p>
+                <p className="text-xs text-depro-gray mt-1">{s.day}</p>
               </button>
+            ))}
+          </div>
+          {selectedSession && (
+            <div className="xl:col-span-2 space-y-4">
+              <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                  <div>
+                    <h2 className="text-xl font-black">{selectedSession.title}</h2>
+                    <p className="text-sm text-depro-gray mt-1">{selectedSession.day} · {selectedSession.duration} · RPE {selectedSession.rpe}</p>
+                  </div>
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">{selectedSession.tasks.length} bloques</span>
+                </div>
+                <p className="text-sm text-depro-dark mb-4">{selectedSession.focus}</p>
+                <div className="space-y-3">
+                  {selectedSession.tasks.map((t, i) => (
+                    <div key={i} className="flex gap-4 rounded-lg border border-depro-border p-4 bg-depro-gray-light/30">
+                      <div className="w-24 flex-shrink-0">
+                        <span className="text-[10px] font-bold uppercase text-depro-gray">{t.block}</span>
+                        <p className="text-xs font-bold text-green-700 mt-1">{t.duration}</p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm">{t.name}</p>
+                        <p className="text-xs text-depro-gray mt-1">{t.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-          <PitchDiagram
-            diagram={diagram}
-            interactive
-            selectedTeam={selectedTeam}
-            onAddPlayer={(team, x, y) => setDiagram((d) => ({ ...d, players: [...d.players, { team, x, y }] }))}
-          />
+          )}
         </div>
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs text-depro-gray font-bold uppercase">Guardar en banco</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nombre de la tarea" className="w-full mt-1 border border-depro-border rounded-lg px-3 py-2 text-sm" />
-            <button type="button" onClick={saveSession} className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-white text-sm font-bold" style={{ backgroundColor: ACCENT }}>
-              <Save size={16} /> Guardar sesión
-            </button>
-          </div>
-          <div>
-            <h3 className="font-bold text-sm mb-2">Banco de sesiones</h3>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {bank.map((s) => (
-                <button key={s.id} type="button" onClick={() => { setDiagram(s.diagram); setPrompt(s.description); }} className="w-full text-left rounded-lg border border-depro-border bg-white p-3 hover:border-green-600/40">
-                  <p className="font-semibold text-sm">{s.title}</p>
-                  <p className="text-xs text-depro-gray mt-1 line-clamp-2">{s.description}</p>
-                </button>
+      )}
+
+      {tab === "tareas" && (
+        <>
+          <div className="rounded-xl border border-depro-border bg-white p-4 space-y-3 shadow-sm">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder='Ej: "posesión 3 contra 3 en cuadrado 20x20, máximo dos toques" · "rondo 4v2" · "pressing 8v8 en zona reducida"'
+              rows={2}
+              className="w-full border border-depro-border rounded-lg px-4 py-3 text-sm outline-none focus:border-green-600 resize-none"
+            />
+            <div className="flex flex-wrap gap-2">
+              {["rondo 4v2", "posesión 3 contra 3", "pressing 8v8", "cuadrado 20x20"].map((ex) => (
+                <button key={ex} type="button" onClick={() => setPrompt(ex)} className="text-xs px-3 py-1.5 rounded-full border border-depro-border bg-depro-gray-light hover:border-green-600/40">{ex}</button>
               ))}
             </div>
+            <button type="button" onClick={generate} disabled={generating || !prompt.trim()} className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-bold text-sm disabled:opacity-50" style={{ backgroundColor: ACCENT }}>
+              <Sparkles size={16} /> {generating ? "Generando diagrama…" : "Generar con IA"}
+            </button>
           </div>
-        </div>
-      </div>
+          <div className="grid xl:grid-cols-3 gap-6">
+            <div className="xl:col-span-2 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="font-bold">Diagrama táctico</h2>
+                <div className="flex gap-2">
+                  <select value={selectedTeam} onChange={(e) => setSelectedTeam(e.target.value)} className="bg-depro-gray-light border border-depro-border rounded px-2 py-1 text-xs">
+                    <option value="A">Equipo A</option>
+                    <option value="B">Equipo B</option>
+                  </select>
+                  <button type="button" onClick={() => setDiagram(EMPTY_DIAGRAM)} className="p-2 rounded-lg bg-depro-gray-light text-depro-gray hover:text-red-500"><Trash2 size={16} /></button>
+                </div>
+              </div>
+              <PitchDiagram
+                diagram={diagram}
+                interactive
+                selectedTeam={selectedTeam}
+                onAddPlayer={(team, x, y) => setDiagram((d) => ({ ...d, players: [...d.players, { team, x, y }] }))}
+              />
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-depro-gray font-bold uppercase">Guardar tarea en banco</label>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nombre de la tarea" className="w-full mt-1 border border-depro-border rounded-lg px-3 py-2 text-sm" />
+                <button type="button" onClick={saveTask} className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-white text-sm font-bold" style={{ backgroundColor: ACCENT }}>
+                  <Save size={16} /> Guardar tarea
+                </button>
+              </div>
+              <div>
+                <h3 className="font-bold text-sm mb-2">Banco de tareas</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {bank.map((s) => (
+                    <button key={s.id} type="button" onClick={() => { setDiagram({ ...s.diagram, workZone: s.diagram.workZone }); setPrompt(s.description); }} className="w-full text-left rounded-lg border border-depro-border bg-white p-3 hover:border-green-600/40">
+                      <p className="font-semibold text-sm">{s.title}</p>
+                      <p className="text-xs text-depro-gray mt-1 line-clamp-2">{s.description}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 export function CargaPanel() {
-  const [loaded, setLoaded] = useState(false);
-  const [classified, setClassified] = useState([]);
-
-  const loadDemo = () => {
-    setLoaded(true);
-    setClassified(GPS_DEMO_ROWS.map((r) => ({ ...r, explanation: mockClassifyLoad(r) })));
-  };
+  const [classified] = useState(() => GPS_DEMO_ROWS.map((r) => ({ ...r, explanation: mockClassifyLoad(r) })));
+  const teamLoad = WEEKLY_LOAD.reduce((s, d) => s + d.load, 0);
+  const avgLoad = Math.round(teamLoad / GPS_DEMO_ROWS.length);
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <PageTitle sub="Import GPS Catapult, STATSports, Polar, WIMU…">Control de carga</PageTitle>
-      <button type="button" onClick={loadDemo} className="flex flex-col items-center justify-center border-2 border-dashed border-depro-border rounded-xl p-10 w-full hover:border-green-600/50 transition-colors bg-white">
-        <Upload className="text-depro-gray mb-3" size={32} />
-        <span className="font-bold">Cargar datos GPS de ejemplo</span>
-        <span className="text-xs text-depro-gray mt-1">Simula import Catapult · Semana 24</span>
-      </button>
-      {loaded && (
-        <div className="space-y-3">
-          <h2 className="font-bold">Clasificación IA · {classified.length} jugadores</h2>
-          {classified.map((p) => (
-            <div key={p.name} className="rounded-xl border border-depro-border bg-white p-4 flex flex-wrap gap-4 items-start shadow-sm">
-              <div>
-                <p className="font-bold">{p.name}</p>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize mt-1 inline-block" style={{ background: `${loadBandColor(p.band)}22`, color: loadBandColor(p.band) }}>{p.band}</span>
-                <p className="text-[10px] text-depro-gray mt-2">{p.distance}m · HSR {p.hsr}m · {p.sprints} sprints</p>
-              </div>
-              <p className="text-sm text-depro-gray flex-1 min-w-[200px]">{p.explanation}</p>
-            </div>
-          ))}
+    <div className="w-full space-y-6">
+      <PageTitle sub="Import GPS Catapult, STATSports, Polar, WIMU… · Semana 24">Control de carga</PageTitle>
+      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {[
+          { label: "Carga media equipo", value: `${avgLoad} AU`, sub: "Catapult PlayerLoad" },
+          { label: "Jugadores monitorizados", value: GPS_DEMO_ROWS.length, sub: "Sesión J24 vs Corinthians" },
+          { label: "En zona óptima", value: GPS_DEMO_ROWS.filter((r) => r.band === "optima").length, sub: "Sin ajuste planificado" },
+          { label: "Alerta / riesgo", value: GPS_DEMO_ROWS.filter((r) => r.band === "riesgo").length, sub: "Protocolo descarga" },
+        ].map((k) => (
+          <div key={k.label} className="rounded-xl border border-depro-border bg-white p-4 shadow-sm">
+            <p className="text-2xl font-black" style={{ color: ACCENT }}>{k.value}</p>
+            <p className="text-sm font-bold mt-1">{k.label}</p>
+            <p className="text-xs text-depro-gray">{k.sub}</p>
+          </div>
+        ))}
+      </div>
+      <div className="grid xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 rounded-xl border border-depro-border bg-white p-5 shadow-sm">
+          <h2 className="font-bold mb-4">Carga semanal · microciclo</h2>
+          <WeeklyLoadChart data={WEEKLY_LOAD} accent={ACCENT} />
         </div>
-      )}
+        <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
+          <h2 className="font-bold mb-3">Importación GPS</h2>
+          <p className="text-sm text-depro-gray mb-4">Datos de ejemplo Catapult · sesión entrenamiento J24</p>
+          <button type="button" className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-depro-border rounded-lg py-4 hover:border-green-600/50 transition-colors text-sm font-bold">
+            <Upload size={18} /> Reimportar CSV demo
+          </button>
+          <p className="text-[10px] text-depro-gray mt-3">Compatible: Catapult, STATSports, Polar Pro, WIMU</p>
+        </div>
+      </div>
+      <div className="rounded-xl border border-depro-border bg-white overflow-hidden shadow-sm">
+        <div className="px-5 py-4 border-b border-depro-border flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-bold">Clasificación IA · {classified.length} jugadores</h2>
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">Actualizado hoy 09:42</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-depro-gray-light text-depro-gray text-xs uppercase">
+              <tr>
+                <th className="px-4 py-3 text-left">Jugador</th>
+                <th className="px-4 py-3 text-left">Distancia</th>
+                <th className="px-4 py-3 text-left">HSR</th>
+                <th className="px-4 py-3 text-left">Sprints</th>
+                <th className="px-4 py-3 text-left">PlayerLoad</th>
+                <th className="px-4 py-3 text-left">Banda</th>
+                <th className="px-4 py-3 text-left">Recomendación IA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {classified.map((p) => (
+                <tr key={p.name} className="border-t border-depro-border hover:bg-depro-gray-light/40">
+                  <td className="px-4 py-3 font-bold">{p.name}</td>
+                  <td className="px-4 py-3">{p.distance.toLocaleString()} m</td>
+                  <td className="px-4 py-3">{p.hsr.toLocaleString()} m</td>
+                  <td className="px-4 py-3">{p.sprints}</td>
+                  <td className="px-4 py-3 font-bold">{p.load.toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: `${loadBandColor(p.band)}22`, color: loadBandColor(p.band) }}>{p.band}</span>
+                  </td>
+                  <td className="px-4 py-3 text-depro-gray text-xs max-w-xs">{p.explanation}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
@@ -396,7 +501,7 @@ export function ChatPanel() {
   };
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="w-full space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PageTitle>Chat del staff</PageTitle>
         <div className="flex gap-2 items-center">
@@ -442,29 +547,76 @@ export function ChatPanel() {
 
 export function VideoPanel() {
   const [activeClip, setActiveClip] = useState(VIDEO_CLIPS[0]);
+  const [search, setSearch] = useState("");
+  const [highlight, setHighlight] = useState(null);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return KEY_MOMENTS;
+    return KEY_MOMENTS.filter((m) =>
+      m.label.toLowerCase().includes(q) || m.tags.some((t) => t.includes(q)) || m.time.includes(q)
+    );
+  }, [search]);
+
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="w-full space-y-6">
       <PageTitle sub="Análisis de partido y entrenamiento">Rendimiento y vídeo</PageTitle>
-      <div className="relative rounded-xl overflow-hidden border border-depro-border bg-slate-900 aspect-video flex items-center justify-center">
-        <div className="relative z-10 text-center text-white">
-          <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3"><Play size={28} className="ml-1" /></div>
-          <p className="text-sm font-bold">{activeClip.title}</p>
-          <p className="text-xs text-white/60 mt-1">Duración {activeClip.duration} · Demo simulada</p>
+      <div className="grid xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 space-y-4">
+          <div className="relative rounded-xl overflow-hidden border border-depro-border bg-slate-900 aspect-video flex items-center justify-center">
+            <div className="relative z-10 text-center text-white">
+              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3"><Play size={28} className="ml-1" /></div>
+              <p className="text-sm font-bold">{activeClip.title}</p>
+              <p className="text-xs text-white/60 mt-1">
+                {highlight ? `Saltando a ${highlight.time} · ${highlight.label}` : `Duración ${activeClip.duration} · Demo simulada`}
+              </p>
+            </div>
+            {highlight && (
+              <div className="absolute bottom-3 left-3 right-3 h-1 bg-white/20 rounded-full">
+                <div className="h-full bg-green-400 rounded-full w-2/3" />
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {VIDEO_CLIPS.map((c) => (
+              <button key={c.id} type="button" onClick={() => { setActiveClip(c); setHighlight(null); }} className={`px-3 py-2 rounded-lg text-sm font-medium border ${activeClip.id === c.id ? "border-green-600 bg-green-50" : "border-depro-border bg-white"}`}>
+                {c.title}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="flex gap-2 flex-wrap">
-        {VIDEO_CLIPS.map((c) => (
-          <button key={c.id} type="button" onClick={() => setActiveClip(c)} className={`px-3 py-2 rounded-lg text-sm font-medium border ${activeClip.id === c.id ? "border-green-600 bg-green-50" : "border-depro-border bg-white"}`}>
-            {c.title}
-          </button>
-        ))}
+        <div className="rounded-xl border border-depro-border bg-white p-4 shadow-sm space-y-3">
+          <h2 className="font-bold text-sm flex items-center gap-2"><Search size={16} /> Buscar momentos clave</h2>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder='Ej: "pressing", "estêvão", "transición", "12:34"'
+            className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm outline-none focus:border-green-600"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {["pressing", "transición", "estêvão", "gol", "error"].map((tag) => (
+              <button key={tag} type="button" onClick={() => setSearch(tag)} className="text-[10px] px-2 py-1 rounded-full border border-depro-border bg-depro-gray-light hover:border-green-600/40">{tag}</button>
+            ))}
+          </div>
+          <p className="text-xs text-depro-gray">{filtered.length} momento{filtered.length !== 1 ? "s" : ""} encontrado{filtered.length !== 1 ? "s" : ""}</p>
+          <div className="max-h-64 overflow-y-auto divide-y divide-depro-border border border-depro-border rounded-lg">
+            {filtered.map((m) => (
+              <button key={m.id} type="button" onClick={() => setHighlight(m)} className={`w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-depro-gray-light/50 ${highlight?.id === m.id ? "bg-green-50" : ""}`}>
+                <span className="font-mono text-xs w-12 flex-shrink-0" style={{ color: ACCENT }}>{m.time}</span>
+                <span className={`text-xs flex-1 ${m.type === "positive" ? "text-green-600" : "text-red-500"}`}>{m.label}</span>
+              </button>
+            ))}
+            {filtered.length === 0 && <p className="px-3 py-4 text-sm text-depro-gray text-center">Sin resultados para &quot;{search}&quot;</p>}
+          </div>
+        </div>
       </div>
       <div className="rounded-xl border border-depro-border bg-white divide-y divide-depro-border shadow-sm">
         <div className="px-4 py-3 font-bold text-sm text-depro-gray uppercase">Eventos detectados (IA simulada)</div>
-        {VIDEO_EVENTS.map((ev) => (
-          <div key={ev.time} className="px-4 py-3 flex items-center gap-4">
+        {KEY_MOMENTS.slice(0, 6).map((ev) => (
+          <div key={ev.id} className="px-4 py-3 flex items-center gap-4">
             <span className="font-mono text-sm w-14" style={{ color: ACCENT }}>{ev.time}</span>
             <span className={`text-sm flex-1 ${ev.type === "positive" ? "text-green-600" : "text-red-500"}`}>{ev.label}</span>
+            <div className="flex gap-1">{ev.tags.slice(0, 3).map((t) => <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-depro-gray-light text-depro-gray">{t}</span>)}</div>
           </div>
         ))}
       </div>
@@ -472,60 +624,113 @@ export function VideoPanel() {
   );
 }
 
-export function ScoutingPanel() {
-  const [reports, setReports] = useState(SEED_SCOUTING);
-  const [selected, setSelected] = useState(SEED_SCOUTING[0]);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ player_name: "", physical: 5, technical: 5, tactical: 5, attitudinal: 5, notes: "" });
-
-  const save = () => {
-    if (!form.player_name.trim()) return;
-    const report = { id: crypto.randomUUID(), ...form, created_at: new Date().toISOString() };
-    setReports([report, ...reports]);
-    setSelected(report);
-    setForm({ player_name: "", physical: 5, technical: 5, tactical: 5, attitudinal: 5, notes: "" });
-    setShowForm(false);
+function ImagingPlaceholder({ type, label, finding }) {
+  const styles = {
+    RX: "from-slate-800 via-slate-600 to-slate-900",
+    RM: "from-indigo-950 via-purple-900 to-slate-900",
+    ECO: "from-teal-900 via-emerald-800 to-slate-900",
   };
+  return (
+    <div className="rounded-lg border border-depro-border overflow-hidden bg-white">
+      <div className={`aspect-[4/3] bg-gradient-to-br ${styles[type] ?? styles.RX} relative flex items-center justify-center`}>
+        <div className="absolute inset-4 border border-white/20 rounded opacity-60" />
+        <div className="absolute inset-8 border border-white/10 rounded opacity-40" />
+        <span className="text-white/80 text-xs font-bold uppercase tracking-wider z-10">{type === "RM" ? "Resonancia" : type === "ECO" ? "Ecografía" : "Radiografía"}</span>
+      </div>
+      <div className="p-3">
+        <p className="text-xs font-bold">{label}</p>
+        <p className="text-[10px] text-depro-gray mt-1">{finding}</p>
+      </div>
+    </div>
+  );
+}
+
+export function ScoutingPanel() {
+  const [profiles] = useState(SCOUTING_PROFILES);
+  const [selected, setSelected] = useState(SCOUTING_PROFILES[0]);
+  const [filter, setFilter] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return profiles;
+    return profiles.filter((p) =>
+      p.player_name.toLowerCase().includes(q) || p.club.toLowerCase().includes(q) || p.position.toLowerCase().includes(q) || p.league.toLowerCase().includes(q)
+    );
+  }, [profiles, filter]);
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <div className="flex justify-between items-center">
-        <PageTitle>Scouting</PageTitle>
-        <button type="button" onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-bold" style={{ backgroundColor: ACCENT }}>
-          <Plus size={16} /> Nuevo informe
-        </button>
-      </div>
-      {showForm && (
-        <div className="rounded-xl border border-depro-border bg-white p-5 space-y-4 shadow-sm">
-          <div className="flex justify-between"><h2 className="font-bold">Nuevo informe</h2><button type="button" onClick={() => setShowForm(false)}><X size={18} /></button></div>
-          <input value={form.player_name} onChange={(e) => setForm({ ...form, player_name: e.target.value })} placeholder="Nombre del jugador" className="w-full border border-depro-border rounded-lg px-4 py-2" />
-          {[["physical", "Físico"], ["technical", "Técnico"], ["tactical", "Táctico"], ["attitudinal", "Actitudinal"]].map(([k, label]) => (
-            <div key={k}>
-              <label className="text-xs text-depro-gray">{label}</label>
-              <input type="range" min={1} max={10} value={form[k]} onChange={(e) => setForm({ ...form, [k]: Number(e.target.value) })} className="w-full accent-green-700" />
-            </div>
-          ))}
-          <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Notas..." rows={3} className="w-full border border-depro-border rounded-lg px-4 py-2 text-sm" />
-          <button type="button" onClick={save} className="px-5 py-2 rounded-lg text-white font-bold text-sm" style={{ backgroundColor: ACCENT }}>Guardar informe</button>
+    <div className="w-full space-y-6">
+      <div className="flex flex-wrap justify-between items-center gap-3">
+        <PageTitle sub={`${profiles.length} perfiles · seguimiento activo`}>Scouting</PageTitle>
+        <div className="flex items-center gap-2 bg-white border border-depro-border rounded-lg px-3 py-2">
+          <Search size={16} className="text-depro-gray" />
+          <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Buscar jugador, club, posición…" className="text-sm outline-none w-48 sm:w-64" />
         </div>
-      )}
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          {reports.map((r) => (
-            <button key={r.id} type="button" onClick={() => setSelected(r)} className={`w-full text-left rounded-xl border p-4 ${selected?.id === r.id ? "border-green-600 bg-green-50" : "border-depro-border bg-white"}`}>
-              <p className="font-bold">{r.player_name}</p>
-              <p className="text-xs text-depro-gray mt-1">F{r.physical} T{r.technical} Ta{r.tactical} A{r.attitudinal}</p>
+      </div>
+      <div className="grid xl:grid-cols-3 gap-6">
+        <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
+          {filtered.map((p) => (
+            <button key={p.id} type="button" onClick={() => setSelected(p)} className={`w-full text-left rounded-xl border p-4 transition-colors ${selected?.id === p.id ? "border-green-600 bg-green-50" : "border-depro-border bg-white hover:border-green-600/30"}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-bold">{p.player_name}</p>
+                  <p className="text-xs text-depro-gray">{p.position} · {p.age} años · {p.nationality}</p>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-depro-gray-light text-depro-gray whitespace-nowrap">{p.status}</span>
+              </div>
+              <p className="text-xs text-depro-gray mt-2">{p.club}</p>
+              <p className="text-xs font-bold mt-1" style={{ color: ACCENT }}>{p.marketValue}</p>
             </button>
           ))}
         </div>
         {selected && (
-          <div className="rounded-xl border border-depro-border bg-white p-5 space-y-4 shadow-sm">
-            <h2 className="text-xl font-black">{selected.player_name}</h2>
-            <ScoreBar label="Físico" value={selected.physical} />
-            <ScoreBar label="Técnico" value={selected.technical} />
-            <ScoreBar label="Táctico" value={selected.tactical} />
-            <ScoreBar label="Actitudinal" value={selected.attitudinal} />
-            <p className="text-sm text-depro-gray leading-relaxed">{selected.notes}</p>
+          <div className="xl:col-span-2 space-y-4">
+            <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-2xl font-black">{selected.player_name}</h2>
+                  <p className="text-sm text-depro-gray mt-1">{selected.position} · {selected.age} años · {selected.nationality} · {selected.foot}</p>
+                </div>
+                <span className="text-sm font-black px-4 py-2 rounded-lg bg-green-50 text-green-800 border border-green-200">{selected.marketValue}</span>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                {[
+                  { label: "Club", value: selected.club },
+                  { label: "Liga", value: selected.league },
+                  { label: "Contrato", value: selected.contract },
+                  { label: "Altura", value: selected.height },
+                  { label: "Scout", value: selected.scout },
+                  { label: "Observado", value: selected.scoutedAt },
+                  { label: "Estado", value: selected.status },
+                ].map(({ label, value }) => (
+                  <div key={label} className="rounded-lg bg-depro-gray-light/50 p-3">
+                    <p className="text-[10px] uppercase font-bold text-depro-gray">{label}</p>
+                    <p className="text-sm font-bold mt-0.5">{value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4 mb-4">
+                <ScoreBar label="Físico" value={selected.physical} />
+                <ScoreBar label="Técnico" value={selected.technical} />
+                <ScoreBar label="Táctico" value={selected.tactical} />
+                <ScoreBar label="Actitudinal" value={selected.attitudinal} />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase text-depro-gray mb-2">Fortalezas</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selected.strengths.map((s) => <span key={s} className="text-xs px-2 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">{s}</span>)}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase text-depro-gray mb-2">Debilidades</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selected.weaknesses.map((w) => <span key={w} className="text-xs px-2 py-1 rounded-full bg-red-50 text-red-600 border border-red-200">{w}</span>)}
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-depro-dark leading-relaxed mt-4 border-t border-depro-border pt-4">{selected.notes}</p>
+            </div>
           </div>
         )}
       </div>
@@ -534,10 +739,11 @@ export function ScoutingPanel() {
 }
 
 export function MedicoPanel() {
-  const focus = MEDICAL_PLAYERS[0];
+  const [selected, setSelected] = useState(MEDICAL_RECORDS[0]);
   const PHASES = ["Fase 1", "Fase 2", "Fase 3", "Alta"];
+
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="w-full space-y-6">
       <PageTitle sub="Historial clínico y readaptación">Médico</PageTitle>
       <div className="rounded-xl border border-depro-border bg-white overflow-hidden shadow-sm">
         <table className="w-full text-sm">
@@ -546,33 +752,91 @@ export function MedicoPanel() {
               <th className="px-4 py-3 text-left">Jugador</th>
               <th className="px-4 py-3 text-left">Estado</th>
               <th className="px-4 py-3 text-left">Lesión</th>
+              <th className="px-4 py-3 text-left">Médico</th>
               <th className="px-4 py-3 text-left">Fase</th>
+              <th className="px-4 py-3 text-left">Progreso</th>
             </tr>
           </thead>
           <tbody>
-            {MEDICAL_PLAYERS.map((p) => (
-              <tr key={p.name} className="border-t border-depro-border">
+            {MEDICAL_RECORDS.map((p) => (
+              <tr key={p.id} onClick={() => setSelected(p)} className={`border-t border-depro-border cursor-pointer hover:bg-depro-gray-light/40 ${selected.id === p.id ? "bg-green-50" : ""}`}>
                 <td className="px-4 py-3 font-bold">{p.name}</td>
                 <td className="px-4 py-3 text-depro-gray">{p.status}</td>
                 <td className="px-4 py-3 text-depro-gray">{p.injury}</td>
-                <td className="px-4 py-3">{PHASES[p.phase - 1]}</td>
+                <td className="px-4 py-3 text-depro-gray text-xs">{p.doctor}</td>
+                <td className="px-4 py-3">{PHASES[p.phase - 1] ?? "Alta"}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-1.5 bg-depro-gray-light rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${p.progress}%`, backgroundColor: p.progress === 100 ? "#22C55E" : "#F59E0B" }} />
+                    </div>
+                    <span className="text-xs text-depro-gray">{p.progress}%</span>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-        <h2 className="font-bold">Readaptación · {focus.name}</h2>
-        <p className="text-sm text-depro-gray mt-1">{focus.injury}</p>
-        <div className="flex gap-2 mt-4 mb-2">
-          {PHASES.map((ph, i) => (
-            <div key={ph} className={`flex-1 text-center text-xs py-2 rounded-lg font-bold ${i + 1 <= focus.phase ? "bg-amber-500 text-white" : "bg-white text-depro-gray border border-depro-border"}`}>{ph}</div>
-          ))}
+
+      <div className="grid xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 space-y-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+              <div>
+                <h2 className="font-bold text-lg">Readaptación · {selected.name}</h2>
+                <p className="text-sm text-depro-gray mt-1">{selected.injury}</p>
+                <p className="text-xs text-depro-gray mt-1">Inicio: {selected.date} · {selected.doctor}</p>
+              </div>
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-white border border-amber-200 text-amber-800">{selected.restrictions}</span>
+            </div>
+            {selected.phase < 4 && (
+              <>
+                <div className="flex gap-2 mb-2">
+                  {PHASES.map((ph, i) => (
+                    <div key={ph} className={`flex-1 text-center text-xs py-2 rounded-lg font-bold ${i + 1 <= selected.phase ? "bg-amber-500 text-white" : "bg-white text-depro-gray border border-depro-border"}`}>{ph}</div>
+                  ))}
+                </div>
+                <div className="h-3 bg-white rounded-full overflow-hidden border border-amber-200">
+                  <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${selected.progress}%` }} />
+                </div>
+                <p className="text-xs text-depro-gray mt-2">{selected.progress}% completado</p>
+              </>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
+            <h2 className="font-bold mb-4 flex items-center gap-2"><FileText size={16} /> Historial clínico</h2>
+            <div className="space-y-0 relative pl-4 border-l-2 border-depro-border ml-2">
+              {selected.history.map((h, i) => (
+                <div key={i} className="relative pb-4 pl-4">
+                  <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white ${h.type === "incident" ? "bg-red-500" : h.type === "imaging" ? "bg-indigo-500" : h.type === "milestone" ? "bg-green-500" : "bg-amber-500"}`} />
+                  <p className="text-[10px] text-depro-gray font-bold">{h.date}</p>
+                  <p className="text-sm">{h.event}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="h-3 bg-white rounded-full overflow-hidden border border-amber-200">
-          <div className="h-full bg-amber-500 rounded-full" style={{ width: `${focus.progress}%` }} />
+
+        <div className="space-y-4">
+          <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
+            <h2 className="font-bold mb-4">Imagenología</h2>
+            {selected.imaging.length > 0 ? (
+              <div className="space-y-3">
+                {selected.imaging.map((img, i) => (
+                  <ImagingPlaceholder key={i} type={img.type} label={`${img.label} · ${img.date}`} finding={img.finding} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-depro-gray">Sin estudios recientes. Último control preventivo OK.</p>
+            )}
+          </div>
+          <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
+            <h2 className="font-bold mb-3 text-sm">Restricciones activas</h2>
+            <p className="text-sm text-depro-dark">{selected.restrictions}</p>
+          </div>
         </div>
-        <p className="text-xs text-depro-gray mt-2">{focus.progress}% completado</p>
       </div>
     </div>
   );
@@ -581,7 +845,7 @@ export function MedicoPanel() {
 export function CanteraPanel() {
   const [cat, setCat] = useState("sub17");
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="w-full space-y-6">
       <PageTitle sub="Categorías inferiores · registro manual">Cantera</PageTitle>
       <div className="flex gap-2 flex-wrap">
         {YOUTH_CATEGORIES.map((c) => (
@@ -616,43 +880,6 @@ export function CanteraPanel() {
   );
 }
 
-export function DireccionPanel() {
-  return (
-    <div className="max-w-4xl space-y-6">
-      <PageTitle sub="KPIs y resumen ejecutivo">Dirección deportiva</PageTitle>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {EXEC_KPIS.map((k) => (
-          <div key={k.label} className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
-            <p className="text-3xl font-black" style={{ color: ACCENT }}>{k.value}</p>
-            <p className="text-sm text-depro-gray mt-2">{k.label}</p>
-            <p className="text-xs text-green-600 font-bold mt-1">{k.trend} vs mes anterior</p>
-          </div>
-        ))}
-      </div>
-      <div className="rounded-xl border border-depro-border bg-white p-5 shadow-sm">
-        <h2 className="font-bold mb-3">Resumen ejecutivo</h2>
-        <p className="text-sm text-depro-dark leading-relaxed">
-          La plantilla Sub-20 mantiene adherencia del 94% al microciclo. Dos jugadores en protocolo de readaptación (Luis Felipe, Kevin).
-          Scouting activo con 4 informes nuevos este mes. Estêvão lidera métricas ofensivas con 12 goles. La integración GPS clasifica carga en tiempo real — estimación de 18 días de baja evitados en el trimestre.
-        </p>
-      </div>
-      <div className="grid sm:grid-cols-3 gap-4">
-        {[
-          { label: "Goles temporada", value: "34", sub: "Estêvão 12 · Luighi 9" },
-          { label: "Media asistencia entreno", value: "96%", sub: "Sub-20" },
-          { label: "Partidos restantes", value: "8", sub: "Paulistão + Copa SP" },
-        ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-depro-border bg-white p-4 shadow-sm">
-            <p className="text-2xl font-black">{s.value}</p>
-            <p className="text-sm font-bold mt-1">{s.label}</p>
-            <p className="text-xs text-depro-gray">{s.sub}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export const DEMO_PANELS = {
   inicio: InicioPanel,
   plantilla: PlantillaPanel,
@@ -664,5 +891,4 @@ export const DEMO_PANELS = {
   scouting: ScoutingPanel,
   medico: MedicoPanel,
   cantera: CanteraPanel,
-  direccion: DireccionPanel,
 };

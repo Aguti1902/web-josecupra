@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Home, MessageSquare, Calendar, ClipboardList, Activity,
-  Video, Search, HeartPulse, Users, BarChart3, Sparkles, Shirt,
+  Video, Search, HeartPulse, Users, Sparkles, Shirt,
 } from "lucide-react";
 import { PALMEIRAS } from "../../../lib/nexgentConfig";
 import { DEMO_PANELS } from "./demo/NexGentDemoPanels";
@@ -18,7 +18,6 @@ const NAV = [
   { id: "scouting", label: "Scouting", icon: Search },
   { id: "medico", label: "Médico", icon: HeartPulse },
   { id: "cantera", label: "Cantera", icon: Users },
-  { id: "direccion", label: "Dirección deportiva", icon: BarChart3 },
 ];
 
 const ROLES = ["Entrenador", "Médico", "Scouting", "Dirección", "Cantera"];
@@ -70,7 +69,7 @@ export default function NexGentDemoApp() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 border-b border-depro-border bg-white flex items-center gap-4 px-5 flex-shrink-0">
-          <div className="flex-1 flex items-center gap-2 bg-depro-gray-light border border-depro-border rounded-lg px-3 py-2 max-w-xl">
+          <div className="flex-1 flex items-center gap-2 bg-depro-gray-light border border-depro-border rounded-lg px-3 py-2">
             <Sparkles size={16} className="text-depro-blue flex-shrink-0" />
             <input
               type="text"
