@@ -11,6 +11,7 @@ import LoginPage from "./pages/public/LoginPage";
 import OnboardingPage from "./pages/public/OnboardingPage";
 import PaymentSuccessPage from "./pages/public/PaymentSuccessPage";
 import USClubPitchPage from "./pages/public/USClubPitchPage";
+import NexGentLauncherPage from "./pages/public/NexGentLauncherPage";
 
 // Private (client app)
 import AppLayout from "./components/private/AppLayout";
@@ -104,6 +105,7 @@ function AppRoutes() {
       <Route path="/pago-exitoso" element={<PaymentSuccessPage />} />
       <Route path="/us-clubs" element={<USClubPitchPage variant="partner" />} />
       <Route path="/clubs" element={<USClubPitchPage variant="client" />} />
+      <Route path="/nexgent" element={<NexGentLauncherPage />} />
 
       {/* ── Client App ─────────────────────────────────────────── */}
       <Route path="/dashboard" element={<ClientRoute><AppLayout><DashboardPage /></AppLayout></ClientRoute>} />
