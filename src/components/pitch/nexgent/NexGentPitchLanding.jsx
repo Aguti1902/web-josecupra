@@ -4,13 +4,14 @@ import {
   ChevronRight, Clock, Shield, Sparkles, Target, TrendingUp, Users, Zap,
   X,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { PitchNav, PitchFooter } from "./PitchLayout";
 import NexGentFeatureShowcase, { HeroAnimatedDemo } from "./NexGentFeatureDemos";
 import NexGentCommissionCalculator from "./NexGentCommissionCalculator";
 import { COMPARE_VALUES, COMPARE_CATEGORIES } from "../../../lib/nexgentCompareData";
 import {
-  PALMEIRAS, DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, nexgentUrl,
+  PALMEIRAS, DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, nexgentUrl, nexgentSlidesUrl,
 } from "../../../lib/nexgentConfig";
 
 const ACCENT = DEPRO_ACCENT;
@@ -51,7 +52,7 @@ function ExternalCta({ href, className, style, children }) {
 export default function NexGentPitchLanding() {
   const { t } = useTranslation("nexgentPitch");
   const demoUrl = nexgentUrl("/app/inicio");
-  const slidesUrl = nexgentUrl("/presentacion");
+  const slidesUrl = nexgentSlidesUrl();
   const compareRows = t("compare.rows", { returnObjects: true });
   const compareCategories = t("compare.categories", { returnObjects: true });
   const advantages = t("advantages.items", { returnObjects: true });
@@ -382,9 +383,12 @@ export default function NexGentPitchLanding() {
             <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">{t("cta.title")}</h2>
             <p className="text-gray-600 text-lg leading-relaxed mb-10">{t("cta.desc")}</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <ExternalCta href={slidesUrl} className="inline-flex items-center gap-2 w-full sm:w-auto justify-center border-2 border-gray-900 text-gray-900 font-black px-8 py-4 rounded-xl hover:bg-gray-900 hover:text-white transition-colors">
+              <Link
+                to={slidesUrl}
+                className="inline-flex items-center gap-2 w-full sm:w-auto justify-center border-2 border-gray-900 text-gray-900 font-black px-8 py-4 rounded-xl hover:bg-gray-900 hover:text-white transition-colors"
+              >
                 {t("cta.slides")} <ArrowRight size={20} />
-              </ExternalCta>
+              </Link>
               <ExternalCta href={demoUrl} className="inline-flex items-center gap-2 w-full sm:w-auto justify-center text-white font-black px-8 py-4 rounded-xl shadow-depro hover:opacity-90 transition-opacity" style={{ backgroundColor: ACCENT }}>
                 {t("cta.demo")} <ArrowRight size={20} />
               </ExternalCta>

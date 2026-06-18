@@ -678,6 +678,12 @@ const DEMO_MAP = {
   brand: DemoBrand,
 };
 
+export function FeatureDemo({ id, step }) {
+  const Demo = DEMO_MAP[id];
+  if (!Demo) return null;
+  return <Demo step={step} />;
+};
+
 export function HeroAnimatedDemo() {
   const [idx, setIdx] = useState(0);
   const [step, setStep] = useState(0);

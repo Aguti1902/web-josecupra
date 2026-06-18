@@ -23,3 +23,8 @@ export const NEXGENT_APP = (import.meta.env.VITE_NEXGENT_URL || "").replace(/\/$
 export function nexgentUrl(path) {
   return NEXGENT_APP ? `${NEXGENT_APP}${path}` : null;
 }
+
+/** Presentación diapositivas — local en Vite o app NexGent externa */
+export function nexgentSlidesUrl() {
+  return NEXGENT_APP ? `${NEXGENT_APP}/presentacion` : "/nexgent/presentacion";
+}
