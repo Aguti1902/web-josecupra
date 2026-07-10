@@ -3,7 +3,7 @@ import {
   Activity, Calendar, CheckCircle, ClipboardList, FileText, MessageSquare, Play,
   Save, Search, Send, Sparkles, Target, Trash2, TrendingUp, Upload, Users,
 } from "lucide-react";
-import { PALMEIRAS } from "../../../../lib/nexgentConfig";
+import { LAKERS } from "../../../../lib/nexgentConfig";
 import {
   CHAT_CHANNELS, DEMO_PLAYERS, EMPTY_DIAGRAM, GPS_DEMO_ROWS,
   KEY_MOMENTS, MEDICAL_RECORDS, MESO_PHASES, MICROCYCLE, PLANNING_OVERVIEW,
@@ -15,7 +15,7 @@ import {
 import NexGentClubBanner from "../NexGentClubBanner";
 import PitchDiagram from "./PitchDiagram";
 
-const ACCENT = PALMEIRAS.accent;
+const ACCENT = LAKERS.accent;
 const TYPE_COLORS = {
   recovery: "#94A3B8", strength: "#3B82F6", tactical: ACCENT, speed: "#F59E0B",
   activation: "#8B5CF6", match: "#EF4444", rest: "#E5E7EB",
@@ -73,10 +73,10 @@ export function InicioPanel({ onNavigate }) {
 
   return (
     <div className="w-full space-y-6">
-      <NexGentClubBanner team={PALMEIRAS.team} role="Entrenador" />
+      <NexGentClubBanner team={LAKERS.team} role="Entrenador" />
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: Users, label: "Plantilla activa", value: String(DEMO_PLAYERS.length), sub: `jugadores · ${PALMEIRAS.team}`, nav: "plantilla" },
+          { icon: Users, label: "Plantilla activa", value: String(DEMO_PLAYERS.length), sub: `jugadores · ${LAKERS.team}`, nav: "plantilla" },
           { icon: Calendar, label: "Próxima sesión", value: "Hoy 09:30", sub: "Técnico-táctico · Intensidad media", nav: "sesiones" },
           { icon: CheckCircle, label: "Tests completados", value: `${testPct}%`, sub: "Evaluación T3 · Semana 24", color: ACCENT, nav: "plantilla" },
           { icon: Activity, label: "Riesgo lesión", value: teamRisk, sub: `${highRisk} jugadores en alerta`, color: riskColor(teamRisk), nav: "medico" },
@@ -133,7 +133,7 @@ export function PlantillaPanel() {
 
   return (
     <div className="w-full space-y-6">
-      <PageTitle sub={`${PALMEIRAS.team} · ${DEMO_PLAYERS.length} jugadores`}>Plantilla</PageTitle>
+      <PageTitle sub={`${LAKERS.team} · ${DEMO_PLAYERS.length} jugadores`}>Plantilla</PageTitle>
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 rounded-xl border border-depro-border bg-white overflow-hidden shadow-sm">
           <table className="w-full text-sm">

@@ -1,4 +1,4 @@
-import { PALMEIRAS } from "./nexgentConfig.js";
+import { LAKERS } from "./nexgentConfig.js";
 
 export const PITCH_STATS = [
   { v: "20+", l: "Módulos integrados" },
@@ -22,7 +22,7 @@ export const FEATURES = [
   { id: "video", title: "Análisis de vídeo", summary: "Tags automáticos, clips y vinculación con sesiones.", bullets: ["Tags IA: pressing, transiciones, finalización", "Timeline sincronizada con GPS", "Export para informes scouting"] },
   { id: "direction", title: "Dirección deportiva", summary: "KPIs ejecutivos: adherencia, carga, lesiones y cantera.", bullets: ["Dashboard dirección en tiempo real", "Comparativa entre equipos", "Informes para junta directiva"] },
   { id: "pdf", title: "PDFs de sesión", summary: "Plan profesional listo para el campo.", bullets: ["Logo y colores del club", "Vídeos de calentamiento", "Export en un clic"] },
-  { id: "brand", title: "White-label completo", summary: "Tu club en cada pantalla — no una app genérica.", bullets: ["Logo, colores, equipos", "Familias ven Palmeiras", "Multi-categoría"] },
+  { id: "brand", title: "White-label completo", summary: "Tu club en cada pantalla — no una app genérica.", bullets: ["Logo, colores, equipos", "Familias ven Lakers", "Multi-categoría"] },
 ];
 
 
@@ -36,7 +36,7 @@ export const MODULE_GROUPS = [
 export const ROADMAP_PHASES = [
   { phase: "Fase 0", period: "Semanas 1–2", duration: "Discovery", title: "Reunión de requisitos", subtitle: "Workshops con dirección, staff, médico y cantera.", items: ["Kick-off stakeholders", "Mapa de procesos actuales", "Priorización por departamento", "Documento funcional"] },
   { phase: "Fase 1", period: "Semanas 3–6", duration: "Diseño", title: "Arquitectura y prototipo", subtitle: "Design system white-label validado con usuarios.", items: ["Arquitectura multi-tenant", "Prototipo por rol", "Validación con staff real", "Plan de integraciones"] },
-  { phase: "Fase 2", period: "Mes 2–4", duration: "MVP", title: "Núcleo operativo DEPRO", subtitle: "Dashboard, periodización, tests, GPS.", items: ["Microciclo y tests T1→T3", "Import Catapult/STATSports", "White-label Palmeiras", "Plantilla multi-equipo"] },
+  { phase: "Fase 2", period: "Mes 2–4", duration: "MVP", title: "Núcleo operativo DEPRO", subtitle: "Dashboard, periodización, tests, GPS.", items: ["Microciclo y tests T1→T3", "Import Catapult/STATSports", "White-label Lakers", "Plantilla multi-equipo"] },
   { phase: "Fase 3", period: "Mes 5–7", duration: "IA", title: "Capa NexGent", subtitle: "Sesiones IA, carga inteligente, chat staff.", items: ["Texto → diagrama SVG", "Clasificación IA de carga", "Resumen IA del chat", "PDF con branding"] },
   { phase: "Fase 4", period: "Mes 8–10", duration: "Pro", title: "Médico, cantera, vídeo", subtitle: "Módulos que diferencian clubes de élite.", items: ["Readaptación completa", "Cantera sin GPS obligatorio", "Scouting + vídeo", "KPIs dirección"] },
   { phase: "Fase 5", period: "Mes 11–12", duration: "Go-live", title: "QA, formación y despliegue", subtitle: "Producción con SLA dedicado.", items: ["Testing carga y seguridad", "Formación presencial", "Migración históricos", "Soporte 24/7"] },
@@ -73,21 +73,21 @@ export const WORKFLOW_STEPS = [
 export const ADVANTAGES = [
   { title: "IA que entiende fútbol", desc: "Diagramas tácticos, carga y resúmenes en lenguaje natural." },
   { title: "Cero fricción GPS", desc: "Catapult, STATSports, Polar, WIMU — import CSV automático." },
-  { title: "White-label real", desc: "Palmeiras en cada pantalla — no SaaS genérico." },
+  { title: "White-label real", desc: "Lakers en cada pantalla — no SaaS genérico." },
   { title: "Un cerebro de datos", desc: "Rendimiento, salud, planificación y scouting conectados." },
   { title: "Periodización DEPRO", desc: "Mesociclos, tests y adherencia — base operativa probada." },
   { title: "NexGent encima", desc: "Capa IA y módulos pro de élite." },
 ];
 
-export const PALMEIRAS_STATS = [
-  { label: "Jugadores", value: String(PALMEIRAS.players) },
-  { label: "Equipos", value: String(PALMEIRAS.teams) },
-  { label: "Entrenadores", value: String(PALMEIRAS.coaches) },
-  { label: "Categorías", value: "Sub-20 → Pro" },
+export const LAKERS_STATS = [
+  { label: "Jugadores", value: String(LAKERS.players) },
+  { label: "Equipos", value: String(LAKERS.teams) },
+  { label: "Entrenadores", value: String(LAKERS.coaches) },
+  { label: "Categorías", value: "NBA · G League" },
 ];
 
 export const UI = {
-  clubName: "Palmeiras · Sub-20",
+  clubName: "Lakers · NBA",
   dashboard: "Dashboard",
   microcycle: "Microciclo",
   squad: "Plantilla",
@@ -131,7 +131,7 @@ export const UI = {
   pdfLine2: "Bloque principal: posesión 3v3 + transiciones (25 min)",
   pdfLine3: "Task designer: finalización + pressing (20 min)",
   sessionTitle: "Sesión B · Técnico-táctico",
-  pdfReady: "PDF listo · logo Palmeiras",
+  pdfReady: "PDF listo · logo Lakers",
   brandPreview: "Vista previa white-label",
   brandApplied: "Branding aplicado a todos los módulos",
   medicalTitle: "Departamento médico",
@@ -139,7 +139,7 @@ export const UI = {
   medStatus_available: "Disponible",
   medStatus_alert: "Alerta médica",
   medAlertSync: "Alerta sincronizada con GPS y chat",
-  academyLabel: "Cantera Palmeiras",
+  academyLabel: "Cantera Lakers",
   prospect: "Prospectos",
   promoted: "Promovidos",
   academyNoGps: "Cantera sin GPS obligatorio",

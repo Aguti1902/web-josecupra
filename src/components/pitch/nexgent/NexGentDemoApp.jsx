@@ -4,7 +4,7 @@ import {
   Home, MessageSquare, Calendar, ClipboardList, Activity,
   Video, Search, HeartPulse, Users, Sparkles, Shirt,
 } from "lucide-react";
-import { PALMEIRAS } from "../../../lib/nexgentConfig";
+import { LAKERS } from "../../../lib/nexgentConfig";
 import { DEMO_PANELS } from "./demo/NexGentDemoPanels";
 
 const NAV = [
@@ -34,10 +34,10 @@ export default function NexGentDemoApp() {
       <aside className="w-60 flex-shrink-0 border-r border-depro-border bg-white flex flex-col shadow-sm">
         <div className="p-4 border-b border-depro-border">
           <Link to="/nexgent/pitch" className="flex items-center gap-2.5 mb-1 group">
-            <img src={PALMEIRAS.logo} alt={PALMEIRAS.shortName} className="w-10 h-10 object-contain rounded-lg border border-depro-border p-0.5 bg-white" />
+            <img src={LAKERS.logo} alt={LAKERS.shortName} className="w-10 h-10 object-contain rounded-lg border border-depro-border p-0.5 bg-white" />
             <div className="min-w-0">
-              <p className="font-black text-sm truncate group-hover:text-green-700 transition-colors">{PALMEIRAS.shortName}</p>
-              <p className="text-[10px] text-depro-gray truncate">{PALMEIRAS.team}</p>
+              <p className="font-black text-sm truncate transition-colors group-hover:opacity-80" style={{ color: LAKERS.accent }}>{LAKERS.shortName}</p>
+              <p className="text-[10px] text-depro-gray truncate">{LAKERS.team}</p>
             </div>
           </Link>
         </div>
@@ -52,7 +52,7 @@ export default function NexGentDemoApp() {
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   active ? "text-white shadow-sm" : "text-depro-gray hover:bg-depro-gray-light hover:text-depro-dark"
                 }`}
-                style={active ? { backgroundColor: PALMEIRAS.accent } : undefined}
+                style={active ? { backgroundColor: LAKERS.accent } : undefined}
               >
                 <Icon size={18} />
                 <span className="flex-1 text-left">{label}</span>
@@ -61,7 +61,7 @@ export default function NexGentDemoApp() {
           })}
         </nav>
         <div className="p-3 border-t border-depro-border">
-          <Link to="/nexgent/pitch" className="text-[10px] text-depro-gray hover:text-green-700 font-semibold">
+          <Link to="/nexgent/pitch" className="text-[10px] text-depro-gray font-semibold transition-colors hover:opacity-80" style={{ color: LAKERS.accent }}>
             ← Volver al pitch
           </Link>
         </div>

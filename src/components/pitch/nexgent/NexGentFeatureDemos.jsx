@@ -5,9 +5,9 @@ import {
   HeartPulse, MessageSquare, Search, Shield, Sparkles, TrendingUp, Users, Video, Zap,
   GraduationCap, BarChart3,
 } from "lucide-react";
-import { PALMEIRAS } from "../../../lib/nexgentConfig";
+import { LAKERS } from "../../../lib/nexgentConfig";
 
-const CLUB = PALMEIRAS.accent;
+const CLUB = LAKERS.accent;
 const GOLD = "#FFD700";
 
 function BrowserFrame({ title, children }) {
@@ -172,7 +172,7 @@ export function DemoSessions({ step }) {
           <div className={`bg-white rounded-lg border px-2.5 py-2 text-[10px] text-gray-600 transition-all duration-500 ${step >= 1 ? "border-green-200" : "border-gray-100 opacity-50"}`}>
             {t("demos.ui.promptText")}
           </div>
-          <div className="rounded-lg h-32 relative overflow-hidden border-2 border-green-800/30" style={{ background: "linear-gradient(180deg, #1a7a4a 0%, #006437 100%)" }}>
+          <div className="rounded-lg h-32 relative overflow-hidden border-2 border-purple-900/30" style={{ background: `linear-gradient(180deg, ${LAKERS.accent} 0%, #37145a 100%)` }}>
             <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(255,255,255,0.3) 19px, rgba(255,255,255,0.3) 20px)" }} />
             <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/40" />
             <div className="absolute top-1/2 left-1/2 w-16 h-16 rounded-full border-2 border-white/50 -translate-x-1/2 -translate-y-1/2" />
@@ -458,7 +458,7 @@ export function DemoBrand({ step }) {
         <div className="w-28 flex-shrink-0 border-r border-gray-200 pr-3 space-y-0.5" style={{ backgroundColor: active.color + "06" }}>
           <div className="flex items-center gap-1.5 px-2 mb-2">
             <div className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[8px] font-black transition-colors duration-500" style={{ backgroundColor: active.color }}>SEP</div>
-            <span className="text-[8px] font-bold text-gray-700 truncate">Palmeiras</span>
+            <span className="text-[8px] font-bold text-gray-700 truncate">{LAKERS.shortName}</span>
           </div>
           {teams.map((tm, i) => (
             <div key={tm.name} className={`px-2 py-1.5 rounded-lg text-[9px] font-semibold transition-all duration-500 ${i === teamIdx ? "text-white shadow-sm" : "text-gray-400"}`} style={i === teamIdx ? { backgroundColor: tm.color } : {}}>

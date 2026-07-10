@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckCircle2, ChevronRight } from "lucide-react";
-import { DEPRO_ACCENT } from "../../../lib/nexgentConfig";
+import { DEPRO_ACCENT, LAKERS } from "../../../lib/nexgentConfig";
 
 const FEATURES = [
   {
@@ -56,7 +56,7 @@ const FEATURES = [
     id: "brand",
     title: "White-label completo",
     summary: "Tu club en cada pantalla — no una app genérica.",
-    bullets: ["Logo, colores, equipos", "Familias ven Palmeiras", "Multi-categoría"],
+    bullets: ["Logo, colores, equipos", "Familias ven Lakers", "Multi-categoría"],
     demo: "brand",
   },
 ];
@@ -86,8 +86,8 @@ function DemoPanel({ type, step }) {
   if (type === "dashboard") {
     return (
       <BrowserChrome title="dashboard">
-        <div className="rounded-lg p-3 text-white mb-3" style={{ background: "linear-gradient(135deg, #006437, #004d2a)" }}>
-          <div className="text-[10px] opacity-80 font-bold">Palmeiras · Sub-20</div>
+        <div className="rounded-lg p-3 text-white mb-3" style={{ background: `linear-gradient(135deg, ${LAKERS.accent}, #37145a)` }}>
+          <div className="text-[10px] opacity-80 font-bold">{LAKERS.shortName} · NBA</div>
           <div className="text-sm font-black">Semana 24 · Mesociclo 3</div>
         </div>
         <div className="grid grid-cols-3 gap-2">
