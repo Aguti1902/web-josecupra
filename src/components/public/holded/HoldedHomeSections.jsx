@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight, Play, User, Building2, Users, Sparkles, ChevronDown, ChevronRight,
   Star, Check, Calendar, Activity, BarChart3, Brain, Shield,
-  LayoutDashboard, Zap,
+  LayoutDashboard, Zap, CreditCard, Smartphone, FileText, XCircle,
+  Mail, MessageCircle,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -504,36 +505,261 @@ export function TestimonialsSection({ dark = true }) {
 /* ── FAQ ─────────────────────────────────────────────────────── */
 
 const FAQS = [
-  { q: "¿Necesito tarjeta para la prueba?", a: "No. La prueba gratuita no requiere tarjeta de crédito." },
-  { q: "¿Funciona para fútbol base y competición?", a: "Sí. DEPRO cubre desde categorías base hasta juvenil y amateur, con protocolos por bloque de edad." },
-  { q: "¿Puedo editar las sesiones generadas por IA?", a: "Siempre. Cada sesión es trazable, editable y sustituible por el entrenador." },
-  { q: "¿Hay versión para clubs con varios equipos?", a: "DEPRO Club incluye panel coordinador, multi-equipo y personalización de marca." },
+  {
+    icon: CreditCard,
+    q: "¿Necesito tarjeta para la prueba?",
+    a: "No. La prueba gratuita no requiere tarjeta de crédito. Regístrate con email o Google y empieza a planificar en minutos.",
+  },
+  {
+    icon: Zap,
+    q: "¿Cuánto cuesta DEPRO?",
+    a: "Los planes empiezan desde 14,99 €/mes (Coach Pro). Hay opciones para entrenadores individuales, clubs y academias. Consulta la página de precios para comparar límites y funcionalidades.",
+  },
+  {
+    icon: Users,
+    q: "¿Funciona para fútbol base y competición?",
+    a: "Sí. DEPRO cubre desde categorías base hasta juvenil y amateur, con protocolos por bloque de edad, fase de temporada y material disponible.",
+  },
+  {
+    icon: Brain,
+    q: "¿Puedo editar las sesiones generadas por IA?",
+    a: "Siempre. Cada sesión es trazable, editable y sustituible. La IA propone; tú decides. Duplica, exporta o comparte con la plantilla cuando quieras.",
+  },
+  {
+    icon: Building2,
+    q: "¿Hay versión para clubs con varios equipos?",
+    a: "DEPRO Club incluye panel coordinador, multi-equipo, códigos de acceso por categoría y personalización de marca para academias.",
+  },
+  {
+    icon: Smartphone,
+    q: "¿Los jugadores tienen panel o app?",
+    a: "Sí. Cada jugador accede a su plan semanal, registra RPE y feedback, consulta tests y ranking. Todo sincronizado con el entrenador en tiempo real.",
+  },
+  {
+    icon: Activity,
+    q: "¿Qué tests físicos incluye?",
+    a: "Sprint, salto, Yo-Yo, resistencia y más. Batería T1→T2→T3 con ratings automáticos, tendencias y comparativas por jugador y equipo.",
+  },
+  {
+    icon: BarChart3,
+    q: "¿Cómo funciona el control de carga?",
+    a: "Monitorizas RPE, wellness y alertas por jugador. DEPRO concilia la carga planificada con la ejecutada y avisa antes de situaciones de sobrecarga.",
+  },
+  {
+    icon: FileText,
+    q: "¿Puedo exportar informes?",
+    a: "Sí. Adherencia, carga, tests y evolución de temporada se exportan para dirección deportiva, coordinadores o reuniones de staff.",
+  },
+  {
+    icon: XCircle,
+    q: "¿Puedo cancelar cuando quiera?",
+    a: "Sin permanencia. Cancela desde tu cuenta cuando lo necesites. Tus datos e histórico permanecen accesibles según tu plan activo.",
+  },
 ];
 
-export function FAQSection({ dark = true }) {
+export function FAQSection({ dark = false }) {
   const [open, setOpen] = useState(0);
   const s = sx(dark);
+
   return (
-    <section className={s.section.replace("relative overflow-hidden", "").trim()}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-12">
-          <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${s.label}`}>FAQ</p>
-          <h2 className={`text-3xl font-black ${s.h2}`}>Preguntas frecuentes</h2>
+    <section className={`${s.section} overflow-hidden`}>
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className={`absolute -top-24 -right-24 w-96 h-96 rounded-full blur-[100px] ${dark ? "bg-holded-blue/15" : "bg-blue-100/80"}`} />
+        <div className={`absolute -bottom-32 -left-24 w-80 h-80 rounded-full blur-[90px] ${dark ? "bg-emerald-500/10" : "bg-orange-100/60"}`} />
+      </div>
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-12 lg:gap-16 items-start">
+          <div className="lg:sticky lg:top-28">
+            <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${s.label}`}>FAQ</p>
+            <h2 className={`text-3xl md:text-4xl font-black mb-4 leading-tight ${s.h2}`}>
+              Resolvemos tus dudas antes de empezar
+            </h2>
+            <p className={`text-base leading-relaxed mb-8 ${s.body}`}>
+              Todo lo que suelen preguntarnos entrenadores, coordinadores y clubs antes de probar DEPRO.
+            </p>
+            <div className={`rounded-2xl border p-6 ${dark ? "border-white/10 bg-white/5" : "border-gray-200 bg-white shadow-sm"}`}>
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-holded-blue/15 flex items-center justify-center shrink-0">
+                  <MessageCircle size={20} className="text-holded-blue" />
+                </div>
+                <div>
+                  <p className={`font-bold mb-1 ${s.cardTitle}`}>¿No encuentras tu respuesta?</p>
+                  <p className={`text-sm mb-4 ${s.body}`}>Escríbenos y te respondemos en menos de 24 horas.</p>
+                  <a
+                    href="mailto:ventas@depro.es"
+                    className="inline-flex items-center gap-2 text-sm font-bold text-holded-blue hover:gap-3 transition-all"
+                  >
+                    <Mail size={15} /> ventas@depro.es
+                  </a>
+                </div>
+              </div>
+              <div className={`grid grid-cols-2 gap-3 mt-6 pt-6 border-t ${dark ? "border-white/10" : "border-gray-100"}`}>
+                {[
+                  { val: "10+", label: "Preguntas" },
+                  { val: "24h", label: "Respuesta" },
+                ].map(({ val, label }) => (
+                  <div key={label} className={`rounded-xl px-3 py-2.5 text-center ${dark ? "bg-white/5" : "bg-gray-50"}`}>
+                    <p className={`text-xl font-black tabular-nums ${s.cardTitle}`}>{val}</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-wide ${s.statSub}`}>{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {FAQS.map(({ icon: Icon, q, a }, i) => {
+              const isOpen = open === i;
+              return (
+                <div
+                  key={q}
+                  className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
+                    isOpen
+                      ? dark
+                        ? "border-holded-blue/40 bg-holded-blue/10 shadow-lg shadow-holded-blue/5"
+                        : "border-holded-blue/30 bg-white shadow-lg shadow-blue-500/5"
+                      : dark
+                        ? "border-white/8 bg-holded-card/50 hover:border-white/15"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpen(isOpen ? -1 : i)}
+                    className={`w-full flex items-center gap-4 px-5 py-4 text-left transition-colors ${dark ? "hover:bg-white/5" : "hover:bg-gray-50/80"}`}
+                  >
+                    <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                      isOpen ? "bg-holded-blue text-white" : dark ? "bg-white/10 text-holded-blue-light" : "bg-blue-50 text-holded-blue"
+                    }`}>
+                      <Icon size={18} strokeWidth={2.25} />
+                    </span>
+                    <span className={`font-bold flex-1 pr-2 ${s.cardTitle}`}>{q}</span>
+                    <ChevronDown
+                      size={18}
+                      className={`shrink-0 transition-transform duration-300 ${s.statSub} ${isOpen ? "rotate-180 text-holded-blue" : ""}`}
+                    />
+                  </button>
+                  <div className={`grid transition-all duration-300 ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      <div className={`px-5 pb-5 pl-[4.5rem] text-sm leading-relaxed border-t pt-3 ${s.body} ${dark ? "border-white/8" : "border-gray-100"}`}>
+                        {a}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div className="space-y-3">
-          {FAQS.map(({ q, a }, i) => (
-            <div key={q} className={s.faqItem}>
-              <button
-                type="button"
-                onClick={() => setOpen(open === i ? -1 : i)}
-                className={s.faqBtn}
-              >
-                {q}
-                <ChevronDown size={18} className={`${s.statSub} shrink-0 transition-transform ${open === i ? "rotate-180" : ""}`} />
-              </button>
-              {open === i && (
-                <div className={`px-5 pb-4 text-sm leading-relaxed border-t pt-3 ${s.body} ${s.faqBorder}`}>{a}</div>
-              )}
+      </div>
+    </section>
+  );
+}
+
+/* ── Vídeo demo ──────────────────────────────────────────────── */
+
+const VIDEO_CHAPTERS = [
+  { time: "0:00", label: "Configura tu equipo" },
+  { time: "0:45", label: "Genera el microciclo" },
+  { time: "1:30", label: "Comparte con la plantilla" },
+];
+
+export function VideoSection({ dark = true }) {
+  const [playing, setPlaying] = useState(false);
+  const s = sx(dark);
+
+  return (
+    <section className={`${s.section} overflow-hidden`}>
+      {dark && (
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(37,99,235,0.18),transparent)]" />
+        </div>
+      )}
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="text-center max-w-2xl mx-auto mb-10 md:mb-14">
+          <span className={`inline-flex items-center gap-2 text-xs font-bold px-4 py-1.5 rounded-full mb-5 ${
+            dark ? "bg-white/10 text-holded-blue-light border border-white/10" : "bg-blue-50 text-holded-blue"
+          }`}>
+            <Play size={12} className="fill-current" /> Demo en vídeo
+          </span>
+          <h2 className={`text-3xl md:text-4xl lg:text-5xl font-black mb-4 leading-tight ${s.h2}`}>
+            Mira DEPRO en acción
+          </h2>
+          <p className={`text-base md:text-lg ${s.body}`}>
+            De cero a microciclo completo en 3 minutos. Planificación, carga y tests en un solo flujo.
+          </p>
+        </div>
+
+        <div className="relative max-w-4xl mx-auto">
+          <div className={`absolute -inset-4 rounded-[2rem] blur-2xl opacity-60 ${dark ? "bg-holded-blue/20" : "bg-blue-200/40"}`} aria-hidden="true" />
+          <div className="relative rounded-2xl md:rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black aspect-video group">
+            {!playing ? (
+              <>
+                <img
+                  src="/foto3.jpg"
+                  alt="Entrenamiento de fútbol con DEPRO"
+                  className="absolute inset-0 w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
+                <button
+                  type="button"
+                  onClick={() => setPlaying(true)}
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-4"
+                  aria-label="Reproducir demo de DEPRO"
+                >
+                  <span className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.35)] group-hover:scale-110 transition-transform duration-300">
+                    <Play size={36} className="text-holded-blue fill-holded-blue ml-1.5" />
+                  </span>
+                  <span className="text-white font-bold text-sm md:text-base tracking-wide">Ver demo · 3 min</span>
+                </button>
+                <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6 flex flex-wrap gap-2">
+                  {VIDEO_CHAPTERS.map(({ time, label }) => (
+                    <span key={label} className="text-[11px] font-semibold text-white/90 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
+                      {time} · {label}
+                    </span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-holded-dark text-center p-8">
+                <VideoPreviewScene light={false} />
+                <p className="text-holded-muted text-sm mt-4 max-w-sm">
+                  Vídeo demo próximamente. Mientras tanto, prueba DEPRO gratis y genera tu primer microciclo.
+                </p>
+                <div className="flex flex-wrap gap-3 mt-6 justify-center">
+                  <Link to="/comprar" className={s.ctaSolid}>
+                    Probar gratis <ArrowRight size={16} />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setPlaying(false)}
+                    className={s.ctaOutline}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto mt-10 md:mt-14">
+          {[
+            { icon: Sparkles, t: "Planificación automática", d: "Microciclos con sesiones A/B/C en segundos." },
+            { icon: Activity, t: "Control de carga en vivo", d: "RPE, wellness y alertas por jugador." },
+            { icon: BarChart3, t: "Tests y evolución", d: "Seguimiento T1→T3 con histórico completo." },
+          ].map(({ icon: Icon, t, d }) => (
+            <div
+              key={t}
+              className={`rounded-2xl border p-5 transition-all hover:-translate-y-0.5 ${
+                dark ? "border-white/8 bg-white/5 hover:border-holded-blue/30" : "border-gray-200 bg-white hover:shadow-md"
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${dark ? "bg-holded-blue/20" : "bg-blue-50"}`}>
+                <Icon size={18} className={dark ? "text-holded-blue-light" : "text-holded-blue"} />
+              </div>
+              <p className={`font-bold mb-1 ${s.cardTitle}`}>{t}</p>
+              <p className={`text-sm leading-relaxed ${s.body}`}>{d}</p>
             </div>
           ))}
         </div>
@@ -542,40 +768,78 @@ export function FAQSection({ dark = true }) {
   );
 }
 
-/* ── Vídeo ───────────────────────────────────────────────────── */
+/* ── Secciones con fotos reales de fútbol ───────────────────── */
 
-export function VideoSection({ dark = true }) {
+export function FootballStorySection({
+  dark = true,
+  reverse = false,
+  image,
+  label,
+  title,
+  desc,
+  bullets = [],
+  to = "/comprar",
+  ctaText = "Probar DEPRO",
+}) {
   const s = sx(dark);
-  return (
-    <section className={s.section.replace("relative overflow-hidden", "").trim()}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-12">
-          <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${s.label}`}>Demo</p>
-          <h2 className={`text-3xl md:text-4xl font-black mb-4 ${s.h2}`}>Mira DEPRO en acción</h2>
-          <p className={s.body}>De cero a microciclo completo en 3 minutos.</p>
+  const content = (
+    <div className="flex flex-col justify-center py-4 lg:py-8">
+      <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${s.label}`}>{label}</p>
+      <h2 className={`text-3xl md:text-4xl font-black mb-4 leading-tight ${s.h2}`}>{title}</h2>
+      <p className={`text-base leading-relaxed mb-6 ${s.body}`}>{desc}</p>
+      {bullets.length > 0 && (
+        <ul className="space-y-3 mb-8">
+          {bullets.map((b) => (
+            <li key={b} className={`flex items-start gap-3 text-sm ${s.body}`}>
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${dark ? "bg-holded-blue/20" : "bg-blue-50"}`}>
+                <Check size={12} className="text-holded-blue" strokeWidth={3} />
+              </span>
+              {b}
+            </li>
+          ))}
+        </ul>
+      )}
+      <Link
+        to={to}
+        className={dark
+          ? "inline-flex items-center gap-2 bg-white text-gray-900 font-bold px-6 py-3 rounded-full hover:bg-gray-100 transition-colors w-fit"
+          : "inline-flex items-center gap-2 bg-gray-900 text-white font-bold px-6 py-3 rounded-full hover:bg-gray-800 transition-colors w-fit"}
+      >
+        {ctaText} <ArrowRight size={16} />
+      </Link>
+    </div>
+  );
+
+  const visual = (
+    <div className="relative">
+      <div className={`absolute -inset-3 rounded-[2rem] blur-2xl opacity-50 ${dark ? "bg-holded-blue/25" : "bg-orange-200/50"}`} aria-hidden="true" />
+      <div className="relative aspect-[4/5] sm:aspect-[5/4] lg:aspect-[4/5] rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl">
+        <img src={image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className={`absolute inset-0 ${dark ? "bg-gradient-to-t from-holded-dark/90 via-holded-dark/20 to-transparent" : "bg-gradient-to-t from-gray-900/50 via-transparent to-transparent"}`} />
+        <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
+          <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-white/90 bg-black/35 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
+            <span className="w-1.5 h-1.5 rounded-full bg-holded-green animate-pulse" /> En el campo
+          </span>
         </div>
-        <div className="grid lg:grid-cols-2 gap-8 items-center">
-          <div className="group lg:min-h-[260px]">
-            <VideoPreviewScene light={!dark} />
-          </div>
-          <div className="space-y-6">
-            {[
-              { t: "Planificación automática", d: "Microciclos con sesiones A/B/C en segundos." },
-              { t: "Control de carga en vivo", d: "RPE, wellness y alertas por jugador." },
-              { t: "Tests y evolución", d: "Seguimiento T1→T3 con histórico completo." },
-            ].map(({ t, d }) => (
-              <div key={t} className="flex gap-4">
-                <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${dark ? "bg-holded-blue-light" : "bg-holded-blue"}`} />
-                <div>
-                  <p className={`font-bold ${s.cardTitle}`}>{t}</p>
-                  <p className={`text-sm mt-0.5 ${s.body}`}>{d}</p>
-                </div>
-              </div>
-            ))}
-            <Link to="/comprar" className={s.ctaSolid}>
-              Probar gratis <ArrowRight size={16} />
-            </Link>
-          </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <section className={s.section}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className={`grid lg:grid-cols-2 gap-10 lg:gap-16 items-center ${reverse ? "lg:[&>div:first-child]:order-2" : ""}`}>
+          {reverse ? (
+            <>
+              {visual}
+              {content}
+            </>
+          ) : (
+            <>
+              {content}
+              {visual}
+            </>
+          )}
         </div>
       </div>
     </section>

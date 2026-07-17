@@ -9,6 +9,7 @@ import {
   ExtraToolsSection, PricingTeaserSection, WhyDeproSection,
   HowItWorksSection, RolesSection, AISection,
   ImpactStatsSection, TestimonialsSection, VideoSection, FAQSection,
+  FootballStorySection,
 } from "../../components/public/holded/HoldedHomeSections";
 import { SessionsMockup, TestsMockup } from "../../components/public/LandingMockups";
 
@@ -67,6 +68,7 @@ export default function HomePage() {
         />
         <HoldedFeatureSection
           reverse
+          dark={false}
           label="Tests físicos"
           title="De la evaluación al seguimiento longitudinal"
           desc="Batería T1→T3 con ratings, tendencias y comparativas por jugador."
@@ -91,9 +93,9 @@ export default function HomePage() {
         <PricingTeaserSection dark={false} />
       </SectionBlock>
 
-      {/* Oscuro: por qué DEPRO + cómo funciona */}
+      {/* Oscuro: cómo funciona | blanco: por qué DEPRO */}
       <SectionBlock>
-        <WhyDeproSection dark />
+        <WhyDeproSection dark={false} />
         <HowItWorksSection dark />
       </SectionBlock>
 
@@ -109,9 +111,46 @@ export default function HomePage() {
         <TestimonialsSection dark />
       </SectionBlock>
 
-      {/* Blanco: vídeo + FAQ */}
+      {/* Oscuro: vídeo demo */}
       <SectionBlock>
-        <VideoSection dark={false} />
+        <VideoSection dark />
+      </SectionBlock>
+
+      {/* Oscuro: foto campo — planificación real */}
+      <FootballStorySection
+        dark
+        image="/foto1.jpg"
+        label="En el campo"
+        title="Preparación física donde ocurre: en el césped"
+        desc="DEPRO conecta lo que planificas en el panel con lo que ejecutas en cada sesión. Microciclos, carga y tests alineados con la realidad de tu categoría."
+        bullets={[
+          "Sesiones adaptadas a fase y material del club",
+          "Control de carga con feedback de los jugadores",
+          "Histórico de temporada siempre accesible",
+        ]}
+        to="/funcionalidades/planificacion"
+        ctaText="Explorar planificación"
+      />
+
+      {/* Blanco: foto entrenamiento — staff y plantilla */}
+      <FootballStorySection
+        dark={false}
+        reverse
+        image="/foto2.jpg"
+        label="Tu club"
+        title="Staff coordinado, plantilla comprometida"
+        desc="Entrenador, coordinador y jugadores en la misma plataforma. Adherencia visible, tests registrados y evolución clara para todo el departamento."
+        bullets={[
+          "Panel multi-equipo para academias y clubs",
+          "Jugadores con plan y ranking en el móvil",
+          "Informes listos para dirección deportiva",
+        ]}
+        to="/para-clubs"
+        ctaText="Ver DEPRO Club"
+      />
+
+      {/* FAQ ampliado */}
+      <SectionBlock>
         <FAQSection dark={false} />
       </SectionBlock>
     </>
