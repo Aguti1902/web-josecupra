@@ -352,6 +352,24 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  // ── Login con Google (OAuth) ───────────────────────────────
+  const loginWithGoogle = async () => {
+    try {
+      const redirectTo = `${window.location.origin}/login`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          queryParams: { access_type: "online", prompt: "select_account" },
+        },
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch {
+      return { success: false, error: "Error al conectar con Google. Comprueba que Google OAuth esté activado en Supabase." };
+    }
+  };
+
   // ── Login ──────────────────────────────────────────────────
   const login = async (email, password) => {
     try {
@@ -417,7 +435,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout, register, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

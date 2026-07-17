@@ -19,10 +19,11 @@ export default function Navbar() {
   useEffect(() => setOpen(false), [pathname]);
 
   const links = [
-    { label: t("nav.services"), href: "#producto" },
-    { label: t("nav.players"),  href: "#precios" },
-    { label: t("nav.clubs"),    href: "#referidos" },
-    { label: t("nav.about"),    href: "#sobre" },
+    { label: "Producto", href: "#producto" },
+    { label: "Plataforma", href: "#plataforma" },
+    { label: "IA", href: "#ia" },
+    { label: "Precios", href: "#precios" },
+    { label: "Vídeo", href: "#video" },
   ];
 
   return (
@@ -66,8 +67,8 @@ export default function Navbar() {
             >
               {t("nav.login")}
             </Link>
-            <Link to="/comprar" className="btn-primary text-sm py-2.5">
-              {t("nav.start")}
+            <Link to="/comprar" className="btn-primary text-sm py-2.5 rounded-xl">
+              15 días gratis
             </Link>
           </div>
 
