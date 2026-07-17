@@ -406,3 +406,20 @@ create policy "ranking_own_write" on ranking_entries
 -- update profiles
 -- set role = 'admin', name = 'Jose (Admin)'
 -- where id = 'TU-UUID-AQUI';
+
+-- ============================================================
+-- MIGRACIÓN — DEPRO Coach (Fase 1)
+-- ============================================================
+-- El alta pública de un entrenador individual (checkout Stripe con
+-- audience "coach") crea el usuario de Auth con user_metadata.role = "coach"
+-- como estado transitorio (antes de completar el wizard de onboarding).
+-- El trigger on_auth_user_created inserta esa misma role en public.profiles,
+-- y el CHECK constraint original solo permitía ('admin','player','club'),
+-- por lo que la creación del usuario fallaba con
+-- "Database error creating new user" para cualquier coach nuevo.
+--
+-- Ejecuta esto una vez en Supabase → SQL Editor para permitirlo:
+--
+-- alter table profiles drop constraint if exists profiles_role_check;
+-- alter table profiles add constraint profiles_role_check
+--   check (role in ('admin','player','club','coach'));
