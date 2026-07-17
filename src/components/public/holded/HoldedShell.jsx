@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  Menu, X, ChevronDown, ChevronRight, MessageCircle, ArrowRight,
+  Menu, X, ChevronDown, ChevronRight, ArrowRight,
   Calendar, Activity, Users, BarChart3, Brain, Building2, User,
-  BookOpen, Globe, Smartphone, Check,
+  Check,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../../shared/LanguageSwitcher";
-import { HoldedHeroMockup, GoogleIcon } from "./HoldedMockups";
+import { HoldedHeroMockup, GoogleIcon, ExitIntentMiniMockup } from "./HoldedMockups";
+import WebsiteAssistantWidget from "./WebsiteAssistantWidget";
 
 const MEGA_PRODUCTS = [
   { label: "Planificación", to: "/funcionalidades/planificacion", badge: "TOP", icon: Calendar },
@@ -43,30 +44,20 @@ export function ExitIntentModal({ open, onClose }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col md:flex-row animate-fade-in-up">
-        <button onClick={onClose} className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/10 md:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-800">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col md:flex-row md:min-h-[520px] animate-fade-in-up">
+        <button onClick={onClose} className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-100 md:bg-white/10 flex items-center justify-center text-gray-500 hover:text-gray-800 md:text-white/70 md:hover:text-white">
           <X size={18} />
         </button>
-        {/* Left — testimonial + mini mockup */}
-        <div className="md:w-[45%] bg-[#f7f8fa] p-8 flex flex-col">
-          <div className="flex-1 mb-6">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-4">
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-gray-50">
-                <div className="flex gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /><span className="w-2 h-2 rounded-full bg-yellow-400" /><span className="w-2 h-2 rounded-full bg-green-400" /></div>
-                <span className="text-[9px] font-mono text-gray-400">app.depro.es/plan</span>
-              </div>
-              <div className="p-4">
-                <p className="text-xs font-black text-gray-800">Microciclo generado</p>
-                <p className="text-[10px] text-gray-400 mt-1">3 sesiones · Protocolo A/B/C</p>
-                <div className="mt-3 h-2 bg-gray-100 rounded-full"><div className="h-full w-3/4 bg-holded-blue rounded-full" /></div>
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 leading-relaxed italic">
+        {/* Left — testimonial + mockup animado */}
+        <div className="md:w-[45%] bg-[#f7f8fa] p-8 flex flex-col justify-between min-h-[280px] md:min-h-0">
+          <div>
+            <ExitIntentMiniMockup />
+            <p className="text-sm text-gray-600 leading-relaxed italic mt-5">
               &ldquo;Pasamos de Excel a tener el microciclo generado en minutos. Los jugadores ven su carga en el móvil.&rdquo;
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold text-sm">MT</div>
+          <div className="flex items-center gap-3 pt-6 mt-6 border-t border-gray-200/80">
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 text-white flex items-center justify-center font-bold text-sm shadow-md">MT</div>
             <div>
               <p className="font-bold text-gray-900 text-sm">Marc T.</p>
               <p className="text-xs text-gray-500">Entrenador Sub-16</p>
@@ -74,7 +65,7 @@ export function ExitIntentModal({ open, onClose }) {
           </div>
         </div>
         {/* Right — offer */}
-        <div className="md:w-[55%] bg-holded-dark p-8 md:p-10 text-white flex flex-col justify-center">
+        <div className="md:w-[55%] bg-holded-dark p-8 md:p-10 text-white flex flex-col justify-center md:min-h-[520px]">
           <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-holded-green mb-4">
             <span className="w-2 h-2 rounded-full bg-holded-green animate-pulse" /> 15 días gratis
           </span>
@@ -127,9 +118,6 @@ function BottomStickyBar({ onClose }) {
         <p className="text-white text-xs sm:text-sm font-medium flex-1 min-w-0 truncate hidden sm:block">
           Mira todo lo que DEPRO puede hacer por ti
         </p>
-        <Link to="/comprar" className="hidden sm:inline-flex text-xs font-semibold text-white/70 hover:text-white px-3 py-1.5 rounded-full border border-white/15 hover:bg-white/5 whitespace-nowrap">
-          Pide una demo
-        </Link>
         <Link to="/comprar" className="text-xs font-bold bg-white text-gray-900 px-4 py-2 rounded-full hover:bg-gray-100 whitespace-nowrap shrink-0">
           Prueba gratis
         </Link>
@@ -139,18 +127,7 @@ function BottomStickyBar({ onClose }) {
   );
 }
 
-/* ── Chat FAB ────────────────────────────────────────────────── */
-function ChatFab() {
-  return (
-    <Link
-      to="/recursos#contacto"
-      className="fixed bottom-6 right-6 z-[80] w-14 h-14 rounded-full bg-holded-blue hover:bg-holded-blue/90 text-white flex items-center justify-center shadow-[0_8px_30px_rgba(37,99,235,0.5)] hover:scale-105 transition-transform"
-      aria-label="Contacto"
-    >
-      <MessageCircle size={24} />
-    </Link>
-  );
-}
+/* ── Asistente web (chatbot) ─────────────────────────────────── */
 
 /* ── Top promo bar ───────────────────────────────────────────── */
 function TopBar() {
@@ -241,9 +218,6 @@ function HoldedNavbar() {
           <div className="hidden lg:flex items-center gap-2">
             <LanguageSwitcher light compact />
             <Link to="/login" className="text-sm font-medium text-white/70 hover:text-white px-3 py-2">{t("nav.login")}</Link>
-            <Link to="/recursos#demo" className="text-sm font-medium text-white border border-white/25 px-4 py-2 rounded-full hover:bg-white/5 transition-colors">
-              Reserva demo
-            </Link>
             <Link to="/comprar" className="text-sm font-bold bg-white text-gray-900 px-5 py-2 rounded-full hover:bg-gray-100 transition-colors flex items-center gap-1">
               Prueba gratis <ArrowRight size={14} />
             </Link>
@@ -366,7 +340,7 @@ export default function HoldedShell({ children, showBottomBar = true }) {
       <main>{children}</main>
       <HoldedFooter />
       {showBottomBar && bottomBar && <BottomStickyBar onClose={() => setBottomBar(false)} />}
-      <ChatFab />
+      <WebsiteAssistantWidget />
       <ExitIntentModal open={exitOpen} onClose={closeExit} />
     </div>
   );
@@ -381,12 +355,12 @@ export function HoldedHero({ subtitle = "El software todo en uno para el deporte
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[120px] -translate-x-1/2 translate-y-1/2" />
         <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] translate-x-1/2" />
       </div>
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
         <span className="inline-flex items-center gap-2 bg-holded-blue/20 border border-holded-blue/30 text-holded-blue-light text-xs font-bold px-4 py-1.5 rounded-full mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-holded-blue-light" />
           {subtitle}
         </span>
-        <h1 className="text-4xl sm:text-5xl md:text-[3.5rem] font-black text-white tracking-tight leading-[1.08] mb-6">
+        <h1 className="text-4xl sm:text-5xl md:text-[3.5rem] font-black text-white tracking-tight leading-[1.08] mb-6 max-w-4xl mx-auto">
           Preparación física y mucho más<span className="text-depro-red">.</span>
         </h1>
         <p className="text-lg text-holded-muted max-w-2xl mx-auto leading-relaxed mb-8">
@@ -400,51 +374,55 @@ export function HoldedHero({ subtitle = "El software todo en uno para el deporte
             <GoogleIcon /> Empezar gratis con Google
           </Link>
         </div>
-        <p className="text-xs text-holded-muted">Sin tarjeta de crédito · Cancela cuando quieras</p>
+        <p className="text-xs text-holded-muted mb-2">Sin tarjeta de crédito · Cancela cuando quieras</p>
+      </div>
+      <div className="relative max-w-[min(1200px,98vw)] mx-auto px-2 sm:px-4">
         <HoldedHeroMockup />
       </div>
     </section>
   );
 }
 
-/* ── Platform band ───────────────────────────────────────────── */
-export function HoldedPlatformBand() {
-  const [platform, setPlatform] = useState("web");
+/* ── Stats + clubes (unificado) ──────────────────────────────── */
+export function HoldedStatsBand() {
+  const stats = [
+    { val: "3", label: "Perfiles en uno", accent: "text-holded-blue-light" },
+    { val: "90+", label: "Ejercicios en biblioteca", accent: "text-white" },
+    { val: "15", label: "Días de prueba gratis", accent: "text-holded-green" },
+    { val: "100%", label: "Planificación automática", accent: "text-white" },
+    { val: "40h", label: "Ahorradas al mes", accent: "text-holded-green" },
+    { val: "160×", label: "Más rápido planificando", accent: "text-white" },
+    { val: "85%", label: "Adherencia media", accent: "text-holded-blue-light" },
+  ];
+
   return (
-    <section className="py-16 bg-holded-dark border-t border-white/5">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-        <p className="text-holded-muted text-sm mb-6">En la nube. Trabaja desde el navegador, iOS o Android.</p>
-        <div className="inline-flex p-1 rounded-full bg-white/5 border border-white/10 mb-10">
-          {[
-            { id: "web", icon: Globe, label: "Navegador" },
-            { id: "ios", icon: Smartphone, label: "iOS" },
-            { id: "android", icon: Smartphone, label: "Android" },
-          ].map(({ id, icon: Icon, label }) => (
-            <button key={id} type="button" onClick={() => setPlatform(id)} className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all ${platform === id ? "bg-holded-blue text-white" : "text-white/50 hover:text-white"}`}>
-              <Icon size={14} /> {label}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap justify-center gap-8 md:gap-12 opacity-40 mb-12 grayscale">
-          {["FC BARCELONA ACADEMY", "REAL SOCCER", "ACADEMIA PRO", "BASE SPORT", "ELITE FC"].map((logo) => (
-            <span key={logo} className="text-xs font-black tracking-widest text-white">{logo}</span>
-          ))}
-        </div>
-        <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-          {[
-            { val: "40h", label: "ahorradas/mes" },
-            { val: "160×", label: "más rápido planificando" },
-            { val: "85%", label: "adherencia media" },
-          ].map((s) => (
-            <div key={s.label}>
-              <p className="text-3xl md:text-4xl font-black text-white">{s.val}</p>
-              <p className="text-xs text-holded-muted mt-1">{s.label}</p>
+    <section className="py-16 md:py-20 bg-holded-dark border-t border-white/5 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent)]" aria-hidden="true" />
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
+        <p className="text-center text-sm text-holded-muted mb-10 font-medium">
+          Entrenadores, clubs y jugadores ya optimizan su rendimiento con DEPRO
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-6 md:gap-4 mb-14">
+          {stats.map((s) => (
+            <div key={s.label} className="text-center px-2">
+              <p className={`text-2xl sm:text-3xl md:text-4xl font-black tabular-nums ${s.accent}`}>{s.val}</p>
+              <p className="text-[11px] sm:text-xs text-holded-muted mt-1.5 leading-snug">{s.label}</p>
             </div>
+          ))}
+        </div>
+        <div className="flex flex-wrap justify-center gap-8 md:gap-14 opacity-35 mb-2">
+          {["FC BARCELONA ACADEMY", "REAL SOCCER", "ACADEMIA PRO", "BASE SPORT", "ELITE FC"].map((logo) => (
+            <span key={logo} className="text-[10px] sm:text-xs font-black tracking-widest text-white whitespace-nowrap">{logo}</span>
           ))}
         </div>
       </div>
     </section>
   );
+}
+
+/** @deprecated Usar HoldedStatsBand */
+export function HoldedPlatformBand() {
+  return <HoldedStatsBand />;
 }
 
 /* ── Product grid 6 cards ────────────────────────────────────── */

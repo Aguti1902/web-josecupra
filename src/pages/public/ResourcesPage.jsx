@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { BookOpen, MessageCircle, Phone, ArrowRight, Check } from "lucide-react";
+import { BookOpen, MessageCircle, Phone, Check } from "lucide-react";
 
 export default function ResourcesPage() {
   const [enviado, setEnviado] = useState(false);
@@ -19,7 +18,7 @@ export default function ResourcesPage() {
           {[
             { icon: BookOpen, title: "Academy", desc: "Guías paso a paso para entrenadores y coordinadores.", href: "#" },
             { icon: MessageCircle, title: "Blog", desc: "Periodización, carga y metodología deportiva.", href: "#" },
-            { icon: Phone, title: "Webinars", desc: "Sesiones en vivo con el equipo DEPRO.", href: "#demo" },
+            { icon: Phone, title: "Webinars", desc: "Sesiones en vivo con el equipo DEPRO.", href: "#contacto" },
           ].map(({ icon: Icon, title, desc, href }) => (
             <a key={title} href={href} className="rounded-2xl border border-gray-200 p-6 hover:border-holded-blue hover:shadow-lg transition-all block">
               <Icon size={24} className="text-holded-blue mb-3" />
@@ -30,17 +29,7 @@ export default function ResourcesPage() {
         </div>
       </section>
 
-      <section id="demo" className="py-16 bg-gray-50">
-        <div className="max-w-xl mx-auto px-4 text-center">
-          <h2 className="text-2xl font-black text-gray-900 mb-2">Reserva una demo</h2>
-          <p className="text-gray-500 mb-8 text-sm">Te enseñamos DEPRO en 30 minutos.</p>
-          <Link to="/comprar" className="inline-flex items-center gap-2 bg-holded-blue text-white font-bold px-8 py-3.5 rounded-full">
-            Reservar demo gratuita <ArrowRight size={16} />
-          </Link>
-        </div>
-      </section>
-
-      <section id="contacto" className="py-20 bg-holded-dark">
+      <section id="contacto" className="py-20 bg-holded-dark border-t border-white/5">
         <div className="max-w-xl mx-auto px-4">
           <h2 className="text-2xl font-black text-white text-center mb-2">Contacto</h2>
           <p className="text-holded-muted text-center mb-8 text-sm">Respondemos en menos de 24h.</p>
