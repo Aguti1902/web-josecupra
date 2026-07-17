@@ -326,7 +326,7 @@ export function HoldedCheckItem({ children, light = false }) {
   );
 }
 
-export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reverse = false, dark = false, ctaLink = "/funcionalidades", ctaText = "Explorar funcionalidad", compact = false }) {
+export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reverse = false, dark = true, ctaLink = "/funcionalidades", ctaText = "Explorar funcionalidad", compact = false }) {
   const bg = dark ? "bg-holded-dark" : "bg-white";
   const titleColor = dark ? "text-white" : "text-gray-900";
   const descColor = dark ? "text-holded-muted" : "text-gray-500";
@@ -337,7 +337,7 @@ export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reve
   const py = compact ? "py-16 md:py-20" : "py-20 md:py-28";
 
   return (
-    <section className={`${py} ${bg} relative overflow-hidden ${!dark && !compact ? "border-t border-gray-100 first:border-t-0" : ""}`}>
+    <section className={`${py} ${bg} relative overflow-hidden ${dark ? "border-t border-white/5" : "border-t border-gray-100"}`}>
       {dark && (
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-holded-blue/10 rounded-full blur-[100px]" />
