@@ -349,12 +349,7 @@ export default function HoldedShell({ children, showBottomBar = true }) {
 /* ── Hero reutilizable ───────────────────────────────────────── */
 export function HoldedHero({ subtitle = "El software todo en uno para el deporte" }) {
   return (
-    <section className="relative pt-12 pb-8 md:pt-16 md:pb-12 overflow-hidden">
-      <div className="absolute inset-0 bg-holded-dark">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(37,99,235,0.25),transparent)]" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[120px] -translate-x-1/2 translate-y-1/2" />
-        <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] translate-x-1/2" />
-      </div>
+    <section className="relative pt-12 pb-4 md:pt-16 md:pb-6 overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
         <span className="inline-flex items-center gap-2 bg-holded-blue/20 border border-holded-blue/30 text-holded-blue-light text-xs font-bold px-4 py-1.5 rounded-full mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-holded-blue-light" />
@@ -396,8 +391,7 @@ export function HoldedStatsBand() {
   ];
 
   return (
-    <section className="py-16 md:py-20 bg-holded-dark border-t border-white/5 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent)]" aria-hidden="true" />
+    <section className="relative pt-4 pb-8 md:pb-12 overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <p className="text-center text-sm text-holded-muted mb-10 font-medium">
           Entrenadores, clubs y jugadores ya optimizan su rendimiento con DEPRO
@@ -436,7 +430,7 @@ export function HoldedProductGrid() {
     { icon: Building2, title: "DEPRO Club", desc: "Multi-equipo, white-label y panel coordinador.", to: "/para-clubs" },
   ];
   return (
-    <section className="py-20 md:py-28 bg-holded-dark relative">
+    <section className="py-20 md:py-28 bg-holded-dark relative border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Seis productos. Una plataforma. Cero complicaciones.</h2>

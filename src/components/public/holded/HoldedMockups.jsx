@@ -315,18 +315,18 @@ export function GoogleIcon({ size = 18 }) {
   );
 }
 
-export function HoldedCheckItem({ children }) {
+export function HoldedCheckItem({ children, light = false }) {
   return (
-    <li className="flex items-start gap-3 text-sm text-holded-muted leading-relaxed">
-      <span className="w-5 h-5 rounded-full bg-holded-blue/20 flex items-center justify-center shrink-0 mt-0.5">
-        <Check size={12} className="text-holded-blue-light" strokeWidth={3} />
+    <li className={`flex items-start gap-3 text-sm leading-relaxed ${light ? "text-gray-600" : "text-holded-muted"}`}>
+      <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${light ? "bg-blue-50" : "bg-holded-blue/20"}`}>
+        <Check size={12} className="text-holded-blue" strokeWidth={3} />
       </span>
       {children}
     </li>
   );
 }
 
-export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reverse = false, dark = true, ctaLink = "/funcionalidades", ctaText = "Explorar funcionalidad" }) {
+export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reverse = false, dark = false, ctaLink = "/funcionalidades", ctaText = "Explorar funcionalidad", compact = false }) {
   const bg = dark ? "bg-holded-dark" : "bg-white";
   const titleColor = dark ? "text-white" : "text-gray-900";
   const descColor = dark ? "text-holded-muted" : "text-gray-500";
@@ -334,9 +334,10 @@ export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reve
   const btnClass = dark
     ? "inline-flex items-center gap-2 bg-white text-gray-900 font-bold px-6 py-3 rounded-full text-sm hover:bg-gray-100 transition-colors"
     : "inline-flex items-center gap-2 bg-gray-900 text-white font-bold px-6 py-3 rounded-full text-sm hover:bg-gray-800 transition-colors";
+  const py = compact ? "py-16 md:py-20" : "py-20 md:py-28";
 
   return (
-    <section className={`py-20 md:py-28 ${bg} relative overflow-hidden`}>
+    <section className={`${py} ${bg} relative overflow-hidden ${!dark && !compact ? "border-t border-gray-100 first:border-t-0" : ""}`}>
       {dark && (
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-holded-blue/10 rounded-full blur-[100px]" />
@@ -352,7 +353,7 @@ export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reve
                 <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${labelColor}`}>{label}</p>
                 <h2 className={`text-3xl md:text-[2.5rem] font-black tracking-tight mb-5 leading-tight ${titleColor}`}>{title}</h2>
                 <p className={`leading-relaxed mb-6 ${descColor}`}>{desc}</p>
-                <ul className="space-y-4 mb-8">{bullets.map((b) => <HoldedCheckItem key={b}>{b}</HoldedCheckItem>)}</ul>
+                <ul className="space-y-4 mb-8">{bullets.map((b) => <HoldedCheckItem key={b} light={!dark}>{b}</HoldedCheckItem>)}</ul>
                 <Link to={ctaLink} className={btnClass}>{ctaText} →</Link>
               </div>
             </>
@@ -363,7 +364,7 @@ export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reve
                 <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${labelColor}`}>{label}</p>
                 <h2 className={`text-3xl md:text-[2.5rem] font-black tracking-tight mb-5 leading-tight ${titleColor}`}>{title}</h2>
                 <p className={`leading-relaxed mb-6 ${descColor}`}>{desc}</p>
-                <ul className="space-y-4 mb-8">{bullets.map((b) => <HoldedCheckItem key={b}>{b}</HoldedCheckItem>)}</ul>
+                <ul className="space-y-4 mb-8">{bullets.map((b) => <HoldedCheckItem key={b} light={!dark}>{b}</HoldedCheckItem>)}</ul>
                 <Link to={ctaLink} className={btnClass}>{ctaText} →</Link>
               </div>
             </>
