@@ -26,6 +26,18 @@ export default {
           'gray-light': '#F5F5F5',
           border: '#E5E7EB',
         },
+        holded: {
+          dark: '#0a0e17',
+          'dark-2': '#0f172a',
+          card: '#141b2d',
+          topbar: '#1864db',
+          blue: '#2563eb',
+          'blue-light': '#3b82f6',
+          muted: '#94a3b8',
+          'muted-dark': '#64748b',
+          green: '#22c55e',
+          border: '#1e293b',
+        },
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',

@@ -1,12 +1,18 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminProvider } from "./context/AdminContext";
 import { ViewProvider } from "./context/ViewContext";
 import PWAInstallBanner from "./components/PWAInstallBanner";
 
-// Public
-import Navbar from "./components/public/Navbar";
+// Public — web marketing Holded-style
+import HoldedShell from "./components/public/holded/HoldedShell";
 import HomePage from "./pages/public/HomePage";
+import FeaturesPage from "./pages/public/FeaturesPage";
+import ParaClubsPage from "./pages/public/ParaClubsPage";
+import ParaEntrenadoresPage from "./pages/public/ParaEntrenadoresPage";
+import ParaJugadoresPage from "./pages/public/ParaJugadoresPage";
+import PricingPage from "./pages/public/PricingPage";
+import ResourcesPage from "./pages/public/ResourcesPage";
 import LoginPage from "./pages/public/LoginPage";
 import OnboardingPage from "./pages/public/OnboardingPage";
 import PaymentSuccessPage from "./pages/public/PaymentSuccessPage";
@@ -100,13 +106,13 @@ function AdminRoute({ children }) {
   return children;
 }
 
+function FeatureDetailRoute() {
+  const { slug } = useParams();
+  return <FeaturesPage slug={slug} />;
+}
+
 function PublicLayout({ children }) {
-  return (
-    <>
-      <Navbar />
-      {children}
-    </>
-  );
+  return <HoldedShell>{children}</HoldedShell>;
 }
 
 function AppRoutes() {
@@ -115,14 +121,14 @@ function AppRoutes() {
   return (
     <Routes>
       {/* ── Public ─────────────────────────────────────────────── */}
-      <Route
-        path="/"
-        element={
-          <PublicLayout>
-            <HomePage />
-          </PublicLayout>
-        }
-      />
+      <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
+      <Route path="/funcionalidades" element={<PublicLayout><FeaturesPage /></PublicLayout>} />
+      <Route path="/funcionalidades/:slug" element={<PublicLayout><FeatureDetailRoute /></PublicLayout>} />
+      <Route path="/para-clubs" element={<PublicLayout><ParaClubsPage /></PublicLayout>} />
+      <Route path="/para-entrenadores" element={<PublicLayout><ParaEntrenadoresPage /></PublicLayout>} />
+      <Route path="/para-jugadores" element={<PublicLayout><ParaJugadoresPage /></PublicLayout>} />
+      <Route path="/precios" element={<PublicLayout><PricingPage /></PublicLayout>} />
+      <Route path="/recursos" element={<PublicLayout><ResourcesPage /></PublicLayout>} />
       <Route
         path="/login"
         element={

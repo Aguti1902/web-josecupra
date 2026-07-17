@@ -69,8 +69,8 @@ export default function CoachDashboard({ club, team, user }) {
     <div className="space-y-6">
       {/* Header */}
       <div
-        className="rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center gap-4"
-        style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}CC 100%)` }}
+        className="dash-glass-header rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center gap-4"
+        style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}BB 50%, #1e1b4b 100%)` }}
       >
         <div className="flex-1">
           <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: contrastText(accent) + "BB" }}>
@@ -157,8 +157,8 @@ export default function CoachDashboard({ club, team, user }) {
           )}
 
           {/* Resumen de la semana */}
-          <div className="bg-white border border-depro-border rounded-xl p-5">
-            <h4 className="font-semibold text-depro-dark mb-3 flex items-center gap-2">
+          <div className="bg-white/90 backdrop-blur-sm border border-depro-border/60 rounded-2xl p-5 shadow-sm">
+            <h4 className="font-bold text-depro-dark mb-3 flex items-center gap-2">
               <Calendar size={15} style={{ color: accent }} /> Microciclo de esta semana
             </h4>
             <div className="flex flex-wrap gap-2">
@@ -181,15 +181,15 @@ export default function CoachDashboard({ club, team, user }) {
         {/* Sidebar */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white border border-depro-border rounded-xl p-4">
+            <div className="dash-stat-premium bg-white border border-depro-border/60">
               <Users size={16} style={{ color: accent }} className="mb-2" />
-              <div className="text-xl font-black text-depro-dark">{squad.length}</div>
-              <div className="text-xs text-depro-gray">Jugadores</div>
+              <div className="text-2xl font-black text-depro-dark">{squad.length}</div>
+              <div className="text-xs text-depro-gray font-medium">Jugadores</div>
             </div>
-            <div className="bg-white border border-depro-border rounded-xl p-4">
+            <div className="dash-stat-premium bg-white border border-depro-border/60">
               <Target size={16} style={{ color: accent }} className="mb-2" />
-              <div className="text-xl font-black text-depro-dark">{config.trainingsPerWeek || "—"}</div>
-              <div className="text-xs text-depro-gray">Sesiones/semana</div>
+              <div className="text-2xl font-black text-depro-dark">{config.trainingsPerWeek || "—"}</div>
+              <div className="text-xs text-depro-gray font-medium">Sesiones/semana</div>
             </div>
           </div>
 
@@ -197,11 +197,7 @@ export default function CoachDashboard({ club, team, user }) {
             <h3 className="font-bold text-depro-dark mb-3">Acceso rápido</h3>
             <div className="space-y-2">
               {quickLinks.map((item) => (
-                <Link
-                  key={item.to} to={item.to}
-                  className="flex items-center gap-3 p-3 bg-white border rounded-xl text-sm transition-all group hover:shadow-sm"
-                  style={{ borderColor: accent + "30" }}
-                >
+                <Link key={item.to} to={item.to} className="dash-quick-link group">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accent + "12", color: accent }}>
                     <item.icon size={15} />
                   </div>

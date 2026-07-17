@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Calendar, Zap, Activity,
-  MessageSquare, LogOut, Menu, X, ChevronRight, Trophy,
-  ClipboardList, Users as UsersIcon, BookOpen, User, TrendingUp, Building2,
+  LayoutDashboard, Calendar, Activity, MessageSquare, LogOut, Menu, X,
+  ChevronRight, Trophy, ClipboardList, Users as UsersIcon, User, TrendingUp,
+  Building2, HelpCircle, Bell, Search,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useView } from "../../context/ViewContext";
 import LanguageSwitcher from "../shared/LanguageSwitcher";
+import { TutorialProvider, useTutorial } from "./DashboardTutorial";
+import AiAssistantWidget from "./AiAssistantWidget";
 
-// Luminancia 0-1 de un color hex
 function luminance(hex) {
   try {
     const h = (hex || "#000").replace("#", "");
@@ -21,18 +22,104 @@ function luminance(hex) {
   } catch { return 0; }
 }
 
-// Contraste de texto para poner SOBRE un color de fondo
 function contrastText(hex) {
   return luminance(hex) > 0.55 ? "#111827" : "#ffffff";
 }
 
-// Elige el color más visible para usar como color de acento visible sobre FONDO BLANCO.
-// Si el color es demasiado claro (blanco, crema…) devuelve el fallback.
 function visibleOnWhite(color, fallback = "#0A36F7") {
   return luminance(color) > 0.75 ? fallback : color;
 }
 
-export default function AppLayout({ children }) {
+function tourIdForRoute(to) {
+  const map = {
+    "/dashboard": "nav-dashboard",
+    "/dashboard/plan": "nav-plan",
+    "/dashboard/mesocycle": "nav-mesocycle",
+    "/dashboard/squad": "nav-squad",
+    "/dashboard/team-tests": "nav-tests",
+    "/dashboard/cargas": "nav-cargas",
+    "/dashboard/physical": "nav-physical",
+    "/dashboard/feedback": "nav-feedback",
+    "/dashboard/club-settings": "nav-club-settings",
+    "/dashboard/profile": "nav-profile",
+    "/dashboard/club-profile": "nav-profile",
+  };
+  return map[to] || null;
+}
+
+function TutorialButtonMobile() {
+  const { start } = useTutorial();
+  return (
+    <button
+      onClick={start}
+      className="sm:hidden p-1.5 text-white/45 hover:text-white rounded-lg hover:bg-white/10"
+      title="Guía"
+    >
+      <HelpCircle size={16} />
+    </button>
+  );
+}
+
+function HeaderBar({ navItems, pathname, sidebarAccent, onMenuToggle, sidebarOpen, user }) {
+  const { start } = useTutorial();
+  const current =
+    navItems.find((n) => n.to === pathname) ||
+    navItems.find((n) => pathname.startsWith(n.to) && n.to !== "/dashboard");
+
+  return (
+    <header className="h-[4.25rem] border-b border-depro-border/60 flex items-center px-4 md:px-6 gap-3 flex-shrink-0 bg-white/80 backdrop-blur-xl sticky top-0 z-30">
+      <button
+        onClick={onMenuToggle}
+        className="lg:hidden p-2.5 text-depro-gray hover:text-depro-dark rounded-xl hover:bg-slate-100 transition-colors"
+      >
+        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-depro-gray hidden sm:block">
+          DEPRO Panel
+        </p>
+        <h1 className="text-base md:text-lg font-black text-depro-dark truncate">
+          {current?.label || "Dashboard"}
+        </h1>
+      </div>
+
+      {/* Search (visual) */}
+      <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100/80 border border-depro-border/50 w-48 lg:w-64">
+        <Search size={15} className="text-depro-gray shrink-0" />
+        <span className="text-xs text-depro-gray truncate">Buscar en el panel…</span>
+      </div>
+
+      <div data-tour="header-actions" className="flex items-center gap-1.5 md:gap-2">
+        <button
+          onClick={start}
+          className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-depro-blue bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-colors"
+        >
+          <HelpCircle size={15} /> Guía
+        </button>
+        <button className="p-2.5 rounded-xl text-depro-gray hover:text-depro-dark hover:bg-slate-100 relative">
+          <Bell size={18} />
+          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-depro-red ring-2 ring-white" />
+        </button>
+        <div
+          className="hidden sm:flex items-center gap-2 pl-1 pr-3 py-1 rounded-xl border border-depro-border/60 bg-white"
+        >
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black"
+            style={{ backgroundColor: sidebarAccent + "18", color: sidebarAccent }}
+          >
+            {user?.avatar || "?"}
+          </div>
+          <span className="text-xs font-semibold text-depro-dark max-w-[100px] truncate hidden lg:block">
+            {user?.name?.split(" ")[0]}
+          </span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function AppLayoutInner({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const { user, logout } = useAuth();
@@ -41,110 +128,86 @@ export default function AppLayout({ children }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  // Detectar bloque de edad del equipo activo (para mostrar Cargas solo B2/B3)
-  // DEBE ir antes de entrenadorNav para evitar TDZ
   const activeTeamForNav = viewingTeam || user?.team;
   const activeCategory = activeTeamForNav?.category;
-  const isBlock2or3 = ["Sub-13","Sub-14","Sub-15","Sub-16","Juvenil"].includes(activeCategory);
+  const isBlock2or3 = ["Sub-13", "Sub-14", "Sub-15", "Sub-16", "Juvenil"].includes(activeCategory);
 
-  // Nav items built with translations
   const playerNav = [
-    { to: "/dashboard",          icon: LayoutDashboard, label: t("nav.dashboard") },
-    { to: "/dashboard/plan",     icon: Calendar,        label: t("nav.weekly_plan") },
-    { to: "/dashboard/physical", icon: Activity,        label: t("nav.tests") },
-    { to: "/dashboard/feedback", icon: MessageSquare,   label: t("nav.feedback") },
-    { to: "/dashboard/ranking",  icon: Trophy,          label: t("nav.ranking") },
-    { to: "/dashboard/profile",  icon: User,            label: t("nav.my_profile") },
+    { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dashboard/plan", icon: Calendar, label: t("nav.weekly_plan") },
+    { to: "/dashboard/physical", icon: Activity, label: t("nav.tests") },
+    { to: "/dashboard/feedback", icon: MessageSquare, label: t("nav.feedback") },
+    { to: "/dashboard/ranking", icon: Trophy, label: t("nav.ranking") },
+    { to: "/dashboard/profile", icon: User, label: t("nav.my_profile") },
   ];
 
   const coordinadorNav = [
-    { to: "/dashboard",               icon: LayoutDashboard, label: t("nav.dashboard") },
-    { to: "/dashboard/squad",         icon: UsersIcon,       label: t("nav.squad") },
-    { to: "/dashboard/club-settings", icon: Building2,       label: "Mi Club" },
-    { to: "/dashboard/club-profile",  icon: User,            label: t("nav.my_profile") },
+    { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dashboard/squad", icon: UsersIcon, label: t("nav.squad") },
+    { to: "/dashboard/club-settings", icon: Building2, label: "Mi Club" },
+    { to: "/dashboard/club-profile", icon: User, label: t("nav.my_profile") },
   ];
 
   const entrenadorNav = [
-    { to: "/dashboard",              icon: LayoutDashboard, label: t("nav.dashboard") },
-    { to: "/dashboard/plan",         icon: Calendar,        label: t("nav.microcycle") },
-    { to: "/dashboard/mesocycle",    icon: ClipboardList,   label: t("nav.mesocycle") },
-    { to: "/dashboard/squad",        icon: UsersIcon,       label: t("nav.squad") },
-    { to: "/dashboard/team-tests",   icon: Activity,        label: t("nav.tests") },
+    { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dashboard/plan", icon: Calendar, label: t("nav.microcycle") },
+    { to: "/dashboard/mesocycle", icon: ClipboardList, label: t("nav.mesocycle") },
+    { to: "/dashboard/squad", icon: UsersIcon, label: t("nav.squad") },
+    { to: "/dashboard/team-tests", icon: Activity, label: t("nav.tests") },
     ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Cargas" }] : []),
-    { to: "/dashboard/club-profile", icon: User,            label: t("nav.my_profile") },
+    { to: "/dashboard/club-profile", icon: User, label: t("nav.my_profile") },
   ];
 
   const club = user?.club;
   const isSoloCoach = !!club?.isSoloCoach;
 
-  // Nav de DEPRO Coach (entrenador individual): mismas rutas, etiquetas propias
   const coachNav = [
-    { to: "/dashboard",              icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/dashboard/mesocycle",    icon: ClipboardList,   label: "Planificación" },
-    { to: "/dashboard/plan",         icon: Calendar,        label: "Sesiones" },
-    { to: "/dashboard/squad",        icon: UsersIcon,       label: "Plantilla" },
-    { to: "/dashboard/team-tests",   icon: Activity,        label: "Tests" },
+    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/dashboard/mesocycle", icon: ClipboardList, label: "Planificación" },
+    { to: "/dashboard/plan", icon: Calendar, label: "Sesiones" },
+    { to: "/dashboard/squad", icon: UsersIcon, label: "Plantilla" },
+    { to: "/dashboard/team-tests", icon: Activity, label: "Tests" },
     ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Carga" }] : []),
-    { to: "/dashboard/club-profile", icon: User,            label: "Mi perfil" },
+    { to: "/dashboard/club-profile", icon: User, label: "Mi perfil" },
   ];
 
   const handleLogout = () => { logout(); navigate("/"); };
 
-  // Colores del club
-  const rawAccent    = club?.primaryColor   || "#0A36F7";
+  const rawAccent = club?.primaryColor || "#0A36F7";
   const rawSecondary = club?.secondaryColor || "#ffffff";
-  // Para elementos sobre fondo BLANCO del sidebar usamos el color que sea visible
   const sidebarAccent = visibleOnWhite(rawAccent, visibleOnWhite(rawSecondary, "#0A36F7"));
-  // Para elementos sobre fondo de color (banner, cards rellenas) usamos el raw
-  const accent        = rawAccent;
-  const secondary     = rawSecondary;
-  const activeTextColor = contrastText(sidebarAccent);
-  // Coordinador viendo equipo → muestra nav completo (read-only a nivel de UI en cada página)
   const isCoordViewingTeam = user?.team_role === "coordinador" && viewingTeam;
   const navItems = user?.role === "club"
     ? (isSoloCoach ? coachNav : (user?.team_role === "coordinador" && !isCoordViewingTeam ? coordinadorNav : entrenadorNav))
     : playerNav;
 
-  // Cargar foto de perfil desde localStorage
   useEffect(() => {
     const load = () => {
       if (!user?.id) return;
-      const key = user.role === "admin"
-        ? `depro_admin_photo`
-        : user.role === "club"
+      const key = user.role === "club"
         ? `depro_club_profile_${user.id}`
         : `depro_player_photo_${user.id}`;
-      const p = localStorage.getItem(key);
-      setProfilePhoto(p || null);
+      setProfilePhoto(localStorage.getItem(key) || null);
     };
     load();
     const iv = setInterval(load, 3000);
     return () => clearInterval(iv);
   }, [user?.id, user?.role]);
 
-  // Club suspendido: mostrar pantalla de acceso bloqueado
   if (user?.role === "club" && club?.status === "inactivo") {
     return (
-      <div className="min-h-screen bg-depro-gray-light flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl shadow-depro max-w-md w-full p-8 text-center">
+      <div className="min-h-screen dashboard-bg flex items-center justify-center p-6">
+        <div className="dash-card-premium max-w-md w-full p-8 text-center">
           {club?.logo ? (
             <img src={club.logo} alt={club.name} className="w-16 h-16 object-contain mx-auto mb-4 rounded-xl border border-depro-border p-1" />
           ) : (
             <div className="w-16 h-16 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0-6v2m0-6V5m-4 7a4 4 0 108 0 4 4 0 00-8 0z" /></svg>
+              <Activity className="w-8 h-8 text-red-400" />
             </div>
           )}
           <h1 className="text-xl font-bold text-depro-dark mb-2">{t("dashboard.suspended_title")}</h1>
-          <p className="text-sm text-depro-gray mb-1">
-            {t("dashboard.suspended_desc", { club: club?.name || "tu club" })}
-          </p>
-          <p className="text-xs text-depro-gray mb-6">
-            {t("dashboard.suspended_hint")}
-          </p>
-          <button
-            onClick={() => { logout(); navigate("/"); }}
-            className="w-full py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors"
-          >
+          <p className="text-sm text-depro-gray mb-6">{t("dashboard.suspended_desc", { club: club?.name || "tu club" })}</p>
+          <button onClick={() => { logout(); navigate("/"); }} className="btn-primary w-full py-2.5 rounded-xl">
             {t("nav.logout")}
           </button>
         </div>
@@ -153,164 +216,148 @@ export default function AppLayout({ children }) {
   }
 
   return (
-    <div className="flex h-screen bg-depro-gray-light overflow-hidden">
-      {/* Sidebar */}
+    <div className="flex h-screen dashboard-bg overflow-hidden">
+      {/* Sidebar premium */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-depro-border flex flex-col transition-transform duration-300 ${
+        className={`fixed inset-y-0 left-0 z-50 w-[17.5rem] flex flex-col transition-transform duration-300 lg:relative lg:translate-x-0 dash-sidebar ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:relative lg:translate-x-0`}
+        }`}
+        style={{ "--dash-accent": sidebarAccent }}
       >
-        {/* Club branding */}
-        <div className="p-4 border-b border-depro-border">
+        {/* Accent strip */}
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-depro-blue via-indigo-500 to-violet-500" />
+
+        {/* Brand */}
+        <div className="p-5 pl-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             {isSoloCoach ? (
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0 shadow-sm border border-depro-border"
-                style={{ backgroundColor: sidebarAccent + "15", color: sidebarAccent }}
-              >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-black dash-sidebar-icon">
                 DC
               </div>
             ) : club?.logo ? (
-              <img
-                src={club.logo}
-                alt={club.name}
-                className="w-10 h-10 rounded-xl object-contain flex-shrink-0 shadow-sm border border-depro-border bg-white p-0.5"
-              />
+              <img src={club.logo} alt={club.name} className="w-11 h-11 rounded-xl object-contain dash-sidebar-icon p-0.5" />
             ) : (
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0 shadow-sm border border-depro-border"
-                style={{ backgroundColor: sidebarAccent + "15", color: sidebarAccent }}
-              >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-black dash-sidebar-icon">
                 {club?.abbreviation || club?.name?.[0] || "D"}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="text-depro-dark font-bold text-sm truncate">
+              <div className="text-white font-bold text-sm truncate">
                 {isSoloCoach ? "DEPRO Coach" : (club?.name || "DEPRO")}
               </div>
-              {isSoloCoach ? (
-                <span
-                  className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
-                  style={{ backgroundColor: sidebarAccent, color: contrastText(sidebarAccent) }}
-                >
-                  {user?.team?.name || "Mi equipo"}
-                </span>
-              ) : user?.role === "club" ? (
-                <span
-                  className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
-                  style={{ backgroundColor: sidebarAccent, color: contrastText(sidebarAccent) }}
-                >
-                  {user?.team_role === "coordinador" && viewingTeam
-                    ? viewingTeam.name || "Equipo"
+              <span
+                className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 dash-role-badge"
+                style={{ backgroundColor: sidebarAccent, color: contrastText(sidebarAccent) }}
+              >
+                {isSoloCoach ? (user?.team?.name || "Mi equipo")
+                  : user?.role === "club"
+                  ? (user?.team_role === "coordinador" && viewingTeam ? viewingTeam.name
                     : user?.team_role === "coordinador" ? "Coordinador"
-                    : user?.team_role === "entrenador" ? `${user.team?.name || "Entrenador"}`
-                    : user?.team_role || "Club"}
-                </span>
-              ) : (
-                <div className="text-xs font-semibold mt-0.5" style={{ color: sidebarAccent }}>{user?.plan || "Jugador"}</div>
-              )}
+                    : user?.team?.name || "Entrenador")
+                  : (user?.plan || "Jugador")}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Volver (solo cuando coordinador está viendo un equipo) */}
         {isCoordViewingTeam && (
-          <div className="px-4 pt-3 pb-1">
+          <div className="px-4 pt-3">
             <button
               onClick={() => { setViewingTeam(null); navigate("/dashboard"); setSidebarOpen(false); }}
-              className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-bold text-depro-gray hover:text-depro-dark hover:bg-depro-gray-light transition-colors border border-depro-border"
+              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-xs font-bold text-white/60 hover:text-white hover:bg-white/8 transition-colors border border-white/10"
             >
-              <ChevronRight size={13} className="rotate-180 flex-shrink-0" />
-              Todos los equipos
+              <ChevronRight size={13} className="rotate-180" /> Todos los equipos
             </button>
           </div>
         )}
 
         {/* Nav */}
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">{t("nav.dashboard")}</p>
-          <div className="space-y-0.5">
+        <nav data-tour="sidebar-nav" className="flex-1 px-3 py-4 overflow-y-auto">
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/30 px-3 mb-3">Menú</p>
+          <div className="space-y-1">
             {navItems.map((item) => {
               const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
+              const tourId = tourIdForRoute(item.to);
               return (
                 <Link
                   key={item.to}
+                  {...(tourId ? { "data-tour": tourId } : {})}
                   to={item.to}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
-                    active
-                      ? "shadow-sm"
-                      : "text-depro-gray hover:text-depro-dark hover:bg-depro-gray-light"
+                  className={`dash-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    active ? "dash-nav-active" : "text-white/55 hover:text-white hover:bg-white/8"
                   }`}
                   style={active ? { backgroundColor: sidebarAccent, color: contrastText(sidebarAccent) } : {}}
                 >
-                  <item.icon size={18} />
-                  {item.label}
-                  {active && <ChevronRight size={14} className="ml-auto opacity-70" />}
+                  <item.icon size={18} className="shrink-0" />
+                  <span className="flex-1">{item.label}</span>
+                  {active && <ChevronRight size={14} className="opacity-60" />}
                 </Link>
               );
             })}
           </div>
         </nav>
 
-        {/* User */}
-        <div className="p-4 border-t border-depro-border">
-          <div className="flex items-center gap-3 mb-3">
-            <div
-              className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden border border-depro-border"
-              style={{ backgroundColor: sidebarAccent + "15" }}
-            >
-              {profilePhoto
-                ? <img src={profilePhoto} alt="perfil" className="w-full h-full object-cover" />
-                :               <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ color: sidebarAccent }}>
-                    {user?.avatar || "?"}
-                  </div>
-              }
+        {/* User footer */}
+        <div className="p-4 border-t border-white/10">
+          <div className="flex items-center gap-3 mb-3 px-1">
+            <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/15 shrink-0">
+              {profilePhoto ? (
+                <img src={profilePhoto} alt="perfil" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-sm font-bold text-white/80 bg-white/10">
+                  {user?.avatar || "?"}
+                </div>
+              )}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-depro-dark text-sm font-semibold truncate">{user?.name}</div>
-              <div className="text-depro-gray text-xs truncate">{user?.email}</div>
+              <div className="text-white text-sm font-semibold truncate">{user?.name}</div>
+              <div className="text-white/40 text-xs truncate">{user?.email}</div>
             </div>
           </div>
-          <div className="flex items-center justify-between mb-1">
-            <LanguageSwitcher compact />
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-depro-gray hover:text-depro-red text-sm transition-colors py-2 px-3 rounded-xl hover:bg-red-50"
-            >
-              <LogOut size={16} /> {t("nav.logout")}
-            </button>
+          <div className="flex items-center justify-between">
+            <LanguageSwitcher compact light />
+            <div className="flex items-center gap-1">
+              <TutorialButtonMobile />
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 text-white/45 hover:text-red-400 text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+              >
+                <LogOut size={14} /> Salir
+              </button>
+            </div>
           </div>
         </div>
       </aside>
 
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        {/* Top bar */}
-        <header className="h-16 border-b border-depro-border flex items-center px-4 md:px-6 gap-4 flex-shrink-0 bg-white">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 text-depro-gray hover:text-depro-dark rounded-lg hover:bg-depro-gray-light"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-          <div className="flex-1">
-            <h1 className="text-sm font-bold text-depro-dark">
-              {navItems.find((n) => n.to === pathname)?.label ||
-               navItems.find((n) => pathname.startsWith(n.to) && n.to !== "/dashboard")?.label ||
-               "Dashboard"}
-            </h1>
-          </div>
-          {/* DEPRO logo small */}
-          <img src="/logo.png" alt="DEPRO" className="h-5 w-auto" />
-        </header>
-
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <HeaderBar
+          navItems={navItems}
+          pathname={pathname}
+          sidebarAccent={sidebarAccent}
+          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+          sidebarOpen={sidebarOpen}
+          user={user}
+        />
+        <main className="flex-1 overflow-y-auto dashboard-main-scroll">
+          {children}
+        </main>
+        <AiAssistantWidget />
       </div>
     </div>
+  );
+}
+
+export default function AppLayout({ children }) {
+  const { user } = useAuth();
+  return (
+    <TutorialProvider user={user}>
+      <AppLayoutInner>{children}</AppLayoutInner>
+    </TutorialProvider>
   );
 }

@@ -95,7 +95,7 @@ function ClubBanner({ club, team, teamRole, accent, secondColor }) {
 
   return (
     <div
-      className="rounded-2xl overflow-hidden relative"
+      className="dash-glass-header relative"
       style={{
         background: hasBanner
           ? `url(${club.banner}) center/cover no-repeat`
@@ -160,11 +160,10 @@ function StatCard({ label, value, sub, icon: Icon, accent, secondary }) {
   const isLight = lum(accent) > 0.75;
 
   if (isLight) {
-    // Modo borde: fondo blanco con borde y acentos en color
     return (
       <div
-        className="bg-white rounded-xl p-4 hover:shadow-md transition-all border-2"
-        style={{ borderColor: safeAccent }}
+        className="dash-stat-premium bg-white border-2 hover:shadow-lg"
+        style={{ borderColor: safeAccent + "40" }}
       >
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: safeAccent + "15" }}>
@@ -179,10 +178,9 @@ function StatCard({ label, value, sub, icon: Icon, accent, secondary }) {
     );
   }
 
-  // Modo relleno: fondo con el color del club
   const textOnAccent = contrastText(accent);
   return (
-    <div className="rounded-xl p-4 hover:shadow-md transition-all border" style={{ backgroundColor: accent, borderColor: accent }}>
+    <div className="dash-stat-premium border-0 hover:shadow-xl" style={{ backgroundColor: accent }}>
       <div className="flex items-start justify-between mb-3">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
           <Icon size={20} style={{ color: textOnAccent }} />
@@ -202,9 +200,8 @@ function StatCardSecondary({ label, value, sub, icon: Icon, accent, secondary })
   const secLight = lum(secondary) > 0.75;
 
   if (secLight) {
-    // Secundario claro → usar fondo muy suave con borde del color primario visible
     return (
-      <div className="bg-depro-gray-light rounded-xl p-4 hover:shadow-md transition-all border border-depro-border">
+      <div className="dash-stat-premium bg-white/80 backdrop-blur-sm border border-depro-border/60 hover:shadow-lg">
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: safeAccent + "20" }}>
             <Icon size={20} style={{ color: safeAccent }} />
@@ -220,7 +217,7 @@ function StatCardSecondary({ label, value, sub, icon: Icon, accent, secondary })
 
   const textOnSec = contrastText(secondary);
   return (
-    <div className="rounded-xl p-4 hover:shadow-md transition-all border" style={{ backgroundColor: secondary, borderColor: secondary }}>
+    <div className="dash-stat-premium border-0 hover:shadow-xl" style={{ backgroundColor: secondary }}>
       <div className="flex items-start justify-between mb-3">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
           <Icon size={20} style={{ color: textOnSec }} />
@@ -368,8 +365,8 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
                 <div
                   key={team.id}
                   onClick={() => onViewTeam(team)}
-                  className="bg-white rounded-xl p-5 space-y-3 hover:shadow-lg transition-all border cursor-pointer group"
-                  style={{ borderColor: sa + "30", borderTopWidth: "3px", borderTopColor: sa }}
+                  className="dash-card-premium p-5 space-y-3 cursor-pointer group hover:-translate-y-0.5"
+                  style={{ borderTopWidth: "3px", borderTopColor: sa }}
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -1171,7 +1168,7 @@ export default function DashboardPage() {
 
   if (user?.role === "club" && club?.isSoloCoach) {
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="dash-page space-y-6">
         <CoachDashboard club={club} team={team} user={user} />
       </div>
     );
@@ -1183,7 +1180,7 @@ export default function DashboardPage() {
     const viewRole = selectedTeam ? "entrenador" : teamRole;
 
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="dash-page space-y-6">
         <ClubBanner
           club={club}
           team={selectedTeam || team}
@@ -1215,7 +1212,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+    <div className="dash-page">
       <JugadorDashboard user={user} club={club} />
     </div>
   );
