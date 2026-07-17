@@ -111,15 +111,14 @@ export default function HomePage() {
         <TestimonialsSection dark />
       </SectionBlock>
 
-      {/* Oscuro: vídeo demo */}
+      {/* Blanco: vídeo demo */}
       <SectionBlock>
-        <VideoSection dark />
+        <VideoSection dark={false} />
       </SectionBlock>
 
-      {/* Oscuro: foto campo — planificación real */}
+      {/* Oscuro: editorial — placeholder imagen */}
       <FootballStorySection
         dark
-        image="/foto1.jpg"
         label="En el campo"
         title="Preparación física donde ocurre: en el césped"
         desc="DEPRO conecta lo que planificas en el panel con lo que ejecutas en cada sesión. Microciclos, carga y tests alineados con la realidad de tu categoría."
@@ -132,11 +131,10 @@ export default function HomePage() {
         ctaText="Explorar planificación"
       />
 
-      {/* Blanco: foto entrenamiento — staff y plantilla */}
+      {/* Blanco: editorial — placeholder imagen */}
       <FootballStorySection
         dark={false}
         reverse
-        image="/foto2.jpg"
         label="Tu club"
         title="Staff coordinado, plantilla comprometida"
         desc="Entrenador, coordinador y jugadores en la misma plataforma. Adherencia visible, tests registrados y evolución clara para todo el departamento."

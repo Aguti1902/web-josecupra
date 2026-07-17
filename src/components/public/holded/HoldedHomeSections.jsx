@@ -664,12 +664,30 @@ const VIDEO_CHAPTERS = [
   { time: "1:30", label: "Comparte con la plantilla" },
 ];
 
-export function VideoSection({ dark = true }) {
+function MediaPlaceholder({ dark = false, hint = "Imagen próximamente" }) {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8">
+      <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white flex items-center justify-center shadow-sm w-full max-w-[220px] aspect-[4/3]">
+        <img src="/logo.png" alt="DEPRO" className="h-11 object-contain opacity-80" />
+      </div>
+      <p className={`text-xs font-semibold uppercase tracking-wider ${dark ? "text-holded-muted" : "text-gray-400"}`}>
+        {hint}
+      </p>
+    </div>
+  );
+}
+
+export function VideoSection({ dark = false }) {
   const [playing, setPlaying] = useState(false);
   const s = sx(dark);
 
   return (
     <section className={`${s.section} overflow-hidden`}>
+      {!dark && (
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[280px] bg-blue-100/50 rounded-full blur-[100px]" />
+        </div>
+      )}
       {dark && (
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(37,99,235,0.18),transparent)]" />
@@ -692,38 +710,44 @@ export function VideoSection({ dark = true }) {
 
         <div className="relative max-w-4xl mx-auto">
           <div className={`absolute -inset-4 rounded-[2rem] blur-2xl opacity-60 ${dark ? "bg-holded-blue/20" : "bg-blue-200/40"}`} aria-hidden="true" />
-          <div className="relative rounded-2xl md:rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black aspect-video group">
+          <div className={`relative rounded-2xl md:rounded-3xl overflow-hidden shadow-xl aspect-video group ${
+            dark ? "border border-white/10 bg-black" : "border border-gray-200 bg-white"
+          }`}>
             {!playing ? (
               <>
-                <img
-                  src="/foto3.jpg"
-                  alt="Entrenamiento de fútbol con DEPRO"
-                  className="absolute inset-0 w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
+                <MediaPlaceholder dark={dark} hint="Vídeo demo próximamente" />
                 <button
                   type="button"
                   onClick={() => setPlaying(true)}
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-4"
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10"
                   aria-label="Reproducir demo de DEPRO"
                 >
-                  <span className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.35)] group-hover:scale-110 transition-transform duration-300">
+                  <span className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white flex items-center justify-center shadow-lg border border-gray-100 group-hover:scale-110 transition-transform duration-300">
                     <Play size={36} className="text-holded-blue fill-holded-blue ml-1.5" />
                   </span>
-                  <span className="text-white font-bold text-sm md:text-base tracking-wide">Ver demo · 3 min</span>
+                  <span className={`font-bold text-sm md:text-base tracking-wide ${dark ? "text-white" : "text-gray-700"}`}>
+                    Ver demo · 3 min
+                  </span>
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6 flex flex-wrap gap-2">
+                <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6 flex flex-wrap gap-2 z-10">
                   {VIDEO_CHAPTERS.map(({ time, label }) => (
-                    <span key={label} className="text-[11px] font-semibold text-white/90 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
+                    <span
+                      key={label}
+                      className={`text-[11px] font-semibold px-3 py-1.5 rounded-full border ${
+                        dark
+                          ? "text-white/90 bg-black/40 backdrop-blur-sm border-white/10"
+                          : "text-gray-600 bg-white/90 backdrop-blur-sm border-gray-200 shadow-sm"
+                      }`}
+                    >
                       {time} · {label}
                     </span>
                   ))}
                 </div>
               </>
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-holded-dark text-center p-8">
-                <VideoPreviewScene light={false} />
-                <p className="text-holded-muted text-sm mt-4 max-w-sm">
+              <div className={`absolute inset-0 flex flex-col items-center justify-center text-center p-8 ${dark ? "bg-holded-dark" : "bg-gray-50"}`}>
+                <VideoPreviewScene light={!dark} />
+                <p className={`text-sm mt-4 max-w-sm ${s.body}`}>
                   Vídeo demo próximamente. Mientras tanto, prueba DEPRO gratis y genera tu primer microciclo.
                 </p>
                 <div className="flex flex-wrap gap-3 mt-6 justify-center">
@@ -768,12 +792,12 @@ export function VideoSection({ dark = true }) {
   );
 }
 
-/* ── Secciones con fotos reales de fútbol ───────────────────── */
+/* ── Secciones editoriales (placeholder imagen) ─────────────── */
 
 export function FootballStorySection({
   dark = true,
   reverse = false,
-  image,
+  image = null,
   label,
   title,
   desc,
@@ -812,15 +836,18 @@ export function FootballStorySection({
 
   const visual = (
     <div className="relative">
-      <div className={`absolute -inset-3 rounded-[2rem] blur-2xl opacity-50 ${dark ? "bg-holded-blue/25" : "bg-orange-200/50"}`} aria-hidden="true" />
-      <div className="relative aspect-[4/5] sm:aspect-[5/4] lg:aspect-[4/5] rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl">
-        <img src={image} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <div className={`absolute inset-0 ${dark ? "bg-gradient-to-t from-holded-dark/90 via-holded-dark/20 to-transparent" : "bg-gradient-to-t from-gray-900/50 via-transparent to-transparent"}`} />
-        <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
-          <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-white/90 bg-black/35 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
-            <span className="w-1.5 h-1.5 rounded-full bg-holded-green animate-pulse" /> En el campo
-          </span>
-        </div>
+      <div className={`absolute -inset-3 rounded-[2rem] blur-2xl opacity-40 ${dark ? "bg-holded-blue/20" : "bg-blue-100/60"}`} aria-hidden="true" />
+      <div className={`relative aspect-[4/5] sm:aspect-[5/4] lg:aspect-[4/5] rounded-2xl md:rounded-3xl overflow-hidden shadow-lg border-2 border-dashed ${
+        dark ? "border-white/15 bg-holded-card/40" : "border-gray-200 bg-gray-50"
+      }`}>
+        {image ? (
+          <>
+            <img src={image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className={`absolute inset-0 ${dark ? "bg-gradient-to-t from-holded-dark/90 via-holded-dark/20 to-transparent" : "bg-gradient-to-t from-gray-900/40 via-transparent to-transparent"}`} />
+          </>
+        ) : (
+          <MediaPlaceholder dark={dark} />
+        )}
       </div>
     </div>
   );
