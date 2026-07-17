@@ -11,7 +11,7 @@ function CoachEngineScene({ light = false }) {
     <div className={sceneShell(light)}>
       <div className="flex items-center justify-between mb-2">
         <span className={`text-[9px] font-bold uppercase ${light ? "text-gray-400" : "text-white/50"}`}>Microciclo · S3</span>
-        <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">A/B/C</span>
+        <span className="text-[8px] font-bold text-holded-blue bg-blue-50 px-1.5 py-0.5 rounded-full">A/B/C</span>
       </div>
       <div className="flex items-end gap-1 h-14">
         {bars.map((h, i) => (
@@ -49,8 +49,8 @@ function PlayerPlanScene({ light = false }) {
           </div>
         ))}
       </div>
-      <div className={`absolute bottom-2 right-2 w-6 h-6 rounded-full flex items-center justify-center ai-hover-pulse ${light ? "bg-emerald-50 border border-emerald-200" : "bg-emerald-500/20 border border-emerald-400/40"}`}>
-        <span className={`text-[8px] font-black ${light ? "text-emerald-600" : "text-emerald-300"}`}>✓</span>
+      <div className={`absolute bottom-2 right-2 w-6 h-6 rounded-full flex items-center justify-center ai-hover-pulse ${light ? "bg-blue-50 border border-blue-200" : "bg-holded-blue/20 border border-blue-400/40"}`}>
+        <span className={`text-[8px] font-black ${light ? "text-holded-blue" : "text-blue-300"}`}>✓</span>
       </div>
     </div>
   );
@@ -62,11 +62,11 @@ function LoadClassifierScene({ light = false }) {
     <div className={sceneShell(light)}>
       <div className="flex items-center justify-between mb-1">
         <span className={`text-[9px] font-bold ${light ? "text-gray-400" : "text-white/50"}`}>RPE · Wellness</span>
-        <span className="text-lg font-black text-holded-green ai-hover-counter">6.8</span>
+        <span className="text-lg font-black text-holded-blue ai-hover-counter">6.8</span>
       </div>
       <div className="flex items-end gap-0.5 h-12 mt-1">
         {bars.map((h, i) => (
-          <div key={i} className="flex-1 rounded-t-sm bg-gradient-to-t from-holded-green to-emerald-400 ai-hover-bar" style={{ height: `${h * 0.45}%`, animationDelay: `${i * 0.08}s` }} />
+          <div key={i} className="flex-1 rounded-t-sm bg-gradient-to-t from-holded-blue to-blue-400 ai-hover-bar" style={{ height: `${h * 0.45}%`, animationDelay: `${i * 0.08}s` }} />
         ))}
       </div>
       <div className="mt-1.5 flex gap-1">
@@ -94,7 +94,7 @@ function PeriodizationScene({ light = false }) {
         ))}
       </div>
       <div className={`h-1 rounded-full mt-2 overflow-hidden ${light ? "bg-gray-200" : "bg-white/5"}`}>
-        <div className="h-full w-3/5 bg-gradient-to-r from-holded-blue to-emerald-400 rounded-full ai-hover-progress" />
+        <div className="h-full w-3/5 bg-gradient-to-r from-holded-blue to-blue-400 rounded-full ai-hover-progress" />
       </div>
     </div>
   );
@@ -131,7 +131,7 @@ export function GenerateScene({ light = true }) {
       <div className="space-y-1">
         {rows.map((r, i) => (
           <div key={r} className={`flex items-center gap-2 rounded-lg px-2 py-1 ai-hover-fill ${light ? "bg-white border border-gray-100" : "bg-white/5"}`} style={{ animationDelay: `${i * 0.12}s` }}>
-            <div className={`w-3 h-3 rounded ai-hover-pulse ${i < 2 ? "bg-holded-green" : "bg-gray-200"}`} />
+            <div className={`w-3 h-3 rounded ai-hover-pulse ${i < 2 ? "bg-holded-blue" : "bg-gray-200"}`} />
             <span className={`text-[8px] font-semibold flex-1 ${light ? "text-gray-700" : "text-white/70"}`}>{r}</span>
             <span className={`text-[7px] tabular-nums ${light ? "text-gray-400" : "text-white/30"}`}>{45 + i * 8} min</span>
           </div>
@@ -147,15 +147,15 @@ export function TrainScene({ light = true }) {
     <div className={sceneShell(light)}>
       <div className="flex items-center justify-between mb-2">
         <span className={`text-[9px] font-bold uppercase ${light ? "text-gray-400" : "text-white/50"}`}>Sesión en campo</span>
-        <span className="text-[8px] font-bold text-holded-green">Live</span>
+        <span className="text-[8px] font-bold text-holded-blue">Live</span>
       </div>
       <div className="flex items-end gap-1 h-12">
         {bars.map((h, i) => (
-          <div key={i} className={`flex-1 rounded-t ai-hover-bar bg-gradient-to-t from-holded-green to-emerald-400`} style={{ height: `${h * 0.5}%`, animationDelay: `${i * 0.1}s` }} />
+          <div key={i} className={`flex-1 rounded-t ai-hover-bar bg-gradient-to-t from-holded-blue to-blue-400`} style={{ height: `${h * 0.5}%`, animationDelay: `${i * 0.1}s` }} />
         ))}
       </div>
       <div className="flex justify-between mt-2 text-[7px] font-bold">
-        <span className="text-holded-green">Adherencia 85%</span>
+        <span className="text-holded-blue">Adherencia 85%</span>
         <span className={light ? "text-gray-400" : "text-white/30"}>22 jugadores</span>
       </div>
     </div>
@@ -202,7 +202,7 @@ export function RolePlayerScene({ light = true }) {
       <div className="space-y-1.5">
         {["Calentamiento", "Fuerza", "Core"].map((t, i) => (
           <div key={t} className="flex items-center gap-2">
-            <div className={`w-4 h-4 rounded flex items-center justify-center ai-hover-pulse ${i < 2 ? "bg-holded-green text-white text-[7px]" : light ? "bg-gray-200" : "bg-white/10"}`}>✓</div>
+            <div className={`w-4 h-4 rounded flex items-center justify-center ai-hover-pulse ${i < 2 ? "bg-holded-blue text-white text-[7px]" : light ? "bg-gray-200" : "bg-white/10"}`}>✓</div>
             <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${light ? "bg-gray-200" : "bg-white/5"}`}>
               <div className="h-full bg-gradient-to-r from-violet-500 to-holded-blue rounded-full ai-hover-fill" style={{ width: `${70 + i * 10}%`, animationDelay: `${i * 0.1}s` }} />
             </div>
@@ -237,7 +237,7 @@ export function VideoPreviewScene({ light = true }) {
         ))}
       </div>
       <div className={`h-2 rounded-full overflow-hidden ${light ? "bg-gray-200" : "bg-white/5"}`}>
-        <div className="h-full bg-gradient-to-r from-holded-blue via-indigo-500 to-emerald-400 rounded-full ai-hover-progress" />
+        <div className="h-full bg-gradient-to-r from-holded-blue via-indigo-500 to-blue-400 rounded-full ai-hover-progress" />
       </div>
       <p className={`text-[9px] text-center mt-2 ${light ? "text-gray-400" : "text-white/30"}`}>Pasa el ratón para ver el flujo</p>
     </div>

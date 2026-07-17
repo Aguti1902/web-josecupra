@@ -20,7 +20,7 @@ function SquadCardVisual() {
       <div className="space-y-1.5">
         {["Delantero", "Medio", "Defensa"].map((p, i) => (
           <div key={p} className="flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1.5">
-            <div className={`w-5 h-5 rounded-full ai-hover-pulse ${["bg-blue-500", "bg-emerald-500", "bg-violet-500"][i]}`} />
+            <div className={`w-5 h-5 rounded-full ai-hover-pulse ${["bg-blue-500", "bg-indigo-500", "bg-violet-500"][i]}`} />
             <span className="text-[9px] font-semibold text-white/70 flex-1">{p}</span>
             <span className="text-[8px] text-white/30">{8 - i * 2} activos</span>
           </div>
@@ -36,10 +36,10 @@ function TestsCardVisual() {
       <p className="text-[8px] font-bold text-white/40 uppercase mb-2">Tests T1 → T3</p>
       <div className="flex items-end gap-1 h-20">
         {[45, 62, 78, 55, 85, 70, 92].map((h, i) => (
-          <div key={i} className="flex-1 rounded-t bg-gradient-to-t from-holded-green to-emerald-400 ai-hover-bar" style={{ height: `${h * 0.55}%`, animationDelay: `${i * 0.1}s` }} />
+          <div key={i} className="flex-1 rounded-t bg-gradient-to-t from-holded-blue to-blue-400 ai-hover-bar" style={{ height: `${h * 0.55}%`, animationDelay: `${i * 0.1}s` }} />
         ))}
       </div>
-      <p className="text-[8px] text-holded-green font-bold mt-1">+12% vs temporada anterior</p>
+      <p className="text-[8px] text-holded-blue-light font-bold mt-1">+12% vs temporada anterior</p>
     </div>
   );
 }
@@ -72,8 +72,8 @@ function ReportsCardVisual() {
           <p className="text-lg font-black text-white">87%</p>
           <p className="text-[7px] text-white/40">Adherencia</p>
         </div>
-        <div className="rounded-lg bg-emerald-500/10 p-2">
-          <p className="text-lg font-black text-holded-green">6.8</p>
+        <div className="rounded-lg bg-blue-50 p-2">
+          <p className="text-lg font-black text-holded-blue">6.8</p>
           <p className="text-[7px] text-white/40">RPE medio</p>
         </div>
       </div>
@@ -97,22 +97,22 @@ const EXTRA_TOOLS = [
 
 export function ExtraToolsSection() {
   return (
-    <section className="py-20 md:py-28 bg-holded-dark border-t border-white/5 relative overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-orange-500/5 rounded-full blur-[100px]" aria-hidden="true" />
+    <section className="py-20 md:py-28 bg-white border-t border-gray-100 relative overflow-hidden">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-orange-100/40 rounded-full blur-[100px]" aria-hidden="true" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-14">
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Otras herramientas para potenciar tu rendimiento</h2>
-          <p className="text-holded-muted">Plantilla, tests, periodización e informes — conectados con tu planificación.</p>
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Otras herramientas para potenciar tu rendimiento</h2>
+          <p className="text-gray-500">Plantilla, tests, periodización e informes — conectados con tu planificación.</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {EXTRA_TOOLS.map(({ title, desc, to, Visual }) => (
-            <Link key={title} to={to} className="group block rounded-2xl border border-white/8 bg-holded-card/60 overflow-hidden hover:border-holded-blue/30 hover:shadow-xl transition-all">
+            <Link key={title} to={to} className="group block rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden hover:border-holded-blue/30 hover:shadow-lg transition-all">
               <div className="p-4 pb-0">
                 <Visual />
               </div>
               <div className="p-5 pt-4">
-                <h3 className="font-black text-white text-lg mb-2">{title}</h3>
-                <p className="text-sm text-holded-muted leading-relaxed">{desc}</p>
+                <h3 className="font-black text-gray-900 text-lg mb-2">{title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
               </div>
             </Link>
           ))}
@@ -128,29 +128,29 @@ const PLAN_CARDS = [
   { name: "Coach", color: "from-slate-600 to-slate-700", price: "14,99 €" },
   { name: "Pro", color: "from-holded-blue to-indigo-600", price: "29,99 €", featured: true },
   { name: "Club", color: "from-violet-600 to-purple-700", price: "49,99 €" },
-  { name: "Elite", color: "from-emerald-600 to-teal-700", price: "Custom" },
+  { name: "Elite", color: "from-indigo-600 to-violet-700", price: "Custom" },
 ];
 
 export function PricingTeaserSection() {
   return (
-    <section className="py-20 md:py-28 bg-holded-dark border-t border-white/5">
+    <section className="py-20 md:py-28 bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-holded-blue-light mb-4">Precios sencillos</p>
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight">Planes que crecen con tu club</h2>
-            <p className="text-holded-muted mb-6 leading-relaxed">Empieza gratis 15 días. Sin tarjeta de crédito. Escala cuando lo necesites.</p>
-            <div className="flex flex-wrap gap-4 mb-8 text-sm text-holded-muted">
-              {["15 días gratis", "Sin tarjeta", "Escala contigo"].map((t) => (
-                <span key={t} className="flex items-center gap-1.5"><Check size={14} className="text-holded-green" /> {t}</span>
+            <p className="text-xs font-bold uppercase tracking-widest text-holded-blue mb-4">Precios sencillos</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4 leading-tight">Planes que crecen con tu club</h2>
+            <p className="text-gray-500 mb-6 leading-relaxed">Sin tarjeta de crédito. Escala cuando lo necesites.</p>
+            <div className="flex flex-wrap gap-4 mb-8 text-sm text-gray-500">
+              {["Sin tarjeta", "Escala contigo", "Cancela cuando quieras"].map((t) => (
+                <span key={t} className="flex items-center gap-1.5"><Check size={14} className="text-holded-blue" /> {t}</span>
               ))}
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link to="/precios" className="inline-flex items-center gap-2 bg-white text-gray-900 font-bold px-6 py-3 rounded-full hover:bg-gray-100 transition-colors">
+              <Link to="/precios" className="inline-flex items-center gap-2 bg-gray-900 text-white font-bold px-6 py-3 rounded-full hover:bg-gray-800 transition-colors">
                 Ver todos los planes <ArrowRight size={16} />
               </Link>
-              <Link to="/comprar" className="inline-flex items-center gap-2 border border-white/25 text-white font-bold px-6 py-3 rounded-full hover:bg-white/5 transition-colors">
-                Prueba gratis 15 días
+              <Link to="/comprar" className="inline-flex items-center gap-2 border border-gray-300 text-gray-900 font-bold px-6 py-3 rounded-full hover:bg-gray-50 transition-colors">
+                Prueba gratis
               </Link>
             </div>
           </div>
@@ -189,11 +189,11 @@ const WHY_DEPRO = [
 
 export function WhyDeproSection() {
   return (
-    <section className="py-20 md:py-28 bg-holded-dark border-t border-white/5">
+    <section className="py-20 md:py-28 bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-14">
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Por qué los clubs eligen DEPRO</h2>
-          <p className="text-holded-muted">Las funcionalidades que hacen de DEPRO la mejor opción para preparación física.</p>
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Por qué los clubs eligen DEPRO</h2>
+          <p className="text-gray-500">Las funcionalidades que hacen de DEPRO la mejor opción para preparación física.</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {WHY_DEPRO.map(({ icon: Icon, title, desc, to, highlight }) => (
@@ -202,16 +202,16 @@ export function WhyDeproSection() {
               to={to}
               className={`group rounded-2xl border p-6 transition-all hover:shadow-lg ${
                 highlight
-                  ? "border-holded-blue/30 bg-holded-blue/10 hover:bg-holded-blue/15"
-                  : "border-white/8 bg-holded-card/40 hover:border-holded-blue/25"
+                  ? "border-holded-blue/25 bg-blue-50/80 hover:bg-blue-50"
+                  : "border-gray-200 bg-gray-50/80 hover:border-holded-blue/25"
               }`}
             >
-              <div className="w-10 h-10 rounded-xl bg-holded-blue/20 flex items-center justify-center mb-4">
-                <Icon size={20} className="text-holded-blue-light" />
+              <div className="w-10 h-10 rounded-xl bg-holded-blue/10 flex items-center justify-center mb-4">
+                <Icon size={20} className="text-holded-blue" />
               </div>
-              <h3 className="font-black text-white mb-2 leading-snug">{title}</h3>
-              <p className="text-sm text-holded-muted leading-relaxed mb-4">{desc}</p>
-              <span className="text-sm font-bold text-holded-blue-light inline-flex items-center gap-1 group-hover:gap-2 transition-all">
+              <h3 className="font-black text-gray-900 mb-2 leading-snug">{title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-4">{desc}</p>
+              <span className="text-sm font-bold text-holded-blue inline-flex items-center gap-1 group-hover:gap-2 transition-all">
                 Saber más <ChevronRight size={14} />
               </span>
             </Link>
@@ -231,17 +231,17 @@ export function ImpactStatsSection() {
     { val: "85%", label: "adherencia media de plantillas", sub: "en clubs activos" },
   ];
   return (
-    <section className="py-20 md:py-28 bg-holded-dark border-t border-white/5">
+    <section className="py-20 md:py-28 bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <h2 className="text-3xl md:text-4xl font-black text-white text-center mb-14">
+        <h2 className="text-3xl md:text-4xl font-black text-gray-900 text-center mb-14">
           Entrenadores y clubs ya confían en DEPRO
         </h2>
         <div className="grid md:grid-cols-3 gap-6">
           {stats.map(({ val, label, sub }) => (
-            <div key={label} className="group rounded-2xl border border-white/8 bg-holded-card/60 p-8 text-center hover:border-holded-blue/30 transition-all">
-              <p className="text-4xl md:text-5xl font-black text-white mb-3 tabular-nums group-hover:text-holded-blue-light transition-colors">{val}</p>
-              <p className="text-sm font-semibold text-white/80 mb-1">{label}</p>
-              <p className="text-xs text-holded-muted">{sub}</p>
+            <div key={label} className="group rounded-2xl border border-gray-200 bg-gray-50 p-8 text-center hover:border-holded-blue/30 hover:shadow-md transition-all">
+              <p className="text-4xl md:text-5xl font-black text-gray-900 mb-3 tabular-nums group-hover:text-holded-blue transition-colors">{val}</p>
+              <p className="text-sm font-semibold text-gray-700 mb-1">{label}</p>
+              <p className="text-xs text-gray-400">{sub}</p>
             </div>
           ))}
         </div>
@@ -260,28 +260,28 @@ const STEPS = [
 
 export function HowItWorksSection() {
   return (
-    <section className="py-20 md:py-28 bg-holded-dark border-t border-white/5">
+    <section className="py-20 md:py-28 bg-gray-50 border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-14">
-          <p className="text-xs font-bold uppercase tracking-widest text-holded-blue-light mb-3">Cómo funciona</p>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">De cero a microciclo en tres pasos</h2>
-          <p className="text-holded-muted">Sin curva de aprendizaje. Configura, genera y entrena con datos reales.</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-holded-blue mb-3">Cómo funciona</p>
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">De cero a microciclo en tres pasos</h2>
+          <p className="text-gray-500">Sin curva de aprendizaje. Configura, genera y entrena con datos reales.</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {STEPS.map(({ icon: Icon, title, desc, Scene }, i) => (
-            <div key={title} className="group rounded-2xl border border-white/8 bg-holded-card/60 p-6 hover:border-holded-blue/30 transition-all">
+            <div key={title} className="group rounded-2xl border border-gray-200 bg-white p-6 hover:border-holded-blue/30 hover:shadow-lg transition-all">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-holded-blue/20 flex items-center justify-center">
-                  <Icon size={18} className="text-holded-blue-light" />
+                <div className="w-10 h-10 rounded-xl bg-holded-blue/10 flex items-center justify-center">
+                  <Icon size={18} className="text-holded-blue" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-holded-muted">Paso {i + 1}</span>
-                  <h3 className="font-black text-white">{title}</h3>
+                  <span className="text-[10px] font-bold text-gray-400">Paso {i + 1}</span>
+                  <h3 className="font-black text-gray-900">{title}</h3>
                 </div>
               </div>
-              <p className="text-sm text-holded-muted mb-4 leading-relaxed">{desc}</p>
-              <Scene light={false} />
-              <p className="text-[10px] text-holded-muted/60 mt-3 flex items-center gap-1">
+              <p className="text-sm text-gray-500 mb-4 leading-relaxed">{desc}</p>
+              <Scene light />
+              <p className="text-[10px] text-gray-400 mt-3 flex items-center gap-1">
                 <Sparkles size={10} /> Hover para animar
               </p>
             </div>
@@ -302,23 +302,23 @@ const ROLES = [
 
 export function RolesSection() {
   return (
-    <section className="py-20 md:py-28 bg-holded-dark border-t border-white/5">
+    <section className="py-20 md:py-28 bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-14">
-          <p className="text-xs font-bold uppercase tracking-widest text-holded-blue-light mb-3">Perfiles</p>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Una plataforma, tres roles</h2>
-          <p className="text-holded-muted">Entrenador, club o jugador — cada uno con su panel optimizado.</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-holded-blue mb-3">Perfiles</p>
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Una plataforma, tres roles</h2>
+          <p className="text-gray-500">Entrenador, club o jugador — cada uno con su panel optimizado.</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {ROLES.map(({ icon: Icon, title, desc, to, Scene }) => (
-            <Link key={title} to={to} className="group block rounded-2xl border border-white/8 bg-holded-card/60 p-6 hover:border-holded-blue/30 hover:shadow-xl transition-all">
-              <div className="w-11 h-11 rounded-xl bg-holded-blue/20 flex items-center justify-center mb-4">
-                <Icon size={20} className="text-holded-blue-light" />
+            <Link key={title} to={to} className="group block rounded-2xl border border-gray-200 bg-gray-50 p-6 hover:border-holded-blue/30 hover:shadow-lg transition-all">
+              <div className="w-11 h-11 rounded-xl bg-holded-blue/10 flex items-center justify-center mb-4">
+                <Icon size={20} className="text-holded-blue" />
               </div>
-              <h3 className="font-black text-white text-lg mb-2">{title}</h3>
-              <p className="text-sm text-holded-muted mb-4 leading-relaxed">{desc}</p>
-              <Scene light={false} />
-              <span className="inline-flex items-center gap-1 text-sm font-bold text-holded-blue-light mt-4 group-hover:gap-2 transition-all">
+              <h3 className="font-black text-gray-900 text-lg mb-2">{title}</h3>
+              <p className="text-sm text-gray-500 mb-4 leading-relaxed">{desc}</p>
+              <Scene light />
+              <span className="inline-flex items-center gap-1 text-sm font-bold text-holded-blue mt-4 group-hover:gap-2 transition-all">
                 Explorar <ArrowRight size={14} />
               </span>
             </Link>
@@ -340,49 +340,48 @@ const AI_ENGINES = [
 
 export function AISection() {
   return (
-    <section id="ia" className="py-20 md:py-28 bg-holded-dark border-t border-white/5 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(37,99,235,0.12),transparent)]" aria-hidden="true" />
+    <section id="ia" className="py-20 md:py-28 bg-gray-50 border-t border-gray-100 relative overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-14">
-          <span className="inline-flex items-center gap-2 bg-holded-blue/15 border border-holded-blue/25 text-holded-blue-light text-xs font-bold px-4 py-1.5 rounded-full mb-5">
+          <span className="inline-flex items-center gap-2 bg-blue-50 text-holded-blue text-xs font-bold px-4 py-1.5 rounded-full mb-5">
             <Brain size={14} /> Inteligencia artificial deportiva
           </span>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">IA que entiende el deporte</h2>
-          <p className="text-holded-muted leading-relaxed">
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">IA que entiende el deporte</h2>
+          <p className="text-gray-500 leading-relaxed">
             Motores de reglas validados — no caja negra. Cada sesión es trazable, editable y sustituible.
           </p>
         </div>
         <div className="grid md:grid-cols-2 gap-4 lg:gap-5">
           {AI_ENGINES.map(({ id, icon: Icon, name, desc, tag }) => (
-            <div key={id} className="group relative rounded-2xl border border-white/8 bg-holded-card/60 p-6 hover:border-holded-blue/35 transition-all overflow-hidden">
+            <div key={id} className="group relative rounded-2xl border border-gray-200 bg-white p-6 hover:border-holded-blue/30 hover:shadow-lg transition-all overflow-hidden">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-11 h-11 rounded-xl bg-holded-blue/20 flex items-center justify-center shrink-0">
-                  <Icon size={20} className="text-holded-blue-light" strokeWidth={2} />
+                <div className="w-11 h-11 rounded-xl bg-holded-blue/10 flex items-center justify-center shrink-0">
+                  <Icon size={20} className="text-holded-blue" strokeWidth={2} />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-holded-muted">{tag}</span>
-                  <h3 className="font-black text-white text-lg leading-tight">{name}</h3>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{tag}</span>
+                  <h3 className="font-black text-gray-900 text-lg leading-tight">{name}</h3>
                 </div>
               </div>
-              <p className="text-sm text-holded-muted leading-relaxed mb-4">{desc}</p>
-              <AIEngineScene id={id} light={false} />
-              <p className="text-[10px] text-holded-muted/60 mt-3 flex items-center gap-1">
+              <p className="text-sm text-gray-500 leading-relaxed mb-4">{desc}</p>
+              <AIEngineScene id={id} light />
+              <p className="text-[10px] text-gray-400 mt-3 flex items-center gap-1">
                 <Sparkles size={10} /> Pasa el ratón para ver la simulación
               </p>
             </div>
           ))}
         </div>
-        <div className="mt-10 rounded-2xl border border-white/8 bg-white/5 p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-          <div className="w-14 h-14 rounded-2xl bg-holded-green/15 border border-holded-green/25 flex items-center justify-center shrink-0">
-            <Shield size={26} className="text-holded-green" />
+        <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left shadow-sm">
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+            <Shield size={26} className="text-holded-blue" />
           </div>
           <div className="flex-1">
-            <h3 className="font-black text-white text-lg mb-1">Validada por entrenadores, no por marketing</h3>
-            <p className="text-sm text-holded-muted leading-relaxed">
+            <h3 className="font-black text-gray-900 text-lg mb-1">Validada por entrenadores, no por marketing</h3>
+            <p className="text-sm text-gray-500 leading-relaxed">
               Cada recomendación sigue protocolos deportivos reales. Edita, sustituye o duplica cualquier sesión en segundos.
             </p>
           </div>
-          <Link to="/funcionalidades#ia" className="inline-flex items-center gap-2 text-sm font-bold text-holded-blue-light hover:text-white transition-colors shrink-0">
+          <Link to="/funcionalidades#ia" className="inline-flex items-center gap-2 text-sm font-bold text-holded-blue hover:text-holded-blue/80 transition-colors shrink-0">
             Ver motores IA <ArrowRight size={14} />
           </Link>
         </div>
@@ -401,25 +400,25 @@ const TESTIMONIALS = [
 
 export function TestimonialsSection() {
   return (
-    <section className="py-20 md:py-28 bg-holded-dark border-t border-white/5">
+    <section className="py-20 md:py-28 bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <h2 className="text-3xl md:text-4xl font-black text-white text-center mb-14">Lo que dicen nuestros clientes</h2>
+        <h2 className="text-3xl md:text-4xl font-black text-gray-900 text-center mb-14">Lo que dicen nuestros clientes</h2>
         <div className="grid md:grid-cols-3 gap-6">
           {TESTIMONIALS.map(({ title, quote, name, role, initials, date, color }) => (
-            <div key={name} className="rounded-2xl border border-white/8 bg-holded-card/60 p-6 flex flex-col hover:border-white/15 transition-all">
+            <div key={name} className="rounded-2xl border border-gray-200 bg-gray-50 p-6 flex flex-col hover:shadow-md transition-all">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, i) => <Star key={i} size={14} className="text-holded-green fill-holded-green" />)}
+                  {[...Array(5)].map((_, i) => <Star key={i} size={14} className="text-holded-blue fill-holded-blue" />)}
                 </div>
-                <span className="text-[10px] text-holded-muted">{date}</span>
+                <span className="text-[10px] text-gray-400">{date}</span>
               </div>
-              <h3 className="font-black text-white mb-3 leading-snug">{title}</h3>
-              <p className="text-sm text-holded-muted leading-relaxed flex-1 mb-6">{quote}</p>
-              <div className="flex items-center gap-3 pt-4 border-t border-white/8">
+              <h3 className="font-black text-gray-900 mb-3 leading-snug">{title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed flex-1 mb-6">{quote}</p>
+              <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
                 <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${color} text-white flex items-center justify-center text-xs font-bold shrink-0`}>{initials}</div>
                 <div>
-                  <p className="font-bold text-white text-sm">{name}</p>
-                  <p className="text-xs text-holded-muted">{role}</p>
+                  <p className="font-bold text-gray-900 text-sm">{name}</p>
+                  <p className="text-xs text-gray-400">{role}</p>
                 </div>
               </div>
             </div>
@@ -433,7 +432,7 @@ export function TestimonialsSection() {
 /* ── FAQ ─────────────────────────────────────────────────────── */
 
 const FAQS = [
-  { q: "¿Necesito tarjeta para la prueba?", a: "No. Los 15 días gratis no requieren tarjeta de crédito." },
+  { q: "¿Necesito tarjeta para la prueba?", a: "No. La prueba gratuita no requiere tarjeta de crédito." },
   { q: "¿Funciona para fútbol base y competición?", a: "Sí. DEPRO cubre desde categorías base hasta juvenil y amateur, con protocolos por bloque de edad." },
   { q: "¿Puedo editar las sesiones generadas por IA?", a: "Siempre. Cada sesión es trazable, editable y sustituible por el entrenador." },
   { q: "¿Hay versión para clubs con varios equipos?", a: "DEPRO Club incluye panel coordinador, multi-equipo y personalización de marca." },
@@ -442,25 +441,25 @@ const FAQS = [
 export function FAQSection() {
   const [open, setOpen] = useState(0);
   return (
-    <section className="py-20 md:py-28 bg-holded-dark border-t border-white/5">
+    <section className="py-20 md:py-28 bg-gray-50 border-t border-gray-100">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
-          <p className="text-xs font-bold uppercase tracking-widest text-holded-blue-light mb-3">FAQ</p>
-          <h2 className="text-3xl font-black text-white">Preguntas frecuentes</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-holded-blue mb-3">FAQ</p>
+          <h2 className="text-3xl font-black text-gray-900">Preguntas frecuentes</h2>
         </div>
         <div className="space-y-3">
           {FAQS.map(({ q, a }, i) => (
-            <div key={q} className="rounded-xl border border-white/8 bg-holded-card/40 overflow-hidden">
+            <div key={q} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
               <button
                 type="button"
                 onClick={() => setOpen(open === i ? -1 : i)}
-                className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-bold text-white hover:bg-white/5 transition-colors"
+                className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-bold text-gray-900 hover:bg-gray-50 transition-colors"
               >
                 {q}
-                <ChevronDown size={18} className={`text-holded-muted shrink-0 transition-transform ${open === i ? "rotate-180" : ""}`} />
+                <ChevronDown size={18} className={`text-gray-400 shrink-0 transition-transform ${open === i ? "rotate-180" : ""}`} />
               </button>
               {open === i && (
-                <div className="px-5 pb-4 text-sm text-holded-muted leading-relaxed border-t border-white/8 pt-3">{a}</div>
+                <div className="px-5 pb-4 text-sm text-gray-500 leading-relaxed border-t border-gray-100 pt-3">{a}</div>
               )}
             </div>
           ))}
@@ -470,20 +469,18 @@ export function FAQSection() {
   );
 }
 
-/* ── Vídeo ───────────────────────────────────────────────────── */
-
 export function VideoSection() {
   return (
-    <section className="py-20 md:py-28 bg-holded-dark border-t border-white/5">
+    <section className="py-20 md:py-28 bg-white border-t border-gray-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
-          <p className="text-xs font-bold uppercase tracking-widest text-holded-blue-light mb-3">Demo</p>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Mira DEPRO en acción</h2>
-          <p className="text-holded-muted">De cero a microciclo completo en 3 minutos.</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-holded-blue mb-3">Demo</p>
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Mira DEPRO en acción</h2>
+          <p className="text-gray-500">De cero a microciclo completo en 3 minutos.</p>
         </div>
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div className="group lg:min-h-[260px]">
-            <VideoPreviewScene light={false} />
+            <VideoPreviewScene light />
           </div>
           <div className="space-y-6">
             {[
@@ -492,15 +489,15 @@ export function VideoSection() {
               { t: "Tests y evolución", d: "Seguimiento T1→T3 con histórico completo." },
             ].map(({ t, d }) => (
               <div key={t} className="flex gap-4">
-                <div className="w-2 h-2 rounded-full bg-holded-blue-light mt-2 shrink-0" />
+                <div className="w-2 h-2 rounded-full bg-holded-blue mt-2 shrink-0" />
                 <div>
-                  <p className="font-bold text-white">{t}</p>
-                  <p className="text-sm text-holded-muted mt-0.5">{d}</p>
+                  <p className="font-bold text-gray-900">{t}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{d}</p>
                 </div>
               </div>
             ))}
-            <Link to="/comprar" className="inline-flex items-center gap-2 bg-white text-gray-900 font-bold px-6 py-3 rounded-full hover:bg-gray-100 transition-colors">
-              Probar gratis 15 días <ArrowRight size={16} />
+            <Link to="/comprar" className="inline-flex items-center gap-2 bg-gray-900 text-white font-bold px-6 py-3 rounded-full hover:bg-gray-800 transition-colors">
+              Probar gratis <ArrowRight size={16} />
             </Link>
           </div>
         </div>
@@ -515,7 +512,7 @@ export function HoldedDarkHeroBlock({ children }) {
     <div className="relative bg-holded-dark overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(37,99,235,0.25),transparent)]" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[120px] -translate-x-1/2 translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] -translate-x-1/2 translate-y-1/2" />
         <div className="absolute top-1/3 right-0 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] translate-x-1/2" />
       </div>
       <div className="relative">{children}</div>

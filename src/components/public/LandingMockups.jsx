@@ -92,7 +92,7 @@ export function SessionsMockup() {
               <p className="text-xs font-bold text-depro-dark">{s.label}</p>
               <p className="text-[10px] text-depro-gray">Carga {s.load}</p>
             </div>
-            {s.done && <Check size={14} className="text-green-500" />}
+            {s.done && <Check size={14} className="text-holded-blue" />}
           </div>
         ))}
       </div>
@@ -159,7 +159,7 @@ export function TestsMockup() {
             <p className="text-xs font-bold text-depro-dark">{t.name}</p>
             <p className="text-sm font-black text-depro-blue">{t.val}</p>
           </div>
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.good ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"}`}>{t.trend}</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.good ? "bg-blue-50 text-holded-blue" : "bg-red-50 text-red-500"}`}>{t.trend}</span>
         </div>
       ))}
     </div>

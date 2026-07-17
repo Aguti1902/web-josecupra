@@ -66,7 +66,7 @@ export function HoldedHeroMockup() {
                     className="flex items-center gap-3 py-3 px-4 rounded-xl bg-gray-50 border border-gray-100 depro-fade-in"
                     style={{ animationDelay: `${i * 0.08}s` }}
                   >
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${done ? "bg-holded-green text-white" : "bg-white border-2 border-gray-200 text-gray-400"}`}>
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${done ? "bg-holded-blue text-white" : "bg-white border-2 border-gray-200 text-gray-400"}`}>
                       {done ? <Check size={13} strokeWidth={3} /> : <RowIcon size={13} />}
                     </div>
                     <span className="text-sm font-semibold text-gray-800 flex-1 truncate">{name}</span>
@@ -88,18 +88,18 @@ export function HoldedHeroMockup() {
               <div className="space-y-4 text-sm flex-1">
                 <div><p className="text-gray-400 text-xs mb-0.5">Equipo</p><p className="font-bold text-gray-800">Cadete A</p></div>
                 <div><p className="text-gray-400 text-xs mb-0.5">Jugadores</p><p className="font-bold text-gray-800">22 activos</p></div>
-                <div><p className="text-gray-400 text-xs mb-0.5">Carga media RPE</p><p className="font-bold text-holded-green text-lg">6.8 / 10</p></div>
+                <div><p className="text-gray-400 text-xs mb-0.5">Carga media RPE</p><p className="font-bold text-holded-blue text-lg">6.8 / 10</p></div>
               </div>
-              <div className="mt-auto p-3.5 rounded-xl bg-emerald-50 border border-emerald-100">
-                <p className="text-[11px] font-bold text-emerald-700 flex items-center gap-1.5">
+              <div className="mt-auto p-3.5 rounded-xl bg-blue-50 border border-blue-100">
+                <p className="text-[11px] font-bold text-holded-blue flex items-center gap-1.5">
                   <Sparkles size={12} className="depro-pulse-dot" /> Revisada por IA
                 </p>
-                <p className="text-[10px] text-emerald-600 mt-1">Protocolo validado · 17/07/2026</p>
+                <p className="text-[10px] text-blue-600 mt-1">Protocolo validado · 17/07/2026</p>
               </div>
               <div className="mt-4">
                 <p className="text-[10px] text-gray-400 mb-1.5 font-medium">Adherencia semana</p>
                 <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-holded-green rounded-full depro-fill-bar" style={{ width: "85%" }} />
+                  <div className="h-full bg-holded-blue rounded-full depro-fill-bar" style={{ width: "85%" }} />
                 </div>
                 <p className="text-xs font-bold text-gray-600 mt-1.5">85%</p>
               </div>
@@ -108,7 +108,7 @@ export function HoldedHeroMockup() {
         </div>
       </div>
       <div className="absolute -top-5 -right-2 lg:right-4 w-28 h-28 rounded-full bg-holded-dark border-4 border-holded-blue flex flex-col items-center justify-center text-center shadow-2xl z-10 mockup-glow-ring">
-        <Check size={22} className="text-holded-green mb-1" strokeWidth={3} />
+        <Check size={22} className="text-holded-blue mb-1" strokeWidth={3} />
         <span className="text-[9px] font-bold text-white leading-snug px-2">Planificación IA certificada</span>
       </div>
     </div>
@@ -134,8 +134,8 @@ export function ExitIntentMiniMockup() {
             <p className="text-xs font-black text-gray-800">Microciclo generado</p>
             <p className="text-[10px] text-gray-400 mt-0.5">3 sesiones · Protocolo A/B/C</p>
           </div>
-          <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 depro-pulse-dot" /> IA activa
+          <span className="flex items-center gap-1 text-[9px] font-bold text-holded-blue bg-blue-50 px-2 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-holded-blue depro-pulse-dot" /> IA activa
           </span>
         </div>
         <div className="flex items-end gap-1 h-14 mb-3">
@@ -176,7 +176,7 @@ export function HoldedStatsMockup() {
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Adherencia · Temporada</p>
           <p className="text-3xl font-black text-gray-900 mt-1">87%</p>
         </div>
-        <span className="text-xs font-bold text-holded-green bg-emerald-50 px-2 py-1 rounded-full flex items-center gap-1">
+        <span className="text-xs font-bold text-holded-blue bg-blue-50 px-2 py-1 rounded-full flex items-center gap-1">
           <TrendingUp size={12} /> 12.4%
         </span>
       </div>
@@ -184,7 +184,7 @@ export function HoldedStatsMockup() {
         {bars.map((h, i) => (
           <div
             key={i}
-            className="flex-1 rounded-t-md bg-gradient-to-t from-holded-green to-emerald-400 mockup-bar-wave"
+            className="flex-1 rounded-t-md bg-gradient-to-t from-holded-blue to-blue-400 mockup-bar-wave"
             style={{ height: `${h}%`, animationDelay: `${i * 0.1}s` }}
           />
         ))}
@@ -208,7 +208,7 @@ export function HoldedIntegrationsMockup() {
   const teams = [
     { name: "FC Demo", icon: Shield, color: "from-blue-500 to-blue-600" },
     { name: "Academia", icon: Trophy, color: "from-amber-500 to-orange-500" },
-    { name: "Base", icon: Target, color: "from-emerald-500 to-teal-500" },
+    { name: "Base", icon: Target, color: "from-cyan-500 to-blue-500" },
     { name: "Juvenil", icon: Users, color: "from-violet-500 to-purple-600" },
     { name: "Pro", icon: Zap, color: "from-rose-500 to-red-500" },
     { name: "+50", icon: LayoutDashboard, color: "from-gray-500 to-gray-600" },
@@ -220,8 +220,8 @@ export function HoldedIntegrationsMockup() {
       <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
         <div className="flex items-center justify-between mb-4">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Equipos conectados</p>
-          <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-600">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 depro-pulse-dot" /> En vivo
+          <span className="flex items-center gap-1 text-[9px] font-bold text-holded-blue">
+            <span className="w-1.5 h-1.5 rounded-full bg-holded-blue depro-pulse-dot" /> En vivo
           </span>
         </div>
         <div className="grid grid-cols-3 gap-3">
@@ -241,20 +241,20 @@ export function HoldedIntegrationsMockup() {
       <div className="absolute -bottom-2 -right-2 w-56 lg:w-60 bg-holded-dark rounded-2xl p-5 shadow-2xl border border-white/10">
         <div className="flex items-center justify-between mb-1">
           <p className="text-[10px] text-holded-muted font-medium uppercase tracking-wide">Carga media hoy</p>
-          <Activity size={14} className="text-holded-green depro-pulse-dot" />
+          <Activity size={14} className="text-holded-blue depro-pulse-dot" />
         </div>
         <p className="text-3xl font-black text-white tabular-nums">6.8</p>
         <div className="h-14 mt-3 flex items-end gap-1">
           {barHeights.map((h, i) => (
             <div
               key={i}
-              className="flex-1 rounded-t-sm bg-gradient-to-t from-holded-green to-emerald-400 mockup-bar-wave"
+              className="flex-1 rounded-t-sm bg-gradient-to-t from-holded-blue to-blue-400 mockup-bar-wave"
               style={{ height: `${h}%`, animationDelay: `${i * 0.14}s` }}
             />
           ))}
         </div>
         <div className="flex justify-between mt-3 text-[10px] font-semibold">
-          <span className="text-holded-green flex items-center gap-1"><TrendingUp size={10} /> Sesiones 3/3</span>
+          <span className="text-holded-blue-light flex items-center gap-1"><TrendingUp size={10} /> Sesiones 3/3</span>
           <span className="text-holded-muted">RPE ok</span>
         </div>
       </div>
@@ -276,7 +276,7 @@ export function HoldedFloatingCardsMockup() {
       </div>
       <div className="absolute top-24 right-0 w-48 bg-white rounded-xl shadow-xl p-5 border border-gray-100 transform rotate-3 z-10">
         <div className="flex items-center gap-2 mb-2">
-          <Activity size={14} className="text-emerald-500" />
+          <Activity size={14} className="text-holded-blue" />
           <p className="text-[10px] text-gray-400 font-bold uppercase">Sesión S-24012</p>
         </div>
         <p className="text-xl font-black text-depro-blue">Descarga activa</p>
@@ -296,7 +296,7 @@ export function HoldedFloatingCardsMockup() {
             <span className="truncate font-medium">{row.name}</span>
             <span className="tabular-nums">{row.s}</span>
             <span>{row.c}</span>
-            <Check size={14} className="text-holded-green" />
+            <Check size={14} className="text-holded-blue" />
           </div>
         ))}
       </div>
@@ -341,7 +341,7 @@ export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reve
       {dark && (
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-holded-blue/10 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[80px]" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-holded-blue/5 rounded-full blur-[80px]" />
         </div>
       )}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -66,16 +66,16 @@ export function ExitIntentModal({ open, onClose }) {
         </div>
         {/* Right — offer */}
         <div className="md:w-[55%] bg-holded-dark p-8 md:p-10 text-white flex flex-col justify-center md:min-h-[520px]">
-          <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-holded-green mb-4">
-            <span className="w-2 h-2 rounded-full bg-holded-green animate-pulse" /> 15 días gratis
+          <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-holded-blue-light mb-4">
+            <span className="w-2 h-2 rounded-full bg-holded-blue animate-pulse" /> Prueba gratuita
           </span>
           <h2 className="text-2xl md:text-3xl font-black mb-2 leading-tight">
-            Prueba DEPRO: 15 días sin tarjeta
+            Prueba DEPRO sin tarjeta
           </h2>
           <p className="text-holded-muted text-sm mb-6">Y acceso completo a planificación IA, cargas y tests.</p>
           <div className="mb-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-holded-muted mb-1">Plan Coach Pro</p>
-            <p className="text-3xl font-black text-holded-green">0 € <span className="text-base text-holded-muted font-medium">/ 15 días</span></p>
+            <p className="text-3xl font-black text-holded-blue-light">0 € <span className="text-base text-holded-muted font-medium">/ prueba</span></p>
             <p className="text-xs text-holded-muted mt-1">Después desde 14,99 €/mes</p>
           </div>
           <Link
@@ -262,8 +262,7 @@ export function HoldedFooter() {
             </Link>
           </div>
           <div className="flex justify-center gap-6 mt-5 text-xs text-holded-muted">
-            <span className="flex items-center gap-1"><Check size={12} className="text-holded-green" /> 15 días gratis</span>
-            <span className="flex items-center gap-1"><Check size={12} className="text-holded-green" /> Sin tarjeta</span>
+            <span className="flex items-center gap-1"><Check size={12} className="text-holded-blue" /> Sin tarjeta</span>
           </div>
         </div>
 
@@ -383,9 +382,8 @@ export function HoldedStatsBand() {
   const stats = [
     { val: "3", label: "Perfiles en uno", accent: "text-holded-blue-light" },
     { val: "90+", label: "Ejercicios en biblioteca", accent: "text-white" },
-    { val: "15", label: "Días de prueba gratis", accent: "text-holded-green" },
     { val: "100%", label: "Planificación automática", accent: "text-white" },
-    { val: "40h", label: "Ahorradas al mes", accent: "text-holded-green" },
+    { val: "40h", label: "Ahorradas al mes", accent: "text-holded-blue-light" },
     { val: "160×", label: "Más rápido planificando", accent: "text-white" },
     { val: "85%", label: "Adherencia media", accent: "text-holded-blue-light" },
   ];
@@ -396,7 +394,7 @@ export function HoldedStatsBand() {
         <p className="text-center text-sm text-holded-muted mb-10 font-medium">
           Entrenadores, clubs y jugadores ya optimizan su rendimiento con DEPRO
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-6 md:gap-4 mb-14">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 md:gap-4 mb-14">
           {stats.map((s) => (
             <div key={s.label} className="text-center px-2">
               <p className={`text-2xl sm:text-3xl md:text-4xl font-black tabular-nums ${s.accent}`}>{s.val}</p>
@@ -430,24 +428,24 @@ export function HoldedProductGrid() {
     { icon: Building2, title: "DEPRO Club", desc: "Multi-equipo, white-label y panel coordinador.", to: "/para-clubs" },
   ];
   return (
-    <section className="py-20 md:py-28 bg-holded-dark relative border-t border-white/5">
+    <section className="py-20 md:py-28 bg-white relative border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-14">
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Seis productos. Una plataforma. Cero complicaciones.</h2>
-          <p className="text-holded-muted">Desde tu primer microciclo hasta la gestión completa de un club · DEPRO se adapta a tu rol.</p>
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Seis productos. Una plataforma. Cero complicaciones.</h2>
+          <p className="text-gray-500">Desde tu primer microciclo hasta la gestión completa de un club · DEPRO se adapta a tu rol.</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map(({ icon: Icon, title, desc, to }) => (
-            <Link key={title} to={to} className="group relative bg-holded-card/80 border border-white/8 rounded-2xl p-6 hover:border-holded-blue/40 hover:bg-holded-card transition-all overflow-hidden">
-              <div className="absolute top-4 right-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Icon size={80} className="text-white" />
+            <Link key={title} to={to} className="group relative bg-gray-50 border border-gray-200 rounded-2xl p-6 hover:border-holded-blue/30 hover:shadow-lg transition-all overflow-hidden">
+              <div className="absolute top-4 right-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity">
+                <Icon size={80} className="text-holded-blue" />
               </div>
-              <div className="w-10 h-10 rounded-xl bg-holded-blue/20 flex items-center justify-center mb-4">
-                <Icon size={20} className="text-holded-blue-light" />
+              <div className="w-10 h-10 rounded-xl bg-holded-blue/10 flex items-center justify-center mb-4">
+                <Icon size={20} className="text-holded-blue" />
               </div>
-              <h3 className="font-black text-white text-lg mb-2">{title}</h3>
-              <p className="text-sm text-holded-muted leading-relaxed mb-4">{desc}</p>
-              <span className="text-sm font-bold text-holded-blue-light group-hover:gap-2 inline-flex items-center gap-1 transition-all">
+              <h3 className="font-black text-gray-900 text-lg mb-2">{title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-4">{desc}</p>
+              <span className="text-sm font-bold text-holded-blue group-hover:gap-2 inline-flex items-center gap-1 transition-all">
                 Explorar {title.toLowerCase()} <ChevronRight size={14} />
               </span>
             </Link>
