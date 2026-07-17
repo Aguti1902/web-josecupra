@@ -3,44 +3,103 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   ArrowRight, Check, Sparkles, Users, User, Building2,
-  Activity, BarChart3, Calendar, Shield, Zap, Gift, ChevronRight,
+  Activity, BarChart3, Calendar, Shield, Zap, Gift, ChevronRight, Clock, TrendingUp,
 } from "lucide-react";
+
+/** Mockup animado del microciclo IA — sustituye a un gif real con CSS puro */
+function AnimatedPlanMockup() {
+  const bars = [62, 88, 45, 95, 70, 38, 55];
+  return (
+    <div className="relative w-full max-w-sm mx-auto lg:mx-0">
+      <div className="absolute -inset-4 bg-depro-blue/10 rounded-[2rem] blur-2xl" aria-hidden="true" />
+      <div className="relative bg-white rounded-2xl border border-depro-border shadow-xl p-5 depro-float">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-depro-blue flex items-center justify-center">
+              <Sparkles size={13} className="text-white" />
+            </div>
+            <span className="text-xs font-bold text-depro-dark">Microciclo IA · Semana 12</span>
+          </div>
+          <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 depro-pulse-dot" /> Live
+          </span>
+        </div>
+        <div className="flex items-end gap-1.5 h-20 mb-4">
+          {bars.map((h, i) => (
+            <div key={i} className="flex-1 bg-depro-blue-light rounded-t-md overflow-hidden flex items-end">
+              <div
+                className="w-full bg-gradient-to-t from-depro-blue to-depro-blue-dark rounded-t-md depro-grow-bar"
+                style={{ "--bar-h": `${h}%`, animationDelay: `${i * 0.12}s` }}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="space-y-2">
+          {[
+            { label: "Sesión A · Activación", done: true },
+            { label: "Sesión B · Fuerza-velocidad", done: true },
+            { label: "Sesión C · Descarga", done: false },
+          ].map((s, i) => (
+            <div key={s.label} className="flex items-center gap-2.5 text-xs depro-fade-in" style={{ animationDelay: `${0.3 + i * 0.25}s` }}>
+              <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${s.done ? "bg-depro-blue" : "border-2 border-depro-border"}`}>
+                {s.done && <Check size={9} className="text-white" />}
+              </div>
+              <span className={s.done ? "text-depro-gray line-through" : "text-depro-dark font-medium"}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Hero() {
   const { t } = useTranslation();
   return (
-    <section className="relative pt-28 pb-20 md:pt-36 md:pb-28 bg-white border-b border-depro-border">
+    <section className="relative pt-28 pb-20 md:pt-36 md:pb-28 bg-white border-b border-depro-border overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#f5f5f5_1px,transparent_1px),linear-gradient(to_bottom,#f5f5f5_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,#000_40%,transparent_100%)] pointer-events-none" />
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-widest text-depro-blue mb-5">
-            {t("home.hero_label")}
-          </p>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-depro-dark tracking-tight leading-[1.05] mb-6">
-            {t("home.hero_title")}
-          </h1>
-          <p className="text-lg md:text-xl text-depro-gray leading-relaxed max-w-2xl mb-10">
-            {t("home.hero_subtitle")}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 mb-12">
-            <a href="#precios" className="btn-primary inline-flex items-center justify-center gap-2 px-7 py-3.5 text-sm">
-              {t("home.hero_cta_primary")} <ArrowRight size={16} />
-            </a>
-            <a href="#producto" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 text-sm font-semibold text-depro-dark border border-depro-border rounded-xl hover:bg-depro-gray-light transition-colors">
-              {t("home.hero_cta_secondary")}
-            </a>
+        <div className="grid lg:grid-cols-[1fr_auto] gap-12 items-center">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 bg-depro-yellow/15 text-depro-dark text-xs font-bold px-3.5 py-1.5 rounded-full mb-5 border border-depro-yellow/40">
+              <Gift size={13} className="text-amber-600" />
+              {t("home.hero_trial_badge")}
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-depro-blue mb-5">
+              {t("home.hero_label")}
+            </p>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-depro-dark tracking-tight leading-[1.05] mb-6">
+              {t("home.hero_title")}
+            </h1>
+            <p className="text-lg md:text-xl text-depro-gray leading-relaxed max-w-2xl mb-10">
+              {t("home.hero_subtitle")}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <a href="#precios" className="btn-primary inline-flex items-center justify-center gap-2 px-7 py-3.5 text-sm">
+                {t("home.hero_cta_primary")} <ArrowRight size={16} />
+              </a>
+              <a href="#producto" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 text-sm font-semibold text-depro-dark border border-depro-border rounded-xl hover:bg-depro-gray-light transition-colors">
+                {t("home.hero_cta_secondary")}
+              </a>
+            </div>
+            <p className="flex items-center gap-1.5 text-xs text-depro-gray mb-12">
+              <Clock size={12} /> {t("home.hero_trial_note")}
+            </p>
+            <div className="flex flex-wrap gap-8 text-sm">
+              {[
+                { val: "100%", key: "hero_stat_ai" },
+                { val: "3", key: "hero_stat_profiles" },
+                { val: "24/7", key: "hero_stat_access" },
+              ].map((s) => (
+                <div key={s.key}>
+                  <div className="text-2xl font-black text-depro-dark">{s.val}</div>
+                  <div className="text-depro-gray">{t(`home.${s.key}`)}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-8 text-sm">
-            {[
-              { val: "100%", key: "hero_stat_ai" },
-              { val: "3", key: "hero_stat_profiles" },
-              { val: "24/7", key: "hero_stat_access" },
-            ].map((s) => (
-              <div key={s.key}>
-                <div className="text-2xl font-black text-depro-dark">{s.val}</div>
-                <div className="text-depro-gray">{t(`home.${s.key}`)}</div>
-              </div>
-            ))}
+          <div className="hidden lg:block">
+            <AnimatedPlanMockup />
           </div>
         </div>
       </div>
@@ -48,9 +107,39 @@ function Hero() {
   );
 }
 
+/** Mini-mockup animado dentro de cada tarjeta de feature — refuerzo visual sin gifs pesados */
+function FeatureMockup({ variant, accentClass }) {
+  if (variant === "load") {
+    return (
+      <div className="flex items-end gap-1 h-8 mt-1">
+        {[40, 70, 55, 90, 65].map((h, i) => (
+          <div key={i} className="flex-1 bg-depro-blue-light rounded-sm overflow-hidden flex items-end">
+            <div className={`w-full rounded-sm depro-grow-bar ${accentClass}`} style={{ "--bar-h": `${h}%`, animationDelay: `${i * 0.1}s` }} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (variant === "pulse") {
+    return (
+      <div className="flex items-center gap-1.5 mt-1">
+        <span className="w-2 h-2 rounded-full bg-depro-blue depro-pulse-dot" />
+        <span className="w-2 h-2 rounded-full bg-depro-blue depro-pulse-dot" style={{ animationDelay: "0.3s" }} />
+        <span className="w-2 h-2 rounded-full bg-depro-blue depro-pulse-dot" style={{ animationDelay: "0.6s" }} />
+      </div>
+    );
+  }
+  return (
+    <div className="w-full h-1.5 bg-depro-blue-light rounded-full overflow-hidden mt-1">
+      <div className="h-full bg-depro-blue rounded-full depro-fill-bar" />
+    </div>
+  );
+}
+
 function Producto() {
   const { t } = useTranslation();
   const icons = [Sparkles, Activity, BarChart3, Calendar, Shield, Zap];
+  const mockups = ["fill", "fill", "load", "pulse", "fill", "pulse"];
   const features = t("home.product_features", { returnObjects: true });
 
   return (
@@ -71,6 +160,7 @@ function Producto() {
                 </div>
                 <h3 className="font-bold text-depro-dark mb-2">{f.title}</h3>
                 <p className="text-sm text-depro-gray leading-relaxed">{f.desc}</p>
+                <FeatureMockup variant={mockups[i] || "fill"} accentClass="bg-gradient-to-t from-depro-blue to-depro-blue-dark" />
               </div>
             );
           })}
@@ -113,6 +203,7 @@ function PricingCard({ plan, audience, highlighted }) {
       >
         {plan.cta || t("home.plan_cta")} <ChevronRight size={15} />
       </Link>
+      <p className="text-center text-[11px] text-depro-gray mt-2.5">{t("home.plan_trial_hint")}</p>
     </div>
   );
 }
@@ -136,7 +227,10 @@ function Precios() {
         <div className="text-center max-w-2xl mx-auto mb-12">
           <p className="text-xs font-semibold uppercase tracking-widest text-depro-blue mb-3">{t("home.pricing_label")}</p>
           <h2 className="text-3xl md:text-4xl font-black text-depro-dark tracking-tight mb-4">{t("home.pricing_title")}</h2>
-          <p className="text-depro-gray leading-relaxed">{t("home.pricing_desc")}</p>
+          <p className="text-depro-gray leading-relaxed mb-4">{t("home.pricing_desc")}</p>
+          <div className="inline-flex items-center gap-2 bg-depro-yellow/15 border border-depro-yellow/40 text-depro-dark text-sm font-bold px-4 py-2 rounded-full">
+            <Gift size={15} className="text-amber-600" /> {t("home.pricing_trial_badge")}
+          </div>
         </div>
 
         <div className="flex justify-center mb-10">

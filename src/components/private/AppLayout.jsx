@@ -73,9 +73,22 @@ export default function AppLayout({ children }) {
     { to: "/dashboard/club-profile", icon: User,            label: t("nav.my_profile") },
   ];
 
+  const club = user?.club;
+  const isSoloCoach = !!club?.isSoloCoach;
+
+  // Nav de DEPRO Coach (entrenador individual): mismas rutas, etiquetas propias
+  const coachNav = [
+    { to: "/dashboard",              icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/dashboard/mesocycle",    icon: ClipboardList,   label: "Planificación" },
+    { to: "/dashboard/plan",         icon: Calendar,        label: "Sesiones" },
+    { to: "/dashboard/squad",        icon: UsersIcon,       label: "Plantilla" },
+    { to: "/dashboard/team-tests",   icon: Activity,        label: "Tests" },
+    ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Carga" }] : []),
+    { to: "/dashboard/club-profile", icon: User,            label: "Mi perfil" },
+  ];
+
   const handleLogout = () => { logout(); navigate("/"); };
 
-  const club = user?.club;
   // Colores del club
   const rawAccent    = club?.primaryColor   || "#0A36F7";
   const rawSecondary = club?.secondaryColor || "#ffffff";
@@ -88,7 +101,7 @@ export default function AppLayout({ children }) {
   // Coordinador viendo equipo → muestra nav completo (read-only a nivel de UI en cada página)
   const isCoordViewingTeam = user?.team_role === "coordinador" && viewingTeam;
   const navItems = user?.role === "club"
-    ? (user?.team_role === "coordinador" && !isCoordViewingTeam ? coordinadorNav : entrenadorNav)
+    ? (isSoloCoach ? coachNav : (user?.team_role === "coordinador" && !isCoordViewingTeam ? coordinadorNav : entrenadorNav))
     : playerNav;
 
   // Cargar foto de perfil desde localStorage
@@ -149,7 +162,14 @@ export default function AppLayout({ children }) {
         {/* Club branding */}
         <div className="p-4 border-b border-depro-border">
           <div className="flex items-center gap-3">
-            {club?.logo ? (
+            {isSoloCoach ? (
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0 shadow-sm border border-depro-border"
+                style={{ backgroundColor: sidebarAccent + "15", color: sidebarAccent }}
+              >
+                DC
+              </div>
+            ) : club?.logo ? (
               <img
                 src={club.logo}
                 alt={club.name}
@@ -164,8 +184,17 @@ export default function AppLayout({ children }) {
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="text-depro-dark font-bold text-sm truncate">{club?.name || "DEPRO"}</div>
-              {user?.role === "club" ? (
+              <div className="text-depro-dark font-bold text-sm truncate">
+                {isSoloCoach ? "DEPRO Coach" : (club?.name || "DEPRO")}
+              </div>
+              {isSoloCoach ? (
+                <span
+                  className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
+                  style={{ backgroundColor: sidebarAccent, color: contrastText(sidebarAccent) }}
+                >
+                  {user?.team?.name || "Mi equipo"}
+                </span>
+              ) : user?.role === "club" ? (
                 <span
                   className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
                   style={{ backgroundColor: sidebarAccent, color: contrastText(sidebarAccent) }}

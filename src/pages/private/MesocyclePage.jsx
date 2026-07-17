@@ -14,6 +14,7 @@ import {
 } from "../../lib/periodization";
 import { sessionPlanUrl } from "../../lib/sessionBlocks";
 import { getSessionDisplayKey } from "../../lib/mesocycleTemplates";
+import CoachPlanning from "../../components/private/CoachPlanning";
 
 /* ── Contraste seguro ───────────────────────────────────── */
 function lum(hex) {
@@ -369,6 +370,14 @@ export default function MesocyclePage() {
   const { weeks, totalSessions, sessionsPerWeek } = distributeMesocycleForTeam(
     activePlan, trainingDays, 3, totalCalendarWeeks
   );
+
+  if (user?.role === "club" && user?.club?.isSoloCoach) {
+    return (
+      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        <CoachPlanning club={user.club} team={user.team} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">

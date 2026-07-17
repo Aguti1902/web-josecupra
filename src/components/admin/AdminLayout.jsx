@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, LogOut, Menu, X, ChevronRight,
   Settings, Brain, Building2, Globe, Shield, CalendarDays, ClipboardList, BookOpen,
+  Dumbbell,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -31,6 +32,14 @@ const navGroups = [
       { to: "/admin/clients",      icon: Users,  label: "Clientes jugadores" },
       { to: "/admin/plan-builder", icon: Brain,  label: "Motor de planes" },
       { to: "/admin/catalog",      icon: BookOpen, label: "Catálogo ejercicios" },
+    ],
+  },
+  {
+    label: "DEPRO Coach",
+    groupIcon: Dumbbell,
+    accent: "#34D399",
+    items: [
+      { to: "/admin/coach-library", icon: Dumbbell, label: "Biblioteca de ejercicios" },
     ],
   },
   {

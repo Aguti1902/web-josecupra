@@ -242,3 +242,44 @@
 .animate-fade-slide {
   animation: fade-slide 0.4s ease-out;
 }
+
+/* ── Mockups animados de la landing (sustituyen a gifs) ─────── */
+.depro-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+@keyframes deproPulseDot {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+.depro-pulse-dot {
+  animation: deproPulseDot 1.6s ease-in-out infinite;
+}
+
+@keyframes deproGrowBar {
+  from { height: 0%; }
+  to { height: var(--bar-h, 60%); }
+}
+.depro-grow-bar {
+  height: 0%;
+  animation: deproGrowBar 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards infinite alternate;
+  animation-duration: 2.4s;
+}
+
+@keyframes deproFadeIn {
+  0% { opacity: 0; transform: translateX(-6px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.depro-fade-in {
+  opacity: 0;
+  animation: deproFadeIn 0.5s ease-out forwards;
+}
+
+@keyframes deproFillBar {
+  0% { width: 15%; }
+  50% { width: 85%; }
+  100% { width: 15%; }
+}
+.depro-fill-bar {
+  animation: deproFillBar 3.5s ease-in-out infinite;
+}

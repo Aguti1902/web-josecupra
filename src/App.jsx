@@ -32,6 +32,7 @@ import ProfilePage from "./pages/private/ProfilePage";
 import ClubProfilePage from "./pages/private/ClubProfilePage";
 import TeamTestsPage from "./pages/private/TeamTestsPage";
 import CargasPage from "./pages/private/CargasPage";
+import CoachOnboardingPage from "./pages/private/CoachOnboardingPage";
 
 // Admin panel
 import AdminLayout from "./components/admin/AdminLayout";
@@ -45,6 +46,7 @@ import AdminClubDetailPage from "./pages/admin/AdminClubDetailPage";
 import AdminPlanificacionPage from "./pages/admin/AdminPlanificacionPage";
 import AdminTestsPage from "./pages/admin/AdminTestsPage";
 import AdminCatalogPage from "./pages/admin/AdminCatalogPage";
+import AdminCoachLibraryPage from "./pages/admin/AdminCoachLibraryPage";
 
 /* ── Guards ───────────────────────────────────────────────────────── */
 function LoadingScreen() {
@@ -62,6 +64,16 @@ function ClientRoute({ children }) {
   if (!user) return <Navigate to="/login" replace />;
   const viewAs = typeof sessionStorage !== "undefined" && sessionStorage.getItem("depro_view_as");
   if (user.role === "admin" && !viewAs) return <Navigate to="/admin" replace />;
+  // Entrenador individual sin alta completada → wizard de configuración
+  if (user.role === "coach") return <Navigate to="/dashboard/coach-setup" replace />;
+  return children;
+}
+
+function CoachSetupRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "coach") return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -114,6 +126,7 @@ function AppRoutes() {
       <Route path="/nexgent/demo" element={<NexGentDemoPage />} />
 
       {/* ── Client App ─────────────────────────────────────────── */}
+      <Route path="/dashboard/coach-setup" element={<CoachSetupRoute><CoachOnboardingPage /></CoachSetupRoute>} />
       <Route path="/dashboard" element={<ClientRoute><AppLayout><DashboardPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/plan" element={<ClientRoute><AppLayout><WeeklyPlanPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/library" element={<ClientRoute><AppLayout><SessionLibraryPage /></AppLayout></ClientRoute>} />
@@ -139,6 +152,7 @@ function AppRoutes() {
       <Route path="/admin/planificacion" element={<AdminRoute><AdminLayout><AdminPlanificacionPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/tests" element={<AdminRoute><AdminLayout><AdminTestsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/catalog" element={<AdminRoute><AdminLayout><AdminCatalogPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/coach-library" element={<AdminRoute><AdminLayout><AdminCoachLibraryPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/settings" element={<AdminRoute><AdminLayout><AdminSettingsPage /></AdminLayout></AdminRoute>} />
 
       {/* ── Fallback ───────────────────────────────────────────── */}

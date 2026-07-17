@@ -17,6 +17,8 @@ import {
   distributeMesocycleForTeam, getCurrentWeekIndex, isMesocicloActive, getMesocicloWeeks,
 } from "../../lib/periodization";
 import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/sessionBlocks";
+import PlanUsageCard from "../../components/private/PlanUsageCard";
+import CoachDashboard from "../../components/private/CoachDashboard";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -1167,6 +1169,14 @@ export default function DashboardPage() {
     setViewingTeam(null);
   };
 
+  if (user?.role === "club" && club?.isSoloCoach) {
+    return (
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+        <CoachDashboard club={club} team={team} user={user} />
+      </div>
+    );
+  }
+
   if (user?.role === "club") {
     // Cuando el coordinador hace click en un equipo, muestra la vista del entrenador
     const viewTeam = selectedTeam || team;
@@ -1181,6 +1191,9 @@ export default function DashboardPage() {
           accent={accent}
           secondColor={secondColor}
         />
+        {(teamRole === "coordinador" || teamRole === "entrenador") && (
+          <PlanUsageCard club={club} user={user} audience="club" />
+        )}
         {(teamRole === "coordinador" && !selectedTeam)
           ? <CoordinadorDashboard
               club={club}

@@ -9,6 +9,9 @@ import { useAuth } from "../../context/AuthContext";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 import { getEvalValues, getRatingForEval } from "../../lib/teamTestRatings";
+import { resolveCurrentPlan, getPlanLimits } from "../../lib/subscription";
+import PlanUsageCard from "../../components/private/PlanUsageCard";
+import ChangePlanModal from "../../components/private/ChangePlanModal";
 
 // ── Constantes ───────────────────────────────────────────────
 const POSITIONS = [
@@ -712,6 +715,21 @@ export default function SquadPage() {
     return { total: src.length, avgAge, topPos };
   }, [unifiedPlayers]);
 
+  // ── Límite de jugadores según plan ────────────────────────
+  const plan = useMemo(() => resolveCurrentPlan(user, club), [user, club]);
+  const limits = plan ? getPlanLimits(plan.id) : { maxTeams: null, maxPlayers: null };
+  // Total de jugadores en TODO el club (mi equipo cargado + resto de equipos ya sincronizados)
+  const clubTotalPlayers = useMemo(() => {
+    if (isCoord) return stats.total;
+    const myCount = (squads[myTeam?.id] || []).length;
+    const others = allTeams
+      .filter((t) => t.id !== myTeam?.id)
+      .reduce((sum, t) => sum + (t.squad?.length || 0), 0);
+    return myCount + others;
+  }, [isCoord, stats.total, squads, myTeam?.id, allTeams]);
+  const atPlayerLimit = limits.maxPlayers != null && clubTotalPlayers >= limits.maxPlayers;
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
   // ── CRUD ─────────────────────────────────────────────────
   const activeTeamId = isCoord ? null : myTeam?.id;
 
@@ -765,6 +783,7 @@ export default function SquadPage() {
           <button
             onClick={() => {
               if (!activeTeamId && !myTeam) { setTeamError(true); return; }
+              if (atPlayerLimit) { setShowUpgradeModal(true); return; }
               setTeamError(false);
               setEditPlayer(null);
               setShowModal(true);
@@ -776,6 +795,16 @@ export default function SquadPage() {
           </button>
         )}
       </div>
+
+      {/* Uso del plan — equipos/jugadores y upsell si se alcanza el límite */}
+      {clubId && <PlanUsageCard club={club} user={user} audience="club" highlight="players" />}
+
+      <ChangePlanModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        audience="club"
+        currentPlanId={plan?.id}
+      />
 
       {/* Error: equipo no vinculado */}
       {teamError && (

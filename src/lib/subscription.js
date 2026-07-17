@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { PLANS, getPlanLimits, getNextPlan, resolvePlanForClub } from "./checkoutPlans";
 
 const STORAGE_PREFIX = "depro_subscription_";
 
@@ -145,4 +146,49 @@ export function formatSubscriptionDate(iso, locale = "es-ES") {
     month: "long",
     year: "numeric",
   });
+}
+
+export { getPlanLimits, getNextPlan };
+
+/**
+ * Resuelve el plan DEPRO (objeto de checkoutPlans) asociado a un usuario/club.
+ * Prioridad: user.plan si es un id reconocido → club.plan (id o texto legacy) → null.
+ * Devolver null significa "sin datos de plan" — los consumidores deben tratarlo
+ * como ilimitado para no bloquear cuentas antiguas sin plan asignado.
+ */
+export function resolveCurrentPlan(user, club) {
+  if (user?.plan && PLANS[user.plan]) return PLANS[user.plan];
+  if (user?.role === "club") {
+    return resolvePlanForClub(club?.plan, "club");
+  }
+  if (club?.plan) return resolvePlanForClub(club.plan, "club");
+  return null;
+}
+
+/**
+ * Cambia el plan del usuario. Si tiene una suscripción Stripe activa, la actualiza
+ * (con prorrateo automático) vía /api/update-subscription. Si no (cuentas locales/demo
+ * sin Stripe todavía), el cambio se guarda directamente en la metadata del usuario.
+ */
+export async function changePlan({ user, newPlanId }) {
+  if (!user?.id || !newPlanId) return { ok: false, error: "Datos no válidos" };
+  try {
+    const res = await fetch("/api/update-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, email: user.email, newPlanId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      return { ok: false, error: data.error || "No se pudo cambiar el plan" };
+    }
+    saveLocalSubscription(user.id, {
+      plan: newPlanId,
+      status: data.status || "active",
+      stripeSubscriptionId: data.stripeSubscriptionId || user.stripeSubscriptionId || null,
+    });
+    return { ok: true, plan: newPlanId, status: data.status, mode: data.mode };
+  } catch (e) {
+    return { ok: false, error: e.message || "Error de red al cambiar el plan" };
+  }
 }

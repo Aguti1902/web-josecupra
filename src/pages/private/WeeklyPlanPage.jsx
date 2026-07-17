@@ -18,6 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
 import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession } from "../../lib/playerPlanEngine";
 import { markSessionComplete, touchLastTrain } from "../../lib/sessionProgress";
+import CoachSessions from "../../components/private/CoachSessions";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
@@ -1610,6 +1611,9 @@ export default function WeeklyPlanPage() {
   const raw    = user?.club?.primaryColor || "#0A36F7";
   const accent = safeColor(raw);
 
+  if (user?.role === "club" && user?.club?.isSoloCoach) {
+    return <CoachSessions club={user.club} team={user.team} user={user} />;
+  }
   if (user?.role === "club") return <ClubMicrocycles accent={accent} />;
   return <PlayerWeeklyPlan accent={accent} />;
 }

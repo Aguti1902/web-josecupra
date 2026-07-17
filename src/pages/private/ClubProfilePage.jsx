@@ -2,9 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import {
   User, Camera, Lock, Mail, CheckCircle, AlertCircle,
   Eye, EyeOff, Save, Shield, Crown, UserCheck, Dumbbell,
+  Sparkles, SlidersHorizontal,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
+import { loadClubDetail, saveClubDetail } from "../../lib/adminStorage";
+import PlanUsageCard from "../../components/private/PlanUsageCard";
 
 // Comprime imagen de perfil a 200×200
 function compressAvatar(file) {
@@ -49,7 +52,21 @@ export default function ClubProfilePage() {
   const [showPw, setShowPw]     = useState(false);
   const [msg, setMsg]           = useState(null); // { type: "ok"|"error", text }
   const [saving, setSaving]     = useState(false);
+  const [mode, setMode]         = useState(user?.club?.mode || "depro");
+  const [savingMode, setSavingMode] = useState(false);
   const photoRef = useRef();
+  const isSoloCoach = !!user?.club?.isSoloCoach;
+
+  const handleChangeMode = async (nextMode) => {
+    if (nextMode === mode || !user?.club?.id) return;
+    setSavingMode(true);
+    setMode(nextMode);
+    const detail = loadClubDetail(user.club.id) || user.club;
+    await saveClubDetail(user.club.id, { ...detail, mode: nextMode });
+    await refreshUser();
+    setSavingMode(false);
+    showMsg("ok", nextMode === "personalizado" ? "Modo Personalizado activado." : "Modo DEPRO activado.");
+  };
 
   // Cargar foto guardada en localStorage
   useEffect(() => {
@@ -200,6 +217,49 @@ export default function ClubProfilePage() {
           </p>
         </div>
       </div>
+
+      {/* Modo de trabajo — solo entrenador individual */}
+      {isSoloCoach && (
+        <div className="bg-white border border-depro-border rounded-2xl p-6">
+          <h3 className="font-bold text-depro-dark mb-1 flex items-center gap-2">
+            <SlidersHorizontal size={16} className="text-depro-blue" /> Modo de trabajo
+          </h3>
+          <p className="text-xs text-depro-gray mb-4">Elige cómo quieres planificar tus sesiones.</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => handleChangeMode("depro")}
+              disabled={savingMode}
+              className={`text-left p-4 rounded-xl border-2 transition-all ${
+                mode === "depro" ? "border-depro-blue bg-depro-blue/5" : "border-depro-border hover:border-depro-blue/40"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <Sparkles size={15} className="text-depro-blue" />
+                <span className="font-bold text-sm text-depro-dark">Modo DEPRO</span>
+                {mode === "depro" && <CheckCircle size={14} className="text-depro-blue ml-auto" />}
+              </div>
+              <p className="text-xs text-depro-gray">Sesiones y microciclos generados automáticamente por el motor de reglas. Puedes sustituir ejercicios puntuales.</p>
+            </button>
+            <button
+              onClick={() => handleChangeMode("personalizado")}
+              disabled={savingMode}
+              className={`text-left p-4 rounded-xl border-2 transition-all ${
+                mode === "personalizado" ? "border-depro-blue bg-depro-blue/5" : "border-depro-border hover:border-depro-blue/40"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <SlidersHorizontal size={15} className="text-depro-blue" />
+                <span className="font-bold text-sm text-depro-dark">Modo Personalizado</span>
+                {mode === "personalizado" && <CheckCircle size={14} className="text-depro-blue ml-auto" />}
+              </div>
+              <p className="text-xs text-depro-gray">Crea tus propias sesiones, duplica sesiones existentes, guarda favoritos y añade ejercicios propios.</p>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Plan y facturación */}
+      <PlanUsageCard club={user?.club} user={user} audience={user?.club?.isSoloCoach ? "coach" : "club"} />
 
       {/* Editar nombre */}
       <div className="bg-white border border-depro-border rounded-2xl p-6">

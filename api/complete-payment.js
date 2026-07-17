@@ -14,13 +14,32 @@ export default async function handler(req, res) {
 
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (session.payment_status !== "paid") {
+    // Con trial de 15 días, Stripe no cobra en el checkout: payment_status = "no_payment_required"
+    const okStatuses = ["paid", "no_payment_required"];
+    if (!okStatuses.includes(session.payment_status)) {
       return res.status(400).json({ error: "Pago no completado" });
     }
 
     const meta = session.metadata || {};
     const email = meta.email || session.customer_email;
     if (!email) return res.status(400).json({ error: "Email no encontrado en la sesión" });
+
+    // Datos de la suscripción de Stripe (trial de 15 días incluido en create-checkout)
+    let stripeSubscriptionId = null;
+    let stripeCustomerId = null;
+    let subscriptionStatus = "active";
+    let trialEndsAt = null;
+    if (session.subscription) {
+      stripeSubscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+      try {
+        const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+        subscriptionStatus = sub.status;
+        trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
+      } catch { /* ignore */ }
+    }
+    if (session.customer) {
+      stripeCustomerId = typeof session.customer === "string" ? session.customer : session.customer.id;
+    }
 
     const password = meta.tempPassword || generatePassword();
     const name = meta.nombre || meta.name || email.split("@")[0];
@@ -50,6 +69,10 @@ export default async function handler(req, res) {
         disponibles: meta.disponibles ? meta.disponibles.split("|") : [],
         clubCode: meta.clubCode || "",
         clubId: meta.clubId || "",
+        subscriptionStatus,
+        stripeSubscriptionId,
+        stripeCustomerId,
+        trialEndsAt,
       };
 
       const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
@@ -80,6 +103,7 @@ export default async function handler(req, res) {
       email,
       password: created ? password : null,
       plan: meta.plan,
+      trialEndsAt,
     });
   } catch (err) {
     console.error("complete-payment:", err.message);

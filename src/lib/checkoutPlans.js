@@ -14,6 +14,7 @@ export const PLANS = {
     tagline: "1 equipo · hasta 25 jugadores",
     price: 14.99,
     period: "/ mes",
+    limits: { maxTeams: 1, maxPlayers: 25 },
     features: [
       "Microciclo IA mensual",
       "Sesiones automáticas A/B/C",
@@ -31,6 +32,7 @@ export const PLANS = {
     tagline: "3 equipos · hasta 60 jugadores",
     price: 29.99,
     period: "/ mes",
+    limits: { maxTeams: 3, maxPlayers: 60 },
     features: [
       "Todo Starter +",
       "Control de carga manual",
@@ -49,6 +51,7 @@ export const PLANS = {
     tagline: "Equipos ilimitados · jugadores ilimitados",
     price: 49.99,
     period: "/ mes",
+    limits: { maxTeams: null, maxPlayers: null },
     features: [
       "Todo Pro +",
       "Import GPS (Catapult, STATSports)",
@@ -66,6 +69,7 @@ export const PLANS = {
     tagline: "Hasta 3 equipos · 80 jugadores",
     price: 199,
     period: "/ mes",
+    limits: { maxTeams: 3, maxPlayers: 80 },
     features: [
       "Panel centralizado del club",
       "Periodización IA por categoría",
@@ -83,6 +87,7 @@ export const PLANS = {
     tagline: "Hasta 8 equipos · 200 jugadores",
     price: 399,
     period: "/ mes",
+    limits: { maxTeams: 8, maxPlayers: 200 },
     features: [
       "Todo Inicial +",
       "Import GPS multi-equipo",
@@ -101,6 +106,7 @@ export const PLANS = {
     tagline: "Equipos ilimitados · jugadores ilimitados",
     price: 699,
     period: "/ mes",
+    limits: { maxTeams: null, maxPlayers: null },
     features: [
       "Todo Profesional +",
       "API e integraciones",
@@ -118,6 +124,7 @@ export const PLANS = {
     tagline: "Plan mensual IA · panel privado",
     price: 19.99,
     period: "/ mes",
+    limits: { maxTeams: null, maxPlayers: null },
     features: [
       "Plan de preparación física mensual",
       "Adaptado a posición y nivel",
@@ -135,6 +142,7 @@ export const PLANS = {
     tagline: "Plan IA adaptativo + seguimiento",
     price: 39.99,
     period: "/ mes",
+    limits: { maxTeams: null, maxPlayers: null },
     features: [
       "Todo Esencial +",
       "Ajuste IA semanal según feedback",
@@ -146,6 +154,13 @@ export const PLANS = {
     bg: "#FEFAE7",
     highlight: true,
   },
+};
+
+/** Orden ascendente de planes por audiencia — se usa para sugerir upgrades */
+export const PLAN_ORDER = {
+  coach: ["coach-starter", "coach-pro", "coach-premium"],
+  club: ["club-inicial", "club-pro", "club-elite"],
+  player: ["player-essential", "player-pro"],
 };
 
 const PLAN_SLUGS = {
@@ -170,4 +185,40 @@ export function formatPrice(price) {
 
 export function applyClubDiscount(price) {
   return Math.round(price * 0.85 * 100) / 100;
+}
+
+/** Límites del plan. Si el plan no se reconoce, se devuelve ilimitado (fail-open). */
+export function getPlanLimits(planId) {
+  return PLANS[planId]?.limits || { maxTeams: null, maxPlayers: null };
+}
+
+/** Siguiente plan (superior) dentro de la misma audiencia, o null si ya es el más alto. */
+export function getNextPlan(planId) {
+  const plan = PLANS[planId];
+  if (!plan) return null;
+  const order = PLAN_ORDER[plan.audience] || [];
+  const idx = order.indexOf(planId);
+  if (idx === -1 || idx === order.length - 1) return null;
+  return PLANS[order[idx + 1]] || null;
+}
+
+/**
+ * Resuelve un plan "legacy" en texto libre (p.ej. lo que guarda el admin en club.plan:
+ * "Activo", "Pro", "Premium"…) al plan más cercano dentro de una audiencia.
+ * Si no hay match reconocible, devuelve el plan más alto (ilimitado) para no
+ * restringir por error a un club/entrenador ya existente.
+ */
+export function resolvePlanForClub(planText, audience = "club") {
+  const order = PLAN_ORDER[audience] || [];
+  const topPlan = order.length ? PLANS[order[order.length - 1]] : null;
+  if (!planText) return topPlan;
+  if (PLANS[planText]) return PLANS[planText];
+
+  const norm = String(planText).toLowerCase();
+  if (norm.includes("elite") || norm.includes("premium")) return topPlan;
+  if (norm.includes("pro") || norm.includes("profesional")) return PLANS[order[1]] || topPlan;
+  if (norm.includes("inicial") || norm.includes("starter") || norm.includes("básico") || norm.includes("basico")) {
+    return PLANS[order[0]] || topPlan;
+  }
+  return topPlan;
 }

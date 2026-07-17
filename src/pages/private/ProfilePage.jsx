@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera, CreditCard, X } from "lucide-react";
+import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera, CreditCard, X, ArrowUpCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -12,6 +12,7 @@ import {
   getPlanPrice,
   formatSubscriptionDate,
 } from "../../lib/subscription";
+import ChangePlanModal from "../../components/private/ChangePlanModal";
 
 function lsGet(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -91,6 +92,7 @@ export default function ProfilePage() {
 
   // Suscripción individual
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showChangePlanModal, setShowChangePlanModal] = useState(false);
   const [cancelLoading, setCancelLoading]     = useState(false);
   const [subMsg, setSubMsg]                   = useState(null);
 
@@ -394,17 +396,33 @@ export default function ProfilePage() {
             )}
 
             {subActive && !subPendingCancel && (
-              <button
-                type="button"
-                onClick={() => setShowCancelModal(true)}
-                className="text-sm font-semibold text-red-500 hover:text-red-600 transition-colors"
-              >
-                {t("profile.subscription_cancel_btn")}
-              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowChangePlanModal(true)}
+                  className="flex items-center gap-1.5 text-sm font-semibold text-depro-blue hover:text-depro-blue-dark transition-colors"
+                >
+                  <ArrowUpCircle size={14} /> {t("profile.subscription_change_btn")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCancelModal(true)}
+                  className="text-sm font-semibold text-red-500 hover:text-red-600 transition-colors"
+                >
+                  {t("profile.subscription_cancel_btn")}
+                </button>
+              </div>
             )}
           </div>
         </div>
       )}
+
+      <ChangePlanModal
+        open={showChangePlanModal}
+        onClose={() => setShowChangePlanModal(false)}
+        audience="player"
+        currentPlanId={subscription?.plan}
+      />
 
       {/* Modal cancelar suscripción */}
       {showCancelModal && (
