@@ -12,6 +12,15 @@ import {
 } from "../../components/public/holded/HoldedHomeSections";
 import { SessionsMockup, TestsMockup } from "../../components/public/LandingMockups";
 
+/** Agrupa secciones del mismo tema y elimina borde superior duplicado */
+function SectionBlock({ children, className = "" }) {
+  return (
+    <div className={`[&>section:first-child]:border-t-0 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
 export default function HomePage() {
   return (
     <>
@@ -20,7 +29,8 @@ export default function HomePage() {
         <HoldedStatsBand />
       </HoldedDarkHeroBlock>
 
-      <div className="bg-white rounded-t-[2.5rem] md:rounded-t-[3rem] -mt-1 relative z-10 [&>section:first-of-type]:border-t-0">
+      {/* Blanco: planificación + analítica */}
+      <SectionBlock className="rounded-t-[2.5rem] md:rounded-t-[3rem] -mt-1 relative z-10 overflow-hidden">
         <HoldedFeatureSection
           compact
           dark={false}
@@ -43,8 +53,11 @@ export default function HomePage() {
           ctaLink="/funcionalidades/cargas"
           ctaText="Explorar analítica"
         />
+      </SectionBlock>
+
+      {/* Oscuro: carga + tests + sesiones + herramientas */}
+      <SectionBlock>
         <HoldedFeatureSection
-          dark={false}
           label="Control de carga"
           title="Visibilidad total de tu flujo de entrenamiento"
           desc="Monitoriza RPE, wellness y alertas. Concilia la carga planificada con la ejecutada."
@@ -54,7 +67,6 @@ export default function HomePage() {
         />
         <HoldedFeatureSection
           reverse
-          dark={false}
           label="Tests físicos"
           title="De la evaluación al seguimiento longitudinal"
           desc="Batería T1→T3 con ratings, tendencias y comparativas por jugador."
@@ -63,7 +75,6 @@ export default function HomePage() {
           ctaLink="/funcionalidades/tests"
         />
         <HoldedFeatureSection
-          dark={false}
           label="Sesiones"
           title="Sesiones editables y compartibles al instante"
           desc="Cada sesión generada es editable, exportable y compartible con tu plantilla."
@@ -71,19 +82,38 @@ export default function HomePage() {
           mockup={<HoldedFloatingCardsMockup />}
           ctaLink="/funcionalidades/planificacion"
         />
+        <ExtraToolsSection dark />
+      </SectionBlock>
 
-        <ExtraToolsSection />
-        <HoldedProductGrid />
-        <PricingTeaserSection />
-        <WhyDeproSection />
-        <HowItWorksSection />
-        <RolesSection />
-        <AISection />
-        <ImpactStatsSection />
-        <TestimonialsSection />
-        <VideoSection />
-        <FAQSection />
-      </div>
+      {/* Blanco: productos + precios */}
+      <SectionBlock>
+        <HoldedProductGrid dark={false} />
+        <PricingTeaserSection dark={false} />
+      </SectionBlock>
+
+      {/* Oscuro: por qué DEPRO + cómo funciona */}
+      <SectionBlock>
+        <WhyDeproSection dark />
+        <HowItWorksSection dark />
+      </SectionBlock>
+
+      {/* Blanco: perfiles + IA */}
+      <SectionBlock>
+        <RolesSection dark={false} />
+        <AISection dark={false} />
+      </SectionBlock>
+
+      {/* Oscuro: impacto + testimonios */}
+      <SectionBlock>
+        <ImpactStatsSection dark />
+        <TestimonialsSection dark />
+      </SectionBlock>
+
+      {/* Blanco: vídeo + FAQ */}
+      <SectionBlock>
+        <VideoSection dark={false} />
+        <FAQSection dark={false} />
+      </SectionBlock>
     </>
   );
 }

@@ -418,7 +418,7 @@ export function HoldedPlatformBand() {
 }
 
 /* ── Product grid 6 cards ────────────────────────────────────── */
-export function HoldedProductGrid() {
+export function HoldedProductGrid({ dark = true }) {
   const products = [
     { icon: Calendar, title: "Planificación", desc: "Microciclos y mesociclos automáticos con sesiones A/B/C.", to: "/funcionalidades/planificacion" },
     { icon: Activity, title: "Control de carga", desc: "RPE, wellness y alertas de sobrecarga por jugador.", to: "/funcionalidades/cargas" },
@@ -428,24 +428,30 @@ export function HoldedProductGrid() {
     { icon: Building2, title: "DEPRO Club", desc: "Multi-equipo, white-label y panel coordinador.", to: "/para-clubs" },
   ];
   return (
-    <section className="py-20 md:py-28 bg-white relative border-t border-gray-100">
+    <section className={dark ? "py-20 md:py-28 bg-holded-dark relative border-t border-white/5" : "py-20 md:py-28 bg-white relative border-t border-gray-100"}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-14">
-          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Seis productos. Una plataforma. Cero complicaciones.</h2>
-          <p className="text-gray-500">Desde tu primer microciclo hasta la gestión completa de un club · DEPRO se adapta a tu rol.</p>
+          <h2 className={`text-3xl md:text-4xl font-black mb-4 ${dark ? "text-white" : "text-gray-900"}`}>Seis productos. Una plataforma. Cero complicaciones.</h2>
+          <p className={dark ? "text-holded-muted" : "text-gray-500"}>Desde tu primer microciclo hasta la gestión completa de un club · DEPRO se adapta a tu rol.</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map(({ icon: Icon, title, desc, to }) => (
-            <Link key={title} to={to} className="group relative bg-gray-50 border border-gray-200 rounded-2xl p-6 hover:border-holded-blue/30 hover:shadow-lg transition-all overflow-hidden">
-              <div className="absolute top-4 right-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity">
-                <Icon size={80} className="text-holded-blue" />
+            <Link
+              key={title}
+              to={to}
+              className={dark
+                ? "group relative bg-holded-card/80 border border-white/8 rounded-2xl p-6 hover:border-holded-blue/40 hover:bg-holded-card transition-all overflow-hidden"
+                : "group relative bg-gray-50 border border-gray-200 rounded-2xl p-6 hover:border-holded-blue/30 hover:shadow-lg transition-all overflow-hidden"}
+            >
+              <div className={`absolute top-4 right-4 transition-opacity ${dark ? "opacity-5 group-hover:opacity-10" : "opacity-[0.04] group-hover:opacity-[0.08]"}`}>
+                <Icon size={80} className={dark ? "text-white" : "text-holded-blue"} />
               </div>
-              <div className="w-10 h-10 rounded-xl bg-holded-blue/10 flex items-center justify-center mb-4">
-                <Icon size={20} className="text-holded-blue" />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${dark ? "bg-holded-blue/20" : "bg-holded-blue/10"}`}>
+                <Icon size={20} className={dark ? "text-holded-blue-light" : "text-holded-blue"} />
               </div>
-              <h3 className="font-black text-gray-900 text-lg mb-2">{title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">{desc}</p>
-              <span className="text-sm font-bold text-holded-blue group-hover:gap-2 inline-flex items-center gap-1 transition-all">
+              <h3 className={`font-black text-lg mb-2 ${dark ? "text-white" : "text-gray-900"}`}>{title}</h3>
+              <p className={`text-sm leading-relaxed mb-4 ${dark ? "text-holded-muted" : "text-gray-500"}`}>{desc}</p>
+              <span className={`text-sm font-bold group-hover:gap-2 inline-flex items-center gap-1 transition-all ${dark ? "text-holded-blue-light" : "text-holded-blue"}`}>
                 Explorar {title.toLowerCase()} <ChevronRight size={14} />
               </span>
             </Link>
