@@ -335,7 +335,7 @@ export default function PhysicalPage() {
           <p className="text-sm text-depro-gray max-w-sm mx-auto mb-6">
             {t("physical.subtitle")}
           </p>
-          <a href="/comprar?plan=premium" className="inline-flex items-center gap-2 px-6 py-3 bg-depro-yellow text-depro-dark font-bold rounded-xl hover:opacity-90 transition-opacity text-sm">
+          <a href="/comprar?audience=player&plan=pro" className="inline-flex items-center gap-2 px-6 py-3 bg-depro-yellow text-depro-dark font-bold rounded-xl hover:opacity-90 transition-opacity text-sm">
             {t("physical.upgrade")}
           </a>
         </div>

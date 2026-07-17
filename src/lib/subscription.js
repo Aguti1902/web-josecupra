@@ -3,11 +3,27 @@ import { supabase } from "./supabase";
 const STORAGE_PREFIX = "depro_subscription_";
 
 export const PLAN_LABELS = {
+  "coach-starter": "Entrenador Starter",
+  "coach-pro": "Entrenador Pro",
+  "coach-premium": "Entrenador Premium",
+  "club-inicial": "Club Inicial",
+  "club-pro": "Club Profesional",
+  "club-elite": "Club Elite",
+  "player-essential": "Jugador Esencial",
+  "player-pro": "Jugador Pro",
   basic: "Plan Básico",
   premium: "Plan Premium",
 };
 
 export const PLAN_PRICES = {
+  "coach-starter": "14,99€/mes",
+  "coach-pro": "29,99€/mes",
+  "coach-premium": "49,99€/mes",
+  "club-inicial": "199€/mes",
+  "club-pro": "399€/mes",
+  "club-elite": "699€/mes",
+  "player-essential": "19,99€/mes",
+  "player-pro": "39,99€/mes",
   basic: "49€/mes",
   premium: "119€/mes",
 };

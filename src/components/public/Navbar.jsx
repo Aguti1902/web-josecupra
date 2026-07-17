@@ -19,9 +19,9 @@ export default function Navbar() {
   useEffect(() => setOpen(false), [pathname]);
 
   const links = [
-    { label: t("nav.services"), href: "#servicios" },
-    { label: t("nav.players"),  href: "#jugadores" },
-    { label: t("nav.clubs"),    href: "#clubs" },
+    { label: t("nav.services"), href: "#producto" },
+    { label: t("nav.players"),  href: "#precios" },
+    { label: t("nav.clubs"),    href: "#referidos" },
     { label: t("nav.about"),    href: "#sobre" },
   ];
 

@@ -2,51 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, ArrowRight, CheckCircle, Zap, Trophy, User, Mail, Calendar,
-  Target, Activity, Heart, Dumbbell, AlertCircle, CreditCard, Shield, Lock,
-  ChevronRight, BadgeCheck, MapPin, Clock,
+  Target, AlertCircle, Shield, Lock,
+  ChevronRight, BadgeCheck, MapPin, Building2, Users,
 } from "lucide-react";
-
-/* ─────────────────────────────────────────────
-   CONFIG DE PLANES
-───────────────────────────────────────────── */
-const PLANS = {
-  basic: {
-    id: "basic",
-    name: "Plan Básico",
-    tagline: "Tu plan mensual al instante",
-    price: 49,
-    period: "/ mes",
-    description: "Plan mensual automatizado generado tras tu formulario.",
-    features: [
-      "Plan mensual completo al instante",
-      "Todos los entrenamientos del mes",
-      "Acceso al panel privado",
-      "Descarga en PDF",
-      "Iconografía condicional",
-    ],
-    color: "#0A36F7",
-    bg: "#EEF1FF",
-  },
-  premium: {
-    id: "premium",
-    name: "Plan Premium",
-    tagline: "Plan + seguimiento del preparador",
-    price: 119,
-    period: "/ mes",
-    description: "Plan personalizado revisado por el preparador con feedback continuo.",
-    features: [
-      "Todo el Plan Básico incluido",
-      "Plan revisado y ajustado por el preparador",
-      "Seguimiento continuo en el panel",
-      "Feedback mensual personalizado",
-      "Contacto directo por el panel",
-      "Renovación con progresión adaptada",
-    ],
-    color: "#F6CC12",
-    bg: "#FEFAE7",
-    highlight: true,
-  },
-};
+import {
+  AUDIENCES, PLANS, resolvePlanId, plansForAudience, formatPrice, applyClubDiscount,
+} from "../../lib/checkoutPlans";
 
 const POSITIONS  = ["Portero", "Defensa", "Lateral", "Pivote", "Centro", "Mediapunta", "Extremo", "Delantero"];
 // Preguntas del motor de planes (doc técnico)
@@ -63,16 +24,17 @@ const INJURY_SUBTYPES = {
 };
 const WEEK_DAYS  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
-const STEPS      = ["Plan", "Tus datos", "Tu entrenamiento", "Pago"];
+const STEPS_PLAYER = ["Plan", "Tus datos", "Tu entrenamiento", "Pago"];
+const STEPS_STAFF  = ["Plan", "Tus datos", "Pago"];
 
 /* ─────────────────────────────────────────────
    COMPONENTES AUX
 ───────────────────────────────────────────── */
-function StepHeader({ current }) {
+function StepHeader({ steps, current }) {
   return (
     <div className="mb-10">
       <div className="flex items-center justify-between mb-3">
-        {STEPS.map((label, i) => {
+        {steps.map((label, i) => {
           const stepNumber = i + 1;
           const done = stepNumber < current;
           const active = stepNumber === current;
@@ -98,7 +60,7 @@ function StepHeader({ current }) {
                   {label}
                 </span>
               </div>
-              {stepNumber !== STEPS.length && (
+              {stepNumber !== steps.length && (
                 <div className={`flex-1 h-0.5 mx-2 sm:mx-4 ${done ? "bg-depro-green" : "bg-depro-border"}`} />
               )}
             </div>
@@ -147,14 +109,33 @@ function Toggle({ label, value, options, onChange, multi = false }) {
 /* ─────────────────────────────────────────────
    STEP 1 — Elegir plan
 ───────────────────────────────────────────── */
-function StepPlan({ selected, onSelect, onNext }) {
+function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
+  const visiblePlans = plansForAudience(audience);
+
   return (
     <div>
       <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Elige tu plan</h2>
-      <p className="text-depro-gray text-sm mb-8">Puedes cambiar de plan en cualquier momento desde tu panel.</p>
+      <p className="text-depro-gray text-sm mb-6">Selecciona el perfil y el plan que encaja con tu escala.</p>
 
-      <div className="grid md:grid-cols-2 gap-5">
-        {Object.values(PLANS).map((plan) => {
+      <div className="flex flex-wrap gap-2 mb-8">
+        {Object.values(AUDIENCES).map((aud) => (
+          <button
+            key={aud.id}
+            type="button"
+            onClick={() => onAudienceChange(aud.id)}
+            className={`text-sm font-bold px-4 py-2.5 rounded-xl border transition-all ${
+              audience === aud.id
+                ? "bg-depro-blue border-depro-blue text-white"
+                : "bg-white border-depro-border text-depro-gray hover:border-depro-blue/40"
+            }`}
+          >
+            {aud.label}
+          </button>
+        ))}
+      </div>
+
+      <div className={`grid gap-5 ${visiblePlans.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+        {visiblePlans.map((plan) => {
           const isSelected = selected === plan.id;
           return (
             <button
@@ -173,7 +154,7 @@ function StepPlan({ selected, onSelect, onNext }) {
 
               <div className="flex items-start justify-between mb-4">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: plan.bg }}>
-                  {plan.id === "basic" ? <Zap size={20} style={{ color: plan.color }} /> : <Trophy size={20} style={{ color: plan.color }} />}
+                  {plan.highlight ? <Trophy size={20} style={{ color: plan.color }} /> : <Zap size={20} style={{ color: plan.color }} />}
                 </div>
                 <div
                   className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
@@ -188,7 +169,7 @@ function StepPlan({ selected, onSelect, onNext }) {
               <p className="text-xs text-depro-gray mt-0.5 mb-3">{plan.tagline}</p>
 
               <div className="flex items-baseline gap-1 mb-5">
-                <span className="text-3xl font-black text-depro-dark">{plan.price}€</span>
+                <span className="text-3xl font-black text-depro-dark">{formatPrice(plan.price)}</span>
                 <span className="text-xs text-depro-gray">{plan.period}</span>
               </div>
 
@@ -221,24 +202,34 @@ function StepPlan({ selected, onSelect, onNext }) {
 /* ─────────────────────────────────────────────
    STEP 2 — Datos personales
 ───────────────────────────────────────────── */
-function StepDatos({ form, setForm, onNext, onBack }) {
-  const valid = form.nombre && form.email && form.edad && form.posicion;
+function StepDatos({ audience, form, setForm, onNext, onBack }) {
+  const isPlayer = audience === "player";
+  const valid = form.nombre && form.email && (isPlayer ? form.edad && form.posicion : form.club);
+
   return (
     <div>
-      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Cuéntanos sobre ti</h2>
-      <p className="text-depro-gray text-sm mb-8">Necesitamos tus datos para crear tu cuenta y personalizar el plan.</p>
+      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">
+        {audience === "club" ? "Datos del club" : audience === "coach" ? "Datos del entrenador" : "Cuéntanos sobre ti"}
+      </h2>
+      <p className="text-depro-gray text-sm mb-8">
+        {audience === "player"
+          ? "Necesitamos tus datos para crear tu cuenta y personalizar el plan."
+          : "Crearemos tu cuenta y configuraremos el panel según tu contexto."}
+      </p>
 
       <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card space-y-5">
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Nombre completo *</label>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
+              {audience === "club" ? "Persona de contacto *" : "Nombre completo *"}
+            </label>
             <div className="relative">
               <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text" value={form.nombre}
                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 className="admin-input w-full pl-10"
-                placeholder="Tu nombre y apellidos"
+                placeholder={audience === "club" ? "Nombre del responsable" : "Tu nombre y apellidos"}
               />
             </div>
           </div>
@@ -256,52 +247,87 @@ function StepDatos({ form, setForm, onNext, onBack }) {
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Edad *</label>
-            <div className="relative">
-              <Calendar size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        {isPlayer ? (
+          <>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Edad *</label>
+                <div className="relative">
+                  <Calendar size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="number" min="10" max="60" value={form.edad}
+                    onChange={(e) => setForm({ ...form, edad: e.target.value })}
+                    className="admin-input w-full pl-10"
+                    placeholder="18"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Club / equipo actual</label>
+                <div className="relative">
+                  <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text" value={form.club}
+                    onChange={(e) => setForm({ ...form, club: e.target.value })}
+                    className="admin-input w-full pl-10"
+                    placeholder="Opcional"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Toggle
+              label="Posición principal *"
+              value={form.posicion}
+              options={POSITIONS}
+              onChange={(v) => setForm({ ...form, posicion: v })}
+            />
+
+            <div>
+              <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
+                Código de club <span className="text-depro-gray font-normal normal-case">(opcional, para descuento)</span>
+              </label>
               <input
-                type="number" min="10" max="60" value={form.edad}
-                onChange={(e) => setForm({ ...form, edad: e.target.value })}
-                className="admin-input w-full pl-10"
-                placeholder="18"
+                type="text" value={form.clubCode}
+                onChange={(e) => setForm({ ...form, clubCode: e.target.value.toUpperCase() })}
+                className="admin-input w-full uppercase tracking-wider"
+                placeholder="EJ. DEPRO-CLUB-2025"
+                maxLength={32}
               />
             </div>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Club / equipo actual</label>
-            <div className="relative">
-              <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text" value={form.club}
-                onChange={(e) => setForm({ ...form, club: e.target.value })}
-                className="admin-input w-full pl-10"
-                placeholder="Opcional"
-              />
+          </>
+        ) : (
+          <>
+            <div>
+              <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
+                {audience === "club" ? "Nombre del club *" : "Club / academia principal *"}
+              </label>
+              <div className="relative">
+                <Building2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text" value={form.club}
+                  onChange={(e) => setForm({ ...form, club: e.target.value })}
+                  className="admin-input w-full pl-10"
+                  placeholder={audience === "club" ? "Ej. FC Cantera Norte" : "Ej. Academia o club donde entrenas"}
+                />
+              </div>
             </div>
-          </div>
-        </div>
-
-        <Toggle
-          label="Posición principal *"
-          value={form.posicion}
-          options={POSITIONS}
-          onChange={(v) => setForm({ ...form, posicion: v })}
-        />
-
-        <div>
-          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
-            Código de club <span className="text-depro-gray font-normal normal-case">(opcional, para descuento)</span>
-          </label>
-          <input
-            type="text" value={form.clubCode}
-            onChange={(e) => setForm({ ...form, clubCode: e.target.value.toUpperCase() })}
-            className="admin-input w-full uppercase tracking-wider"
-            placeholder="EJ. DEPRO-FCB-2025"
-            maxLength={32}
-          />
-        </div>
+            <div>
+              <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
+                {audience === "club" ? "Número de equipos / categorías" : "Equipos que gestionas"}
+              </label>
+              <div className="relative">
+                <Users size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text" value={form.equipos}
+                  onChange={(e) => setForm({ ...form, equipos: e.target.value })}
+                  className="admin-input w-full pl-10"
+                  placeholder={audience === "club" ? "Ej. 5 categorías" : "Ej. Juvenil A, Cadete B"}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="mt-8 flex justify-between">
@@ -487,9 +513,9 @@ function StepPago({ form, plan, onBack }) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
 
-  const hasDiscount = !!form.clubCode;
-  const discount    = hasDiscount ? Math.round(plan.price * 0.15) : 0;
-  const total       = plan.price - discount;
+  const hasDiscount = !!form.clubCode && plan.audience === "player";
+  const discount    = hasDiscount ? Math.round(plan.price * 0.15 * 100) / 100 : 0;
+  const total       = hasDiscount ? applyClubDiscount(plan.price) : plan.price;
 
   const handleStripeCheckout = async () => {
     setLoading(true);
@@ -500,7 +526,7 @@ function StepPago({ form, plan, onBack }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           planId:   plan.id,
-          formData: form,
+          formData: { ...form, audience: plan.audience },
           origin:   window.location.origin,
         }),
       });
@@ -540,14 +566,16 @@ function StepPago({ form, plan, onBack }) {
               {[
                 ["Nombre",    form.nombre],
                 ["Email",     form.email],
-                ["Objetivo",  form.objetivo],
-                ["Deporte",   form.deporte],
-                ["Frecuencia",form.frecuencia],
-                ["Experiencia", form.experiencia],
-                ["Material",  form.material],
-                ["Días",      (form.disponibles || []).join(", ")],
-                ["Lesiones",  (form.lesion?.length > 0 ? form.lesion.join(", ") : "Ninguna")],
-              ].filter(([, v]) => v).map(([label, val]) => (
+                plan.audience === "player" ? ["Objetivo",  form.objetivo] : null,
+                plan.audience === "player" ? ["Deporte",   form.deporte] : null,
+                plan.audience === "player" ? ["Frecuencia",form.frecuencia] : null,
+                plan.audience === "player" ? ["Experiencia", form.experiencia] : null,
+                plan.audience === "player" ? ["Material",  form.material] : null,
+                plan.audience === "player" ? ["Días",      (form.disponibles || []).join(", ")] : null,
+                plan.audience === "player" ? ["Lesiones",  (form.lesion?.length > 0 ? form.lesion.join(", ") : "Ninguna")] : null,
+                plan.audience !== "player" ? ["Club", form.club] : null,
+                plan.audience !== "player" ? ["Equipos", form.equipos] : null,
+              ].filter(Boolean).filter(([, v]) => v).map(([label, val]) => (
                 <div key={label}>
                   <span className="text-depro-gray">{label}: </span>
                   <span className="font-semibold text-depro-dark">{val}</span>
@@ -569,7 +597,7 @@ function StepPago({ form, plan, onBack }) {
               <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2">Resumen</div>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: plan.bg }}>
-                  {plan.id === "basic" ? <Zap size={18} style={{ color: plan.color }} /> : <Trophy size={18} style={{ color: plan.color }} />}
+                  {plan.highlight ? <Trophy size={18} style={{ color: plan.color }} /> : <Zap size={18} style={{ color: plan.color }} />}
                 </div>
                 <div>
                   <div className="font-black text-depro-dark">{plan.name}</div>
@@ -580,17 +608,17 @@ function StepPago({ form, plan, onBack }) {
 
             <div className="p-5 space-y-2 text-sm">
               <div className="flex justify-between text-depro-gray">
-                <span>Subtotal</span><span>{plan.price}€</span>
+                <span>Subtotal</span><span>{formatPrice(plan.price)}</span>
               </div>
               {hasDiscount && (
                 <div className="flex justify-between text-depro-green">
                   <span className="flex items-center gap-1"><BadgeCheck size={13} /> Código club</span>
-                  <span>– {discount}€</span>
+                  <span>– {formatPrice(discount)}</span>
                 </div>
               )}
               <div className="border-t border-depro-border pt-3 flex justify-between">
                 <span className="font-bold text-depro-dark">Total / mes</span>
-                <span className="text-xl font-black text-depro-dark">{total}€</span>
+                <span className="text-xl font-black text-depro-dark">{formatPrice(total)}</span>
               </div>
               <div className="text-[11px] text-depro-gray">Suscripción mensual. Cancela cuando quieras.</div>
             </div>
@@ -609,7 +637,7 @@ function StepPago({ form, plan, onBack }) {
                 {loading ? (
                   <><div className="spinner border-white/20 border-t-white" /> Redirigiendo a Stripe...</>
                 ) : (
-                  <><Lock size={14} /> Pagar {total}€ con Stripe</>
+                  <><Lock size={14} /> Pagar {formatPrice(total)} con Stripe</>
                 )}
               </button>
               <div className="flex items-center justify-center gap-1.5 text-[10px] text-depro-gray">
@@ -691,16 +719,22 @@ function StepDone({ plan, form }) {
 ───────────────────────────────────────────── */
 export default function OnboardingPage() {
   const [params] = useSearchParams();
-  const initial = params.get("plan") === "premium" ? "premium" : params.get("plan") === "basic" ? "basic" : "";
+  const audienceParam = params.get("audience") || "player";
+  const initialPlanId = resolvePlanId(audienceParam, params.get("plan"));
+  const initialAudience = initialPlanId
+    ? (PLANS[initialPlanId]?.audience || audienceParam)
+    : (AUDIENCES[audienceParam] ? audienceParam : "player");
 
-  const [step, setStep] = useState(initial ? 2 : 1);
-  const [planId, setPlanId] = useState(initial);
+  const [audience, setAudience] = useState(initialAudience);
+  const [step, setStep] = useState(initialPlanId ? 2 : 1);
+  const [planId, setPlanId] = useState(initialPlanId);
 
   const [form, setForm] = useState({
     nombre: "",
     email: "",
     edad: "",
     club: "",
+    equipos: "",
     posicion: "",
     clubCode: "",
     objetivo:  "",
@@ -713,7 +747,20 @@ export default function OnboardingPage() {
     disponibles: ["Lunes", "Miércoles", "Viernes"],
   });
 
-  const plan = PLANS[planId] || PLANS.basic;
+  const plan = PLANS[planId] || plansForAudience(audience)[0];
+  const isPlayerFlow = plan?.audience === "player";
+  const stepLabels = isPlayerFlow ? STEPS_PLAYER : STEPS_STAFF;
+  const headerStep = !isPlayerFlow && step === 4 ? 3 : step;
+
+  const handleAudienceChange = (nextAudience) => {
+    setAudience(nextAudience);
+    const first = plansForAudience(nextAudience)[0];
+    setPlanId(first?.id || "");
+  };
+
+  const goToPayment = () => setStep(isPlayerFlow ? 4 : 3);
+  const paymentStep = isPlayerFlow ? 4 : 3;
+  const backFromPayment = () => setStep(isPlayerFlow ? 3 : 2);
 
 
   return (
@@ -731,10 +778,12 @@ export default function OnboardingPage() {
         </div>
 
         {/* Wizard */}
-        <StepHeader current={step} />
+        <StepHeader steps={stepLabels} current={headerStep} />
 
         {step === 1 && (
           <StepPlan
+            audience={audience}
+            onAudienceChange={handleAudienceChange}
             selected={planId}
             onSelect={setPlanId}
             onNext={() => planId && setStep(2)}
@@ -743,27 +792,28 @@ export default function OnboardingPage() {
 
         {step === 2 && (
           <StepDatos
+            audience={plan?.audience || audience}
             form={form}
             setForm={setForm}
-            onNext={() => setStep(3)}
+            onNext={() => (isPlayerFlow ? setStep(3) : goToPayment())}
             onBack={() => setStep(1)}
           />
         )}
 
-        {step === 3 && (
+        {step === 3 && isPlayerFlow && (
           <StepFutbol
             form={form}
             setForm={setForm}
-            onNext={() => setStep(4)}
+            onNext={goToPayment}
             onBack={() => setStep(2)}
           />
         )}
 
-        {step === 4 && (
+        {step === paymentStep && (
           <StepPago
             form={form}
             plan={plan}
-            onBack={() => setStep(3)}
+            onBack={backFromPayment}
           />
         )}
       </div>

@@ -4,8 +4,14 @@ import { createClient } from "@supabase/supabase-js";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const PRICES = {
-  basic:   { amount: 4900,  name: "DEPRO Plan Básico",   description: "Plan mensual completo + acceso al panel privado" },
-  premium: { amount: 11900, name: "DEPRO Plan Premium",  description: "Plan revisado por el preparador + seguimiento continuo" },
+  "coach-starter":   { amount: 1499,  name: "DEPRO Entrenador Starter",   description: "1 equipo · hasta 25 jugadores · microciclo IA" },
+  "coach-pro":       { amount: 2999,  name: "DEPRO Entrenador Pro",       description: "3 equipos · hasta 60 jugadores · control de carga" },
+  "coach-premium":   { amount: 4999,  name: "DEPRO Entrenador Premium",   description: "Equipos ilimitados · GPS · diagramas IA" },
+  "club-inicial":    { amount: 19900, name: "DEPRO Club Inicial",         description: "Hasta 3 equipos · white-label · referidos" },
+  "club-pro":        { amount: 39900, name: "DEPRO Club Profesional",     description: "Hasta 8 equipos · GPS · módulo médico" },
+  "club-elite":      { amount: 69900, name: "DEPRO Club Elite",           description: "Equipos ilimitados · API · SLA dedicado" },
+  "player-essential":{ amount: 1999,  name: "DEPRO Jugador Esencial",     description: "Plan mensual IA · panel privado · PDF" },
+  "player-pro":      { amount: 3999,  name: "DEPRO Jugador Pro",          description: "Plan IA adaptativo · tests · alertas de carga" },
 };
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
@@ -44,10 +50,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Plan no válido" });
   }
 
+  const audience = formData?.audience || planId.split("-")[0] || "player";
   const clubCode = (formData?.clubCode || "").trim().toUpperCase();
   let clubId = "";
   let hasDiscount = false;
-  if (clubCode) {
+  if (clubCode && audience === "player") {
     const v = await validateClubCode(clubCode);
     hasDiscount = v.valid;
     clubId = v.clubId || "";
@@ -79,6 +86,7 @@ export default async function handler(req, res) {
       ],
       customer_email: formData?.email || undefined,
       metadata: {
+        audience,
         plan:         planId,
         nombre:       formData?.nombre      || "",
         email:        formData?.email       || "",
@@ -92,6 +100,8 @@ export default async function handler(req, res) {
         lesion:       lesionArr.join("|"),
         lesionSubtipo: subArr.join("|"),
         disponibles:  dispArr.join("|"),
+        clubName:     formData?.club        || "",
+        equipos:      formData?.equipos     || "",
         clubCode:     clubCode,
         clubId:       clubId,
         tempPassword,

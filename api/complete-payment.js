@@ -35,8 +35,9 @@ export default async function handler(req, res) {
 
       const userMeta = {
         name,
-        role: "player",
-        plan: meta.plan || "basic",
+        audience: meta.audience || "player",
+        role: meta.audience === "club" ? "club" : meta.audience === "coach" ? "coach" : "player",
+        plan: meta.plan || "player-essential",
         objetivo: meta.objetivo || "",
         deporte: meta.deporte || "",
         frecuencia: meta.frecuencia || "",
