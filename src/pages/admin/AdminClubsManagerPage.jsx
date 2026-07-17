@@ -323,7 +323,6 @@ export default function AdminClubsManagerPage() {
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
-  const [showModal, setShowModal]   = useState(false);
   const [copied, setCopied]         = useState(null);
 
   const enrichClubs = (data) => data.map((c) => {
@@ -389,13 +388,6 @@ export default function AdminClubsManagerPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const handleCreate = async (clubData) => {
-    // Usamos el mismo ID con el que se creó el usuario Supabase
-    // para que user_metadata.clubId coincida con el ID en depro_clubs
-    const saved = await saveClub(clubData);
-    setClubs((prev) => [saved, ...prev]);
-  };
-
   const handleDelete = async (id) => {
     if (!confirm("¿Eliminar este club?")) return;
     await deleteClub(id);
@@ -410,17 +402,8 @@ export default function AdminClubsManagerPage() {
         <div>
           <h1 className="text-2xl font-bold text-depro-dark">Clubs y equipos</h1>
           <p className="text-depro-gray text-sm mt-0.5">
-            Gestiona clubs, equipos internos y accesos de usuarios
+            Supervisión de clubs dados de alta por los clientes (solo lectura)
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm"
-          >
-            <Plus size={16} />
-            Nuevo club
-          </button>
         </div>
       </div>
 
@@ -521,7 +504,7 @@ export default function AdminClubsManagerPage() {
                     onClick={() => navigate(`/admin/clubs/${club.id}`)}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors text-sm font-medium"
                   >
-                    Gestionar
+                    Ver detalle
                     <ChevronRight size={15} />
                   </button>
                   <button
@@ -537,10 +520,6 @@ export default function AdminClubsManagerPage() {
           ))
         )}
       </div>
-
-      {showModal && (
-        <NewClubModal onClose={() => setShowModal(false)} onCreate={handleCreate} />
-      )}
     </div>
   );
 }

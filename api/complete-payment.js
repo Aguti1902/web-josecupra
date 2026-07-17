@@ -69,6 +69,7 @@ export default async function handler(req, res) {
         disponibles: meta.disponibles ? meta.disponibles.split("|") : [],
         clubCode: meta.clubCode || "",
         clubId: meta.clubId || "",
+        clubName: meta.clubName || meta.club || "",
         subscriptionStatus,
         stripeSubscriptionId,
         stripeCustomerId,

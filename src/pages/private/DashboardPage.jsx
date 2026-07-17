@@ -358,7 +358,7 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
           <div className="text-center py-14 border-2 border-dashed rounded-2xl" style={{ borderColor: sa + "40" }}>
             <Shield size={36} className="mx-auto mb-3" style={{ color: sa + "60" }} />
             <p className="font-medium text-depro-dark">Sin equipos todavía</p>
-            <p className="text-sm mt-1 text-depro-gray">El administrador aún no ha añadido equipos a este club.</p>
+            <p className="text-sm mt-1 text-depro-gray">Aún no hay equipos. Créalos desde Mi Club.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

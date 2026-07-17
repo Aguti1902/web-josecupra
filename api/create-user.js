@@ -5,14 +5,41 @@ const SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrYnl5Ymh0ZGVpbWt0cGFxZ2lsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyODUxOSwiZXhwIjoyMDk0MTA0NTE5fQ.IRMoSOH3zv_cXq0IlTQoW8oEtyGARNHV0v3u-tlB-iA";
 
+function getAdmin() {
+  return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+/** Extrae Bearer token y resuelve el usuario Auth. */
+async function resolveCaller(req, admin) {
+  const auth = req.headers.authorization || req.headers.Authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return { error: "No autorizado", status: 401 };
+
+  const { data, error } = await admin.auth.getUser(token);
+  if (error || !data?.user) return { error: "Sesión inválida", status: 401 };
+
+  const meta = data.user.user_metadata || {};
+  const role = meta.role || (data.user.email === "jose@depro.es" ? "admin" : null);
+  return {
+    user: data.user,
+    role,
+    teamRole: meta.teamRole || null,
+    clubId: meta.clubId || null,
+    isAdmin: role === "admin" || data.user.email === "jose@depro.es",
+    isCoordinator: role === "club" && meta.teamRole === "coordinador" && !!meta.clubId,
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const admin = getAdmin();
+  const caller = await resolveCaller(req, admin);
+  if (caller.error) return res.status(caller.status).json({ error: caller.error });
 
   const {
     email, password, name, role = "club",
@@ -21,6 +48,22 @@ export default async function handler(req, res) {
 
   if (!email || !password) {
     return res.status(400).json({ error: "email y password son obligatorios" });
+  }
+
+  // Autorización: admin puede todo; coordinador solo staff de su club (entrenador/ayudante)
+  if (!caller.isAdmin) {
+    if (!caller.isCoordinator) {
+      return res.status(403).json({ error: "Sin permiso para crear usuarios" });
+    }
+    if (clubId !== caller.clubId) {
+      return res.status(403).json({ error: "Solo puedes crear usuarios de tu club" });
+    }
+    if (!["entrenador", "ayudante"].includes(teamRole)) {
+      return res.status(403).json({ error: "Solo puedes invitar entrenadores o ayudantes" });
+    }
+    if (role !== "club") {
+      return res.status(403).json({ error: "Rol no permitido" });
+    }
   }
 
   const userMeta = {
@@ -32,7 +75,7 @@ export default async function handler(req, res) {
     managedTeamIds: Array.isArray(managedTeamIds) ? managedTeamIds : undefined,
   };
 
-  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+  const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
     user_metadata: userMeta,

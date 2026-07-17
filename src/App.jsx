@@ -33,6 +33,8 @@ import ClubProfilePage from "./pages/private/ClubProfilePage";
 import TeamTestsPage from "./pages/private/TeamTestsPage";
 import CargasPage from "./pages/private/CargasPage";
 import CoachOnboardingPage from "./pages/private/CoachOnboardingPage";
+import ClubOnboardingPage from "./pages/private/ClubOnboardingPage";
+import ClubSettingsPage from "./pages/private/ClubSettingsPage";
 
 // Admin panel
 import AdminLayout from "./components/admin/AdminLayout";
@@ -47,6 +49,7 @@ import AdminPlanificacionPage from "./pages/admin/AdminPlanificacionPage";
 import AdminTestsPage from "./pages/admin/AdminTestsPage";
 import AdminCatalogPage from "./pages/admin/AdminCatalogPage";
 import AdminCoachLibraryPage from "./pages/admin/AdminCoachLibraryPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
 
 /* ── Guards ───────────────────────────────────────────────────────── */
 function LoadingScreen() {
@@ -66,6 +69,10 @@ function ClientRoute({ children }) {
   if (user.role === "admin" && !viewAs) return <Navigate to="/admin" replace />;
   // Entrenador individual sin alta completada → wizard de configuración
   if (user.role === "coach") return <Navigate to="/dashboard/coach-setup" replace />;
+  // Club comprado sin clubId → wizard de alta self-service
+  if (user.role === "club" && !user.clubId && !user?.club?.isSoloCoach) {
+    return <Navigate to="/dashboard/club-setup" replace />;
+  }
   return children;
 }
 
@@ -74,6 +81,14 @@ function CoachSetupRoute({ children }) {
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "coach") return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+function ClubSetupRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "club" || user.clubId) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -127,6 +142,7 @@ function AppRoutes() {
 
       {/* ── Client App ─────────────────────────────────────────── */}
       <Route path="/dashboard/coach-setup" element={<CoachSetupRoute><CoachOnboardingPage /></CoachSetupRoute>} />
+      <Route path="/dashboard/club-setup" element={<ClubSetupRoute><ClubOnboardingPage /></ClubSetupRoute>} />
       <Route path="/dashboard" element={<ClientRoute><AppLayout><DashboardPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/plan" element={<ClientRoute><AppLayout><WeeklyPlanPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/library" element={<ClientRoute><AppLayout><SessionLibraryPage /></AppLayout></ClientRoute>} />
@@ -141,9 +157,11 @@ function AppRoutes() {
       <Route path="/dashboard/team-tests"   element={<ClientRoute><AppLayout><TeamTestsPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/cargas"       element={<ClientRoute><AppLayout><CargasPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/club-profile" element={<ClientRoute><AppLayout><ClubProfilePage /></AppLayout></ClientRoute>} />
+      <Route path="/dashboard/club-settings" element={<ClientRoute><AppLayout><ClubSettingsPage /></AppLayout></ClientRoute>} />
 
       {/* ── Admin Panel ────────────────────────────────────────── */}
       <Route path="/admin" element={<AdminRoute><AdminLayout><AdminOverviewPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/users" element={<AdminRoute><AdminLayout><AdminUsersPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clients" element={<AdminRoute><AdminLayout><AdminClientsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clients/:id" element={<AdminRoute><AdminLayout><AdminClientDetailPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/plan-builder" element={<AdminRoute><AdminLayout><AdminPlanBuilderPage /></AdminLayout></AdminRoute>} />

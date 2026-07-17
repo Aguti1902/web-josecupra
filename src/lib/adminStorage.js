@@ -21,6 +21,22 @@ function isExistingUserError(message = "") {
     || m.includes("user already registered");
 }
 
+/** Abreviatura (3 letras) + año → código de club para jugadores (ej. CDF2026) */
+export function generateLoginCode(abbreviation = "") {
+  const abbr = String(abbreviation || "CLB").replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 3) || "CLB";
+  return `${abbr}${new Date().getFullYear()}`;
+}
+
+async function getAuthHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch { /* sin sesión */ }
+  return headers;
+}
+
 export async function createClubUser({ email, password, name, role = "club", clubId, teamId, teamRole, managedTeamIds }) {
   const payload = { email, password, name, role, clubId, teamId, teamRole, managedTeamIds };
 
@@ -28,7 +44,7 @@ export async function createClubUser({ email, password, name, role = "club", clu
   try {
     const res = await fetch("/api/create-user", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await getAuthHeaders(),
       body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
@@ -79,7 +95,7 @@ function genId() {
 async function apiClubs(method, body) {
   const res = await fetch("/api/admin-clubs", {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   const json = await res.json().catch(() => null);

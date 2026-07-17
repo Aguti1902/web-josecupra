@@ -12,6 +12,7 @@ const navGroups = [
     label: "General",
     items: [
       { to: "/admin", icon: LayoutDashboard, label: "Resumen" },
+      { to: "/admin/users", icon: Users, label: "Usuarios" },
     ],
   },
   {
@@ -19,7 +20,7 @@ const navGroups = [
     groupIcon: Building2,
     accent: "#60A5FA",
     items: [
-      { to: "/admin/clubs",         icon: Building2,   label: "Clubs y equipos" },
+      { to: "/admin/clubs",         icon: Building2,   label: "Clubs (supervisión)" },
       { to: "/admin/planificacion", icon: CalendarDays, label: "Planificación" },
       { to: "/admin/tests",         icon: ClipboardList, label: "Tests físicos" },
     ],

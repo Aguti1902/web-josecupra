@@ -148,7 +148,16 @@ const USERS = [
     email: "coach.nuevo.test@depro.es",
     label: "DEPRO Coach (recién comprado, sin onboarding)",
     metadata: { name: "Coach Nuevo Test", role: "coach", plan: "coach-starter" },
-    hint: "Al entrar, la app le redirige al wizard /dashboard/coach-setup",
+    hint: "Requiere migración SQL profiles_role_check para permitir role=coach. Mientras, usa coach.test@depro.es",
+  },
+  {
+    email: "club.nuevo.test@depro.es",
+    label: "Club (recién comprado, sin onboarding)",
+    metadata: {
+      name: "Club Nuevo Test", role: "club", plan: "club-inicial",
+      clubName: "CD Nuevo Demo",
+    },
+    hint: "Al entrar, la app le redirige al wizard /dashboard/club-setup",
   },
 ];
 

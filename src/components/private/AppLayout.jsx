@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, Zap, Activity,
   MessageSquare, LogOut, Menu, X, ChevronRight, Trophy,
-  ClipboardList, Users as UsersIcon, BookOpen, User, TrendingUp,
+  ClipboardList, Users as UsersIcon, BookOpen, User, TrendingUp, Building2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
@@ -58,9 +58,10 @@ export default function AppLayout({ children }) {
   ];
 
   const coordinadorNav = [
-    { to: "/dashboard",              icon: LayoutDashboard, label: t("nav.dashboard") },
-    { to: "/dashboard/squad",        icon: UsersIcon,       label: t("nav.squad") },
-    { to: "/dashboard/club-profile", icon: User,            label: t("nav.my_profile") },
+    { to: "/dashboard",               icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dashboard/squad",         icon: UsersIcon,       label: t("nav.squad") },
+    { to: "/dashboard/club-settings", icon: Building2,       label: "Mi Club" },
+    { to: "/dashboard/club-profile",  icon: User,            label: t("nav.my_profile") },
   ];
 
   const entrenadorNav = [

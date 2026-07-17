@@ -1619,7 +1619,7 @@ function compressImage(file, maxWidth = 1400, quality = 0.75) {
   });
 }
 
-function IdentidadTab({ club, onSave }) {
+function IdentidadTab({ club, onSave, readOnly = false }) {
   const [logo, setLogo]             = useState(club.logo || null);
   const [banner, setBanner]         = useState(club.banner || null);
   const [primaryColor, setPrimary]  = useState(club.primaryColor || "#1E3A8A");
@@ -1673,7 +1673,7 @@ function IdentidadTab({ club, onSave }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${readOnly ? "pointer-events-none opacity-90" : ""}`}>
       {/* Vista previa con banner */}
       <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
         <div
@@ -1699,7 +1699,7 @@ function IdentidadTab({ club, onSave }) {
             )}
             <div>
               <p className="font-black text-xl leading-tight drop-shadow-sm" style={{ color: banner ? "#fff" : secondaryColor }}>
-                {club.name}
+                {name || club.name}
               </p>
               {slogan && (
                 <p className="text-sm opacity-80 mt-0.5 drop-shadow-sm" style={{ color: banner ? "#ffffffCC" : secondaryColor }}>
@@ -1709,12 +1709,14 @@ function IdentidadTab({ club, onSave }) {
             </div>
           </div>
           {/* Botón editar banner encima */}
+          {!readOnly && (
           <button
             onClick={() => bannerRef.current?.click()}
-            className="absolute top-3 right-3 z-20 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-black/40 text-white hover:bg-black/60 transition-colors backdrop-blur-sm"
+            className="absolute top-3 right-3 z-20 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-black/40 text-white hover:bg-black/60 transition-colors backdrop-blur-sm pointer-events-auto"
           >
             <ImagePlus size={12} /> {banner ? "Cambiar banner" : "Añadir banner"}
           </button>
+          )}
           {banner && (
             <button
               onClick={() => setBanner(null)}
@@ -1835,6 +1837,7 @@ function IdentidadTab({ club, onSave }) {
           </div>
         </div>
       )}
+      {!readOnly && (
       <div className="flex justify-end">
         <button
           onClick={handleSave}
@@ -1852,6 +1855,10 @@ function IdentidadTab({ club, onSave }) {
            <><Save size={15} /> Guardar identidad</>}
         </button>
       </div>
+      )}
+      {readOnly && (
+        <p className="text-xs text-depro-gray text-center">Solo lectura — la identidad la gestiona el propio club desde su dashboard.</p>
+      )}
     </div>
   );
 }
@@ -2191,14 +2198,14 @@ export default function AdminClubDetailPage() {
                   </div>
                   <button
                     onClick={() => setShowEditCoordinator(true)}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-depro-blue hover:text-depro-blue-dark border border-depro-blue/30 hover:border-depro-blue px-3 py-1 rounded-full transition-colors"
+                    className="hidden"
                   >
                     <Edit3 size={11} /> Editar coordinador
                   </button>
                   <button
                     onClick={handleRecreateAccess}
                     disabled={recreating}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-depro-blue hover:text-depro-blue-dark border border-depro-blue/30 hover:border-depro-blue px-3 py-1 rounded-full transition-colors disabled:opacity-50"
+                    className="hidden"
                   >
                     {recreating ? <div className="spinner border-depro-blue/20 border-t-depro-blue w-3 h-3" /> : <RefreshCw size={11} />}
                     {recreating ? "Creando..." : "Recrear acceso"}
@@ -2280,7 +2287,7 @@ export default function AdminClubDetailPage() {
 
       {/* IDENTIDAD */}
       {activeTab === "identidad" && (
-        <IdentidadTab club={club} onSave={async (patch) => {
+        <IdentidadTab club={club} readOnly onSave={async (patch) => {
           // Actualizar estado local
           const updated = { ...club, ...patch };
           setClub(updated);
@@ -2292,15 +2299,7 @@ export default function AdminClubDetailPage() {
       {/* EQUIPOS */}
       {activeTab === "equipos" && (
         <div className="space-y-4">
-          <div className="flex justify-end">
-            <button
-              onClick={() => setShowNewTeam(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm"
-            >
-              <Plus size={15} />
-              Añadir equipo
-            </button>
-          </div>
+          <p className="text-xs text-depro-gray">Solo lectura — los equipos los gestiona el coordinador desde Mi Club.</p>
 
           {club.teams.length === 0 ? (
             <div className="text-center py-12 text-depro-gray border border-dashed border-depro-border rounded-2xl">
@@ -2325,19 +2324,6 @@ export default function AdminClubDetailPage() {
                         title="Ver como entrenador"
                       >
                         <Play size={14} />
-                      </button>
-                      <button
-                        onClick={() => setEditingTeam(team)}
-                        className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
-                        title="Editar equipo"
-                      >
-                        <Edit3 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeTeam(team.id)}
-                        className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-red-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
@@ -2394,13 +2380,7 @@ export default function AdminClubDetailPage() {
             </div>
           )}
           <div className="flex justify-end">
-            <button
-              onClick={() => setShowNewUser(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors text-sm"
-            >
-              <Plus size={15} />
-              Añadir usuario
-            </button>
+            <p className="text-xs text-depro-gray self-center">Solo lectura — el staff lo gestiona el coordinador desde Mi Club.</p>
           </div>
 
           {(() => {

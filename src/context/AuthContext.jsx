@@ -155,6 +155,11 @@ function buildUser(authUser, profile) {
       club,
       team,
       team_role: teamRole,
+      // clubId "en crudo": disponible de forma síncrona (metadata), a diferencia de
+      // `club` que depende de la sincronización async con localStorage/API. Se usa
+      // para detectar altas de club pendientes sin falsos positivos por timing.
+      clubId: meta.clubId || club?.id || null,
+      clubName: meta.clubName || null,
       plan:      profile.plan      ?? meta.plan      ?? null,
       objetivo:  profile.objetivo  ?? meta.objetivo  ?? null,
       deporte:   profile.deporte   ?? meta.deporte   ?? null,
@@ -205,6 +210,8 @@ function buildUser(authUser, profile) {
     team_role: meta.teamRole  ?? null,
     club:      club ?? playerClub,
     team,
+    clubId:    meta.clubId || club?.id || playerClub?.id || null,
+    clubName:  meta.clubName || null,
     subscriptionStatus: meta.subscriptionStatus ?? null,
     subscriptionCancelAt: meta.subscriptionCancelAt ?? null,
     stripeSubscriptionId: meta.stripeSubscriptionId ?? null,
