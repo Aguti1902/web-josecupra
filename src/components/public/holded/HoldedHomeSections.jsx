@@ -3,7 +3,6 @@ import {
   ArrowRight, Play, User, Building2, Users, Sparkles, ChevronDown, ChevronRight,
   Star, Check, Calendar, Activity, BarChart3, Brain, Shield,
   LayoutDashboard, Zap, CreditCard, Smartphone, FileText, XCircle,
-  Mail, MessageCircle,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -567,47 +566,12 @@ export function FAQSection({ dark = false }) {
         <div className={`absolute -top-24 -right-24 w-96 h-96 rounded-full blur-[100px] ${dark ? "bg-holded-blue/15" : "bg-blue-100/80"}`} />
         <div className={`absolute -bottom-32 -left-24 w-80 h-80 rounded-full blur-[90px] ${dark ? "bg-emerald-500/10" : "bg-orange-100/60"}`} />
       </div>
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-12 lg:gap-16 items-start">
-          <div className="lg:sticky lg:top-28">
-            <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${s.label}`}>FAQ</p>
-            <h2 className={`text-3xl md:text-4xl font-black mb-4 leading-tight ${s.h2}`}>
-              Resolvemos tus dudas antes de empezar
-            </h2>
-            <p className={`text-base leading-relaxed mb-8 ${s.body}`}>
-              Todo lo que suelen preguntarnos entrenadores, coordinadores y clubs antes de probar DEPRO.
-            </p>
-            <div className={`rounded-2xl border p-6 ${dark ? "border-white/10 bg-white/5" : "border-gray-200 bg-white shadow-sm"}`}>
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl bg-holded-blue/15 flex items-center justify-center shrink-0">
-                  <MessageCircle size={20} className="text-holded-blue" />
-                </div>
-                <div>
-                  <p className={`font-bold mb-1 ${s.cardTitle}`}>¿No encuentras tu respuesta?</p>
-                  <p className={`text-sm mb-4 ${s.body}`}>Escríbenos y te respondemos en menos de 24 horas.</p>
-                  <a
-                    href="mailto:ventas@depro.es"
-                    className="inline-flex items-center gap-2 text-sm font-bold text-holded-blue hover:gap-3 transition-all"
-                  >
-                    <Mail size={15} /> ventas@depro.es
-                  </a>
-                </div>
-              </div>
-              <div className={`grid grid-cols-2 gap-3 mt-6 pt-6 border-t ${dark ? "border-white/10" : "border-gray-100"}`}>
-                {[
-                  { val: "10+", label: "Preguntas" },
-                  { val: "24h", label: "Respuesta" },
-                ].map(({ val, label }) => (
-                  <div key={label} className={`rounded-xl px-3 py-2.5 text-center ${dark ? "bg-white/5" : "bg-gray-50"}`}>
-                    <p className={`text-xl font-black tabular-nums ${s.cardTitle}`}>{val}</p>
-                    <p className={`text-[10px] font-bold uppercase tracking-wide ${s.statSub}`}>{label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
+      <div className="relative max-w-3xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-10 md:mb-12">
+          <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${s.label}`}>FAQ</p>
+          <h2 className={`text-3xl md:text-4xl font-black ${s.h2}`}>Preguntas frecuentes</h2>
+        </div>
+        <div className="space-y-3">
             {FAQS.map(({ icon: Icon, q, a }, i) => {
               const isOpen = open === i;
               return (
@@ -649,7 +613,6 @@ export function FAQSection({ dark = false }) {
                 </div>
               );
             })}
-          </div>
         </div>
       </div>
     </section>
