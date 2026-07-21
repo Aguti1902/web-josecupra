@@ -85,7 +85,7 @@ function AdminHeader({ currentNav, onMenuToggle, sidebarOpen, navGroups }) {
         <p className="text-[10px] font-bold uppercase tracking-widest text-depro-gray hidden sm:block">Administración</p>
         <h1 className="text-base md:text-lg font-black text-depro-dark truncate">{currentNav.label}</h1>
       </div>
-      <PanelSearch mode="admin" navGroups={navGroups} className="hidden md:block flex-1 max-w-xs lg:max-w-sm" />
+      <PanelSearch mode="admin" navGroups={navGroups} className="hidden md:block w-full max-w-sm lg:max-w-md" />
       <div data-tour="header-actions" className="flex items-center gap-2">
         <button
           onClick={start}

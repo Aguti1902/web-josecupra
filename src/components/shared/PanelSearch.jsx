@@ -111,9 +111,9 @@ export default function PanelSearch({ mode = "admin", navGroups, navItems, user,
     : "Buscar sección, jugador, ejercicio…";
 
   return (
-    <div ref={wrapRef} className={`relative ${className}`}>
+    <div ref={wrapRef} className={`relative w-full ${className}`}>
       <div
-        className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all w-full md:w-52 lg:w-72 ${
+        className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all w-full ${
           open
             ? "bg-white border-depro-blue/40 ring-2 ring-depro-blue/20 shadow-sm"
             : "bg-slate-100/80 border-depro-border/50"
@@ -140,7 +140,7 @@ export default function PanelSearch({ mode = "admin", navGroups, navItems, user,
       </div>
 
       {open && query.trim() && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-depro-border rounded-xl shadow-2xl overflow-hidden z-[100] max-h-[min(360px,50vh)] overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 w-full mt-2 bg-white border border-depro-border rounded-xl shadow-2xl overflow-hidden z-[100] max-h-[min(360px,50vh)] overflow-y-auto box-border">
           {loading && results.length === 0 ? (
             <p className="px-4 py-3 text-sm text-depro-gray">Buscando…</p>
           ) : results.length === 0 ? (

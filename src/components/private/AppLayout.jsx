@@ -86,7 +86,7 @@ function HeaderBar({ navItems, pathname, sidebarAccent, onMenuToggle, sidebarOpe
       </div>
 
       {/* Search */}
-      <PanelSearch mode="client" navItems={navItems} user={user} className="hidden md:block flex-1 max-w-xs lg:max-w-sm" />
+      <PanelSearch mode="client" navItems={navItems} user={user} className="hidden md:block w-full max-w-sm lg:max-w-md" />
 
       <div data-tour="header-actions" className="flex items-center gap-1.5 md:gap-2">
         <button
