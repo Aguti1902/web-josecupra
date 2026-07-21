@@ -79,14 +79,23 @@ function computeTooltipPosition(step, rect, tooltipSize) {
   const isAiStep = String(step.target || "").includes("ai-assistant");
   const nearBottom = rect.bottom > window.innerHeight - 120;
 
-  // FAB del asistente IA: forzar tooltip claramente por encima
-  if (isAiStep || (nearBottom && step.placement === "top")) {
+  // FAB del asistente IA: anclar por bottom/right (sin transform, evita conflicto con animaciones)
+  if (isAiStep) {
+    const gap = 20;
+    const right = Math.max(margin, window.innerWidth - rect.right);
+    let bottom = window.innerHeight - rect.top + gap;
+    const maxBottom = window.innerHeight - th - margin;
+    if (bottom > maxBottom) bottom = maxBottom;
+    return { bottom, right, top: "auto", left: "auto" };
+  }
+
+  if (nearBottom && step.placement === "top") {
     let left = rect.left + rect.width - tw;
     left = Math.max(margin, Math.min(left, window.innerWidth - tw - margin));
-    const lift = isAiStep ? 72 : gap;
-    let top = rect.top - lift;
-    if (top - th < margin) top = margin + th;
-    return { top, left, transform: "translateY(-100%)" };
+    let bottom = window.innerHeight - rect.top + gap;
+    const maxBottom = window.innerHeight - th - margin;
+    if (bottom > maxBottom) bottom = maxBottom;
+    return { bottom, right: window.innerWidth - left - tw, top: "auto", left: "auto" };
   }
 
   let top;
@@ -221,16 +230,21 @@ function TutorialOverlay({ step, stepIndex, total, onNext, onPrev, onSkip }) {
         />
       )}
 
-      {/* Tooltip */}
+      {/* Tooltip — contenedor posicionado + tarjeta animada (evita que fade-in-up pise transform) */}
       <div
-        ref={tooltipRef}
-        className="fixed z-[201] w-[min(340px,calc(100vw-32px))] bg-white rounded-2xl shadow-2xl border border-depro-border p-5 pointer-events-auto animate-fade-in-up"
+        className="fixed z-[201] w-[min(340px,calc(100vw-32px))] pointer-events-none"
         style={{
           top: pos.top,
           left: pos.left,
+          bottom: pos.bottom,
+          right: pos.right,
           ...(pos.transform ? { transform: pos.transform } : {}),
         }}
       >
+        <div
+          ref={tooltipRef}
+          className="bg-white rounded-2xl shadow-2xl border border-depro-border p-5 pointer-events-auto animate-fade-in-up max-h-[min(420px,calc(100vh-120px))] overflow-y-auto"
+        >
         <div className="flex items-center gap-2 mb-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-depro-blue to-indigo-600 flex items-center justify-center">
             <Sparkles size={14} className="text-white" />
@@ -282,6 +296,7 @@ function TutorialOverlay({ step, stepIndex, total, onNext, onPrev, onSkip }) {
               {stepIndex < total - 1 && <ChevronRight size={16} />}
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>,

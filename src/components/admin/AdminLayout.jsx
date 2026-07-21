@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, LogOut, Menu, X, ChevronRight,
   Settings, Brain, Building2, Globe, Shield, CalendarDays, ClipboardList, BookOpen,
-  Dumbbell, HelpCircle, Bell, Search, Sparkles,
+  Dumbbell, HelpCircle, Bell, Search, Sparkles, Plus, User,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { TutorialProvider, useTutorial } from "../private/DashboardTutorial";
@@ -15,6 +15,16 @@ const navGroups = [
     items: [
       { to: "/admin", icon: LayoutDashboard, label: "Resumen", tour: "nav-dashboard" },
       { to: "/admin/users", icon: Users, label: "Usuarios", tour: "nav-users" },
+    ],
+  },
+  {
+    label: "Alta manual",
+    groupIcon: Plus,
+    accent: "#F59E0B",
+    items: [
+      { to: "/admin/clubs?alta=club", icon: Building2, label: "Nuevo club", hint: "Club + coordinador", searchMatch: { alta: "club" } },
+      { to: "/admin/users?alta=coach", icon: Dumbbell, label: "DEPRO Coach", hint: "Entrenador solo", searchMatch: { alta: "coach" } },
+      { to: "/admin/users?alta=player", icon: User, label: "Nuevo jugador", hint: "Jugador individual", searchMatch: { alta: "player" } },
     ],
   },
   {
@@ -54,6 +64,19 @@ const navGroups = [
 ];
 
 const allNavItems = navGroups.flatMap((g) => g.items);
+
+function isNavItemActive(pathname, search, item) {
+  const [path] = item.to.split("?");
+  const onPath = pathname === path || (path !== "/admin" && pathname.startsWith(`${path}/`));
+  if (!onPath || pathname !== path) return onPath && !item.searchMatch && !search.includes("alta=");
+
+  const current = new URLSearchParams(search);
+  if (item.searchMatch) {
+    return Object.entries(item.searchMatch).every(([k, v]) => current.get(k) === v);
+  }
+  if (current.has("alta")) return false;
+  return true;
+}
 
 function AdminHeader({ currentNav, onMenuToggle, sidebarOpen }) {
   const { start } = useTutorial();
@@ -95,7 +118,7 @@ function AdminHeader({ currentNav, onMenuToggle, sidebarOpen }) {
 function AdminLayoutInner({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const [profilePhoto, setProfilePhoto] = useState(() => localStorage.getItem("depro_admin_photo"));
 
@@ -114,7 +137,7 @@ function AdminLayoutInner({ children }) {
   const handleLogout = () => { logout(); navigate("/"); };
 
   const currentNav = allNavItems.slice().reverse().find(
-    (n) => pathname === n.to || pathname.startsWith(n.to + "/")
+    (n) => isNavItemActive(pathname, search, n)
   ) || allNavItems[0];
 
   return (
@@ -153,7 +176,7 @@ function AdminLayoutInner({ children }) {
               </div>
               <div className="space-y-1">
                 {group.items.map((item) => {
-                  const active = pathname === item.to || (item.to !== "/admin" && pathname.startsWith(item.to + "/"));
+                  const active = isNavItemActive(pathname, search, item);
                   return (
                     <Link
                       key={item.to}
@@ -166,9 +189,14 @@ function AdminLayoutInner({ children }) {
                           : "text-white/55 hover:text-white hover:bg-white/8"
                       }`}
                     >
-                      <item.icon size={17} />
-                      {item.label}
-                      {active && <ChevronRight size={14} className="ml-auto opacity-70" />}
+                      <item.icon size={17} className="shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{item.label}</span>
+                        {item.hint && !active && (
+                          <span className="block text-[10px] font-normal text-white/35 truncate">{item.hint}</span>
+                        )}
+                      </span>
+                      {active && <ChevronRight size={14} className="ml-auto opacity-70 shrink-0" />}
                     </Link>
                   );
                 })}

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search, Users, RefreshCw, CreditCard, Building2, User, Shield, Plus, Dumbbell,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import AdminProvisionProfileModal from "../../components/admin/AdminProvisionProfileModal";
+import AdminProvisionHelp from "../../components/admin/AdminProvisionHelp";
 
 const TYPE_FILTERS = [
   { id: "all", label: "Todos" },
@@ -61,6 +63,22 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [provisionAudience, setProvisionAudience] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const alta = searchParams.get("alta");
+    if (alta === "coach" || alta === "player") setProvisionAudience(alta);
+  }, [searchParams]);
+
+  const openProvision = (audience) => {
+    setSearchParams({ alta: audience }, { replace: true });
+    setProvisionAudience(audience);
+  };
+
+  const closeProvision = () => {
+    setProvisionAudience(null);
+    if (searchParams.get("alta")) setSearchParams({}, { replace: true });
+  };
 
   const load = async () => {
     setLoading(true);
@@ -114,20 +132,20 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-depro-dark">Usuarios</h1>
           <p className="text-sm text-depro-gray mt-0.5">
-            Crea perfiles con plan personalizado o supervisa cuentas y pagos
+            DEPRO Coach y jugadores se crean aquí. Los clubs se crean en el apartado Clubs → Nuevo club
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setProvisionAudience("coach")}
+            onClick={() => openProvision("coach")}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
           >
             <Dumbbell size={14} /> Crear DEPRO Coach
           </button>
           <button
             type="button"
-            onClick={() => setProvisionAudience("player")}
+            onClick={() => openProvision("player")}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark"
           >
             <Plus size={14} /> Crear jugador
@@ -141,6 +159,8 @@ export default function AdminUsersPage() {
           </button>
         </div>
       </div>
+
+      <AdminProvisionHelp current={searchParams.get("alta") === "player" ? "player" : searchParams.get("alta") === "coach" ? "coach" : null} />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
@@ -241,8 +261,8 @@ export default function AdminUsersPage() {
       {provisionAudience && (
         <AdminProvisionProfileModal
           audience={provisionAudience}
-          onClose={() => setProvisionAudience(null)}
-          onCreated={load}
+          onClose={closeProvision}
+          onCreated={() => { closeProvision(); load(); }}
         />
       )}
     </div>

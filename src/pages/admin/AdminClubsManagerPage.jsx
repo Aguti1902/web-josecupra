@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Building2,
   Plus,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { loadClubs, saveClub, deleteClub, createClubUser } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect } from "../../components/admin/PlanSelectField";
+import AdminProvisionHelp from "../../components/admin/AdminProvisionHelp";
 
 function generatePassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -339,12 +340,27 @@ function NewClubModal({ onClose, onCreate }) {
 
 export default function AdminClubsManagerPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [clubs, setClubs]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [copied, setCopied]         = useState(null);
   const [showNewClub, setShowNewClub] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("alta") === "club") setShowNewClub(true);
+  }, [searchParams]);
+
+  const openNewClub = () => {
+    setSearchParams({ alta: "club" }, { replace: true });
+    setShowNewClub(true);
+  };
+
+  const closeNewClub = () => {
+    setShowNewClub(false);
+    if (searchParams.get("alta") === "club") setSearchParams({}, { replace: true });
+  };
 
   const enrichClubs = (data) => data.map((c) => {
     const teams = c.teams || [];
@@ -428,17 +444,19 @@ export default function AdminClubsManagerPage() {
         <div>
           <h1 className="text-2xl font-bold text-depro-dark">Clubs y equipos</h1>
           <p className="text-depro-gray text-sm mt-0.5">
-            Provisiona clubs con plan personalizado o supervisa los dados de alta por clientes
+            Crea un club con coordinador y plan, o supervisa los dados de alta por clientes
           </p>
         </div>
         <button
           type="button"
-          onClick={() => setShowNewClub(true)}
+          onClick={openNewClub}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark shrink-0"
         >
           <Plus size={16} /> Nuevo club
         </button>
       </div>
+
+      <AdminProvisionHelp current="club" />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -556,7 +574,7 @@ export default function AdminClubsManagerPage() {
 
       {showNewClub && (
         <NewClubModal
-          onClose={() => setShowNewClub(false)}
+          onClose={closeNewClub}
           onCreate={handleCreateClub}
         />
       )}
