@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminProvider } from "./context/AdminContext";
 import { ViewProvider } from "./context/ViewContext";
@@ -58,6 +59,30 @@ import AdminCoachLibraryPage from "./pages/admin/AdminCoachLibraryPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 
 /* ── Guards ───────────────────────────────────────────────────────── */
+function ScrollToTopOnNavigate() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (hash) {
+      const id = hash.replace("#", "");
+      requestAnimationFrame(() => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: "auto", block: "start" });
+          return;
+        }
+        window.scrollTo(0, 0);
+      });
+      return;
+    }
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [pathname, hash]);
+
+  return null;
+}
+
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
@@ -188,6 +213,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTopOnNavigate />
       <AuthProvider>
         <AdminProvider>
           <ViewProvider>

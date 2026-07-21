@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Search, Users, RefreshCw, CreditCard, Building2, User, Shield,
+  Search, Users, RefreshCw, CreditCard, Building2, User, Shield, Plus, Dumbbell,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import AdminProvisionProfileModal from "../../components/admin/AdminProvisionProfileModal";
 
 const TYPE_FILTERS = [
   { id: "all", label: "Todos" },
@@ -59,6 +60,7 @@ export default function AdminUsersPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [provisionAudience, setProvisionAudience] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -108,18 +110,36 @@ export default function AdminUsersPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-depro-dark">Usuarios</h1>
-          <p className="text-sm text-depro-gray mt-0.5">Supervisión de cuentas, planes y estado de pago</p>
+          <p className="text-sm text-depro-gray mt-0.5">
+            Crea perfiles con plan personalizado o supervisa cuentas y pagos
+          </p>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-depro-border text-sm font-semibold text-depro-gray hover:text-depro-blue hover:border-depro-blue disabled:opacity-50"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Actualizar
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setProvisionAudience("coach")}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
+          >
+            <Dumbbell size={14} /> Crear DEPRO Coach
+          </button>
+          <button
+            type="button"
+            onClick={() => setProvisionAudience("player")}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark"
+          >
+            <Plus size={14} /> Crear jugador
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-depro-border text-sm font-semibold text-depro-gray hover:text-depro-blue hover:border-depro-blue disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Actualizar
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -217,6 +237,14 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
+
+      {provisionAudience && (
+        <AdminProvisionProfileModal
+          audience={provisionAudience}
+          onClose={() => setProvisionAudience(null)}
+          onCreated={load}
+        />
+      )}
     </div>
   );
 }

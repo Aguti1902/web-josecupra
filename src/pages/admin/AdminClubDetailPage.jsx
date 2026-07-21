@@ -38,7 +38,9 @@ import {
   PlayCircle,
   BarChart2,
 } from "lucide-react";
-import { loadClubs, saveClubDetail, loadClubDetail, createClubUser } from "../../lib/adminStorage";
+import { loadClubs, saveClub, saveClubDetail, loadClubDetail, createClubUser, updateUserByEmail } from "../../lib/adminStorage";
+import PlanSelectField, { SubscriptionStatusSelect } from "../../components/admin/PlanSelectField";
+import { PLANS as CHECKOUT_PLANS } from "../../lib/checkoutPlans";
 import { normalizeBlock, adminDefaultBlocks, adminSessionBlocks, flattenBlocksToExercises, ADMIN_BLOCK_TYPES } from "../../lib/sessionBlocks";
 import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
 
@@ -1883,6 +1885,10 @@ export default function AdminClubDetailPage() {
   const [showEditCoordinator, setShowEditCoordinator] = useState(false);
   const [editingClubUser, setEditingClubUser] = useState(null);
   const [activatingUserEmail, setActivatingUserEmail] = useState(null);
+  const [planId, setPlanId] = useState("club-inicial");
+  const [subscriptionStatus, setSubscriptionStatus] = useState("active");
+  const [planSaving, setPlanSaving] = useState(false);
+  const [planMsg, setPlanMsg] = useState(null);
 
   useEffect(() => {
     loadClubs().then((clubs) => {
@@ -1898,6 +1904,8 @@ export default function AdminClubDetailPage() {
         merged.users = Array.isArray(merged.users) ? merged.users : [];
         setClub(merged);
         setPlans(detail?.plans || found.plans || []);
+        setPlanId(merged.plan || "club-inicial");
+        setSubscriptionStatus(merged.subscriptionStatus || "active");
       } else {
         setClub(null);
       }
@@ -1946,6 +1954,9 @@ export default function AdminClubDetailPage() {
       role: "club",
       clubId: club.id,
       teamRole: "coordinador",
+      plan: club.plan || planId,
+      subscriptionStatus: club.subscriptionStatus || subscriptionStatus,
+      billingSource: "manual",
     });
     setRecreating(false);
     const alreadyExists = result.alreadyExists || result.error?.includes("already registered") || result.error?.includes("already been registered");
@@ -2073,6 +2084,35 @@ export default function AdminClubDetailPage() {
     })() },
   ];
 
+  const planLabel = CHECKOUT_PLANS[club.plan]?.name || club.plan || "Personalizado";
+
+  const handleSavePlan = async () => {
+    setPlanSaving(true);
+    setPlanMsg(null);
+    const updated = { ...club, plan: planId, subscriptionStatus };
+    setClub(updated);
+    await persistClub(updated, plans);
+    await saveClub(updated);
+
+    if (club.coordinator?.email) {
+      const res = await updateUserByEmail({
+        email: club.coordinator.email,
+        plan: planId,
+        subscriptionStatus,
+        billingSource: "manual",
+      });
+      if (!res.ok) {
+        setPlanMsg({ ok: false, text: res.error || "Plan guardado en club, pero no se sincronizó el coordinador." });
+        setPlanSaving(false);
+        return;
+      }
+    }
+
+    setPlanMsg({ ok: true, text: "Plan personalizado actualizado." });
+    setPlanSaving(false);
+    setTimeout(() => setPlanMsg(null), 3000);
+  };
+
   const handleStatusToggle = async () => {
     const next = club.status === "activo" ? "inactivo" : "activo";
     const updated = { ...club, status: next };
@@ -2160,10 +2200,8 @@ export default function AdminClubDetailPage() {
                 >
                   {club.status === "activo" ? "Activo" : "Inactivo"}
                 </button>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                  club.plan === "Premium" ? "bg-depro-blue/10 text-depro-blue" : "bg-depro-gray-light text-depro-gray"
-                }`}>
-                  {club.plan}
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-depro-blue/10 text-depro-blue">
+                  {planLabel}
                 </span>
               </div>
 
@@ -2287,19 +2325,49 @@ export default function AdminClubDetailPage() {
 
       {/* IDENTIDAD */}
       {activeTab === "identidad" && (
-        <IdentidadTab club={club} readOnly onSave={async (patch) => {
+        <>
+        <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
+          <h3 className="font-semibold text-depro-dark">Plan personalizado</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <PlanSelectField audience="club" value={planId} onChange={setPlanId} />
+            <SubscriptionStatusSelect value={subscriptionStatus} onChange={setSubscriptionStatus} />
+          </div>
+          {planMsg && (
+            <p className={`text-sm ${planMsg.ok ? "text-green-700" : "text-red-600"}`}>{planMsg.text}</p>
+          )}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleSavePlan}
+              disabled={planSaving}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark disabled:opacity-50"
+            >
+              {planSaving ? "Guardando…" : "Guardar plan"}
+            </button>
+          </div>
+        </div>
+        <IdentidadTab club={club} onSave={async (patch) => {
           // Actualizar estado local
           const updated = { ...club, ...patch };
           setClub(updated);
           // Persistir y devolver resultado para que IdentidadTab muestre feedback
           return await persistClub(updated, plans);
         }} />
+        </>
       )}
 
       {/* EQUIPOS */}
       {activeTab === "equipos" && (
         <div className="space-y-4">
-          <p className="text-xs text-depro-gray">Solo lectura — los equipos los gestiona el coordinador desde Mi Club.</p>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowNewTeam(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark"
+            >
+              <Plus size={15} /> Añadir equipo
+            </button>
+          </div>
 
           {club.teams.length === 0 ? (
             <div className="text-center py-12 text-depro-gray border border-dashed border-depro-border rounded-2xl">
@@ -2318,6 +2386,20 @@ export default function AdminClubDetailPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setEditingTeam(team)}
+                        className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
+                        title="Editar equipo"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeTeam(team.id)}
+                        className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-red hover:text-depro-red transition-colors"
+                        title="Eliminar equipo"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                       <button
                         onClick={() => handleViewAsCoach(team)}
                         className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors"
@@ -2380,7 +2462,13 @@ export default function AdminClubDetailPage() {
             </div>
           )}
           <div className="flex justify-end">
-            <p className="text-xs text-depro-gray self-center">Solo lectura — el staff lo gestiona el coordinador desde Mi Club.</p>
+            <button
+              type="button"
+              onClick={() => setShowNewUser(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark"
+            >
+              <Plus size={15} /> Añadir usuario
+            </button>
           </div>
 
           {(() => {

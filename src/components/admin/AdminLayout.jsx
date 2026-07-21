@@ -22,7 +22,7 @@ const navGroups = [
     groupIcon: Building2,
     accent: "#60A5FA",
     items: [
-      { to: "/admin/clubs", icon: Building2, label: "Clubs (supervisión)", tour: "nav-clubs" },
+      { to: "/admin/clubs", icon: Building2, label: "Clubs", tour: "nav-clubs" },
       { to: "/admin/planificacion", icon: CalendarDays, label: "Planificación" },
       { to: "/admin/tests", icon: ClipboardList, label: "Tests físicos" },
     ],
@@ -133,7 +133,7 @@ function AdminLayoutInner({ children }) {
           </div>
           <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
             <Sparkles size={14} className="text-indigo-300" />
-            <span className="text-xs text-white/60 font-medium">Panel de supervisión</span>
+            <span className="text-xs text-white/60 font-medium">Panel de administración</span>
           </div>
         </div>
 

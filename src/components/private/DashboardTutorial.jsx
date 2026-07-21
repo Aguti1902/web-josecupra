@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { getTutorialSteps, getTutorialKey } from "../../lib/tutorialSteps";
@@ -66,8 +66,84 @@ export function useTutorial() {
   return ctx;
 }
 
+function computeTooltipPosition(step, rect, tooltipSize) {
+  const margin = 16;
+  const gap = 16;
+  const tw = tooltipSize?.width || 340;
+  const th = tooltipSize?.height || 280;
+
+  if (step.placement === "center" || step.target === "center" || !rect) {
+    return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+  }
+
+  const isAiStep = String(step.target || "").includes("ai-assistant");
+  const nearBottom = rect.bottom > window.innerHeight - 120;
+
+  // FAB del asistente IA: forzar tooltip claramente por encima
+  if (isAiStep || (nearBottom && step.placement === "top")) {
+    let left = rect.left + rect.width - tw;
+    left = Math.max(margin, Math.min(left, window.innerWidth - tw - margin));
+    const lift = isAiStep ? 72 : gap;
+    let top = rect.top - lift;
+    if (top - th < margin) top = margin + th;
+    return { top, left, transform: "translateY(-100%)" };
+  }
+
+  let top;
+  let left;
+  let transform;
+
+  switch (step.placement) {
+    case "right":
+      top = rect.top + rect.height / 2;
+      left = rect.left + rect.width + gap;
+      transform = "translateY(-50%)";
+      break;
+    case "left":
+      top = rect.top + rect.height / 2;
+      left = rect.left - tw - gap;
+      transform = "translateY(-50%)";
+      break;
+    case "bottom":
+      top = rect.top + rect.height + gap;
+      left = Math.min(rect.left, window.innerWidth - tw - margin);
+      break;
+    case "top":
+      top = rect.top - gap;
+      left = Math.min(rect.left, window.innerWidth - tw - margin);
+      transform = "translateY(-100%)";
+      break;
+    default:
+      top = rect.top + rect.height + gap;
+      left = rect.left;
+  }
+
+  // Mantener tooltip dentro del viewport
+  if (transform === "translateY(-100%)") {
+    if (top - th < margin) top = margin + th;
+  } else if (transform === "translateY(-50%)") {
+    if (top - th / 2 < margin) {
+      top = margin + th / 2;
+    } else if (top + th / 2 > window.innerHeight - margin) {
+      top = window.innerHeight - margin - th / 2;
+    }
+  } else {
+    if (top + th > window.innerHeight - margin) {
+      top = rect.top - gap;
+      transform = "translateY(-100%)";
+      if (top - th < margin) top = margin + th;
+    }
+    if (top < margin) top = margin;
+  }
+
+  left = Math.max(margin, Math.min(left, window.innerWidth - tw - margin));
+
+  return { top, left, transform };
+}
+
 function TutorialOverlay({ step, stepIndex, total, onNext, onPrev, onSkip }) {
   const [rect, setRect] = useState(null);
+  const [pos, setPos] = useState({ top: "50%", left: "50%", transform: "translate(-50%, -50%)" });
   const tooltipRef = useRef(null);
 
   useEffect(() => {
@@ -82,8 +158,10 @@ function TutorialOverlay({ step, stepIndex, total, onNext, onPrev, onSkip }) {
         return;
       }
       const r = el.getBoundingClientRect();
-      setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
-      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      setRect({ top: r.top, left: r.left, width: r.width, height: r.height, bottom: r.bottom, right: r.right });
+      if (!String(step.target || "").includes("ai-assistant")) {
+        el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
     };
     update();
     window.addEventListener("resize", update);
@@ -96,25 +174,22 @@ function TutorialOverlay({ step, stepIndex, total, onNext, onPrev, onSkip }) {
     };
   }, [step]);
 
-  const tooltipStyle = () => {
-    if (step.placement === "center" || !rect) {
-      return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
-    }
-    const pad = 12;
-    const tw = 340;
-    switch (step.placement) {
-      case "right":
-        return { top: rect.top + rect.height / 2, left: rect.left + rect.width + pad, transform: "translateY(-50%)" };
-      case "left":
-        return { top: rect.top + rect.height / 2, left: rect.left - tw - pad, transform: "translateY(-50%)" };
-      case "bottom":
-        return { top: rect.top + rect.height + pad, left: Math.min(rect.left, window.innerWidth - tw - 16) };
-      case "top":
-        return { top: rect.top - pad, left: Math.min(rect.left, window.innerWidth - tw - 16), transform: "translateY(-100%)" };
-      default:
-        return { top: rect.top + rect.height + pad, left: rect.left };
-    }
-  };
+  useLayoutEffect(() => {
+    const measure = () => {
+      const size = tooltipRef.current
+        ? { width: tooltipRef.current.offsetWidth, height: tooltipRef.current.offsetHeight }
+        : null;
+      setPos(computeTooltipPosition(step, rect, size));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    const ro = tooltipRef.current ? new ResizeObserver(measure) : null;
+    if (tooltipRef.current) ro.observe(tooltipRef.current);
+    return () => {
+      window.removeEventListener("resize", measure);
+      ro?.disconnect();
+    };
+  }, [step, rect, stepIndex]);
 
   return createPortal(
     <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true">
@@ -150,7 +225,11 @@ function TutorialOverlay({ step, stepIndex, total, onNext, onPrev, onSkip }) {
       <div
         ref={tooltipRef}
         className="fixed z-[201] w-[min(340px,calc(100vw-32px))] bg-white rounded-2xl shadow-2xl border border-depro-border p-5 pointer-events-auto animate-fade-in-up"
-        style={tooltipStyle()}
+        style={{
+          top: pos.top,
+          left: pos.left,
+          ...(pos.transform ? { transform: pos.transform } : {}),
+        }}
       >
         <div className="flex items-center gap-2 mb-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-depro-blue to-indigo-600 flex items-center justify-center">

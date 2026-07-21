@@ -44,13 +44,16 @@ export default async function handler(req, res) {
   const {
     email, password, name, role = "club",
     clubId, teamId, teamRole, managedTeamIds,
+    plan, subscriptionStatus, billingSource,
+    posicion, deporte, objetivo, edad, frecuencia, material, experiencia, disponibles, lesion,
+    clubName, clubCode,
   } = req.body || {};
 
   if (!email || !password) {
     return res.status(400).json({ error: "email y password son obligatorios" });
   }
 
-  // Autorización: admin puede todo; coordinador solo staff de su club (entrenador/ayudante)
+  // Autorización: admin puede todo; coordinador solo staff de su club
   if (!caller.isAdmin) {
     if (!caller.isCoordinator) {
       return res.status(403).json({ error: "Sin permiso para crear usuarios" });
@@ -64,6 +67,10 @@ export default async function handler(req, res) {
     if (role !== "club") {
       return res.status(403).json({ error: "Rol no permitido" });
     }
+  } else if (role === "player" || role === "coach") {
+    // Solo admin puede provisionar jugadores o rol coach legacy
+  } else if (role !== "club" && role !== "admin") {
+    return res.status(400).json({ error: "Rol no válido" });
   }
 
   const userMeta = {
@@ -73,6 +80,20 @@ export default async function handler(req, res) {
     teamId: teamId || undefined,
     teamRole: teamRole || undefined,
     managedTeamIds: Array.isArray(managedTeamIds) ? managedTeamIds : undefined,
+    plan: plan || undefined,
+    subscriptionStatus: subscriptionStatus || (caller.isAdmin ? "active" : undefined),
+    billingSource: billingSource || (caller.isAdmin && plan ? "manual" : undefined),
+    posicion: posicion || undefined,
+    deporte: deporte || undefined,
+    objetivo: objetivo || undefined,
+    edad: edad || undefined,
+    frecuencia: frecuencia || undefined,
+    material: material || undefined,
+    experiencia: experiencia || undefined,
+    disponibles: Array.isArray(disponibles) ? disponibles : undefined,
+    lesion: Array.isArray(lesion) ? lesion : undefined,
+    clubName: clubName || undefined,
+    clubCode: clubCode || undefined,
   };
 
   const { data, error } = await admin.auth.admin.createUser({

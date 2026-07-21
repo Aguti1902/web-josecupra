@@ -37,8 +37,16 @@ async function getAuthHeaders() {
   return headers;
 }
 
-export async function createClubUser({ email, password, name, role = "club", clubId, teamId, teamRole, managedTeamIds }) {
-  const payload = { email, password, name, role, clubId, teamId, teamRole, managedTeamIds };
+export async function createClubUser({
+  email, password, name, role = "club", clubId, teamId, teamRole, managedTeamIds,
+  plan, subscriptionStatus, billingSource, posicion, deporte, objetivo, edad,
+  frecuencia, material, experiencia, disponibles, lesion, clubName, clubCode,
+}) {
+  const payload = {
+    email, password, name, role, clubId, teamId, teamRole, managedTeamIds,
+    plan, subscriptionStatus, billingSource, posicion, deporte, objetivo, edad,
+    frecuencia, material, experiencia, disponibles, lesion, clubName, clubCode,
+  };
 
   // 1. Endpoint serverless (cuenta confirmada, sin email de verificación)
   try {
@@ -67,6 +75,21 @@ export async function createClubUser({ email, password, name, role = "club", clu
       return { ok: false, error: error.message };
     }
     return { ok: true, userId: data.user?.id, via: "signUp" };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+export async function updateUserByEmail(fields) {
+  try {
+    const res = await fetch("/api/update-user", {
+      method: "POST",
+      headers: await getAuthHeaders(),
+      body: JSON.stringify(fields),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.ok) return { ok: true, userId: data.userId };
+    return { ok: false, error: data.error || "Error al actualizar" };
   } catch (e) {
     return { ok: false, error: e.message };
   }

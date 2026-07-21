@@ -18,13 +18,14 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { loadClubs, saveClub, deleteClub, createClubUser } from "../../lib/adminStorage";
+import PlanSelectField, { SubscriptionStatusSelect } from "../../components/admin/PlanSelectField";
 
 function generatePassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
   return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
-const PLANS = ["Básico", "Premium"];
+const PLANS = ["Básico", "Premium"]; // legacy badge fallback
 const STATUS_STYLES = {
   activo: "bg-green-50 text-green-700 border-green-200",
   pendiente: "bg-yellow-50 text-yellow-700 border-yellow-200",
@@ -53,6 +54,8 @@ function NewClubModal({ onClose, onCreate }) {
     name: "", abbreviation: "", city: "", country: "España",
     coordinatorName: "", coordinatorEmail: "", coordinatorPhone: "",
     coordinatorPassword: generatePassword(),
+    planId: "club-inicial",
+    subscriptionStatus: "active",
   });
   const [loading, setLoading] = useState(false);
   const [createdCreds, setCreatedCreds] = useState(null);
@@ -78,6 +81,9 @@ function NewClubModal({ onClose, onCreate }) {
         role: "club",
         clubId,
         teamRole: "coordinador",
+        plan: form.planId,
+        subscriptionStatus: form.subscriptionStatus,
+        billingSource: "manual",
       });
       userCreated = result.ok;
       userError = result.ok ? null : result.error;
@@ -91,7 +97,8 @@ function NewClubModal({ onClose, onCreate }) {
       country: form.country,
       founded: new Date().getFullYear(),
       status: "activo",
-      plan: "Personalizado",
+      plan: form.planId,
+      subscriptionStatus: form.subscriptionStatus,
       createdAt: new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }),
       coordinator: {
         name: form.coordinatorName,
@@ -277,6 +284,19 @@ function NewClubModal({ onClose, onCreate }) {
             </div>
           </div>
 
+          <div className="pt-2 border-t border-depro-border space-y-4">
+            <p className="text-sm font-semibold text-depro-dark">Plan personalizado</p>
+            <PlanSelectField
+              audience="club"
+              value={form.planId}
+              onChange={(v) => setForm((f) => ({ ...f, planId: v }))}
+            />
+            <SubscriptionStatusSelect
+              value={form.subscriptionStatus}
+              onChange={(v) => setForm((f) => ({ ...f, subscriptionStatus: v }))}
+            />
+          </div>
+
           {generatedCode && (
             <div className="flex items-center gap-3 bg-depro-blue/5 border border-depro-blue/20 rounded-xl p-3">
               <Shield size={16} className="text-depro-blue shrink-0" />
@@ -324,6 +344,7 @@ export default function AdminClubsManagerPage() {
   const [search, setSearch]         = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [copied, setCopied]         = useState(null);
+  const [showNewClub, setShowNewClub] = useState(false);
 
   const enrichClubs = (data) => data.map((c) => {
     const teams = c.teams || [];
@@ -394,17 +415,29 @@ export default function AdminClubsManagerPage() {
     setClubs((prev) => prev.filter((c) => c.id !== id));
   };
 
+  const handleCreateClub = async (clubData) => {
+    await saveClub(clubData);
+    setClubs((prev) => enrichClubs([clubData, ...prev]));
+  };
+
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-depro-dark">Clubs y equipos</h1>
           <p className="text-depro-gray text-sm mt-0.5">
-            Supervisión de clubs dados de alta por los clientes (solo lectura)
+            Provisiona clubs con plan personalizado o supervisa los dados de alta por clientes
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowNewClub(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark shrink-0"
+        >
+          <Plus size={16} /> Nuevo club
+        </button>
       </div>
 
       {/* Stats */}
@@ -520,6 +553,13 @@ export default function AdminClubsManagerPage() {
           ))
         )}
       </div>
+
+      {showNewClub && (
+        <NewClubModal
+          onClose={() => setShowNewClub(false)}
+          onCreate={handleCreateClub}
+        />
+      )}
     </div>
   );
 }
