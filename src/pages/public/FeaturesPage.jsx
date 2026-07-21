@@ -7,7 +7,7 @@ import PageHero from "../../components/public/holded/PageHero";
 import { HoldedFeatureSection } from "../../components/public/holded/HoldedMockups";
 import {
   PageBenefitsGrid, PageStepsSection, PageCompareSection,
-  PageMiniFaq, PageCtaBanner,
+  PageMiniFaq,
 } from "../../components/public/holded/PageSections";
 import { FootballStorySection } from "../../components/public/holded/HoldedHomeSections";
 import { SessionsMockup, LoadMockup, TestsMockup, ClubOverviewMockup } from "../../components/public/LandingMockups";
@@ -279,15 +279,6 @@ export default function FeaturesPage({ slug }) {
           bullets={feature.story.bullets}
         />
         <PageMiniFaq dark={false} items={feature.faq} />
-        <PageCtaBanner
-          dark
-          title={`Empieza con ${feature.label.toLowerCase()} hoy`}
-          description="Prueba DEPRO sin tarjeta. Configura tu equipo en minutos y genera tu primera semana automáticamente."
-          ctaLabel="Probar 15 días gratis"
-          ctaTo={h.primaryCta.to}
-          secondaryLabel="Ver todas las funcionalidades"
-          secondaryTo="/funcionalidades"
-        />
       </>
     );
   }
@@ -336,15 +327,6 @@ export default function FeaturesPage({ slug }) {
           { icon: Users, title: "Plantilla central", desc: "Una ficha alimenta planificación, wellness, tests y comunicación con jugadores." },
           { icon: Shield, title: "Alertas cruzadas", desc: "Una lesión registrada ajusta automáticamente la sesión del día." },
         ]}
-      />
-      <PageCtaBanner
-        dark={false}
-        title="¿Listo para probar DEPRO?"
-        description="Elige tu perfil — entrenador, club o jugador — y empieza en minutos."
-        ctaLabel="Empezar prueba gratis"
-        ctaTo="/comprar"
-        secondaryLabel="Hablar con ventas"
-        secondaryTo="/recursos#contacto"
       />
     </>
   );

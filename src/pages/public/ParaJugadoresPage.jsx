@@ -4,7 +4,7 @@ import {
 import PageHero from "../../components/public/holded/PageHero";
 import { HoldedFeatureSection } from "../../components/public/holded/HoldedMockups";
 import {
-  PageBenefitsGrid, PageStepsSection, PageMiniFaq, PageCtaBanner,
+  PageBenefitsGrid, PageStepsSection, PageMiniFaq,
 } from "../../components/public/holded/PageSections";
 import { FootballStorySection } from "../../components/public/holded/HoldedHomeSections";
 import { PlayerPlanMockup } from "../../components/public/LandingMockups";
@@ -14,7 +14,7 @@ export default function ParaJugadoresPage() {
     <>
       <PageHero
         variant="split"
-        theme="light"
+        theme="dark"
         badge="DEPRO Player · Plan personal"
         title="Tu preparación física adaptada a ti"
         description="Plan mensual IA según posición, nivel, lesiones y objetivos. Feedback al entrenador, tests con ratings y ranking del equipo incluidos."
@@ -24,7 +24,7 @@ export default function ParaJugadoresPage() {
         visual={<PlayerPlanMockup />}
       />
       <HoldedFeatureSection
-        dark
+        dark={false}
         label="Plan personalizado"
         title="IA que conoce tu posición y objetivos"
         desc="No es un PDF genérico — DEPRO Player genera sesiones según tu posición, pierna dominante, historial de lesiones y feedback semanal."
@@ -83,15 +83,6 @@ export default function ParaJugadoresPage() {
           { q: "¿Qué incluye el descuento de club?", a: "15% en tu suscripción mensual al registrarte con el código que te da tu entrenador o club." },
           { q: "¿Puedo cancelar cuando quiera?", a: "Sí. Sin permanencia. Cancela desde tu perfil en cualquier momento." },
         ]}
-      />
-      <PageCtaBanner
-        dark
-        title="Empieza tu preparación física hoy"
-        description="Prueba DEPRO Player 15 días gratis. Sin tarjeta, sin permanencia."
-        ctaLabel="Probar DEPRO Player"
-        ctaTo="/comprar?audience=player"
-        secondaryLabel="Ver precios jugador"
-        secondaryTo="/precios"
       />
     </>
   );

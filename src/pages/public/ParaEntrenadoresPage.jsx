@@ -5,7 +5,7 @@ import PageHero from "../../components/public/holded/PageHero";
 import { HoldedFeatureSection } from "../../components/public/holded/HoldedMockups";
 import {
   PageBenefitsGrid, PageStepsSection, PageCompareSection,
-  PageMiniFaq, PageCtaBanner,
+  PageMiniFaq,
 } from "../../components/public/holded/PageSections";
 import { FootballStorySection } from "../../components/public/holded/HoldedHomeSections";
 import { SessionsMockup, LoadMockup } from "../../components/public/LandingMockups";
@@ -94,15 +94,6 @@ export default function ParaEntrenadoresPage() {
           { q: "¿Funciona solo o con club?", a: "DEPRO Coach es independiente. Si tu club contrata DEPRO Club, compartís plantilla y datos." },
           { q: "¿Hay app móvil?", a: "DEPRO es web responsive — funciona en móvil, tablet y ordenador sin instalar nada." },
         ]}
-      />
-      <PageCtaBanner
-        dark
-        title="Empieza con DEPRO Coach"
-        description="Prueba 15 días gratis sin tarjeta. Configura tu primer equipo en menos de 5 minutos."
-        ctaLabel="Probar DEPRO Coach"
-        ctaTo="/comprar?audience=coach"
-        secondaryLabel="Ver precios"
-        secondaryTo="/precios"
       />
     </>
   );

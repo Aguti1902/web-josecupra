@@ -5,7 +5,7 @@ import PageHero from "../../components/public/holded/PageHero";
 import { HoldedFeatureSection } from "../../components/public/holded/HoldedMockups";
 import {
   PageBenefitsGrid, PageStepsSection, PageCompareSection,
-  PageMiniFaq, PageCtaBanner,
+  PageMiniFaq,
 } from "../../components/public/holded/PageSections";
 import { FootballStorySection } from "../../components/public/holded/HoldedHomeSections";
 import { ClubOverviewMockup, LoadMockup } from "../../components/public/LandingMockups";
@@ -96,15 +96,6 @@ export default function ParaClubsPage() {
           { q: "¿Podemos migrar datos existentes?", a: "Sí. Importamos plantillas desde Excel en el onboarding. Contacta con soporte para casos complejos." },
           { q: "¿Hay API para integraciones?", a: "Disponible en plan Elite para conectar con ERP, apps de scouting o plataformas médicas." },
         ]}
-      />
-      <PageCtaBanner
-        dark
-        title="Digitaliza tu academia con DEPRO Club"
-        description="Prueba 15 días gratis. Configura equipos, invita staff y genera tu primer informe en días."
-        ctaLabel="Empezar con mi club"
-        ctaTo="/comprar?audience=club"
-        secondaryLabel="Ver precios club"
-        secondaryTo="/precios"
       />
     </>
   );
