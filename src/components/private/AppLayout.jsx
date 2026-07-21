@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, Activity, MessageSquare, LogOut, Menu, X,
   ChevronRight, Trophy, ClipboardList, Users as UsersIcon, User, TrendingUp,
-  Building2, HelpCircle, Bell, Search,
+  Building2, HelpCircle, Bell,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
@@ -11,6 +11,7 @@ import { useView } from "../../context/ViewContext";
 import LanguageSwitcher from "../shared/LanguageSwitcher";
 import { TutorialProvider, useTutorial } from "./DashboardTutorial";
 import AiAssistantWidget from "./AiAssistantWidget";
+import PanelSearch from "../shared/PanelSearch";
 
 function luminance(hex) {
   try {
@@ -84,11 +85,8 @@ function HeaderBar({ navItems, pathname, sidebarAccent, onMenuToggle, sidebarOpe
         </h1>
       </div>
 
-      {/* Search (visual) */}
-      <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100/80 border border-depro-border/50 w-48 lg:w-64">
-        <Search size={15} className="text-depro-gray shrink-0" />
-        <span className="text-xs text-depro-gray truncate">Buscar en el panel…</span>
-      </div>
+      {/* Search */}
+      <PanelSearch mode="client" navItems={navItems} user={user} className="hidden md:block flex-1 max-w-xs lg:max-w-sm" />
 
       <div data-tour="header-actions" className="flex items-center gap-1.5 md:gap-2">
         <button
@@ -344,6 +342,9 @@ function AppLayoutInner({ children }) {
           sidebarOpen={sidebarOpen}
           user={user}
         />
+        <div className="md:hidden px-4 py-2 border-b border-depro-border/60 bg-white/90">
+          <PanelSearch mode="client" navItems={navItems} user={user} />
+        </div>
         <main className="flex-1 overflow-y-auto dashboard-main-scroll">
           {children}
         </main>

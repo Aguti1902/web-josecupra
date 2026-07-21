@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search, Save, X, Plus, Edit3, Trash2, CheckCircle2, AlertCircle,
   Dumbbell, RefreshCw, ChevronDown, ChevronUp, Info,
@@ -201,10 +202,11 @@ function ExerciseFormModal({ exercise, onSave, onClose }) {
 }
 
 /* ── Página principal ─────────────────────────────────────────── */
-export default function AdminCoachLibraryPage() {
+export default function AdminCoachLibraryPage({ embedded = false }) {
+  const [searchParams] = useSearchParams();
   const [library, setLibrary] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [filterCategoria, setFilterCategoria] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
   const [collapsed, setCollapsed] = useState({});
@@ -214,6 +216,11 @@ export default function AdminCoachLibraryPage() {
   useEffect(() => {
     loadCoachLibrary().then((lib) => { setLibrary(lib); setLoading(false); });
   }, []);
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setSearch(q);
+  }, [searchParams]);
 
   const pending = useMemo(() => library.filter((e) => e.estado === "pendiente_aprobacion"), [library]);
 
@@ -268,6 +275,7 @@ export default function AdminCoachLibraryPage() {
 
   return (
     <div className="space-y-6">
+      {!embedded && (
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-black text-depro-dark flex items-center gap-2">
@@ -282,6 +290,19 @@ export default function AdminCoachLibraryPage() {
           <Plus size={15} /> Nuevo ejercicio
         </button>
       </div>
+      )}
+
+      {embedded && (
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <p className="text-sm text-depro-gray">{library.length} ejercicios · motor DEPRO Coach</p>
+          <button
+            onClick={() => setEditing("new")}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-depro-blue text-white font-bold text-sm hover:bg-depro-blue-dark"
+          >
+            <Plus size={14} /> Nuevo ejercicio
+          </button>
+        </div>
+      )}
 
       <div className="flex items-start gap-3 bg-depro-blue-light/30 border border-depro-blue/20 rounded-2xl px-4 py-3">
         <Info size={16} className="text-depro-blue flex-shrink-0 mt-0.5" />

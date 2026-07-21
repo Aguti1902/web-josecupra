@@ -54,8 +54,7 @@ import AdminClubsManagerPage from "./pages/admin/AdminClubsManagerPage";
 import AdminClubDetailPage from "./pages/admin/AdminClubDetailPage";
 import AdminPlanificacionPage from "./pages/admin/AdminPlanificacionPage";
 import AdminTestsPage from "./pages/admin/AdminTestsPage";
-import AdminCatalogPage from "./pages/admin/AdminCatalogPage";
-import AdminCoachLibraryPage from "./pages/admin/AdminCoachLibraryPage";
+import AdminExerciseLibraryPage from "./pages/admin/AdminExerciseLibraryPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 
 /* ── Guards ───────────────────────────────────────────────────────── */
@@ -200,8 +199,8 @@ function AppRoutes() {
       <Route path="/admin/clubs/:id" element={<AdminRoute><AdminLayout><AdminClubDetailPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/planificacion" element={<AdminRoute><AdminLayout><AdminPlanificacionPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/tests" element={<AdminRoute><AdminLayout><AdminTestsPage /></AdminLayout></AdminRoute>} />
-      <Route path="/admin/catalog" element={<AdminRoute><AdminLayout><AdminCatalogPage /></AdminLayout></AdminRoute>} />
-      <Route path="/admin/coach-library" element={<AdminRoute><AdminLayout><AdminCoachLibraryPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/catalog" element={<AdminRoute><AdminLayout><AdminExerciseLibraryPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/coach-library" element={<Navigate to="/admin/catalog?tab=coach" replace />} />
       <Route path="/admin/settings" element={<AdminRoute><AdminLayout><AdminSettingsPage /></AdminLayout></AdminRoute>} />
 
       {/* ── Fallback ───────────────────────────────────────────── */}

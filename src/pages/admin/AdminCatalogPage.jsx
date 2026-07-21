@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search, PlayCircle, Save, CheckCircle, RefreshCw, X,
   Flame, Zap, Target, Shield, Dumbbell, ChevronDown, ChevronUp,
@@ -177,9 +178,10 @@ function ExerciseEditModal({ exercise, override, onSave, onClose }) {
 }
 
 /* ── Componente principal ─────────────────────────────────── */
-export default function AdminCatalogPage() {
+export default function AdminCatalogPage({ embedded = false }) {
+  const [searchParams] = useSearchParams();
   const [overrides, setOverrides] = useState(loadOverrides);
-  const [search, setSearch]     = useState("");
+  const [search, setSearch]     = useState(() => searchParams.get("q") || "");
   const [filterMat, setFilterMat] = useState("");
   const [filterTag, setFilterTag] = useState("");
   const [filterFolder, setFilterFolder] = useState("");
@@ -197,6 +199,11 @@ export default function AdminCatalogPage() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setSearch(q);
+  }, [searchParams]);
 
   // Guardar override de un ejercicio
   const handleSaveOverride = (exerciseId, data) => {
@@ -258,7 +265,9 @@ export default function AdminCatalogPage() {
   const totalWithVideo = Object.values(overrides).filter((o) => o?.videoUrl).length;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] p-6 space-y-6">
+    <div className={embedded ? "space-y-6" : "min-h-screen bg-[#F8F9FB] p-6 space-y-6"}>
+      {!embedded && (
+      <>
       {/* Cabecera */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -283,6 +292,21 @@ export default function AdminCatalogPage() {
           Los cambios se aplican automáticamente al plan del jugador.
         </p>
       </div>
+      </>
+      )}
+
+      {embedded && (
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <p className="text-sm text-depro-gray">
+            {EXERCISES.length} ejercicios para planes de jugadores · {totalWithVideo} con vídeo
+          </p>
+          <button onClick={handleSyncNow} disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-depro-blue text-white font-bold text-sm hover:bg-depro-blue-dark disabled:opacity-50">
+            {syncing ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+            Guardar
+          </button>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-3">

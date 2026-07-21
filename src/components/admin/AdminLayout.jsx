@@ -3,11 +3,12 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, LogOut, Menu, X, ChevronRight,
   Settings, Brain, Building2, Globe, Shield, CalendarDays, ClipboardList, BookOpen,
-  Dumbbell, HelpCircle, Bell, Search, Sparkles, Plus, User,
+  Dumbbell, HelpCircle, Bell, Sparkles, Plus, User,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { TutorialProvider, useTutorial } from "../private/DashboardTutorial";
 import AiAssistantWidget from "../private/AiAssistantWidget";
+import PanelSearch from "../shared/PanelSearch";
 
 const navGroups = [
   {
@@ -44,15 +45,7 @@ const navGroups = [
     items: [
       { to: "/admin/clients", icon: Users, label: "Clientes jugadores" },
       { to: "/admin/plan-builder", icon: Brain, label: "Motor de planes" },
-      { to: "/admin/catalog", icon: BookOpen, label: "Catálogo ejercicios" },
-    ],
-  },
-  {
-    label: "DEPRO Coach",
-    groupIcon: Dumbbell,
-    accent: "#34D399",
-    items: [
-      { to: "/admin/coach-library", icon: Dumbbell, label: "Biblioteca de ejercicios" },
+      { to: "/admin/catalog", icon: BookOpen, label: "Biblioteca de ejercicios" },
     ],
   },
   {
@@ -78,7 +71,7 @@ function isNavItemActive(pathname, search, item) {
   return true;
 }
 
-function AdminHeader({ currentNav, onMenuToggle, sidebarOpen }) {
+function AdminHeader({ currentNav, onMenuToggle, sidebarOpen, navGroups }) {
   const { start } = useTutorial();
   return (
     <header className="h-[4.25rem] border-b border-depro-border/60 flex items-center px-4 md:px-6 gap-3 flex-shrink-0 bg-white/80 backdrop-blur-xl sticky top-0 z-30">
@@ -92,10 +85,7 @@ function AdminHeader({ currentNav, onMenuToggle, sidebarOpen }) {
         <p className="text-[10px] font-bold uppercase tracking-widest text-depro-gray hidden sm:block">Administración</p>
         <h1 className="text-base md:text-lg font-black text-depro-dark truncate">{currentNav.label}</h1>
       </div>
-      <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100/80 border border-depro-border/50 w-48">
-        <Search size={15} className="text-depro-gray" />
-        <span className="text-xs text-depro-gray">Buscar…</span>
-      </div>
+      <PanelSearch mode="admin" navGroups={navGroups} className="hidden md:block flex-1 max-w-xs lg:max-w-sm" />
       <div data-tour="header-actions" className="flex items-center gap-2">
         <button
           onClick={start}
@@ -241,7 +231,10 @@ function AdminLayoutInner({ children }) {
       )}
 
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <AdminHeader currentNav={currentNav} onMenuToggle={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} />
+        <AdminHeader currentNav={currentNav} onMenuToggle={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} navGroups={navGroups} />
+        <div className="md:hidden px-4 py-2 border-b border-depro-border/60 bg-white/90">
+          <PanelSearch mode="admin" navGroups={navGroups} />
+        </div>
         <main className="flex-1 overflow-y-auto dashboard-main-scroll p-4 md:p-6 lg:p-8">{children}</main>
         <AiAssistantWidget />
       </div>
