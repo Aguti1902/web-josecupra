@@ -15,19 +15,18 @@ const MEGA_PRODUCTS = [
   { label: "Control de carga", to: "/funcionalidades/cargas", badge: "TOP", icon: Activity },
   { label: "Tests físicos", to: "/funcionalidades/tests", icon: BarChart3 },
   { label: "Plantilla", to: "/funcionalidades/plantilla", icon: Users },
-  { label: "Periodización", to: "/funcionalidades/planificacion", icon: Brain },
-  { label: "DEPRO Coach", to: "/para-entrenadores", icon: User },
-  { label: "DEPRO Club", to: "/para-clubs", icon: Building2 },
+  { label: "Periodización", to: "/funcionalidades/periodizacion", icon: Brain },
+  { label: "DEPRO Coach", to: "/funcionalidades/depro-coach", icon: User },
+  { label: "DEPRO Club", to: "/funcionalidades/depro-club", icon: Building2 },
 ];
 
 const MEGA_OTHER = [
-  { label: "Inteligencia artificial", to: "/funcionalidades#ia", badge: "NUEVO" },
-  { label: "Ranking jugadores", to: "/para-jugadores" },
-  { label: "Integraciones GPS", to: "/recursos" },
-  { label: "Biblioteca ejercicios", to: "/funcionalidades" },
-  { label: "White-label club", to: "/para-clubs" },
-  { label: "Export PDF", to: "/funcionalidades" },
-  { label: "Modo offline", to: "/recursos" },
+  { label: "Inteligencia artificial", to: "/funcionalidades/ia", badge: "NUEVO" },
+  { label: "Ranking jugadores", to: "/funcionalidades/ranking" },
+  { label: "Biblioteca ejercicios", to: "/funcionalidades/biblioteca" },
+  { label: "White-label club", to: "/funcionalidades/white-label" },
+  { label: "Export PDF", to: "/funcionalidades/export-pdf" },
+  { label: "Modo offline", to: "/funcionalidades/modo-offline" },
 ];
 
 const NAV_MAIN = [
@@ -273,7 +272,7 @@ export function HoldedFooter() {
           </div>
           {[
             { title: "Acceso rápido", links: [["Prueba gratis", "/comprar"], ["Iniciar sesión", "/login"], ["Precios", "/precios"]] },
-            { title: "Funcionalidades", links: [["Planificación", "/funcionalidades/planificacion"], ["Cargas", "/funcionalidades/cargas"], ["Tests", "/funcionalidades/tests"], ["IA deportiva", "/funcionalidades#ia"]] },
+            { title: "Funcionalidades", links: [["Planificación", "/funcionalidades/planificacion"], ["Cargas", "/funcionalidades/cargas"], ["Tests", "/funcionalidades/tests"], ["IA deportiva", "/funcionalidades/ia"], ["Periodización", "/funcionalidades/periodizacion"], ["Biblioteca", "/funcionalidades/biblioteca"]] },
             { title: "Perfiles", links: [["Para clubs", "/para-clubs"], ["Entrenadores", "/para-entrenadores"], ["Jugadores", "/para-jugadores"]] },
             { title: "Recursos", links: [["Blog", "/recursos"], ["Documentación", "/recursos"], ["Contacto", "/recursos#contacto"]] },
           ].map((col) => (
@@ -424,7 +423,7 @@ export function HoldedProductGrid({ dark = true }) {
     { icon: Activity, title: "Control de carga", desc: "RPE, wellness y alertas de sobrecarga por jugador.", to: "/funcionalidades/cargas" },
     { icon: BarChart3, title: "Tests físicos", desc: "Batería T1→T3 con seguimiento longitudinal.", to: "/funcionalidades/tests" },
     { icon: Users, title: "Plantilla", desc: "Ficha completa, lesiones, posición y código de club.", to: "/funcionalidades/plantilla" },
-    { icon: Brain, title: "IA deportiva", desc: "Motores de reglas validados, no caja negra.", to: "/funcionalidades#ia" },
+    { icon: Brain, title: "IA deportiva", desc: "Motores de reglas validados, no caja negra.", to: "/funcionalidades/ia" },
     { icon: Building2, title: "DEPRO Club", desc: "Multi-equipo, white-label y panel coordinador.", to: "/para-clubs" },
   ];
   return (

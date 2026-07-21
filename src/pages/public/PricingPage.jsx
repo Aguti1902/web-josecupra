@@ -372,7 +372,7 @@ export default function PricingPage() {
           { label: "Precio entrada", before: "50–200€/mes", after: "Desde 14,99€/mes" },
         ]}
       />
-      <PageMiniFaq dark title="Preguntas sobre precios" items={faqByAudience[audience]} />
+      <PageMiniFaq dark={false} title="Preguntas sobre precios" items={faqByAudience[audience]} />
     </>
   );
 }

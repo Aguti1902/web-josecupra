@@ -156,7 +156,7 @@ function ReportsCardVisual() {
 const EXTRA_TOOLS = [
   { title: "Plantilla", desc: "Gestiona jugadores, posiciones, lesiones y códigos de acceso al club.", to: "/funcionalidades/plantilla", Visual: SquadCardVisual },
   { title: "Tests físicos", desc: "Monitoriza evolución T1→T3 con ratings automáticos y comparativas.", to: "/funcionalidades/tests", Visual: TestsCardVisual },
-  { title: "Periodización", desc: "Mesociclos con progresión semanal, descarga y fases de competición.", to: "/funcionalidades/planificacion", Visual: PeriodCardVisual },
+  { title: "Periodización", desc: "Mesociclos con progresión semanal, descarga y fases de competición.", to: "/funcionalidades/periodizacion", Visual: PeriodCardVisual },
   { title: "Informes", desc: "Exporta adherencia, carga y rendimiento para dirección deportiva.", to: "/funcionalidades/cargas", Visual: ReportsCardVisual },
 ];
 
@@ -249,7 +249,7 @@ export function PricingTeaserSection({ dark = true }) {
 
 const WHY_DEPRO = [
   { icon: LayoutDashboard, title: "Dashboard en tiempo real", desc: "Adherencia, carga y tests actualizados al instante para todo el staff.", to: "/funcionalidades/cargas" },
-  { icon: Brain, title: "IA deportiva validada", desc: "Motores de reglas trazables — no caja negra. Cada sesión editable.", to: "/funcionalidades#ia", highlight: true },
+  { icon: Brain, title: "IA deportiva validada", desc: "Motores de reglas trazables — no caja negra. Cada sesión editable.", to: "/funcionalidades/ia", highlight: true },
   { icon: Users, title: "3 perfiles conectados", desc: "Entrenador, club y jugador sincronizados en una sola plataforma.", to: "/para-entrenadores" },
   { icon: Zap, title: "Listo en 2 minutos", desc: "Registro con Google, plantilla importada y primer microciclo generado.", to: "/comprar" },
 ];
@@ -452,7 +452,7 @@ export function AISection({ dark = true }) {
               Cada recomendación sigue protocolos deportivos reales. Edita, sustituye o duplica cualquier sesión en segundos.
             </p>
           </div>
-          <Link to="/funcionalidades#ia" className={`inline-flex items-center gap-2 text-sm font-bold transition-colors shrink-0 ${s.link} ${dark ? "hover:text-white" : "hover:text-holded-blue/80"}`}>
+          <Link to="/funcionalidades/ia" className={`inline-flex items-center gap-2 text-sm font-bold transition-colors shrink-0 ${s.link} ${dark ? "hover:text-white" : "hover:text-holded-blue/80"}`}>
             Ver motores IA <ArrowRight size={14} />
           </Link>
         </div>
