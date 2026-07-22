@@ -28,15 +28,10 @@ import {
 import { loadPlanBlocks, savePlanBlock, deletePlanBlock, togglePlanBlock, loadMedia } from "../../lib/adminStorage";
 import { EXERCISES, TAGS } from "../../data/exercises";
 import { Search, List, BookOpen } from "lucide-react";
+import { buildPlayerPlan } from "../../lib/playerPlanEngine";
+import { getYouTubeId } from "../../lib/youtube";
 
 const Youtube = PlayCircle;
-
-/** Extrae el video ID de cualquier formato de URL de YouTube */
-function getYouTubeId(url) {
-  if (!url) return null;
-  const m = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^&?/\s]{11})/);
-  return m ? m[1] : null;
-}
 
 const CATEGORIES = [
   { id: "físico", label: "Físico", icon: Flame, color: "text-orange-500 bg-orange-50" },
@@ -44,15 +39,15 @@ const CATEGORIES = [
   { id: "táctica", label: "Táctica", icon: Shield, color: "text-purple-600 bg-purple-50" },
   { id: "prevención", label: "Prevención", icon: Zap, color: "text-green-600 bg-green-50" },
 ];
+const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
+const MATERIALS = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio"];
+const EXPERIENCE_LEVELS = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "Más de 3 años"];
+/** Solo para bloques legacy del admin (el motor real ya no usa posición) */
 const POSITIONS = [
   "Portero", "Defensa Central", "Lateral", "Centrocampista",
   "Mediapunta", "Extremo", "Delantero",
 ];
 const LEVELS = ["principiante", "intermedio", "avanzado"];
-const GOALS_OPTIONS = [
-  "velocidad", "potencia", "técnica", "control", "gol",
-  "finalización", "lesiones", "prevención", "sprint",
-];
 
 function CategoryBadge({ cat }) {
   const found = CATEGORIES.find((c) => c.id === cat);
@@ -66,51 +61,56 @@ function CategoryBadge({ cat }) {
   );
 }
 
-/* ── Simulador IA ────────────────────────────────────────────── */
-function IASimulator({ blocks }) {
+/* ── Simulador IA (motor real playerPlanEngine) ─────────────── */
+function IASimulator() {
   const [profile, setProfile] = useState({
-    position: "Centrocampista",
-    level: "intermedio",
-    frequency: 3,
-    goals: ["técnica"],
+    objetivo: "Fuerza",
+    frecuencia: "3",
+    material: "Sin material",
+    experiencia: "6–12 meses",
+    lesion: ["Ninguna"],
   });
   const [simulated, setSimulated] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const toggleGoal = (g) =>
-    setProfile((p) => ({
-      ...p,
-      goals: p.goals.includes(g) ? p.goals.filter((x) => x !== g) : [...p.goals, g],
-    }));
+  const [expandedDay, setExpandedDay] = useState(null);
 
   const simulate = () => {
     setLoading(true);
     setSimulated(null);
+    setExpandedDay(null);
     setTimeout(() => {
-      const matched = blocks.filter((b) => {
-        if (!b.active) return false;
-        const posOk =
-          b.targetPositions.includes("todos") || b.targetPositions.includes(profile.position);
-        const levelOk = b.targetLevels.includes(profile.level);
-        const freqOk = b.targetFrequency.includes(profile.frequency);
-        const goalOk =
-          b.targetGoals?.length === 0 ||
-          b.targetGoals?.some((g) => profile.goals.includes(g));
-        return posOk && levelOk && freqOk && goalOk;
+      const week = buildPlayerPlan({
+        objetivo: profile.objetivo,
+        frecuencia: profile.frecuencia,
+        material: profile.material,
+        experiencia: profile.experiencia,
+        lesion: profile.lesion?.includes("Ninguna") ? [] : profile.lesion,
+        disponibles: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"].slice(0, parseInt(profile.frecuencia, 10) || 3),
+        deporte: "Fútbol",
+        edad: 22,
       });
 
-      const weekdays = ["Lunes", "Miércoles", "Viernes", "Sábado"].slice(0, profile.frequency);
-      const plan = weekdays.map((day, i) => {
-        const block = matched[i % Math.max(matched.length, 1)];
-        return {
-          day,
-          block: block || null,
-          withVideo: (block?.exercises || []).some((ex) => getYouTubeId(ex.videoUrl)),
-        };
-      });
-      setSimulated({ matched, plan });
+      const days = (week || [])
+        .filter((d) => (d.sessions || []).length > 0)
+        .map((d) => {
+          const session = d.sessions[0];
+          return {
+            day: d.day,
+            title: session.title || session.type,
+            intensity: session.intensity,
+            exerciseCount: (session.exercises || []).length,
+            blocks: (session.blocks || []).map((b) => ({
+              label: b.label || b.type,
+              count: (b.exercises || []).length,
+              names: (b.exercises || []).map((ex) => ex.name),
+            })),
+          };
+        });
+
+      const totalEx = days.reduce((n, d) => n + d.exerciseCount, 0);
+      setSimulated({ days, totalEx });
       setLoading(false);
-    }, 900);
+    }, 400);
   };
 
   return (
@@ -118,30 +118,50 @@ function IASimulator({ blocks }) {
       <div className="p-5 border-b border-depro-blue/15">
         <div className="flex items-center gap-2 mb-1">
           <Sparkles size={18} className="text-depro-blue" />
-          <h2 className="font-bold text-depro-dark">Simulador de plan IA</h2>
+          <h2 className="font-bold text-depro-dark">Simulador del motor real</h2>
         </div>
         <p className="text-sm text-depro-gray">
-          Configura el perfil de un jugador de ejemplo y visualiza qué plan generaría la IA automáticamente con los bloques activos.
+          Genera un plan con el mismo motor que usan los jugadores (`playerPlanEngine`): objetivo físico, material, frecuencia y lesiones. Sirve para comprobar qué ejercicios del catálogo salen.
         </p>
       </div>
 
       <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Profile config */}
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">Posición</label>
+            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">Objetivo</label>
             <div className="flex flex-wrap gap-1.5">
-              {POSITIONS.map((p) => (
+              {OBJECTIVES.map((o) => (
                 <button
-                  key={p}
-                  onClick={() => setProfile((pr) => ({ ...pr, position: p }))}
-                  className={`px-3 py-1 rounded-lg border text-xs font-medium transition-colors ${
-                    profile.position === p
+                  key={o}
+                  type="button"
+                  onClick={() => setProfile((p) => ({ ...p, objetivo: o }))}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                    profile.objetivo === o
                       ? "bg-depro-blue border-depro-blue text-white"
                       : "border-depro-border text-depro-gray hover:border-depro-blue"
                   }`}
                 >
-                  {p}
+                  {o}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">Material</label>
+            <div className="flex flex-wrap gap-1.5">
+              {MATERIALS.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setProfile((p) => ({ ...p, material: m }))}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                    profile.material === m
+                      ? "bg-depro-blue border-depro-blue text-white"
+                      : "border-depro-border text-depro-gray hover:border-depro-blue"
+                  }`}
+                >
+                  {m}
                 </button>
               ))}
             </div>
@@ -149,34 +169,17 @@ function IASimulator({ blocks }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">Nivel</label>
-              <div className="flex flex-col gap-1.5">
-                {LEVELS.map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => setProfile((p) => ({ ...p, level: l }))}
-                    className={`py-1.5 rounded-lg border text-xs capitalize font-medium transition-colors ${
-                      profile.level === l
-                        ? "bg-depro-blue border-depro-blue text-white"
-                        : "border-depro-border text-depro-gray hover:border-depro-blue"
-                    }`}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
               <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">
-                Días/semana: <span className="text-depro-blue">{profile.frequency}</span>
+                Días/semana: <span className="text-depro-blue">{profile.frecuencia}</span>
               </label>
               <div className="flex flex-col gap-1.5">
-                {[2, 3, 4, 5].map((d) => (
+                {["2", "3", "4"].map((d) => (
                   <button
                     key={d}
-                    onClick={() => setProfile((p) => ({ ...p, frequency: d }))}
+                    type="button"
+                    onClick={() => setProfile((p) => ({ ...p, frecuencia: d }))}
                     className={`py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
-                      profile.frequency === d
+                      profile.frecuencia === d
                         ? "bg-depro-blue border-depro-blue text-white"
                         : "border-depro-border text-depro-gray hover:border-depro-blue"
                     }`}
@@ -186,28 +189,29 @@ function IASimulator({ blocks }) {
                 ))}
               </div>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">Objetivos</label>
-            <div className="flex flex-wrap gap-1.5">
-              {GOALS_OPTIONS.map((g) => (
-                <button
-                  key={g}
-                  onClick={() => toggleGoal(g)}
-                  className={`px-2.5 py-1 rounded-lg border text-xs font-medium capitalize transition-colors ${
-                    profile.goals.includes(g)
-                      ? "bg-depro-blue border-depro-blue text-white"
-                      : "border-depro-border text-depro-gray hover:border-depro-blue"
-                  }`}
-                >
-                  {g}
-                </button>
-              ))}
+            <div>
+              <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">Experiencia</label>
+              <div className="flex flex-col gap-1.5">
+                {EXPERIENCE_LEVELS.map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => setProfile((p) => ({ ...p, experiencia: l }))}
+                    className={`py-1.5 px-2 rounded-lg border text-[11px] font-medium transition-colors text-left ${
+                      profile.experiencia === l
+                        ? "bg-depro-blue border-depro-blue text-white"
+                        : "border-depro-border text-depro-gray hover:border-depro-blue"
+                    }`}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={simulate}
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 py-3 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors disabled:opacity-60 text-sm"
@@ -220,64 +224,72 @@ function IASimulator({ blocks }) {
             ) : (
               <>
                 <Sparkles size={15} />
-                Generar plan con IA
+                Generar plan con motor real
               </>
             )}
           </button>
         </div>
 
-        {/* Result */}
         <div>
           {!simulated && !loading && (
             <div className="h-full flex flex-col items-center justify-center text-depro-gray py-8">
               <Brain size={40} className="opacity-20 mb-3" />
-              <p className="text-sm text-center">Configura el perfil y pulsa<br />"Generar plan con IA"</p>
+              <p className="text-sm text-center">Elige objetivo + material y pulsa<br />«Generar plan con motor real»</p>
             </div>
           )}
 
           {simulated && (
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-sm font-semibold text-depro-dark">
-                  Plan generado · {profile.frequency} días/semana
+                  {profile.objetivo} · {profile.frecuencia} días
                 </p>
                 <span className="text-xs text-depro-gray">
-                  {simulated.matched.length} bloque{simulated.matched.length !== 1 ? "s" : ""} aplicados
+                  {simulated.totalEx} ejercicios del catálogo
                 </span>
               </div>
 
-              {simulated.matched.length === 0 && (
+              {simulated.totalEx === 0 && (
                 <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-700">
                   <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                  Ningún bloque activo coincide con este perfil. Añade bloques o amplía los criterios de targeting.
+                  El motor no encontró ejercicios. Revisa etiquetas del catálogo o el filtro de material/lesiones.
                 </div>
               )}
 
-              {simulated.plan.map((entry, i) => {
-                const videoCount = entry.block
-                  ? (entry.block.exercises || []).filter((ex) => getYouTubeId(ex.videoUrl)).length
-                  : 0;
+              {simulated.days.map((entry) => {
+                const open = expandedDay === entry.day;
                 return (
-                  <div
-                    key={i}
-                    className={`bg-white rounded-xl border p-3 ${
-                      entry.block ? "border-depro-border" : "border-dashed border-depro-border/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-depro-dark">{entry.day}</span>
-                      {entry.block && <CategoryBadge cat={entry.block.category} />}
-                    </div>
-                    {entry.block ? (
-                      <>
-                        <p className="text-sm font-medium text-depro-dark">{entry.block.name}</p>
+                  <div key={entry.day} className="bg-white rounded-xl border border-depro-border overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedDay(open ? null : entry.day)}
+                      className="w-full flex items-center justify-between p-3 text-left hover:bg-depro-gray-light/40"
+                    >
+                      <div>
+                        <span className="text-xs font-bold text-depro-dark">{entry.day}</span>
+                        <p className="text-sm font-medium text-depro-dark mt-0.5">{entry.title}</p>
                         <p className="text-xs text-depro-gray mt-0.5">
-                          {entry.block.exercises.length} ejercicios
-                          {videoCount > 0 && ` · ${videoCount} vídeo${videoCount > 1 ? "s" : ""} YouTube`}
+                          {entry.exerciseCount} ejercicios · {entry.intensity || "—"}
                         </p>
-                      </>
-                    ) : (
-                      <p className="text-xs text-depro-gray italic">Sin bloque asignado · Descanso</p>
+                      </div>
+                      {open ? <ChevronUp size={16} className="text-depro-gray" /> : <ChevronDown size={16} className="text-depro-gray" />}
+                    </button>
+                    {open && (
+                      <div className="border-t border-depro-border px-3 py-2 space-y-2">
+                        {entry.blocks.map((b) => (
+                          <div key={b.label}>
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-1">{b.label}</p>
+                            <ul className="space-y-1">
+                              {b.names.map((name) => (
+                                <li key={name} className="text-xs text-depro-dark flex items-center gap-2">
+                                  <Dumbbell size={11} className="text-depro-blue shrink-0" />
+                                  {name}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 );
@@ -285,7 +297,7 @@ function IASimulator({ blocks }) {
 
               <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
                 <CheckCircle size={14} className="shrink-0" />
-                <span>Así quedaría el plan mensual automático que la IA enviaría al jugador al completar el pago.</span>
+                <span>Este es el mismo plan que recibiría un jugador tras el onboarding con este perfil.</span>
               </div>
             </div>
           )}
@@ -834,19 +846,18 @@ export default function AdminPlanBuilderPage() {
           <div className="flex-1">
             <h3 className="font-bold mb-1">¿Cómo funciona?</h3>
             <p className="text-sm text-white/70 leading-relaxed">
-              Cuando un jugador completa el formulario y paga, el sistema lee su perfil (posición, nivel,
-              días disponibles, objetivos) y selecciona automáticamente los bloques activos que mejor
-              encajan. Con ellos compone un plan mensual completo — con ejercicios y vídeos incluidos —
-              que queda visible en su área privada desde el primer día.
-              <strong className="text-white"> Tú no creas planes manualmente para jugadores.</strong>
+              Cuando un jugador completa el onboarding y paga, el motor lee su perfil físico
+              (objetivo: Fuerza / Velocidad / Resistencia…, material, días, lesiones) y rellena
+              plantillas con ejercicios del catálogo.
+              <strong className="text-white"> Usa el simulador de abajo para ver qué ejercicios salen de verdad.</strong>
             </p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs">
           {[
-            { step: "1", label: "Jugador rellena formulario y paga" },
-            { step: "2", label: "El sistema selecciona los bloques activos que encajan con su perfil" },
-            { step: "3", label: "Plan mensual listo en segundos, con vídeos incluidos" },
+            { step: "1", label: "Jugador elige objetivo físico y material" },
+            { step: "2", label: "El motor filtra el catálogo y arma la semana" },
+            { step: "3", label: "Plan listo en su área privada" },
           ].map(({ step, label }) => (
             <div key={step} className="bg-white/8 rounded-xl p-3">
               <div className="w-6 h-6 rounded-full bg-depro-blue text-white text-xs font-bold flex items-center justify-center mx-auto mb-1.5">
@@ -859,7 +870,7 @@ export default function AdminPlanBuilderPage() {
       </div>
 
       {/* Simulator */}
-      <IASimulator blocks={blocks} />
+      <IASimulator />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

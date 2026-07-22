@@ -28,15 +28,9 @@ import {
   normalizeTaskDesigner, resolveTaskTypes, resolveTaskParams,
   resolveTaskCues, resolveTaskRecommendations,
 } from "../../lib/taskDesigner";
+import { getYouTubeId, youtubeEmbedUrl, youtubeThumbUrl } from "../../lib/youtube";
 
 const Youtube = PlayCircle;
-
-function getYouTubeId(url) {
-  if (!url) return null;
-  const m = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^&?/\s]{11})/);
-  return m ? m[1] : null;
-}
-import { clubWeeklyPlan } from "../../data/mockData";
 
 const intensityColor = { Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
 const typeColor      = { Technical: "#0A36F7", Physical: "#F6CC12", Recovery: "#3BC21D", Tactical: "#a855f7", Match: "#FB2C39" };
@@ -875,7 +869,7 @@ function ExerciseCardClub({ ex, ytId, accentColor }) {
         {/* Thumbnail o placeholder */}
         {ytId ? (
           <img
-            src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
+            src={youtubeThumbUrl(ytId)}
             alt={ex.name}
             className="w-16 h-12 rounded-lg object-cover flex-shrink-0 border border-depro-border"
           />
@@ -906,7 +900,7 @@ function ExerciseCardClub({ ex, ytId, accentColor }) {
       {open && ytId && (
         <div className="border-t border-depro-border">
           <iframe
-            src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`}
+            src={youtubeEmbedUrl(ytId)}
             title={ex.name}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -983,7 +977,7 @@ function BlockExercisesPanel({ block, accentColor, showBlockVideo = false }) {
     <div className="space-y-4">
       {showBlockVideo && blockYt && (
         <div className="rounded-2xl overflow-hidden border border-depro-border">
-          <iframe src={`https://www.youtube.com/embed/${blockYt}?rel=0&modestbranding=1`}
+          <iframe src={youtubeEmbedUrl(blockYt)}
             title={block.label} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen className="w-full aspect-video" />
         </div>

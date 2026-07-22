@@ -3,16 +3,11 @@ import { emptyExercise, emptySubSession, normalizeBlock } from "../../lib/sessio
 import {
   emptyGuideItem, getDefaultGuideItems, resolveBlockGuideItems,
 } from "../../lib/blockGuideItems";
-
-function getYouTubeId(url) {
-  if (!url) return null;
-  const m = url.match(/(?:youtu\.be\/|v=|\/embed\/)([A-Za-z0-9_-]{11})/);
-  return m ? m[1] : null;
-}
+import { getYouTubeId, youtubeThumbUrl } from "../../lib/youtube";
 
 const SESSION_BLOCK_CONFIG = {
-  calentamiento:  { label: "Calentamiento",    color: "#F59E0B", hasVideo: true },
-  principal:      { label: "Bloque principal", color: "#3B82F6", hasVideo: false },
+  calentamiento:  { label: "Calentamiento",    color: "#F59E0B" },
+  principal:      { label: "Bloque principal", color: "#3B82F6" },
 };
 
 export default function BlockExerciseEditor({ blockType, block, onUpdate, sessionFramework = "A" }) {
@@ -85,24 +80,12 @@ export default function BlockExerciseEditor({ blockType, block, onUpdate, sessio
           onChange={(e) => onUpdate({ duration: e.target.value })} />
       </div>
 
-      {cfg.hasVideo && (
-        <div>
-          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 flex items-center gap-1 block">
-            <PlayCircle size={11} /> URL vídeo YouTube
-          </label>
-          <div className="flex items-center gap-2">
-            <input className="flex-1 border border-depro-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-              placeholder="https://youtu.be/…" value={block.videoUrl || ""}
-              onChange={(e) => onUpdate({ videoUrl: e.target.value })} />
-            {getYouTubeId(block.videoUrl) && (
-              <img src={`https://img.youtube.com/vi/${getYouTubeId(block.videoUrl)}/default.jpg`}
-                alt="" className="w-16 h-12 rounded-lg object-cover border border-depro-border flex-shrink-0" />
-            )}
-          </div>
+      {blockType === "calentamiento" && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2.5 text-xs text-amber-900">
+          <strong className="font-bold">Vídeo YouTube:</strong> ponlo en cada ejercicio de las sub-sesiones (abajo), igual que en Principal. Así se ve en la sesión del club.
         </div>
       )}
 
-      {/* Panel informativo (columna derecha en vista club) */}
       <div className="rounded-xl border border-depro-border p-3 space-y-2 bg-depro-gray-light/30">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
@@ -208,6 +191,9 @@ export default function BlockExerciseEditor({ blockType, block, onUpdate, sessio
                   <input className="flex-1 border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
                     placeholder="URL YouTube (opcional)" value={ex.videoUrl || ""}
                     onChange={(e) => updateEx(si, ei, "videoUrl", e.target.value)} />
+                  {ytId && (
+                    <img src={youtubeThumbUrl(ytId, "default")} alt="" className="w-14 h-10 rounded-lg object-cover border border-depro-border flex-shrink-0" />
+                  )}
                 </div>
                 <div className="px-3 pb-3 space-y-2 border-t border-depro-border/50 pt-2">
                   <input className="w-full border border-depro-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
