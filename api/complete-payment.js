@@ -62,6 +62,7 @@ export default async function handler(req, res) {
         frecuencia: meta.frecuencia || "",
         material: meta.material || "",
         experiencia: meta.experiencia || "",
+        diaCompeticion: meta.diaCompeticion || "",
         edad: meta.edad || "",
         posicion: meta.posicion || "",
         lesion: meta.lesion ? meta.lesion.split("|") : [],

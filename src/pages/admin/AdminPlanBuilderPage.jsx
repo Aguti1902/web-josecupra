@@ -28,7 +28,8 @@ import {
 import { loadPlanBlocks, savePlanBlock, deletePlanBlock, togglePlanBlock, loadMedia } from "../../lib/adminStorage";
 import { EXERCISES, TAGS } from "../../data/exercises";
 import { Search, List, BookOpen } from "lucide-react";
-import { buildPlayerPlan } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildFourWeekPlan, refreshExercise, normalizeLesions } from "../../lib/playerPlanEngine";
+import { DAY_ORDER } from "../../lib/planLoadRules";
 import { getYouTubeId } from "../../lib/youtube";
 
 const Youtube = PlayCircle;
@@ -40,8 +41,19 @@ const CATEGORIES = [
   { id: "prevención", label: "Prevención", icon: Zap, color: "text-green-600 bg-green-50" },
 ];
 const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
-const MATERIALS = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio"];
-const EXPERIENCE_LEVELS = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "Más de 3 años"];
+const MATERIALS = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio", "Campo"];
+const SPORTS = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
+const COMPETITION_DAYS = ["Sábado", "Domingo", "Entre semana", "No compito regularmente"];
+const WEEK_DAYS = DAY_ORDER;
+const INJURIES = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda", "Pubalgia"];
+const INJURY_SUBTYPES = {
+  Rodilla: ["ACL", "Menisco", "Rotuliana", "Otra"],
+  Tobillo: ["Esguince", "Inestabilidad", "Otra"],
+  Hombro: ["Manguito rotador", "Inestabilidad", "Otra"],
+  Espalda: ["Lumbar", "Dorsal", "Cervical", "Otra"],
+  Pubalgia: ["Aductores", "Recto abdominal", "Mixta"],
+};
+const EXPERIENCE_LEVELS = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
 /** Solo para bloques legacy del admin (el motor real ya no usa posición) */
 const POSITIONS = [
   "Portero", "Defensa Central", "Lateral", "Centrocampista",
@@ -61,172 +73,213 @@ function CategoryBadge({ cat }) {
   );
 }
 
-/* ── Simulador IA (motor real playerPlanEngine) ─────────────── */
+/* ── Simulador motor real (PDF §2.3) ─────────────────────────── */
 function IASimulator() {
   const [profile, setProfile] = useState({
+    edad: "22",
     objetivo: "Fuerza",
+    deporte: "Fútbol",
     frecuencia: "3",
     material: "Sin material",
     experiencia: "6–12 meses",
     lesion: ["Ninguna"],
+    lesionSubtipo: [],
+    diaCompeticion: "Sábado",
+    disponibles: ["Lunes", "Martes", "Jueves", "Viernes"],
   });
   const [simulated, setSimulated] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [expandedDay, setExpandedDay] = useState(null);
+  const [expandedKey, setExpandedKey] = useState(null);
+  const [viewWeek, setViewWeek] = useState(1);
+
+  const buildUser = () => ({
+    ...profile,
+    edad: parseInt(profile.edad, 10) || 22,
+    lesion: profile.lesion?.includes("Ninguna") ? [] : profile.lesion,
+  });
 
   const simulate = () => {
     setLoading(true);
     setSimulated(null);
-    setExpandedDay(null);
+    setExpandedKey(null);
     setTimeout(() => {
-      const week = buildPlayerPlan({
-        objetivo: profile.objetivo,
-        frecuencia: profile.frecuencia,
-        material: profile.material,
-        experiencia: profile.experiencia,
-        lesion: profile.lesion?.includes("Ninguna") ? [] : profile.lesion,
-        disponibles: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"].slice(0, parseInt(profile.frecuencia, 10) || 3),
-        deporte: "Fútbol",
-        edad: 22,
-      });
-
-      const days = (week || [])
-        .filter((d) => (d.sessions || []).length > 0)
-        .map((d) => {
-          const session = d.sessions[0];
-          return {
-            day: d.day,
-            title: session.title || session.type,
-            intensity: session.intensity,
-            exerciseCount: (session.exercises || []).length,
-            blocks: (session.blocks || []).map((b) => ({
-              label: b.label || b.type,
-              count: (b.exercises || []).length,
-              names: (b.exercises || []).map((ex) => ex.name),
-            })),
-          };
-        });
-
-      const totalEx = days.reduce((n, d) => n + d.exerciseCount, 0);
-      setSimulated({ days, totalEx });
+      const weeks = buildFourWeekPlan(buildUser());
+      setSimulated({ weeks });
+      setViewWeek(1);
       setLoading(false);
     }, 400);
   };
+
+  const handleRefreshExercise = (weekIdx, sessionId, exerciseId) => {
+    if (!simulated) return;
+    const user = buildUser();
+    const filterParams = {
+      material: user.material?.toLowerCase().replace(/\s|\//g, "_").replace("barra_gimnasio", "barra") || "sin_material",
+      lesiones: normalizeLesions(user.lesion, user.lesionSubtipo),
+      edad: user.edad,
+      deporte: user.deporte,
+      experiencia: user.experiencia?.includes("Nunca") || user.experiencia?.includes("Menos") ? "novato"
+        : user.experiencia?.includes("Más de 3") ? "avanzado" : "intermedio",
+    };
+    const weeks = simulated.weeks.map((w, wi) => {
+      if (wi !== weekIdx) return w;
+      return {
+        ...w,
+        sessions: w.sessions.map((s) =>
+          s.id === sessionId ? refreshExercise(s, exerciseId, filterParams) : s
+        ),
+      };
+    });
+    setSimulated({ weeks });
+  };
+
+  const currentWeek = simulated?.weeks?.[viewWeek - 1];
 
   return (
     <div className="bg-gradient-to-br from-depro-blue/5 to-purple-50 border border-depro-blue/20 rounded-2xl overflow-hidden">
       <div className="p-5 border-b border-depro-blue/15">
         <div className="flex items-center gap-2 mb-1">
           <Sparkles size={18} className="text-depro-blue" />
-          <h2 className="font-bold text-depro-dark">Simulador del motor real</h2>
+          <h2 className="font-bold text-depro-dark">Motor de planes (PDF §2.3)</h2>
         </div>
         <p className="text-sm text-depro-gray">
-          Genera un plan con el mismo motor que usan los jugadores (`playerPlanEngine`): objetivo físico, material, frecuencia y lesiones. Sirve para comprobar qué ejercicios del catálogo salen.
+          Genera un plan de 4 semanas con el motor real: objetivo, día de competición, días disponibles, lesiones y material.
         </p>
       </div>
 
-      <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-4">
+      <div className="p-5 grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="space-y-4 max-h-[680px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-depro-dark mb-1.5 uppercase">Edad</label>
+              <input type="number" min="12" max="50" value={profile.edad}
+                onChange={(e) => setProfile((p) => ({ ...p, edad: e.target.value }))}
+                className="admin-input w-full text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-depro-dark mb-1.5 uppercase">Deporte</label>
+              <select value={profile.deporte} onChange={(e) => setProfile((p) => ({ ...p, deporte: e.target.value }))}
+                className="admin-input w-full text-sm">
+                {SPORTS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+
           <div>
-            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">Objetivo</label>
+            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Objetivo principal</label>
             <div className="flex flex-wrap gap-1.5">
               {OBJECTIVES.map((o) => (
-                <button
-                  key={o}
-                  type="button"
-                  onClick={() => setProfile((p) => ({ ...p, objetivo: o }))}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
-                    profile.objetivo === o
-                      ? "bg-depro-blue border-depro-blue text-white"
-                      : "border-depro-border text-depro-gray hover:border-depro-blue"
-                  }`}
-                >
+                <button key={o} type="button" onClick={() => setProfile((p) => ({ ...p, objetivo: o }))}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${profile.objetivo === o ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray hover:border-depro-blue"}`}>
                   {o}
                 </button>
               ))}
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Frecuencia</label>
+              {["1", "2", "3", "4"].map((d) => (
+                <button key={d} type="button" onClick={() => setProfile((p) => ({ ...p, frecuencia: d }))}
+                  className={`w-full mb-1 py-1.5 rounded-lg border text-xs font-semibold ${profile.frecuencia === d ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray"}`}>
+                  {d} día{d !== "1" ? "s" : ""}/sem
+                </button>
+              ))}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Día competición</label>
+              {COMPETITION_DAYS.map((d) => (
+                <button key={d} type="button" onClick={() => setProfile((p) => ({ ...p, diaCompeticion: d }))}
+                  className={`w-full mb-1 py-1.5 rounded-lg border text-[11px] font-medium text-left px-2 ${profile.diaCompeticion === d ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray"}`}>
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
-            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">Material</label>
+            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Días disponibles</label>
+            <div className="flex flex-wrap gap-1.5">
+              {WEEK_DAYS.map((day) => {
+                const sel = profile.disponibles.includes(day);
+                return (
+                  <button key={day} type="button"
+                    onClick={() => setProfile((p) => ({
+                      ...p,
+                      disponibles: sel ? p.disponibles.filter((d) => d !== day) : [...p.disponibles, day],
+                    }))}
+                    className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold ${sel ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray"}`}>
+                    {day.slice(0, 3)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Material</label>
             <div className="flex flex-wrap gap-1.5">
               {MATERIALS.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setProfile((p) => ({ ...p, material: m }))}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                    profile.material === m
-                      ? "bg-depro-blue border-depro-blue text-white"
-                      : "border-depro-border text-depro-gray hover:border-depro-blue"
-                  }`}
-                >
+                <button key={m} type="button" onClick={() => setProfile((p) => ({ ...p, material: m }))}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium ${profile.material === m ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray"}`}>
                   {m}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">
-                Días/semana: <span className="text-depro-blue">{profile.frecuencia}</span>
-              </label>
-              <div className="flex flex-col gap-1.5">
-                {["2", "3", "4"].map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setProfile((p) => ({ ...p, frecuencia: d }))}
-                    className={`py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
-                      profile.frecuencia === d
-                        ? "bg-depro-blue border-depro-blue text-white"
-                        : "border-depro-border text-depro-gray hover:border-depro-blue"
-                    }`}
-                  >
-                    {d} días
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase tracking-wide">Experiencia</label>
-              <div className="flex flex-col gap-1.5">
-                {EXPERIENCE_LEVELS.map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => setProfile((p) => ({ ...p, experiencia: l }))}
-                    className={`py-1.5 px-2 rounded-lg border text-[11px] font-medium transition-colors text-left ${
-                      profile.experiencia === l
-                        ? "bg-depro-blue border-depro-blue text-white"
-                        : "border-depro-border text-depro-gray hover:border-depro-blue"
-                    }`}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
+          <div>
+            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Experiencia</label>
+            <div className="flex flex-wrap gap-1.5">
+              {EXPERIENCE_LEVELS.map((l) => (
+                <button key={l} type="button" onClick={() => setProfile((p) => ({ ...p, experiencia: l }))}
+                  className={`px-2 py-1.5 rounded-lg border text-[11px] font-medium ${profile.experiencia === l ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray"}`}>
+                  {l}
+                </button>
+              ))}
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={simulate}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors disabled:opacity-60 text-sm"
-          >
-            {loading ? (
-              <>
-                <RefreshCw size={15} className="animate-spin" />
-                Generando plan…
-              </>
-            ) : (
-              <>
-                <Sparkles size={15} />
-                Generar plan con motor real
-              </>
-            )}
+          <div>
+            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Lesiones</label>
+            <div className="flex flex-wrap gap-1.5">
+              {INJURIES.map((inj) => {
+                const sel = inj === "Ninguna" ? !profile.lesion?.length || profile.lesion.includes("Ninguna") : profile.lesion?.includes(inj);
+                return (
+                  <button key={inj} type="button"
+                    onClick={() => {
+                      if (inj === "Ninguna") setProfile((p) => ({ ...p, lesion: [], lesionSubtipo: [] }));
+                      else setProfile((p) => ({
+                        ...p,
+                        lesion: p.lesion?.includes(inj) ? p.lesion.filter((x) => x !== inj) : [...(p.lesion || []).filter((x) => x !== "Ninguna"), inj],
+                      }));
+                    }}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold ${sel ? "bg-amber-500 border-amber-500 text-white" : "border-depro-border text-depro-gray"}`}>
+                    {inj}
+                  </button>
+                );
+              })}
+            </div>
+            {(profile.lesion || []).filter((x) => x !== "Ninguna").map((inj) => (
+              <div key={inj} className="mt-2 flex flex-wrap gap-1">
+                {(INJURY_SUBTYPES[inj] || []).map((sub) => (
+                  <button key={sub} type="button"
+                    onClick={() => setProfile((p) => ({
+                      ...p,
+                      lesionSubtipo: p.lesionSubtipo?.includes(sub) ? p.lesionSubtipo.filter((x) => x !== sub) : [...(p.lesionSubtipo || []), sub],
+                    }))}
+                    className={`px-2 py-1 rounded-lg border text-[10px] font-bold ${profile.lesionSubtipo?.includes(sub) ? "bg-amber-500 border-amber-500 text-white" : "border-depro-border text-depro-gray"}`}>
+                    {sub}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          <button type="button" onClick={simulate} disabled={loading}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-depro-blue text-white font-semibold rounded-xl hover:bg-depro-blue-dark transition-colors disabled:opacity-60 text-sm sticky bottom-0">
+            {loading ? <><RefreshCw size={15} className="animate-spin" /> Generando 4 semanas…</> : <><Sparkles size={15} /> Generar plan (4 semanas)</>}
           </button>
         </div>
 
@@ -234,59 +287,54 @@ function IASimulator() {
           {!simulated && !loading && (
             <div className="h-full flex flex-col items-center justify-center text-depro-gray py-8">
               <Brain size={40} className="opacity-20 mb-3" />
-              <p className="text-sm text-center">Elige objetivo + material y pulsa<br />«Generar plan con motor real»</p>
+              <p className="text-sm text-center">Configura el perfil y pulsa<br />«Generar plan (4 semanas)»</p>
             </div>
           )}
 
-          {simulated && (
-            <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-semibold text-depro-dark">
-                  {profile.objetivo} · {profile.frecuencia} días
-                </p>
-                <span className="text-xs text-depro-gray">
-                  {simulated.totalEx} ejercicios del catálogo
-                </span>
+          {simulated && currentWeek && (
+            <div className="space-y-3">
+              <div className="flex gap-1 p-1 bg-white rounded-xl border border-depro-border">
+                {[1, 2, 3, 4].map((w) => (
+                  <button key={w} type="button" onClick={() => setViewWeek(w)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${viewWeek === w ? "bg-depro-blue text-white" : "text-depro-gray hover:bg-depro-gray-light"}`}>
+                    S{w}
+                  </button>
+                ))}
               </div>
 
-              {simulated.totalEx === 0 && (
-                <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-700">
-                  <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                  El motor no encontró ejercicios. Revisa etiquetas del catálogo o el filtro de material/lesiones.
-                </div>
-              )}
-
-              {simulated.days.map((entry) => {
-                const open = expandedDay === entry.day;
+              {currentWeek.sessions.map((session) => {
+                const key = `${viewWeek}_${session.id}`;
+                const open = expandedKey === key;
                 return (
-                  <div key={entry.day} className="bg-white rounded-xl border border-depro-border overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setExpandedDay(open ? null : entry.day)}
-                      className="w-full flex items-center justify-between p-3 text-left hover:bg-depro-gray-light/40"
-                    >
+                  <div key={key} className="bg-white rounded-xl border border-depro-border overflow-hidden">
+                    <button type="button" onClick={() => setExpandedKey(open ? null : key)}
+                      className="w-full flex items-center justify-between p-3 text-left hover:bg-depro-gray-light/40">
                       <div>
-                        <span className="text-xs font-bold text-depro-dark">{entry.day}</span>
-                        <p className="text-sm font-medium text-depro-dark mt-0.5">{entry.title}</p>
-                        <p className="text-xs text-depro-gray mt-0.5">
-                          {entry.exerciseCount} ejercicios · {entry.intensity || "—"}
-                        </p>
+                        <span className="text-xs font-bold text-depro-blue">{session.dayName}</span>
+                        <p className="text-sm font-medium text-depro-dark">{session.title}</p>
+                        <p className="text-xs text-depro-gray">{(session.exercises || []).length} ej. · {session.intensity}</p>
                       </div>
-                      {open ? <ChevronUp size={16} className="text-depro-gray" /> : <ChevronDown size={16} className="text-depro-gray" />}
+                      {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
                     {open && (
                       <div className="border-t border-depro-border px-3 py-2 space-y-2">
-                        {entry.blocks.map((b) => (
+                        {(session.blocks || []).map((b) => (
                           <div key={b.label}>
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-1">{b.label}</p>
-                            <ul className="space-y-1">
-                              {b.names.map((name) => (
-                                <li key={name} className="text-xs text-depro-dark flex items-center gap-2">
+                            <p className="text-[10px] font-bold uppercase text-depro-gray mb-1">{b.label}</p>
+                            {(b.exercises || []).map((ex) => (
+                              <div key={ex.id} className="flex items-center justify-between gap-2 py-1">
+                                <span className="text-xs text-depro-dark flex items-center gap-1.5 min-w-0">
                                   <Dumbbell size={11} className="text-depro-blue shrink-0" />
-                                  {name}
-                                </li>
-                              ))}
-                            </ul>
+                                  <span className="truncate">{ex.name}</span>
+                                  <span className="text-depro-gray shrink-0">{ex.sets}×{ex.reps}</span>
+                                </span>
+                                <button type="button" title="Refrescar ejercicio"
+                                  onClick={() => handleRefreshExercise(viewWeek - 1, session.id, ex.id)}
+                                  className="p-1 rounded-lg border border-depro-border text-depro-gray hover:text-depro-blue hover:border-depro-blue shrink-0">
+                                  <RefreshCw size={12} />
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         ))}
                       </div>
@@ -294,11 +342,6 @@ function IASimulator() {
                   </div>
                 );
               })}
-
-              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
-                <CheckCircle size={14} className="shrink-0" />
-                <span>Este es el mismo plan que recibiría un jugador tras el onboarding con este perfil.</span>
-              </div>
             </div>
           )}
         </div>

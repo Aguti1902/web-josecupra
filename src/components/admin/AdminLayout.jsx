@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, LogOut, Menu, X, ChevronRight,
   Settings, Brain, Building2, Globe, Shield, CalendarDays, ClipboardList, BookOpen,
-  Dumbbell, HelpCircle, Bell, Sparkles, Plus, User,
+  Dumbbell, HelpCircle, Bell, Sparkles, Plus, User, Layers,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { TutorialProvider, useTutorial } from "../private/DashboardTutorial";
@@ -45,6 +45,7 @@ const navGroups = [
     items: [
       { to: "/admin/clients", icon: Users, label: "Clientes jugadores" },
       { to: "/admin/plan-builder", icon: Brain, label: "Motor de planes" },
+      { to: "/admin/templates", icon: Layers, label: "Plantillas" },
       { to: "/admin/catalog", icon: BookOpen, label: "Biblioteca de ejercicios" },
     ],
   },

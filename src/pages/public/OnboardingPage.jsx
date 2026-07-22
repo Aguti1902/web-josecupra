@@ -10,18 +10,19 @@ import {
 } from "../../lib/checkoutPlans";
 
 const POSITIONS  = ["Portero", "Defensa", "Lateral", "Pivote", "Centro", "Mediapunta", "Extremo", "Delantero"];
-// Preguntas del motor de planes (doc técnico)
 const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
-const SPORTS     = ["Fútbol", "Basket", "Natación", "Tenis", "Fitness", "Otro"];
+const SPORTS     = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem"];
-const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio"];
-const INJURIES   = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda"];
+const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio", "Campo"];
+const INJURIES   = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda", "Pubalgia"];
 const INJURY_SUBTYPES = {
-  Rodilla: ["ACL", "Menisco", "Condromalacia", "Tendón rotuliano"],
-  Tobillo: ["Esguince", "Inestabilidad", "Tendinitis Aquiles"],
-  Hombro: ["Manguito rotador", "Inestabilidad", "Tendinitis"],
-  Espalda: ["Lumbalgia", "Ciática", "Pubalgia"],
+  Rodilla: ["ACL", "Menisco", "Rotuliana", "Otra"],
+  Tobillo: ["Esguince", "Inestabilidad", "Otra"],
+  Hombro: ["Manguito rotador", "Inestabilidad", "Otra"],
+  Espalda: ["Lumbar", "Dorsal", "Cervical", "Otra"],
+  Pubalgia: ["Aductores", "Recto abdominal", "Mixta"],
 };
+const COMPETITION_DAYS = ["Sábado", "Domingo", "Entre semana", "No compito regularmente"];
 const WEEK_DAYS  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
 const STEPS_PLAYER = ["Plan", "Tus datos", "Tu entrenamiento", "Pago"];
@@ -204,7 +205,7 @@ function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
 ───────────────────────────────────────────── */
 function StepDatos({ audience, form, setForm, onNext, onBack }) {
   const isPlayer = audience === "player";
-  const valid = form.nombre && form.email && (isPlayer ? form.edad && form.posicion : form.club);
+  const valid = form.nombre && form.email && (isPlayer ? form.edad : form.club);
 
   return (
     <div>
@@ -277,7 +278,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack }) {
             </div>
 
             <Toggle
-              label="Posición principal *"
+              label="Posición principal (opcional)"
               value={form.posicion}
               options={POSITIONS}
               onChange={(v) => setForm({ ...form, posicion: v })}
@@ -348,6 +349,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack }) {
 function StepFutbol({ form, setForm, onNext, onBack }) {
   const freqN = parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3;
   const valid = form.objetivo && form.deporte && form.frecuencia && form.material && form.experiencia
+    && form.diaCompeticion
     && (form.disponibles?.length || 0) >= freqN;
 
   return (
@@ -467,6 +469,14 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           ))}
         </div>
 
+        {/* Día de competición */}
+        <Toggle
+          label="Día habitual de competición *"
+          value={form.diaCompeticion}
+          options={COMPETITION_DAYS}
+          onChange={(v) => setForm({ ...form, diaCompeticion: v })}
+        />
+
         {/* Días disponibles */}
         <div>
           <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-3 block">
@@ -572,6 +582,7 @@ function StepPago({ form, plan, onBack }) {
                 plan.audience === "player" ? ["Experiencia", form.experiencia] : null,
                 plan.audience === "player" ? ["Material",  form.material] : null,
                 plan.audience === "player" ? ["Días",      (form.disponibles || []).join(", ")] : null,
+                plan.audience === "player" ? ["Competición", form.diaCompeticion] : null,
                 plan.audience === "player" ? ["Lesiones",  (form.lesion?.length > 0 ? form.lesion.join(", ") : "Ninguna")] : null,
                 plan.audience !== "player" ? ["Club", form.club] : null,
                 plan.audience !== "player" ? ["Equipos", form.equipos] : null,
@@ -744,6 +755,7 @@ export default function OnboardingPage() {
     experiencia: "",
     lesion:    [],
     lesionSubtipo: [],
+    diaCompeticion: "Sábado",
     disponibles: ["Lunes", "Miércoles", "Viernes"],
   });
 

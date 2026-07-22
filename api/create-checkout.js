@@ -90,6 +90,7 @@ export default async function handler(req, res) {
         frecuencia:   formData?.frecuencia  || "",
         material:     formData?.material    || "",
         experiencia:  formData?.experiencia || "",
+        diaCompeticion: formData?.diaCompeticion || "",
         lesion:       lesionArr.join("|"),
         lesionSubtipo: subArr.join("|"),
         disponibles:  dispArr.join("|"),

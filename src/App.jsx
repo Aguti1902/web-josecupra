@@ -50,6 +50,7 @@ import AdminClientsPage from "./pages/admin/AdminClientsPage";
 import AdminClientDetailPage from "./pages/admin/AdminClientDetailPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminPlanBuilderPage from "./pages/admin/AdminPlanBuilderPage";
+import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage";
 import AdminClubsManagerPage from "./pages/admin/AdminClubsManagerPage";
 import AdminClubDetailPage from "./pages/admin/AdminClubDetailPage";
 import AdminPlanificacionPage from "./pages/admin/AdminPlanificacionPage";
@@ -195,6 +196,7 @@ function AppRoutes() {
       <Route path="/admin/clients" element={<AdminRoute><AdminLayout><AdminClientsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clients/:id" element={<AdminRoute><AdminLayout><AdminClientDetailPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/plan-builder" element={<AdminRoute><AdminLayout><AdminPlanBuilderPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/templates" element={<AdminRoute><AdminLayout><AdminTemplatesPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clubs" element={<AdminRoute><AdminLayout><AdminClubsManagerPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clubs/:id" element={<AdminRoute><AdminLayout><AdminClubDetailPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/planificacion" element={<AdminRoute><AdminLayout><AdminPlanificacionPage /></AdminLayout></AdminRoute>} />
