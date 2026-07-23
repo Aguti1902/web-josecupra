@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { Lock } from "lucide-react";
 import { getStripePromise } from "../../lib/stripePublishable";
 
 /**
  * Stripe Embedded Checkout — formulario de pago embebido en /comprar.
  */
-export default function EmbeddedStripeCheckout({ planId, formData, onError }) {
+export default function EmbeddedStripeCheckout({ planId, formData, onError, className = "" }) {
   const containerRef = useRef(null);
   const checkoutRef = useRef(null);
   const onErrorRef = useRef(onError);
@@ -75,14 +76,21 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError }) {
   }, [planId, formData]);
 
   return (
-    <div className="relative min-h-[480px] rounded-2xl border border-depro-border bg-white overflow-hidden">
-      {loading && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white">
-          <div className="spinner border-depro-border border-t-depro-blue" />
-          <p className="text-sm text-depro-gray">Cargando formulario de pago seguro…</p>
-        </div>
-      )}
-      <div ref={containerRef} className="embedded-checkout-container min-h-[480px]" />
+    <div className={`relative rounded-2xl border border-depro-border bg-white shadow-card overflow-hidden ${className}`}>
+      <div className="flex items-center gap-2 border-b border-depro-border bg-depro-bg/50 px-5 py-3">
+        <Lock size={14} className="text-depro-green shrink-0" />
+        <span className="text-xs font-semibold text-depro-dark">Pago seguro con Stripe</span>
+      </div>
+
+      <div className="relative min-h-[520px]">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white">
+            <div className="spinner border-depro-border border-t-depro-blue" />
+            <p className="text-sm text-depro-gray">Preparando formulario de pago…</p>
+          </div>
+        )}
+        <div ref={containerRef} className="embedded-checkout-container min-h-[520px]" />
+      </div>
     </div>
   );
 }

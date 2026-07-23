@@ -8,7 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "stripe:setup": "node scripts/setup-stripe.mjs"
+    "stripe:setup": "node scripts/setup-stripe.mjs --test",
+    "stripe:setup:test": "node scripts/setup-stripe.mjs --test",
+    "stripe:setup:live": "node scripts/setup-stripe.mjs --live"
   },
   "dependencies": {
     "@stripe/stripe-js": "^9.5.0",

@@ -2,10 +2,10 @@
  * Bootstrap Stripe: crea productos, precios mensuales y webhook endpoint DEPRO.
  *
  * Uso:
- *   SITE_URL=https://depro.es node scripts/setup-stripe.mjs
+ *   npm run stripe:setup:test   → api/stripe-prices.test.json (sk_test_...)
+ *   npm run stripe:setup:live   → api/stripe-prices.live.json (sk_live_...)
  *
- * Requiere STRIPE_SECRET_KEY en .env (sk_live_... recomendado).
- * Escribe api/stripe-prices.json y muestra STRIPE_WEBHOOK_SECRET para Vercel.
+ * Requiere STRIPE_SECRET_KEY en .env acorde al modo.
  */
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
@@ -15,11 +15,17 @@ import Stripe from "stripe";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 
+const args = process.argv.slice(2);
+const modeArg = args.find((a) => a === "--test" || a === "--live");
+const mode = modeArg === "--live" ? "live" : "test";
+
 function loadEnv() {
   const envPath = resolve(root, ".env");
   if (!existsSync(envPath)) return;
   for (const line of readFileSync(envPath, "utf8").split("\n")) {
-    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const m = trimmed.match(/^([A-Z0-9_]+)=(.*)$/);
     if (m && !process.env[m[1]]) {
       process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
     }
@@ -53,12 +59,22 @@ if (!key) {
   process.exit(1);
 }
 
-const siteUrl = (process.env.SITE_URL || "https://depro.es").replace(/\/$/, "");
+const keyIsTest = key.includes("_test_");
+if (mode === "test" && !keyIsTest) {
+  console.error("❌ Modo --test requiere STRIPE_SECRET_KEY=sk_test_...");
+  process.exit(1);
+}
+if (mode === "live" && keyIsTest) {
+  console.error("❌ Modo --live requiere STRIPE_SECRET_KEY=sk_live_...");
+  process.exit(1);
+}
+
+const siteUrl = (process.env.SITE_URL || (mode === "test" ? "http://localhost:5173" : "https://depro.es")).replace(/\/$/, "");
 const webhookUrl = `${siteUrl}/api/stripe-webhook`;
 
 const stripe = new Stripe(key);
 const pricesOut = {};
-const pricesPath = resolve(root, "api/stripe-prices.json");
+const pricesPath = resolve(root, `api/stripe-prices.${mode}.json`);
 
 async function ensureProduct(planId, def) {
   const search = await stripe.products.search({
@@ -100,7 +116,7 @@ async function ensureWebhook() {
   return stripe.webhookEndpoints.create({
     url: webhookUrl,
     enabled_events: WEBHOOK_EVENTS,
-    description: "DEPRO producción — suscripciones y pagos",
+    description: mode === "test" ? "DEPRO test — suscripciones y pagos" : "DEPRO producción — suscripciones y pagos",
   });
 }
 
@@ -126,7 +142,7 @@ async function ensureBillingPortal() {
 }
 
 async function main() {
-  console.log("🔧 Configurando Stripe DEPRO…");
+  console.log(`🔧 Configurando Stripe DEPRO (${mode.toUpperCase()})…`);
   console.log(`   Site: ${siteUrl}`);
 
   for (const [planId, def] of Object.entries(PRICES)) {
@@ -150,7 +166,7 @@ async function main() {
   }
 
   await ensureBillingPortal();
-  console.log("\n✅ Setup completado. Haz commit de api/stripe-prices.json y despliega.");
+  console.log(`\n✅ Setup ${mode} completado. Haz commit de api/stripe-prices.${mode}.json y despliega.`);
 }
 
 main().catch((err) => {

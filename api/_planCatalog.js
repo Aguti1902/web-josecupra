@@ -1,7 +1,9 @@
 /** Catálogo de precios Stripe compartido por create-checkout y update-subscription.
  * Debe mantenerse alineado con src/lib/checkoutPlans.js. */
 
-import stripePrices from "./stripe-prices.json" with { type: "json" };
+import stripePricesLive from "./stripe-prices.live.json" with { type: "json" };
+import stripePricesTest from "./stripe-prices.test.json" with { type: "json" };
+import { isStripeTestMode } from "./_stripeMode.js";
 
 export const TRIAL_PERIOD_DAYS = 15;
 
@@ -16,8 +18,12 @@ export const PRICES = {
   "player-pro":       { amount: 3999,  name: "DEPRO Jugador Pro",          description: "Plan IA adaptativo · tests · alertas de carga" },
 };
 
+function stripePricesMap() {
+  return isStripeTestMode() ? stripePricesTest : stripePricesLive;
+}
+
 export function getStripePriceId(planId) {
-  return stripePrices[planId] || null;
+  return stripePricesMap()[planId] || null;
 }
 
 /** Line item para Checkout: usa Price ID fijo si existe, si no price_data dinámico. */
@@ -59,3 +65,5 @@ export function buildSubscriptionItemUpdate(planId, itemId) {
     },
   };
 }
+
+export { isStripeTestMode };

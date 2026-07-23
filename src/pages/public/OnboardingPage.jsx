@@ -3,12 +3,13 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, ArrowRight, CheckCircle, Zap, Trophy, User, Mail, Calendar,
   Target, AlertCircle, Shield, Lock,
-  ChevronRight, BadgeCheck, MapPin, Building2, Users,
+  ChevronRight, ChevronDown, BadgeCheck, MapPin, Building2, Users,
 } from "lucide-react";
 import {
   AUDIENCES, PLANS, resolvePlanId, plansForAudience, formatPrice, applyClubDiscount,
 } from "../../lib/checkoutPlans";
 import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
+import StripeTestBanner from "../../components/public/StripeTestBanner";
 
 const POSITIONS  = ["Portero", "Defensa", "Lateral", "Pivote", "Centro", "Mediapunta", "Extremo", "Delantero"];
 const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
@@ -522,76 +523,54 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
 ───────────────────────────────────────────── */
 function StepPago({ form, plan, onBack }) {
   const [error, setError] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
   const formPayload = useMemo(() => ({ ...form, audience: plan.audience }), [form, plan.audience]);
 
   const hasDiscount = !!form.clubCode && plan.audience === "player";
   const discount    = hasDiscount ? Math.round(plan.price * 0.15 * 100) / 100 : 0;
   const total       = hasDiscount ? applyClubDiscount(plan.price) : plan.price;
 
+  const profileRows = [
+    ["Nombre", form.nombre],
+    ["Email", form.email],
+    plan.audience === "player" ? ["Objetivo", form.objetivo] : null,
+    plan.audience === "player" ? ["Deporte", form.deporte] : null,
+    plan.audience === "player" ? ["Frecuencia", form.frecuencia] : null,
+    plan.audience === "player" ? ["Experiencia", form.experiencia] : null,
+    plan.audience === "player" ? ["Material", form.material] : null,
+    plan.audience === "player" ? ["Días", (form.disponibles || []).join(", ")] : null,
+    plan.audience === "player" ? ["Competición", form.diaCompeticion] : null,
+    plan.audience === "player" ? ["Lesiones", (form.lesion?.length > 0 ? form.lesion.join(", ") : "Ninguna")] : null,
+    plan.audience !== "player" ? ["Club", form.club] : null,
+    plan.audience !== "player" ? ["Equipos", form.equipos] : null,
+  ].filter(Boolean).filter(([, v]) => v);
+
   return (
     <div>
-      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu suscripción</h2>
-      <p className="text-depro-gray text-sm mb-8">Completa el pago de forma segura sin salir de DEPRO. 15 días de prueba incluidos.</p>
+      <StripeTestBanner />
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Info izquierda */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Qué incluye */}
-          <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card">
-            <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-4">Tu plan incluye</div>
-            <ul className="space-y-2.5">
-              {plan.features.map((f) => (
-                <li key={f} className="flex items-center gap-2.5 text-sm text-depro-dark">
-                  <CheckCircle size={15} className="text-depro-green shrink-0" /> {f}
-                </li>
-              ))}
-            </ul>
-          </div>
+      <div className="mb-8">
+        <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu suscripción</h2>
+        <p className="text-depro-gray text-sm">
+          Introduce tu método de pago. Tienes <strong className="text-depro-dark">15 días de prueba gratis</strong> antes del primer cargo.
+        </p>
+      </div>
 
-          {/* Resumen del perfil */}
-          <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card">
-            <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-4">Tus datos</div>
-            <div className="grid grid-cols-2 gap-y-2 text-sm">
-              {[
-                ["Nombre",    form.nombre],
-                ["Email",     form.email],
-                plan.audience === "player" ? ["Objetivo",  form.objetivo] : null,
-                plan.audience === "player" ? ["Deporte",   form.deporte] : null,
-                plan.audience === "player" ? ["Frecuencia",form.frecuencia] : null,
-                plan.audience === "player" ? ["Experiencia", form.experiencia] : null,
-                plan.audience === "player" ? ["Material",  form.material] : null,
-                plan.audience === "player" ? ["Días",      (form.disponibles || []).join(", ")] : null,
-                plan.audience === "player" ? ["Competición", form.diaCompeticion] : null,
-                plan.audience === "player" ? ["Lesiones",  (form.lesion?.length > 0 ? form.lesion.join(", ") : "Ninguna")] : null,
-                plan.audience !== "player" ? ["Club", form.club] : null,
-                plan.audience !== "player" ? ["Equipos", form.equipos] : null,
-              ].filter(Boolean).filter(([, v]) => v).map(([label, val]) => (
-                <div key={label}>
-                  <span className="text-depro-gray">{label}: </span>
-                  <span className="font-semibold text-depro-dark">{val}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-depro-gray">
-            <Lock size={12} className="text-depro-green" />
-            Pago 100% seguro con Stripe · No guardamos datos de tarjeta
-          </div>
-        </div>
-
-        {/* Resumen precio */}
-        <div className="lg:col-span-1">
-          <div className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden sticky top-4">
+      <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
+        {/* Resumen compacto — sidebar */}
+        <aside className="lg:col-span-2 space-y-4 lg:sticky lg:top-4 order-1">
+          <div className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden">
             <div className="p-5 border-b border-depro-border">
-              <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2">Resumen</div>
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-depro-green/10 px-2.5 py-1 text-[11px] font-bold text-depro-green mb-3">
+                <BadgeCheck size={12} /> 15 días gratis
+              </div>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: plan.bg }}>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: plan.bg }}>
                   {plan.highlight ? <Trophy size={18} style={{ color: plan.color }} /> : <Zap size={18} style={{ color: plan.color }} />}
                 </div>
-                <div>
-                  <div className="font-black text-depro-dark">{plan.name}</div>
-                  <div className="text-xs text-depro-gray">{plan.tagline}</div>
+                <div className="min-w-0">
+                  <div className="font-black text-depro-dark truncate">{plan.name}</div>
+                  <div className="text-xs text-depro-gray truncate">{plan.tagline}</div>
                 </div>
               </div>
             </div>
@@ -606,33 +585,69 @@ function StepPago({ form, plan, onBack }) {
                   <span>– {formatPrice(discount)}</span>
                 </div>
               )}
-              <div className="border-t border-depro-border pt-3 flex justify-between">
+              <div className="border-t border-depro-border pt-3 flex justify-between items-baseline">
                 <span className="font-bold text-depro-dark">Total / mes</span>
-                <span className="text-xl font-black text-depro-dark">{formatPrice(total)}</span>
+                <span className="text-2xl font-black text-depro-dark">{formatPrice(total)}</span>
               </div>
-              <div className="text-[11px] text-depro-gray">Suscripción mensual. Cancela cuando quieras.</div>
+              <p className="text-[11px] text-depro-gray pt-1">Tras el trial. Cancela cuando quieras.</p>
             </div>
 
-            <div className="p-5 border-t border-depro-border space-y-3">
-              {error && (
-                <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">
-                  <AlertCircle size={13} className="shrink-0 mt-0.5" /> {error}
-                </div>
-              )}
-              <div className="flex items-center justify-center gap-1.5 text-[10px] text-depro-gray">
-                <Shield size={11} className="text-depro-blue" /> Pago seguro · Cancela cuando quieras
-              </div>
+            <div className="px-5 pb-5">
+              <ul className="space-y-2 border-t border-depro-border pt-4">
+                {plan.features.slice(0, 4).map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-xs text-depro-dark">
+                    <CheckCircle size={13} className="text-depro-green shrink-0 mt-0.5" /> {f}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="mt-6">
-        <EmbeddedStripeCheckout
-          planId={plan.id}
-          formData={formPayload}
-          onError={setError}
-        />
+          <button
+            type="button"
+            onClick={() => setShowDetails((v) => !v)}
+            className="w-full flex items-center justify-between gap-2 rounded-2xl border border-depro-border bg-white px-4 py-3 text-sm font-semibold text-depro-dark shadow-card hover:bg-depro-bg/30 transition-colors"
+          >
+            <span>Tus datos ({form.nombre || form.email})</span>
+            <ChevronDown size={16} className={`shrink-0 transition-transform ${showDetails ? "rotate-180" : ""}`} />
+          </button>
+
+          {showDetails && (
+            <div className="bg-white border border-depro-border rounded-2xl p-4 shadow-card text-sm space-y-2">
+              {profileRows.map(([label, val]) => (
+                <div key={label} className="flex justify-between gap-3">
+                  <span className="text-depro-gray shrink-0">{label}</span>
+                  <span className="font-semibold text-depro-dark text-right">{val}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="hidden lg:flex items-center gap-2 text-[11px] text-depro-gray px-1">
+            <Shield size={12} className="text-depro-blue shrink-0" />
+            Pago seguro · No guardamos datos de tarjeta
+          </div>
+        </aside>
+
+        {/* Checkout embebido — protagonista */}
+        <div className="lg:col-span-3 order-2 space-y-4">
+          {error && (
+            <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl p-4">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" /> {error}
+            </div>
+          )}
+
+          <EmbeddedStripeCheckout
+            planId={plan.id}
+            formData={formPayload}
+            onError={setError}
+          />
+
+          <p className="lg:hidden flex items-center gap-2 text-[11px] text-depro-gray justify-center">
+            <Lock size={12} className="text-depro-green" />
+            Pago 100% seguro con Stripe
+          </p>
+        </div>
       </div>
 
       <div className="mt-8">
