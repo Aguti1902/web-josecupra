@@ -20,7 +20,6 @@ import {
 import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/sessionBlocks";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import CoachDashboard from "../../components/private/CoachDashboard";
-import TrialBanner from "../../components/private/TrialBanner";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -958,7 +957,6 @@ function JugadorDashboard({ user, club }) {
 
   return (
     <div className="space-y-6">
-      <TrialBanner user={user} prominent />
       {adherenceReminder && (
         <div className="rounded-2xl p-4 border border-amber-200 bg-amber-50 text-sm text-amber-800 flex flex-col sm:flex-row sm:items-center gap-3">
           <span className="flex-1">{adherenceReminder.message}</span>

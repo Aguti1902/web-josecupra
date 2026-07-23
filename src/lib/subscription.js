@@ -142,6 +142,30 @@ export function getTrialDaysLeft(user) {
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
 }
 
+/**
+ * Trial acabado sin suscripción activa — debe pagar para continuar.
+ * No aplica a cuentas manuales, admin ni jugadores gestionados por club sin facturación propia.
+ */
+export function mustPayToContinue(user) {
+  if (!user || isManualBilling(user) || user.role === "admin") return false;
+
+  const sub = getSubscriptionFromUser(user);
+  if (!sub || isSubscriptionActive(sub)) return false;
+
+  if (user.role === "player") {
+    if (user.team_role) return false;
+    if (user.clubId && !user.stripeSubscriptionId && user.billingSource !== "stripe") return false;
+  }
+
+  const hasStripeBilling =
+    sub.stripeSubscriptionId ||
+    user.stripeSubscriptionId ||
+    user.billingSource === "stripe" ||
+    sub.trialEndsAt;
+
+  return !!hasStripeBilling;
+}
+
 export function shouldShowTrialWatermark(user) {
   return isInTrial(user);
 }

@@ -16,6 +16,8 @@ import {
   formatSubscriptionDate,
   isInTrial,
   getTrialDaysLeft,
+  mustPayToContinue,
+  changePlan,
   resolveUserAudience,
   hasFeatureAccess,
   activateSubscriptionNow,
@@ -77,9 +79,12 @@ export default function SubscriptionPage() {
   const subPendingCancel = subscription?.status === "cancel_at_period_end";
   const inTrial = isInTrial(user);
   const daysLeft = getTrialDaysLeft(user);
+  const paywallActive = mustPayToContinue(user);
   const currentPlanId = subscription?.plan || user?.plan;
   const currentPlan = currentPlanId ? PLANS[currentPlanId] : null;
   const purchasedAddons = user?.purchasedAddons || subscription?.purchasedAddons || [];
+  const audiencePlans = plansForAudience(audience);
+  const [planSwitchLoading, setPlanSwitchLoading] = useState(null);
 
   const locked = lockedFeaturesForUser(user, {
     isInTrial,
@@ -138,6 +143,31 @@ export default function SubscriptionPage() {
     }
   };
 
+  const handlePaywallPlan = async (planId) => {
+    setPlanSwitchLoading(planId);
+    setMsg(null);
+
+    if (planId !== currentPlanId) {
+      const changeRes = await changePlan({ user, newPlanId: planId });
+      if (!changeRes.ok) {
+        setPlanSwitchLoading(null);
+        setMsg({ type: "error", text: changeRes.error || t("billing.change_error") });
+        return;
+      }
+      await refreshUser();
+    }
+
+    const activateRes = await activateSubscriptionNow({ ...user, plan: planId });
+    setPlanSwitchLoading(null);
+    if (activateRes.ok) {
+      syncLocalSubscription(user.id, { plan: planId, status: "active", trialEndsAt: null });
+      setMsg({ type: "ok", text: t("subscription.activate_success") });
+      await refreshUser();
+    } else {
+      setMsg({ type: "error", text: activateRes.error || t("subscription.activate_error") });
+    }
+  };
+
   const upgradePlans = plansForAudience(audience).filter((p) => {
     if (!currentPlanId) return true;
     const order = Object.keys(PLANS).filter((id) => PLANS[id].audience === audience);
@@ -155,23 +185,81 @@ export default function SubscriptionPage() {
         <p className="text-sm text-depro-gray mt-1">{t("subscription.page_desc")}</p>
       </div>
 
-      {inTrial && (
-        <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="w-14 h-14 rounded-2xl bg-white border border-blue-100 flex items-center justify-center">
-              <Clock size={24} className="text-depro-blue" />
+      {paywallActive && (
+        <div className="rounded-2xl border-2 border-orange-400 bg-orange-50 p-6 space-y-5">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-orange-200 flex items-center justify-center flex-shrink-0">
+              <Clock size={26} className="text-orange-800" />
             </div>
             <div>
-              <p className="font-black text-depro-dark text-lg">
+              <h2 className="text-xl font-black text-orange-950">{t("trial.expired_title")}</h2>
+              <p className="text-sm text-orange-900 mt-1">{t("trial.expired_desc")}</p>
+            </div>
+          </div>
+
+          {msg && (
+            <div className={`text-sm px-3 py-2 rounded-lg border ${
+              msg.type === "ok" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+            }`}>
+              {msg.text}
+            </div>
+          )}
+
+          <div className={`grid gap-4 ${audiencePlans.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+            {audiencePlans.map((plan) => {
+              const isCurrent = plan.id === currentPlanId;
+              const loading = planSwitchLoading === plan.id;
+              return (
+                <div
+                  key={plan.id}
+                  className={`rounded-xl border p-5 flex flex-col bg-white ${
+                    isCurrent ? "border-orange-400 ring-2 ring-orange-200" : "border-depro-border"
+                  }`}
+                >
+                  {isCurrent && (
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-orange-700 mb-2">
+                      {t("trial.expired_current_plan")}
+                    </span>
+                  )}
+                  <p className="font-black text-depro-dark text-lg">{plan.name}</p>
+                  <div className="flex items-end gap-1 my-2">
+                    <span className="text-2xl font-black text-depro-dark">{formatPrice(plan.price)}</span>
+                    <span className="text-xs text-depro-gray mb-0.5">{plan.period}</span>
+                  </div>
+                  <p className="text-xs text-depro-gray mb-4 flex-1">{plan.tagline}</p>
+                  <button
+                    type="button"
+                    onClick={() => handlePaywallPlan(plan.id)}
+                    disabled={!!planSwitchLoading}
+                    className="w-full py-2.5 rounded-xl bg-orange-600 text-white text-sm font-bold hover:bg-orange-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                    {t("trial.expired_cta", { plan: plan.name })}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {inTrial && !paywallActive && (
+        <div className="rounded-2xl border border-orange-300 bg-orange-50 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-4 flex-1">
+            <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center">
+              <Clock size={24} className="text-orange-700" />
+            </div>
+            <div>
+              <p className="font-black text-orange-950 text-lg">
                 {t("trial.banner_title", { days: daysLeft })}
               </p>
-              <p className="text-sm text-depro-gray">{t("subscription.trial_explainer")}</p>
+              <p className="text-sm text-orange-800">{t("subscription.trial_explainer")}</p>
             </div>
           </div>
           <div className="flex flex-col sm:items-end gap-2">
             <div className="text-center sm:text-right">
-              <div className="text-4xl font-black text-depro-blue">{daysLeft}</div>
-              <div className="text-xs font-bold text-depro-gray uppercase tracking-wide">
+              <div className="text-4xl font-black text-orange-700">{daysLeft}</div>
+              <div className="text-xs font-bold text-orange-800/70 uppercase tracking-wide">
                 {t("subscription.days_remaining")}
               </div>
             </div>
@@ -179,7 +267,7 @@ export default function SubscriptionPage() {
               type="button"
               onClick={handleActivateNow}
               disabled={activateLoading}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-depro-blue text-white text-xs font-bold hover:bg-depro-blue-dark disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-bold hover:bg-orange-700 disabled:opacity-50"
             >
               {activateLoading ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
               {t("subscription.activate_now")}
@@ -188,7 +276,7 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {showBilling && subscription && (
+      {showBilling && subscription && !paywallActive && (
         <div className="bg-white border border-depro-border rounded-2xl p-6">
           <h2 className="font-bold text-depro-dark text-lg mb-4 flex items-center gap-2">
             <CreditCard size={18} className="text-depro-blue" />
@@ -268,7 +356,7 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {!showBilling && (
+      {!showBilling && !paywallActive && (
         <div className="bg-white border border-depro-border rounded-2xl p-6 text-center">
           <p className="text-depro-gray text-sm mb-4">{t("profile.subscription_no_plan")}</p>
           <Link to="/comprar" className="btn-primary inline-flex px-6 py-2.5 rounded-xl text-sm font-bold">
@@ -277,7 +365,7 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {availableAddons.length > 0 && (
+      {availableAddons.length > 0 && !paywallActive && (
         <div className="bg-white border border-depro-border rounded-2xl p-6">
           <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
             <Sparkles size={18} className="text-depro-blue" />
@@ -321,7 +409,7 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {locked.length > 0 && (
+      {locked.length > 0 && !paywallActive && (
         <div className="bg-white border border-depro-border rounded-2xl p-6">
           <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
             <Lock size={18} className="text-amber-600" />
@@ -382,7 +470,7 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {upgradePlans.length > 0 && (
+      {upgradePlans.length > 0 && !paywallActive && (
         <div className="bg-white border border-depro-border rounded-2xl p-6">
           <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
             <Sparkles size={18} className="text-depro-blue" />

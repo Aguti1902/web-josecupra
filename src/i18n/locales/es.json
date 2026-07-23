@@ -382,6 +382,10 @@
     "banner_title": "Prueba gratuita · te quedan {{days}} días",
     "banner_desc": "Algunas secciones están limitadas durante la prueba. Mejora tu plan para desbloquear todo.",
     "banner_cta": "Ver planes",
+    "expired_title": "Tu prueba gratuita ha terminado",
+    "expired_desc": "Activa una suscripción para seguir usando DEPRO. Elige el plan que prefieras y confirma el pago.",
+    "expired_cta": "Activar {{plan}}",
+    "expired_current_plan": "Tu plan en prueba",
     "watermark": "PRUEBA DEPRO",
     "unlock": "Desbloquear",
     "view_plans": "Ver suscripción"

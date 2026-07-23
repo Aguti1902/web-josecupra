@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, Activity, MessageSquare, LogOut, Menu, X,
   ChevronRight, Trophy, ClipboardList, Users as UsersIcon, User, TrendingUp,
@@ -13,7 +13,7 @@ import LanguageSwitcher from "../shared/LanguageSwitcher";
 import { TutorialProvider, useTutorial } from "./DashboardTutorial";
 import AiAssistantWidget from "./AiAssistantWidget";
 import PanelSearch from "../shared/PanelSearch";
-import { getPlanLabel } from "../../lib/subscription";
+import { getPlanLabel, isInTrial, mustPayToContinue } from "../../lib/subscription";
 
 function luminance(hex) {
   try {
@@ -194,6 +194,12 @@ function AppLayoutInner({ children }) {
     : playerNav;
   const isPlayer = user?.role === "player";
   const playerPlanLabel = user?.plan ? getPlanLabel(user.plan) : "Jugador";
+  const paywallActive = mustPayToContinue(user);
+  const displayNavItems = paywallActive ? [subscriptionNav] : navItems;
+
+  if (paywallActive && pathname !== "/dashboard/subscription") {
+    return <Navigate to="/dashboard/subscription" replace />;
+  }
 
   useEffect(() => {
     const load = () => {
@@ -291,7 +297,7 @@ function AppLayoutInner({ children }) {
         <nav data-tour="sidebar-nav" className="flex-1 px-3 py-4 overflow-y-auto">
           <p className="text-[10px] font-black uppercase tracking-widest text-white/30 px-3 mb-3">Menú</p>
           <div className="space-y-1">
-            {navItems.map((item) => {
+            {displayNavItems.map((item) => {
               const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
               const tourId = tourIdForRoute(item.to);
               return (
@@ -353,18 +359,23 @@ function AppLayoutInner({ children }) {
       {/* Main */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <HeaderBar
-          navItems={navItems}
+          navItems={displayNavItems}
           pathname={pathname}
           sidebarAccent={sidebarAccent}
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           sidebarOpen={sidebarOpen}
           user={user}
         />
+        {pathname === "/dashboard" && isInTrial(user) && !paywallActive && (
+          <div className="px-4 md:px-6 py-3 border-b border-orange-200 bg-orange-50/90 flex-shrink-0">
+            <TrialBanner user={user} prominent />
+          </div>
+        )}
         <div className="md:hidden px-4 py-2 border-b border-depro-border/60 bg-white/90">
-          <PanelSearch mode="client" navItems={navItems} user={user} />
+          <PanelSearch mode="client" navItems={displayNavItems} user={user} />
         </div>
         <main className="flex-1 overflow-y-auto dashboard-main-scroll">
-          {pathname !== "/dashboard" && <TrialBanner user={user} />}
+          {pathname !== "/dashboard" && isInTrial(user) && !paywallActive && <TrialBanner user={user} />}
           {children}
         </main>
         <AiAssistantWidget />
