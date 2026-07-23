@@ -1,4 +1,5 @@
 import { buildSessionPrompt, buildFullPlanPrompt } from "./planAIPrompts";
+import { pickDeterministic } from "./deterministicPick";
 import { filterExercisesEnriched } from "../data/exercises";
 import { getTemplate, isV2Template } from "./planTemplates";
 import {
@@ -444,7 +445,7 @@ export function refreshExercise(session, exerciseId, filterParams) {
 
     if (!pool.length) return session;
 
-    const replacement = pool[Math.floor(Math.random() * pool.length)];
+    const replacement = pickDeterministic(pool, `${target.catalogId}|${target.blockType}|${usedSet.size}`);
     newEx = makeExercise(
       replacement,
       Date.now(),

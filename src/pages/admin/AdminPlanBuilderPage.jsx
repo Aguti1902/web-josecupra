@@ -30,6 +30,7 @@ import { EXERCISES, TAGS } from "../../data/exercises";
 import { Search, List, BookOpen } from "lucide-react";
 import { buildPlayerPlan, buildFourWeekPlan, refreshExercise, normalizeLesions } from "../../lib/playerPlanEngine";
 import { DAY_ORDER, COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
+import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 import { getYouTubeId } from "../../lib/youtube";
 
 const Youtube = PlayCircle;
@@ -143,6 +144,7 @@ function IASimulator() {
   };
 
   const currentWeek = simulated?.weeks?.[viewWeek - 1];
+  const freqN = parseInt(String(profile.frecuencia).replace(/\D/g, ""), 10) || 3;
 
   return (
     <div className="bg-gradient-to-br from-depro-blue/5 to-purple-50 border border-depro-blue/20 rounded-2xl overflow-hidden">
@@ -176,15 +178,24 @@ function IASimulator() {
 
           <div>
             <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Objetivos (principal + secundario opcional)</label>
+            {freqN === 1 && (
+              <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-2">
+                {SECONDARY_BLOCKED_FREQ1_MESSAGE}
+              </p>
+            )}
             <div className="flex flex-wrap gap-1.5">
               {OBJECTIVES.map((o) => {
                 const sel = (profile.objetivos || []).includes(o);
-                const full = (profile.objetivos || []).length >= 2 && !sel;
+                const full = ((profile.objetivos || []).length >= 2 && !sel)
+                  || (freqN === 1 && (profile.objetivos || []).length >= 1 && !sel);
                 return (
                   <button key={o} type="button" disabled={full}
                     onClick={() => setProfile((p) => {
                       const cur = p.objetivos || [];
-                      const next = sel ? cur.filter((x) => x !== o) : cur.length < 2 ? [...cur, o] : cur;
+                      const n = parseInt(String(p.frecuencia).replace(/\D/g, ""), 10) || 3;
+                      if (!sel && cur.length >= 2) return p;
+                      if (!sel && n === 1 && cur.length >= 1) return p;
+                      const next = sel ? cur.filter((x) => x !== o) : [...cur, o];
                       return { ...p, objetivos: next, objetivo: next[0] || "", objetivoSecundario: next[1] || "" };
                     })}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${sel ? "bg-depro-blue border-depro-blue text-white" : full ? "border-depro-border text-gray-300 cursor-not-allowed" : "border-depro-border text-depro-gray hover:border-depro-blue"}`}>
@@ -206,7 +217,19 @@ function IASimulator() {
             <div>
               <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Frecuencia</label>
               {["1", "2", "3", "4", "5"].map((d) => (
-                <button key={d} type="button" onClick={() => setProfile((p) => ({ ...p, frecuencia: d }))}
+                <button key={d} type="button" onClick={() => setProfile((p) => {
+                  if (d === "1" && (p.objetivos || []).length > 1) {
+                    const next = [(p.objetivos || [])[0]];
+                    return {
+                      ...p,
+                      frecuencia: d,
+                      objetivos: next,
+                      objetivo: next[0],
+                      objetivoSecundario: "",
+                    };
+                  }
+                  return { ...p, frecuencia: d };
+                })}
                   className={`w-full mb-1 py-1.5 rounded-lg border text-xs font-semibold ${profile.frecuencia === d ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray"}`}>
                   {d} día{d !== "1" ? "s" : ""}/sem
                 </button>

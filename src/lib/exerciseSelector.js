@@ -4,6 +4,7 @@
  */
 import { POOLS, POOL_COMPATIBILITY } from "./poolDefinitions.js";
 import { EXERCISES } from "./exerciseCatalog.js";
+import { pickDeterministic } from "./deterministicPick.js";
 
 const EXP_LEVELS = { novato: 1, intermedio: 2, avanzado: 3 };
 
@@ -169,7 +170,17 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], u
   }
 
   if (candidates.length === 0) return null;
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  const seed = [
+    slot.pool || slot.poolPattern || slot.poolFamily || slot.description || "",
+    userProfile?.objetivo || "",
+    userProfile?.edad || "",
+    userProfile?.experiencia || "",
+    (userProfile?.material || []).join(","),
+    (userProfile?.lesiones || userProfile?.lesion || []).join(","),
+    usedExerciseIds.join(","),
+    usedPools.join(","),
+  ].join("|");
+  return pickDeterministic(candidates, seed);
 }
 
 function getVolume(experiencia, blockType) {
@@ -228,7 +239,13 @@ export function refreshExercise(currentExercise, userProfile, excludeIds = []) {
     (ex) => ex.id !== currentExercise.id && !excludeIds.includes(ex.id),
   );
   if (candidates.length === 0) return null;
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  const seed = [
+    currentExercise.id,
+    currentExercise.pool,
+    userProfile?.objetivo || "",
+    excludeIds.join(","),
+  ].join("|");
+  return pickDeterministic(candidates, seed);
 }
 
 export function generateSession(template, userProfile) {

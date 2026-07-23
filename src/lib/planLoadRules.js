@@ -1,7 +1,13 @@
 /**
- * Reglas de carga y colocación de sesiones — doc técnico PDF §3
+ * Reglas de carga y colocación de sesiones — PDF §3 + matriz objetivos 2.0
  */
-import { getWeeklySessionTypes, parseWeeklyFrequency } from "./planTemplates";
+import {
+  resolveMatrixSessionTypes,
+  parseWeeklyFrequency,
+  SECONDARY_BLOCKED_FREQ1_MESSAGE,
+} from "./objectiveSessionMatrix";
+
+export { parseWeeklyFrequency, SECONDARY_BLOCKED_FREQ1_MESSAGE };
 
 /** Mensaje cuando la combinación objetivo + días + competición no permite planificar bien */
 export const PLAN_COHERENCE_MESSAGE = `No es posible generar una planificación óptima con los parámetros seleccionados.
@@ -14,61 +20,6 @@ Para ofrecerte una planificación más segura y eficaz, te recomendamos modifica
 • o seleccionar un objetivo diferente.
 
 Una vez ajustados estos datos podremos generar una planificación de mayor calidad.`;
-
-function normalizeObjKey(objetivo) {
-  return (objetivo || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-/** Sesión representativa del objetivo secundario para sustituir la última complementaria */
-const SECONDARY_REPLACEMENT = {
-  fuerza: "Fuerza A",
-  velocidad: "Velocidad",
-  resistencia: "Resistencia aeróbica",
-  hipertrofia: "Hipertrofia",
-  estetica: "Hipertrofia",
-  prevencion: "Prevención",
-  movilidad: "Movilidad",
-};
-
-/** Máximo 1 sesión de Velocidad/semana; la segunda explosiva debe ser Pliometría */
-export function enforceMaxOneVelocity(sessionTypes) {
-  let seenVel = false;
-  return sessionTypes.map((s) => {
-    if (s !== "Velocidad") return s;
-    if (!seenVel) {
-      seenVel = true;
-      return s;
-    }
-    return "Pliometría";
-  });
-}
-
-/**
- * Objetivo secundario: sustituye la última sesión complementaria (PDF §objetivo secundario).
- * No mezcla listas completas de ambos objetivos.
- */
-export function applySecondaryObjective(sessions, objetivoPrincipal, objetivoSecundario) {
-  if (!sessions?.length || sessions.length < 2) return sessions;
-  if (!objetivoSecundario) return sessions;
-  if (normalizeObjKey(objetivoSecundario) === normalizeObjKey(objetivoPrincipal)) return sessions;
-
-  const replacement = SECONDARY_REPLACEMENT[normalizeObjKey(objetivoSecundario)];
-  if (!replacement) return sessions;
-
-  let replaceIdx = sessions.length - 1;
-  const pri = normalizeObjKey(objetivoPrincipal);
-  const sec = normalizeObjKey(objetivoSecundario);
-
-  if (pri === "resistencia" && sec === "velocidad") {
-    const anaIdx = sessions.indexOf("Resistencia anaeróbica");
-    if (anaIdx >= 0) replaceIdx = anaIdx;
-  }
-
-  const out = [...sessions];
-  if (out[replaceIdx] === replacement) return out;
-  out[replaceIdx] = replacement;
-  return out;
-}
 
 export const DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 export const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
@@ -97,22 +48,6 @@ export const SESSION_INTENSITY = {
   "Sesión mínima": "baja",
 };
 
-/** Adaptación cuando el día no permite la intensidad requerida (PDF §3.6) */
-export const SESSION_ADAPTATIONS = {
-  "Fuerza A": { media: "Fuerza B", baja: "Movilidad" },
-  "Fuerza Superior A": { media: "Fuerza Superior B", baja: "Movilidad" },
-  Velocidad: { media: "Fuerza B", baja: "Movilidad" },
-  Pliometría: { media: "Isométricos", baja: "Movilidad" },
-  "Full Body": { media: "Fuerza B", baja: "Movilidad" },
-  "Resistencia anaeróbica": { media: "Resistencia umbral", baja: "Resistencia aeróbica" },
-  Hipertrofia: { media: "Fuerza B", baja: "Movilidad" },
-  "Hipertrofia Anterior": { media: "Fuerza B", baja: "Movilidad" },
-  "Hipertrofia Posterior": { media: "Fuerza B", baja: "Movilidad" },
-  "Hipertrofia Push": { media: "Fuerza B", baja: "Movilidad" },
-  "Hipertrofia Pull": { media: "Fuerza B", baja: "Movilidad" },
-  "Hipertrofia Pierna": { media: "Fuerza B", baja: "Movilidad" },
-};
-
 const MATCH_DAY_MAP = {
   sabado: "Sábado",
   sábado: "Sábado",
@@ -137,7 +72,7 @@ export function normalizeMatchDay(diaCompeticion) {
   return MATCH_DAY_MAP[raw] || null;
 }
 
-/** Distancia en días entre día de entreno y día de partido (negativo = pre-partido) */
+/** Distancia en días entre día de entreno y día de partido */
 export function getMatchDayDistance(trainingDay, matchDay) {
   if (!matchDay || !trainingDay) return null;
   const ti = DAY_ORDER.indexOf(trainingDay);
@@ -149,7 +84,6 @@ export function getMatchDayDistance(trainingDay, matchDay) {
   return dist;
 }
 
-/** Intensidades permitidas según distancia al partido (PDF §3.2) */
 export function getAllowedIntensities(distance) {
   if (distance === null) return ["alta", "media", "baja"];
   if (distance === -1 || distance === 1) return ["baja"];
@@ -161,126 +95,134 @@ export function sessionIntensity(sessionType) {
   return SESSION_INTENSITY[sessionType] || "media";
 }
 
-export function adaptSessionType(sessionType, allowedIntensities) {
-  const required = sessionIntensity(sessionType);
-  if (allowedIntensities.includes(required)) return sessionType;
-  const adaptations = SESSION_ADAPTATIONS[sessionType];
-  if (!adaptations) {
-    if (required === "alta" && allowedIntensities.includes("media")) return "Fuerza B";
-    if (allowedIntensities.includes("baja")) return "Prevención";
-    return sessionType;
-  }
-  if (required === "alta") {
-    if (allowedIntensities.includes("media")) return adaptations.media;
-    return adaptations.baja;
-  }
-  if (required === "media" && !allowedIntensities.includes("media")) {
-    return adaptations.baja || "Movilidad";
-  }
-  return sessionType;
-}
-
-const HIGH_INTENSITY = new Set(
-  Object.entries(SESSION_INTENSITY)
-    .filter(([, v]) => v === "alta")
-    .map(([k]) => k)
-);
-
 function isConsecutive(dayA, dayB) {
   const ia = DAY_ORDER.indexOf(dayA);
   const ib = DAY_ORDER.indexOf(dayB);
   return ia >= 0 && ib >= 0 && Math.abs(ia - ib) === 1;
 }
 
+/** Selección determinista de N días desde el pool disponible. */
+function selectDaysFromPool(pool, n) {
+  if (pool.length <= n) return pool.slice(0, n);
+  const picked = [];
+  for (let i = 0; i < n; i++) {
+    const idx = Math.floor((i * pool.length) / n);
+    const day = pool[idx];
+    if (!picked.includes(day)) picked.push(day);
+  }
+  for (const day of pool) {
+    if (picked.length >= n) break;
+    if (!picked.includes(day)) picked.push(day);
+  }
+  return picked.slice(0, n);
+}
+
+function permuteDays(days) {
+  if (days.length <= 1) return [days];
+  const [first, ...rest] = days;
+  const perms = permuteDays(rest);
+  const out = [];
+  for (let i = 0; i <= rest.length; i++) {
+    for (const p of perms) {
+      out.push([...rest.slice(0, i), first, ...rest.slice(i)]);
+    }
+  }
+  return out;
+}
+
+/** Puntuación para ordenar sesiones en días (competición + separación de cargas altas). */
+function scoreDayAssignment(pairs, matchDay) {
+  let score = 0;
+
+  for (const p of pairs) {
+    const dist = getMatchDayDistance(p.day, matchDay);
+    const intensity = sessionIntensity(p.sessionType);
+    const dayIdx = DAY_ORDER.indexOf(p.day);
+
+    if (matchDay) {
+      if (intensity === "alta" && dayIdx >= 1 && dayIdx <= 3) score += 10;
+      if (intensity === "alta" && dist === -1) score -= 8;
+      if (intensity === "alta" && dist === 1) score -= 6;
+      if (intensity === "alta" && dist === 2) score -= 5;
+      if (intensity === "baja" && (dist === -1 || dist === 1 || dist === 2)) score += 6;
+    }
+  }
+
+  const ordered = [...pairs].sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day));
+  for (let i = 1; i < ordered.length; i++) {
+    const prev = ordered[i - 1];
+    const cur = ordered[i];
+    if (isConsecutive(prev.day, cur.day)) {
+      if (sessionIntensity(prev.sessionType) === "alta" && sessionIntensity(cur.sessionType) === "alta") {
+        score -= 12;
+      }
+    } else if (
+      sessionIntensity(prev.sessionType) === "alta"
+      && sessionIntensity(cur.sessionType) === "alta"
+      && Math.abs(DAY_ORDER.indexOf(cur.day) - DAY_ORDER.indexOf(prev.day)) === 2
+    ) {
+      score += 4;
+    }
+  }
+
+  const dayKey = pairs.map((p) => p.day).join("|");
+  score -= dayKey.charCodeAt(0) * 0.001;
+  return score;
+}
+
 /**
- * Asigna tipos de sesión a días disponibles respetando:
- * - distancia al partido e intensidad permitida
- * - no dos sesiones ALTA consecutivas
- * - preferencias de día ideal (etiquetas)
+ * Asigna tipos de sesión a días disponibles.
+ * Prioridad (PDF §Regla de prioridad):
+ * 1. Disponibilidad del jugador
+ * 2. Matriz fija (tipos sin modificar)
+ * 3. Orden según día de competición
+ * 4. Separar cargas altas cuando sea posible
  */
 export function assignSessionsToDays(sessionTypes, availableDays, matchDay = null) {
   const pool = (availableDays?.length ? availableDays : DAY_ORDER.slice(0, 5))
     .filter((d) => DAY_ORDER.includes(d))
     .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
 
-  const assignments = [];
-  const usedDays = new Set();
+  const n = sessionTypes.length;
+  if (pool.length < n) return [];
 
-  for (const rawType of sessionTypes) {
-    let best = null;
-    let bestScore = -Infinity;
+  const selectedDays = selectDaysFromPool(pool, n);
+  const dayPermutations = permuteDays(selectedDays);
 
-    for (const day of pool) {
-      if (usedDays.has(day)) continue;
+  let bestPairs = null;
+  let bestScore = -Infinity;
 
-      const dist = getMatchDayDistance(day, matchDay);
-      const allowed = getAllowedIntensities(dist);
-      const adapted = adaptSessionType(rawType, allowed);
-      const intensity = sessionIntensity(adapted);
-
-      // Penalizar ALTA consecutiva
-      const prev = assignments[assignments.length - 1];
-      if (prev && isConsecutive(prev.day, day)) {
-        if (HIGH_INTENSITY.has(prev.sessionType) && HIGH_INTENSITY.has(adapted)) continue;
-      }
-
-      let score = 0;
-      if (allowed.includes(sessionIntensity(rawType))) score += 10;
-      if (intensity === "alta" && (dist === -3 || dist === 3 || dist <= -4 || dist >= 4)) score += 5;
-      if (intensity === "baja" && (dist === -1 || dist === 1)) score += 8;
-      if (intensity === "media" && (dist === -2 || dist === 2)) score += 6;
-      score -= DAY_ORDER.indexOf(day) * 0.1;
-
-      if (score > bestScore) {
-        bestScore = score;
-        best = { sessionType: adapted, day, distance: dist, allowedIntensities: allowed };
-      }
+  for (const dayOrder of dayPermutations) {
+    const pairs = sessionTypes.map((sessionType, i) => ({
+      sessionType,
+      day: dayOrder[i],
+    }));
+    const score = scoreDayAssignment(pairs, matchDay);
+    if (score > bestScore) {
+      bestScore = score;
+      bestPairs = pairs;
     }
-
-    if (!best) {
-      const day = pool.find((d) => !usedDays.has(d)) || pool[assignments.length % pool.length];
-      const dist = getMatchDayDistance(day, matchDay);
-      const allowed = getAllowedIntensities(dist);
-      best = {
-        sessionType: adaptSessionType(rawType, allowed),
-        day,
-        distance: dist,
-        allowedIntensities: allowed,
-      };
-    }
-
-    usedDays.add(best.day);
-    assignments.push(best);
   }
 
-  return assignments;
+  if (!bestPairs) {
+    bestPairs = sessionTypes.map((sessionType, i) => ({
+      sessionType,
+      day: selectedDays[i],
+    }));
+  }
+
+  return bestPairs.map((p) => ({
+    sessionType: p.sessionType,
+    day: p.day,
+    distance: getMatchDayDistance(p.day, matchDay),
+    allowedIntensities: getAllowedIntensities(getMatchDayDistance(p.day, matchDay)),
+  }));
 }
 
-export function mergeSessionTypes(primary, secondary, n) {
-  const out = [];
-  const seen = new Set();
-  const add = (list) => {
-    for (const s of list || []) {
-      if (out.length >= n) return;
-      if (!seen.has(s)) {
-        seen.add(s);
-        out.push(s);
-      }
-    }
-  };
-  add(primary);
-  add(secondary);
-  return out.slice(0, n);
-}
-
+/** Secuencia semanal determinista según matriz fija (PDF objetivos 2.0). */
 export function getSessionTypesForUser(objetivo, frecuencia, objetivoSecundario = null) {
-  let sessions = getWeeklySessionTypes(objetivo, frecuencia);
-  sessions = enforceMaxOneVelocity(sessions);
-  if (objetivoSecundario) {
-    sessions = applySecondaryObjective(sessions, objetivo, objetivoSecundario);
-    sessions = enforceMaxOneVelocity(sessions);
-  }
-  return sessions;
+  const result = resolveMatrixSessionTypes(objetivo, objetivoSecundario, frecuencia);
+  return result.sessionTypes || [];
 }
 
 /**
@@ -296,13 +238,18 @@ export function validatePlanCoherence(user) {
     return { ok: false, message: PLAN_COHERENCE_MESSAGE };
   }
 
-  const sessionTypes = getSessionTypesForUser(
+  const matrixResult = resolveMatrixSessionTypes(
     user?.objetivo,
-    user?.frecuencia,
     user?.objetivoSecundario,
+    user?.frecuencia,
   );
 
-  if (sessionTypes.length !== n) {
+  if (matrixResult.error) {
+    return { ok: false, message: matrixResult.error };
+  }
+
+  const sessionTypes = matrixResult.sessionTypes;
+  if (!sessionTypes?.length || sessionTypes.length !== n) {
     return { ok: false, message: PLAN_COHERENCE_MESSAGE };
   }
 
@@ -313,35 +260,27 @@ export function validatePlanCoherence(user) {
     return { ok: false, message: PLAN_COHERENCE_MESSAGE };
   }
 
-  let criticalDowngrades = 0;
-  for (let i = 0; i < sessionTypes.length; i++) {
-    const planned = sessionTypes[i];
-    const assigned = assignments[i];
-    if (!assigned?.sessionType) {
-      return { ok: false, message: PLAN_COHERENCE_MESSAGE };
-    }
-    const plannedIntensity = sessionIntensity(planned);
-    if (plannedIntensity === "alta" && sessionIntensity(assigned.sessionType) === "baja") {
-      criticalDowngrades += 1;
-    }
-  }
-
-  if (matchDay) {
-    const highSessions = sessionTypes.filter((s) => sessionIntensity(s) === "alta").length;
-    const highCapacityDays = availableDays.filter((d) =>
-      getAllowedIntensities(getMatchDayDistance(d, matchDay)).includes("alta"),
-    ).length;
-    if (highSessions > 0 && highCapacityDays === 0) {
-      return { ok: false, message: PLAN_COHERENCE_MESSAGE };
-    }
-    if (highSessions > highCapacityDays && criticalDowngrades >= Math.ceil(highSessions / 2)) {
-      return { ok: false, message: PLAN_COHERENCE_MESSAGE };
-    }
-  }
-
-  if (criticalDowngrades > Math.max(1, Math.floor(n / 2))) {
-    return { ok: false, message: PLAN_COHERENCE_MESSAGE };
-  }
-
   return { ok: true, sessionTypes, assignments };
+}
+
+/** @deprecated La matriz fija ya incluye el secundario; no sustituir sesiones sueltas. */
+export function applySecondaryObjective(sessions) {
+  return sessions;
+}
+
+/** @deprecated La matriz fija define las sesiones de velocidad. */
+export function enforceMaxOneVelocity(sessionTypes) {
+  return sessionTypes;
+}
+
+/** @deprecated Usar matriz fija */
+export function adaptSessionType(sessionType) {
+  return sessionType;
+}
+
+export const SESSION_ADAPTATIONS = {};
+
+export function mergeSessionTypes(primary, secondary, n) {
+  const result = resolveMatrixSessionTypes(primary, secondary, String(n));
+  return result.sessionTypes || [];
 }

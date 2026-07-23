@@ -166,16 +166,17 @@ ${plantillasText}
 CATÁLOGO DE EJERCICIOS:
 ${formatExerciseList(ejercicios)}
 
-PROCESO DE GENERACIÓN (prioridad: seguridad > coherencia de cargas > objetivo principal > objetivo secundario > variedad):
-1. Determinar las sesiones semanales según frecuencia y objetivo principal (nunca solo sesiones del objetivo)
-2. Si hay objetivo secundario, sustituir solo la última sesión complementaria cuando tenga sentido
-3. Nunca más de una sesión de Velocidad por semana; la segunda explosiva es Pliometría
-4. La fuerza debe estar presente salvo objetivo Movilidad o frecuencia muy baja
-5. Para cada día disponible del usuario, calcular distancia al partido y determinar intensidad permitida
-6. Colocar sesiones de mayor carga alejadas del partido; sesiones ligeras cerca si los días lo permiten
-7. No reorganizar días que el usuario no haya seleccionado
-8. Si la combinación no permite planificación coherente, devolver el mensaje de error estándar (no forzar plan incorrecto)
-9. Repetir estructura para S1–S4 con variación de ejercicios
+PROCESO DE GENERACIÓN (prioridad: seguridad > disponibilidad > matriz fija > competición > separación de cargas):
+1. Las sesiones semanales ya están fijadas por la matriz de objetivos (PDF 2.0): ${(sessionTypes || []).join(" → ") || "—"}
+2. Usar exactamente esas sesiones en ese orden; no sustituir, reordenar tipos ni añadir sesiones aleatorias
+3. Con frecuencia N, usar las primeras N sesiones de la secuencia fija de 5
+4. Con 1 día/semana no hay objetivo secundario; la matriz usa solo el objetivo principal
+5. El día de competición solo sirve para ordenar sesiones en los días disponibles, no para cambiar tipos
+6. Separar cargas altas cuando sea posible, sin bloquear la generación
+7. Para cada día disponible, calcular distancia al partido e intensidad permitida
+8. No reorganizar días que el usuario no haya seleccionado
+9. Selección de ejercicios determinista: misma entrada → mismos ejercicios
+10. Repetir estructura para S1–S4 con variación controlada de ejercicios
 
 FORMATO DE SALIDA:
 { "plan": { "semana_1": { "sesion_1": { "dia": "", "tipo": "", "contenido": {} }, ... }, "semana_2": {}, "semana_3": {}, "semana_4": {} } }`;

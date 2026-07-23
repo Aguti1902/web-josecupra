@@ -4,6 +4,7 @@
  * Legacy: tags + slots numéricos (hipertrofia/resistencia detallada)
  */
 import { SESSION_TEMPLATES, WEEKLY_SESSION_CONFIG, isV2Template } from "./sessionTemplatesV2";
+import { resolveMatrixSessionTypes } from "./objectiveSessionMatrix";
 
 export { isV2Template, WEEKLY_SESSION_CONFIG };
 
@@ -112,48 +113,10 @@ export const PLAYER_TEMPLATES = {
   },
 };
 
-/** Secuencia semanal según objetivo y frecuencia (PDF lógica selección sesiones) */
-export function parseWeeklyFrequency(frecuencia) {
-  return Math.min(5, Math.max(1, parseInt(String(frecuencia).replace(/\D/g, "")) || 3));
-}
-
+/** Secuencia semanal determinista (matriz objetivos 2.0, solo principal). */
 export function getWeeklySessionTypes(objetivo, frecuencia) {
-  const n = parseWeeklyFrequency(frecuencia);
-  const obj = (objetivo || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  const v2KeyMap = {
-    fuerza: "Fuerza",
-    velocidad: "Velocidad",
-    resistencia: "Resistencia",
-    hipertrofia: "Hipertrofia",
-    estetica: "Hipertrofia",
-    prevencion: "Prevención",
-    movilidad: "Movilidad",
-  };
-  const v2Key = v2KeyMap[obj];
-  if (v2Key && WEEKLY_SESSION_CONFIG[v2Key]?.[n]) {
-    return [...WEEKLY_SESSION_CONFIG[v2Key][n]];
-  }
-
-  if (obj === "resistencia") {
-    if (n === 1) return ["Resistencia aeróbica"];
-    if (n === 2) return ["Resistencia aeróbica", "Resistencia umbral"];
-    if (n === 3) return ["Resistencia aeróbica", "Resistencia umbral", "Fuerza A"];
-    if (n === 4) return ["Resistencia aeróbica", "Resistencia umbral", "Resistencia anaeróbica", "Fuerza A"];
-    return ["Resistencia aeróbica", "Resistencia umbral", "Resistencia anaeróbica", "Fuerza A", "Movilidad"];
-  }
-  if (obj === "hipertrofia" || obj === "estetica") {
-    if (n === 1) return ["Full Body"];
-    if (n === 2) return ["Hipertrofia Pierna", "Full Body"];
-    if (n === 3) return ["Hipertrofia Pierna", "Hipertrofia Push", "Hipertrofia Pull"];
-    if (n === 4) return ["Hipertrofia Pierna", "Hipertrofia Push", "Hipertrofia Pull", "Full Body"];
-    return ["Hipertrofia Pierna", "Hipertrofia Push", "Hipertrofia Pull", "Hipertrofia Anterior", "Hipertrofia Posterior"];
-  }
-  if (n === 1) return ["Fuerza A"];
-  if (n === 2) return ["Fuerza A", "Fuerza B"];
-  if (n === 3) return ["Fuerza A", "Fuerza B", "Fuerza Superior A"];
-  if (n === 4) return ["Fuerza A", "Fuerza B", "Fuerza Superior A", "Fuerza Superior B"];
-  return ["Fuerza A", "Fuerza B", "Fuerza Superior A", "Fuerza Superior B", "Pliometría"];
+  const result = resolveMatrixSessionTypes(objetivo, null, frecuencia);
+  return result.sessionTypes || [];
 }
 
 export function countBlockSlots(block) {

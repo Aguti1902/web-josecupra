@@ -15,6 +15,7 @@ import StripeTestBanner from "../../components/public/StripeTestBanner";
 const ONBOARDING_STORAGE_KEY = "depro_onboarding";
 
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
+import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 const SPORTS     = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem", "5 días / sem"];
 const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio", "Campo"];
@@ -559,10 +560,29 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
     if (cur.includes(obj)) {
       const next = cur.filter((x) => x !== obj);
       setForm({ ...form, objetivos: next, objetivo: next[0] || "", objetivoSecundario: next[1] || "" });
-    } else if (cur.length < 2) {
+    } else if (cur.length < 2 && freqN > 1) {
       const next = [...cur, obj];
       setForm({ ...form, objetivos: next, objetivo: next[0], objetivoSecundario: next[1] || "" });
     }
+  };
+
+  const handleFrequencyChange = (v) => {
+    const newFreqN = parseInt(String(v).replace(/\D/g, "")) || 3;
+    const cur = form.objetivos?.length
+      ? form.objetivos
+      : [form.objetivo, form.objetivoSecundario].filter(Boolean);
+    if (newFreqN === 1 && cur.length > 1) {
+      const next = [cur[0]];
+      setForm({
+        ...form,
+        frecuencia: v,
+        objetivos: next,
+        objetivo: next[0],
+        objetivoSecundario: "",
+      });
+      return;
+    }
+    setForm({ ...form, frecuencia: v });
   };
 
   return (
@@ -600,12 +620,17 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
             <Target size={12} className="text-depro-blue" /> Objetivos *
           </label>
           <p className="text-xs text-depro-gray mb-3">
-            El objetivo principal es obligatorio. Puedes añadir un segundo objetivo opcional; si no lo eliges, el plan se basará solo en el principal.
+            El objetivo principal es obligatorio. Puedes añadir un segundo objetivo opcional si entrenas al menos 2 días por semana.
           </p>
+          {freqN === 1 && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
+              {SECONDARY_BLOCKED_FREQ1_MESSAGE}
+            </p>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {OBJECTIVES.map((obj) => {
               const sel = objetivos.includes(obj);
-              const full = objetivos.length >= 2 && !sel;
+              const full = (objetivos.length >= 2 && !sel) || (freqN === 1 && objetivos.length >= 1 && !sel);
               return (
                 <button
                   key={obj} type="button"
@@ -641,7 +666,7 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           label="Días de entrenamiento por semana *"
           value={form.frecuencia}
           options={FREQUENCY}
-          onChange={(v) => setForm({ ...form, frecuencia: v })}
+          onChange={handleFrequencyChange}
         />
 
         {/* Día de competición */}
