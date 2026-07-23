@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
   let event;
   try {
-    const stripe = getStripe();
+    const stripe = await getStripe();
     const rawBody = await readRawBody(req);
     const signature = req.headers["stripe-signature"];
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const stripe = getStripe();
+    const stripe = await getStripe();
 
     switch (event.type) {
       case "checkout.session.completed": {

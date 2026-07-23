@@ -121,7 +121,7 @@ export default async function handler(req, res) {
   const tempPassword = generatePassword();
 
   try {
-    const stripe = getStripe();
+    const stripe = await getStripe();
     const lineItem = buildCheckoutLineItem(planId, finalAmount);
     if (!lineItem) {
       return res.status(400).json({ error: "Plan no válido" });

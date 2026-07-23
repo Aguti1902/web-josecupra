@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const stripe = getStripe();
+    const stripe = await getStripe();
     const { data: userData, error: userErr } = await supabaseAdmin.auth.admin.getUserById(userId);
     if (userErr || !userData?.user) return res.status(404).json({ error: "Usuario no encontrado" });
 

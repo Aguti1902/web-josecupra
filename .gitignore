@@ -16,6 +16,7 @@ dist-ssr
 
 # Generado en build con claves de Vercel
 public/runtime-config.json
+config/stripe.secrets.test.json
 
 # Editor directories and files
 .vscode/*

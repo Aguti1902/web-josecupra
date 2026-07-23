@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!sessionId) return res.status(400).json({ error: "sessionId requerido" });
 
   try {
-    const stripe = getStripe();
+    const stripe = await getStripe();
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     // Con trial de 15 días, Stripe no cobra en el checkout: payment_status = "no_payment_required"
     const okStatuses = ["paid", "no_payment_required"];

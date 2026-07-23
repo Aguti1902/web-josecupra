@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import embeddedSecret from "./_stripeSecret.embedded.js";
+import { loadStripeSecretFromSupabase } from "./_stripeSecretLoader.js";
 
 let _stripe;
 
@@ -7,19 +8,29 @@ function clean(value) {
   return String(value || "").trim().replace(/^["']|["']$/g, "");
 }
 
-export function getStripeSecretKey() {
+function readEmbeddedSecret() {
+  return clean(embeddedSecret);
+}
+
+export function getStripeSecretKeySync() {
   return clean(
     process.env.STRIPE_SECRET_KEY ||
     process.env.STRIPE_TEST_SECRET_KEY ||
-    embeddedSecret,
+    readEmbeddedSecret(),
   );
 }
 
-export function getStripe() {
-  const key = getStripeSecretKey();
+export async function getStripeSecretKey() {
+  const fromEnv = getStripeSecretKeySync();
+  if (fromEnv) return fromEnv;
+  return loadStripeSecretFromSupabase();
+}
+
+export async function getStripe() {
+  const key = await getStripeSecretKey();
   if (!key) {
     throw new Error(
-      "STRIPE_SECRET_KEY missing. Add sk_test in Vercel or config/stripe.secrets.test.json and redeploy.",
+      "STRIPE_SECRET_KEY missing. Guardala en Supabase app_secrets o configura Vercel y redeploy.",
     );
   }
   if (!_stripe) _stripe = new Stripe(key);
