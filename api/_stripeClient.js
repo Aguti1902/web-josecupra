@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import embeddedSecret from "./_stripeSecret.embedded.js";
 
 let _stripe;
 
@@ -7,14 +8,18 @@ function clean(value) {
 }
 
 export function getStripeSecretKey() {
-  return clean(process.env.STRIPE_SECRET_KEY || process.env.STRIPE_TEST_SECRET_KEY);
+  return clean(
+    process.env.STRIPE_SECRET_KEY ||
+    process.env.STRIPE_TEST_SECRET_KEY ||
+    embeddedSecret,
+  );
 }
 
 export function getStripe() {
   const key = getStripeSecretKey();
   if (!key) {
     throw new Error(
-      "STRIPE_SECRET_KEY no configurada en Vercel (sk_test_...). Añádela en Production y haz Redeploy.",
+      "STRIPE_SECRET_KEY missing. Add sk_test in Vercel or config/stripe.secrets.test.json and redeploy.",
     );
   }
   if (!_stripe) _stripe = new Stripe(key);
