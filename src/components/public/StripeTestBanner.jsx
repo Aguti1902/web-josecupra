@@ -1,8 +1,21 @@
+import { useEffect, useState } from "react";
 import { FlaskConical, CreditCard } from "lucide-react";
 import { isStripeTestMode } from "../../lib/stripePublishable";
 
 export default function StripeTestBanner() {
-  if (!isStripeTestMode()) return null;
+  const [show, setShow] = useState(isStripeTestMode());
+
+  useEffect(() => {
+    if (show) return;
+    fetch("/api/stripe-config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.testMode) setShow(true);
+      })
+      .catch(() => {});
+  }, [show]);
+
+  if (!show) return null;
 
   return (
     <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
