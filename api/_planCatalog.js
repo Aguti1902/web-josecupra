@@ -1,6 +1,8 @@
 /** Catálogo de precios Stripe compartido por create-checkout y update-subscription.
  * Debe mantenerse alineado con src/lib/checkoutPlans.js. */
 
+import stripePrices from "./stripe-prices.json" with { type: "json" };
+
 export const TRIAL_PERIOD_DAYS = 15;
 
 export const PRICES = {
@@ -13,3 +15,47 @@ export const PRICES = {
   "player-essential": { amount: 1999,  name: "DEPRO Jugador Esencial",     description: "Plan mensual IA · panel privado · PDF" },
   "player-pro":       { amount: 3999,  name: "DEPRO Jugador Pro",          description: "Plan IA adaptativo · tests · alertas de carga" },
 };
+
+export function getStripePriceId(planId) {
+  return stripePrices[planId] || null;
+}
+
+/** Line item para Checkout: usa Price ID fijo si existe, si no price_data dinámico. */
+export function buildCheckoutLineItem(planId, finalAmountCents) {
+  const priceId = getStripePriceId(planId);
+  if (priceId) {
+    return { price: priceId, quantity: 1 };
+  }
+  const price = PRICES[planId];
+  if (!price) return null;
+  return {
+    price_data: {
+      currency: "eur",
+      unit_amount: finalAmountCents,
+      recurring: { interval: "month" },
+      product_data: {
+        name: price.name,
+        description: price.description,
+      },
+    },
+    quantity: 1,
+  };
+}
+
+/** Item de suscripción para update: Price ID o price_data. */
+export function buildSubscriptionItemUpdate(planId, itemId) {
+  const priceId = getStripePriceId(planId);
+  const price = PRICES[planId];
+  if (priceId) {
+    return { id: itemId, price: priceId };
+  }
+  return {
+    id: itemId,
+    price_data: {
+      currency: "eur",
+      unit_amount: price.amount,
+      recurring: { interval: "month" },
+      product_data: { name: price.name, description: price.description },
+    },
+  };
+}

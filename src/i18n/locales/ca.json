@@ -220,7 +220,8 @@
     "subscription_cancel_confirm_yes": "Sí, cancel·lar subscripció",
     "subscription_cancel_success": "Subscripció cancel·lada. Tens accés fins el {{date}}.",
     "subscription_cancel_error": "No s'ha pogut cancel·lar. Torna-ho a provar.",
-    "subscription_stripe_note": "La gestió de pagaments amb Stripe s'activarà properament. Per ara la cancel·lació queda registrada al teu compte.",
+    "subscription_stripe_note": "Gestiona la targeta, factures i subscripció des del portal de Stripe.",
+    "subscription_manage_billing": "Gestionar pagament a Stripe",
     "subscription_no_plan": "No tens un pla actiu.",
     "subscription_change_btn": "Canviar de pla",
     "years": "anys",
@@ -398,7 +399,9 @@
     "lock_plan": "Requereix pla superior",
     "upgrades_title": "Millores disponibles",
     "upgrades_desc": "Desbloqueja més capacitats amb un pla superior.",
-    "get_plan": "Contractar pla"
+    "get_plan": "Contractar pla",
+    "manage_billing": "Gestionar pagament",
+    "portal_error": "No s'ha pogut obrir el portal de facturació."
   },
   "features": {
     "locked": "Secció bloquejada",

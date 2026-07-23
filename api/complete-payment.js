@@ -1,10 +1,5 @@
-import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { getStripe } from "./_stripeClient.js";
+import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -13,6 +8,7 @@ export default async function handler(req, res) {
   if (!sessionId) return res.status(400).json({ error: "sessionId requerido" });
 
   try {
+    const stripe = getStripe();
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     // Con trial de 15 días, Stripe no cobra en el checkout: payment_status = "no_payment_required"
     const okStatuses = ["paid", "no_payment_required"];
@@ -47,10 +43,8 @@ export default async function handler(req, res) {
     let userId = null;
     let created = false;
 
-    if (SERVICE_ROLE_KEY) {
-      const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
 
       const userMeta = {
         name,
@@ -75,6 +69,7 @@ export default async function handler(req, res) {
         stripeSubscriptionId,
         stripeCustomerId,
         trialEndsAt,
+        billingSource: "stripe",
       };
 
       const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
@@ -96,6 +91,8 @@ export default async function handler(req, res) {
         userId = data.user?.id;
         created = true;
       }
+    } catch (adminErr) {
+      console.warn("complete-payment supabase:", adminErr.message);
     }
 
     return res.status(200).json({

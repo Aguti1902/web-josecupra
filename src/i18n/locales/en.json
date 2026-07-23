@@ -220,7 +220,8 @@
     "subscription_cancel_confirm_yes": "Yes, cancel subscription",
     "subscription_cancel_success": "Subscription cancelled. You have access until {{date}}.",
     "subscription_cancel_error": "Could not cancel. Please try again.",
-    "subscription_stripe_note": "Stripe payment management will be enabled soon. For now, cancellation is saved to your account.",
+    "subscription_stripe_note": "Manage your card, invoices and subscription from the Stripe portal.",
+    "subscription_manage_billing": "Manage payment in Stripe",
     "subscription_no_plan": "You don't have an active plan.",
     "subscription_change_btn": "Change plan",
     "years": "years",
@@ -398,7 +399,9 @@
     "lock_plan": "Requires higher plan",
     "upgrades_title": "Available upgrades",
     "upgrades_desc": "Unlock more capabilities with a higher plan.",
-    "get_plan": "Get a plan"
+    "get_plan": "Get a plan",
+    "manage_billing": "Manage payment",
+    "portal_error": "Could not open the billing portal."
   },
   "features": {
     "locked": "Section locked",

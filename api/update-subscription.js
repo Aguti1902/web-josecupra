@@ -1,18 +1,9 @@
-import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
-import { PRICES } from "./_planCatalog.js";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { getStripe } from "./_stripeClient.js";
+import { getSupabaseAdmin } from "./_supabaseAdmin.js";
+import { PRICES, buildSubscriptionItemUpdate } from "./_planCatalog.js";
 
 /**
  * Cambia el plan de un usuario (upgrade/downgrade) desde su propio dashboard.
- * - Si el usuario tiene una suscripción Stripe activa (stripeSubscriptionId en su
- *   metadata), se actualiza el importe de esa suscripción con prorrateo automático.
- * - Si no la tiene (cuentas creadas por el admin sin checkout de Stripe todavía),
- *   el cambio se guarda directamente en la metadata de Supabase — modo "local".
  */
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -20,13 +11,16 @@ export default async function handler(req, res) {
   const { userId, newPlanId } = req.body || {};
   const newPrice = PRICES[newPlanId];
   if (!userId || !newPrice) return res.status(400).json({ error: "Plan o usuario no válido" });
-  if (!SERVICE_ROLE_KEY) return res.status(500).json({ error: "Falta configuración del servidor" });
 
-  const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = getSupabaseAdmin();
+  } catch {
+    return res.status(500).json({ error: "Falta configuración del servidor" });
+  }
 
   try {
+    const stripe = getStripe();
     const { data: userData, error: userErr } = await supabaseAdmin.auth.admin.getUserById(userId);
     if (userErr || !userData?.user) return res.status(404).json({ error: "Usuario no encontrado" });
 
@@ -41,18 +35,9 @@ export default async function handler(req, res) {
         const itemId = subscription.items?.data?.[0]?.id;
         if (itemId) {
           const updated = await stripe.subscriptions.update(subscriptionId, {
-            items: [
-              {
-                id: itemId,
-                price_data: {
-                  currency: "eur",
-                  unit_amount: newPrice.amount,
-                  recurring: { interval: "month" },
-                  product_data: { name: newPrice.name, description: newPrice.description },
-                },
-              },
-            ],
+            items: [buildSubscriptionItemUpdate(newPlanId, itemId)],
             proration_behavior: "create_prorations",
+            metadata: { plan: newPlanId },
           });
           status = updated.status;
           mode = "stripe";

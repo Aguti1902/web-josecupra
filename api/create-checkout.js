@@ -1,8 +1,6 @@
-import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-import { PRICES, TRIAL_PERIOD_DAYS } from "./_planCatalog.js";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem } from "./_planCatalog.js";
+import { getStripe } from "./_stripeClient.js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -57,26 +55,23 @@ export default async function handler(req, res) {
   const dispArr = formData?.disponibles || [];
 
   try {
+    const stripe = getStripe();
+    const lineItem = buildCheckoutLineItem(planId, finalAmount);
+    if (!lineItem) {
+      return res.status(400).json({ error: "Plan no válido" });
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "subscription",
       subscription_data: {
         trial_period_days: TRIAL_PERIOD_DAYS,
-      },
-      line_items: [
-        {
-          price_data: {
-            currency: "eur",
-            unit_amount: finalAmount,
-            recurring: { interval: "month" },
-            product_data: {
-              name: price.name,
-              description: price.description,
-            },
-          },
-          quantity: 1,
+        metadata: {
+          plan: planId,
+          audience,
         },
-      ],
+      },
+      line_items: [lineItem],
       customer_email: formData?.email || undefined,
       metadata: {
         audience,
@@ -99,6 +94,7 @@ export default async function handler(req, res) {
         clubCode:     clubCode,
         clubId:       clubId,
         tempPassword,
+        billingSource: "stripe",
       },
       success_url: `${origin}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${origin}/comprar?cancelled=1`,

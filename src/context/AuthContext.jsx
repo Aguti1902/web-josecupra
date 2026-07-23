@@ -178,6 +178,7 @@ function buildUser(authUser, profile) {
       trialEndsAt: meta.trialEndsAt ?? null,
       billingSource: meta.billingSource ?? null,
       stripeSubscriptionId: meta.stripeSubscriptionId ?? null,
+      stripeCustomerId: meta.stripeCustomerId ?? null,
     };
   }
 
@@ -221,6 +222,7 @@ function buildUser(authUser, profile) {
     trialEndsAt: meta.trialEndsAt ?? null,
     billingSource: meta.billingSource ?? null,
     stripeSubscriptionId: meta.stripeSubscriptionId ?? null,
+    stripeCustomerId: meta.stripeCustomerId ?? null,
   };
 }
 

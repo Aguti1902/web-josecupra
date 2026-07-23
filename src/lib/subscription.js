@@ -195,21 +195,21 @@ export async function cancelSubscription(user) {
     subscriptionCancelAt: cancelAt,
   };
 
-  // TODO (Stripe): descomentar cuando exista el endpoint
-  // try {
-  //   const res = await fetch("/api/cancel-subscription", {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify({ userId: user.id, email: user.email }),
-  //   });
-  //   const data = await res.json().catch(() => ({}));
-  //   if (res.ok && data.ok) {
-  //     payload.subscriptionCancelAt = data.cancelAt || cancelAt;
-  //     if (data.stripeSubscriptionId) payload.stripeSubscriptionId = data.stripeSubscriptionId;
-  //   } else if (data.error) {
-  //     return { ok: false, error: data.error };
-  //   }
-  // } catch { /* fallback local */ }
+  // Stripe: cancelar al final del periodo
+  try {
+    const res = await fetch("/api/cancel-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, email: user.email }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      payload.subscriptionCancelAt = data.cancelAt || cancelAt;
+      if (data.stripeSubscriptionId) payload.stripeSubscriptionId = data.stripeSubscriptionId;
+    } else if (data.error && user.stripeSubscriptionId) {
+      return { ok: false, error: data.error };
+    }
+  } catch { /* fallback local si no hay endpoint */ }
 
   try {
     const { error } = await supabase.auth.updateUser({ data: payload });
@@ -236,6 +236,26 @@ export function formatSubscriptionDate(iso, locale = "es-ES") {
     month: "long",
     year: "numeric",
   });
+}
+
+/** Abre el Customer Portal de Stripe (tarjeta, facturas, cancelación). */
+export async function openBillingPortal(user) {
+  if (!user?.id) return { ok: false, error: "Usuario no válido" };
+  try {
+    const res = await fetch("/api/create-billing-portal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, origin: window.location.origin }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.url) {
+      return { ok: false, error: data.error || "No se pudo abrir el portal de facturación" };
+    }
+    window.location.href = data.url;
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message || "Error de red" };
+  }
 }
 
 export { getPlanLimits, getNextPlan };

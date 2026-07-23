@@ -10,6 +10,7 @@ import {
   getSubscriptionFromUser,
   isSubscriptionActive,
   cancelSubscription,
+  openBillingPortal,
   getPlanLabel,
   getPlanPrice,
   formatSubscriptionDate,
@@ -28,6 +29,7 @@ export default function SubscriptionPage() {
   const [showChangePlan, setShowChangePlan] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [msg, setMsg] = useState(null);
 
   const audience = resolveUserAudience(user);
@@ -46,6 +48,16 @@ export default function SubscriptionPage() {
     hasFeatureAccess,
     resolveUserAudience,
   });
+
+  const handlePortal = async () => {
+    setPortalLoading(true);
+    setMsg(null);
+    const res = await openBillingPortal(user);
+    if (!res.ok) {
+      setPortalLoading(false);
+      setMsg({ type: "error", text: res.error || t("subscription.portal_error") });
+    }
+  };
 
   const handleCancel = async () => {
     setCancelLoading(true);
@@ -147,6 +159,17 @@ export default function SubscriptionPage() {
             )}
 
             <div className="flex flex-wrap gap-3">
+              {user?.stripeCustomerId && (
+                <button
+                  type="button"
+                  onClick={handlePortal}
+                  disabled={portalLoading}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-depro-border text-sm font-semibold text-depro-dark hover:border-depro-blue disabled:opacity-50"
+                >
+                  <CreditCard size={14} />
+                  {portalLoading ? "…" : t("subscription.manage_billing")}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowChangePlan(true)}
