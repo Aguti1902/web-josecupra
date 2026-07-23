@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { getAdherenceReminder, countCompletedSessions, loadProgressIds, weekKey, toggleSessionCompletion, isSessionCompleted } from "../../lib/sessionProgress";
+import { getAdherenceReminder, countCompletedSessions, weekKey, toggleSessionCompletion, isSessionCompleted } from "../../lib/sessionProgress";
 import { hasFeatureAccess, getPlanLabel, isInTrial } from "../../lib/subscription";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
@@ -947,6 +947,9 @@ function JugadorDashboard({ user, club }) {
       setPlanProgress(countCompletedSessions(updated));
     }
   };
+
+  const completedDays = planProgress.completed;
+  const displayTotal = progressTotal;
 
   const days7 = ["L", "M", "X", "J", "V", "S", "D"];
   const dayFullNames = DAY_ORDER;

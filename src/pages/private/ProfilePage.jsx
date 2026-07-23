@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera, CreditCard, Sparkles, Calendar, RefreshCw } from "lucide-react";
+import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera, CreditCard, Sparkles, Calendar, RefreshCw, Lock, Mail, Eye, EyeOff, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { WEEK_DAYS } from "../../lib/sessionBlocks";
 import { ensurePlayerPlan } from "../../lib/playerPlanEngine";
+import { openBillingPortal } from "../../lib/subscription";
 
 function lsGet(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -91,6 +92,83 @@ export default function ProfilePage() {
   const [trainingDays, setTrainingDays] = useState(() => user?.disponibles?.length ? user.disponibles : ["Lunes", "Miércoles", "Viernes"]);
   const [daysSaving, setDaysSaving] = useState(false);
   const [daysMsg, setDaysMsg] = useState("");
+
+  const [accountName, setAccountName] = useState(user?.name || "");
+  const [accountEmail, setAccountEmail] = useState(user?.email || "");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [accountSaving, setAccountSaving] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [accountMsg, setAccountMsg] = useState(null);
+
+  useEffect(() => {
+    setAccountName(user?.name || "");
+    setAccountEmail(user?.email || "");
+  }, [user?.name, user?.email]);
+
+  const showAccountMsg = (type, text) => {
+    setAccountMsg({ type, text });
+    setTimeout(() => setAccountMsg(null), 4500);
+  };
+
+  const handleSaveAccount = async () => {
+    if (!accountName.trim()) {
+      showAccountMsg("error", "El nombre no puede estar vacío.");
+      return;
+    }
+    setAccountSaving(true);
+    try {
+      const payload = { data: { name: accountName.trim() } };
+      if (accountEmail.trim() && accountEmail.trim() !== user?.email) {
+        payload.email = accountEmail.trim();
+      }
+      const { error } = await supabase.auth.updateUser(payload);
+      if (error) throw error;
+      await refreshUser();
+      showAccountMsg(
+        "ok",
+        accountEmail.trim() !== user?.email
+          ? "Datos guardados. Revisa tu correo para confirmar el nuevo email."
+          : "Datos actualizados correctamente.",
+      );
+    } catch (e) {
+      showAccountMsg("error", e.message || "No se pudieron guardar los datos.");
+    } finally {
+      setAccountSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      showAccountMsg("error", t("profile.passwords_no_match"));
+      return;
+    }
+    if (newPassword.length < 6) {
+      showAccountMsg("error", "La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    setAccountSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setNewPassword("");
+      setConfirmPassword("");
+      showAccountMsg("ok", "Contraseña actualizada correctamente.");
+    } catch (err) {
+      showAccountMsg("error", err.message || "No se pudo cambiar la contraseña.");
+    } finally {
+      setAccountSaving(false);
+    }
+  };
+
+  const handleBillingPortal = async () => {
+    setBillingLoading(true);
+    const res = await openBillingPortal(user);
+    setBillingLoading(false);
+    if (!res.ok) showAccountMsg("error", res.error || "No se pudo abrir el portal de facturación.");
+  };
 
   useEffect(() => {
     if (user?.disponibles?.length) setTrainingDays(user.disponibles);
@@ -351,6 +429,130 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {accountMsg && (
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border ${
+          accountMsg.type === "ok"
+            ? "bg-green-50 text-green-700 border-green-200"
+            : "bg-red-50 text-red-700 border-red-200"
+        }`}>
+          {accountMsg.type === "ok" ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+          {accountMsg.text}
+        </div>
+      )}
+
+      <div className="bg-white border border-depro-border rounded-2xl p-6">
+        <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
+          <User size={18} className="text-depro-blue" /> Cuenta y seguridad
+        </h2>
+        <p className="text-sm text-depro-gray mb-5">
+          Actualiza tu nombre, correo y contraseña de acceso.
+        </p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">{t("profile.name")}</label>
+            <input
+              type="text"
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-depro-border text-sm focus:outline-none focus:border-depro-blue"
+              placeholder="Tu nombre"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <Mail size={12} /> {t("profile.email")}
+            </label>
+            <input
+              type="email"
+              value={accountEmail}
+              onChange={(e) => setAccountEmail(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-depro-border text-sm focus:outline-none focus:border-depro-blue"
+              placeholder="tu@email.com"
+            />
+            <p className="text-xs text-depro-gray mt-1">Si cambias el email, recibirás un enlace de confirmación.</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSaveAccount}
+            disabled={accountSaving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
+          >
+            {accountSaving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+            Guardar datos
+          </button>
+        </div>
+
+        <form onSubmit={handleChangePassword} className="mt-6 pt-6 border-t border-depro-border space-y-4">
+          <h3 className="font-bold text-depro-dark text-sm flex items-center gap-2">
+            <Lock size={15} className="text-depro-blue" /> {t("profile.change_password")}
+          </h3>
+          <div>
+            <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">{t("profile.new_password")}</label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-4 py-2.5 pr-10 rounded-xl border border-depro-border text-sm focus:outline-none focus:border-depro-blue"
+                placeholder="Mínimo 6 caracteres"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-depro-gray hover:text-depro-dark"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5">{t("profile.confirm_password")}</label>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-depro-border text-sm focus:outline-none focus:border-depro-blue"
+              placeholder="Repite la contraseña"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={accountSaving || !newPassword}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-dark hover:border-depro-blue hover:text-depro-blue transition-colors disabled:opacity-50"
+          >
+            <Lock size={14} /> Actualizar contraseña
+          </button>
+        </form>
+      </div>
+
+      <div className="bg-white border border-depro-border rounded-2xl p-6">
+        <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
+          <CreditCard size={18} className="text-depro-blue" /> Facturación
+        </h2>
+        <p className="text-sm text-depro-gray mb-4">
+          Gestiona tu suscripción, método de pago y datos de facturación en Stripe.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {user?.stripeCustomerId && (
+            <button
+              type="button"
+              onClick={handleBillingPortal}
+              disabled={billingLoading}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
+            >
+              {billingLoading ? <RefreshCw size={14} className="animate-spin" /> : <CreditCard size={14} />}
+              Gestionar facturación
+            </button>
+          )}
+          <Link
+            to="/dashboard/subscription"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-dark hover:border-depro-blue hover:text-depro-blue transition-colors"
+          >
+            <Sparkles size={14} /> Ver plan y mejoras
+          </Link>
+        </div>
+      </div>
+
       {user?.role === "player" && (
         <div className="bg-white border border-depro-border rounded-2xl p-6">
           <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
@@ -393,22 +595,6 @@ export default function ProfilePage() {
           </button>
         </div>
       )}
-
-      <Link
-        to="/dashboard/subscription"
-        className="flex items-center justify-between gap-3 bg-white border border-depro-border rounded-2xl p-4 hover:border-depro-blue transition-colors group"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-depro-blue-light flex items-center justify-center">
-            <CreditCard size={18} className="text-depro-blue" />
-          </div>
-          <div>
-            <p className="font-bold text-depro-dark text-sm">{t("subscription.page_title")}</p>
-            <p className="text-xs text-depro-gray">{t("subscription.page_desc")}</p>
-          </div>
-        </div>
-        <Sparkles size={16} className="text-depro-border group-hover:text-depro-blue" />
-      </Link>
 
       {/* Club asociado */}
       <div className="bg-white border border-depro-border rounded-2xl p-6">
