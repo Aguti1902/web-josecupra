@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/write-public-config.mjs",
-    "build": "vite build",
+    "build": "node scripts/write-public-config.mjs && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "stripe:setup": "node scripts/setup-stripe.mjs --test",

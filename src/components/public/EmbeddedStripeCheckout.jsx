@@ -19,9 +19,7 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError, clas
     async function init() {
       const stripe = await getStripePromise();
       if (!stripe || cancelled || !containerRef.current) {
-        if (!stripe) onErrorRef.current?.(
-          "Stripe no está configurado. En Vercel añade VITE_STRIPE_PUBLISHABLE_KEY (pk_test_...) en Production y haz Redeploy.",
-        );
+        if (!stripe) onErrorRef.current?.("No se pudo inicializar Stripe. Recarga la página.");
         setLoading(false);
         return;
       }

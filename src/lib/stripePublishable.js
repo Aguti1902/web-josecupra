@@ -1,6 +1,10 @@
 import { loadStripe } from "@stripe/stripe-js";
+import stripePublic from "../../config/stripe.public.json";
 
-const buildTimeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const buildTimeKey =
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+  import.meta.env.STRIPE_PUBLISHABLE_KEY ||
+  stripePublic.testPublishableKey;
 
 let stripePromise;
 let resolvedKey = buildTimeKey || "";
@@ -29,13 +33,14 @@ async function resolvePublishableKey() {
     return resolvedKey;
   }
 
-  return "";
+  resolvedKey = stripePublic.testPublishableKey;
+  return resolvedKey;
 }
 
 export function isStripeTestMode() {
   if (testModeFlag != null) return testModeFlag;
 
-  const forced = (import.meta.env.VITE_STRIPE_MODE || "").toLowerCase();
+  const forced = (import.meta.env.VITE_STRIPE_MODE || import.meta.env.STRIPE_MODE || "").toLowerCase();
   if (forced === "test") return true;
   if (forced === "live") return false;
   return (resolvedKey || buildTimeKey || "").includes("_test_");
@@ -43,10 +48,7 @@ export function isStripeTestMode() {
 
 export async function getStripePromise() {
   const key = await resolvePublishableKey();
-  if (!key) {
-    console.warn("[DEPRO] Falta clave publicable Stripe — revisa Vercel env y redeploy");
-    return null;
-  }
+  if (!key) return null;
   if (!stripePromise) stripePromise = loadStripe(key);
   return stripePromise;
 }
