@@ -14,8 +14,7 @@ import StripeTestBanner from "../../components/public/StripeTestBanner";
 
 const ONBOARDING_STORAGE_KEY = "depro_onboarding";
 
-const POSITIONS  = ["Portero", "Defensa", "Lateral", "Pivote", "Centro", "Mediapunta", "Extremo", "Delantero"];
-const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
+import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 const SPORTS     = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem"];
 const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio", "Campo"];
@@ -27,7 +26,8 @@ const INJURY_SUBTYPES = {
   Espalda: ["Lumbar", "Dorsal", "Cervical", "Otra"],
   Pubalgia: ["Aductores", "Recto abdominal", "Mixta"],
 };
-const COMPETITION_DAYS = ["Sábado", "Domingo", "Entre semana", "No compito regularmente"];
+const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
+const COMPETITION_DAYS = COMPETITION_DAY_OPTIONS;
 const WEEK_DAYS  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
 const STEPS_PLAYER = ["Plan", "Tu cuenta", "Tus datos", "Tu entrenamiento", "Pago"];
@@ -416,7 +416,7 @@ function StepCuenta({ audience, planId, form, setForm, onNext, onBack, saveForOA
 function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
   const isPlayer = audience === "player";
   const email = loggedInEmail || form.email;
-  const valid = form.nombre && email && (isPlayer ? form.edad : form.club);
+  const valid = form.nombre && email;
 
   return (
     <div>
@@ -470,39 +470,18 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
 
         {isPlayer ? (
           <>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Edad *</label>
-                <div className="relative">
-                  <Calendar size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="number" min="10" max="60" value={form.edad}
-                    onChange={(e) => setForm({ ...form, edad: e.target.value })}
-                    className="admin-input w-full pl-10"
-                    placeholder="18"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Club / equipo actual</label>
-                <div className="relative">
-                  <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text" value={form.club}
-                    onChange={(e) => setForm({ ...form, club: e.target.value })}
-                    className="admin-input w-full pl-10"
-                    placeholder="Opcional"
-                  />
-                </div>
+            <div>
+              <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Ubicación</label>
+              <div className="relative">
+                <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text" value={form.club}
+                  onChange={(e) => setForm({ ...form, club: e.target.value })}
+                  className="admin-input w-full pl-10"
+                  placeholder="Ciudad, club o academia (opcional)"
+                />
               </div>
             </div>
-
-            <Toggle
-              label="Posición principal (opcional)"
-              value={form.posicion}
-              options={POSITIONS}
-              onChange={(v) => setForm({ ...form, posicion: v })}
-            />
 
             <div>
               <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
@@ -568,9 +547,23 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
 ───────────────────────────────────────────── */
 function StepFutbol({ form, setForm, onNext, onBack }) {
   const freqN = parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3;
-  const valid = form.objetivo && form.deporte && form.frecuencia && form.material && form.experiencia
+  const objetivos = form.objetivos?.length ? form.objetivos : [form.objetivo, form.objetivoSecundario].filter(Boolean);
+  const valid = form.edad && objetivos.length === 2 && form.deporte && form.frecuencia && form.material && form.experiencia
     && form.diaCompeticion
     && (form.disponibles?.length || 0) >= freqN;
+
+  const toggleObjetivo = (obj) => {
+    const cur = form.objetivos?.length
+      ? form.objetivos
+      : [form.objetivo, form.objetivoSecundario].filter(Boolean);
+    if (cur.includes(obj)) {
+      const next = cur.filter((x) => x !== obj);
+      setForm({ ...form, objetivos: next, objetivo: next[0] || "", objetivoSecundario: next[1] || "" });
+    } else if (cur.length < 2) {
+      const next = [...cur, obj];
+      setForm({ ...form, objetivos: next, objetivo: next[0], objetivoSecundario: next[1] || "" });
+    }
+  };
 
   return (
     <div>
@@ -579,28 +572,17 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
 
       <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card space-y-6">
 
-        {/* Objetivo principal */}
+        {/* Edad */}
         <div>
-          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-3 flex items-center gap-1.5">
-            <Target size={12} className="text-depro-blue" /> Objetivo principal *
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {OBJECTIVES.map((obj) => (
-              <button
-                key={obj} type="button"
-                onClick={() => setForm({ ...form, objetivo: obj })}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all text-left ${
-                  form.objetivo === obj
-                    ? "bg-depro-blue border-depro-blue text-white"
-                    : "bg-white border-depro-border text-depro-gray hover:border-depro-blue/40"
-                }`}
-              >
-                <span className="text-lg">
-                  {obj === "Fuerza" ? "💪" : obj === "Velocidad" ? "⚡" : obj === "Resistencia" ? "🫀" : obj === "Hipertrofia" ? "🏋️" : obj === "Prevención" ? "🛡️" : "🧘"}
-                </span>
-                {obj}
-              </button>
-            ))}
+          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Edad *</label>
+          <div className="relative max-w-xs">
+            <Calendar size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="number" min="10" max="60" value={form.edad}
+              onChange={(e) => setForm({ ...form, edad: e.target.value })}
+              className="admin-input w-full pl-10"
+              placeholder="18"
+            />
           </div>
         </div>
 
@@ -612,12 +594,87 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           onChange={(v) => setForm({ ...form, deporte: v })}
         />
 
+        {/* Objetivos (2) */}
+        <div>
+          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1 block flex items-center gap-1.5">
+            <Target size={12} className="text-depro-blue" /> Objetivo principal * <span className="font-normal normal-case">(elige 2)</span>
+          </label>
+          <p className="text-xs text-depro-gray mb-3">El plan combinará sesiones de ambos objetivos según tu frecuencia semanal.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {OBJECTIVES.map((obj) => {
+              const sel = objetivos.includes(obj);
+              const full = objetivos.length >= 2 && !sel;
+              return (
+                <button
+                  key={obj} type="button"
+                  onClick={() => toggleObjetivo(obj)}
+                  disabled={full}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all text-left ${
+                    sel
+                      ? "bg-depro-blue border-depro-blue text-white"
+                      : full
+                        ? "bg-gray-50 border-depro-border text-gray-300 cursor-not-allowed"
+                        : "bg-white border-depro-border text-depro-gray hover:border-depro-blue/40"
+                  }`}
+                >
+                  <span className="text-lg">
+                    {obj === "Fuerza" ? "💪" : obj === "Velocidad" ? "⚡" : obj === "Resistencia" ? "🫀" : obj === "Hipertrofia" ? "🏋️" : obj === "Prevención" ? "🛡️" : "🧘"}
+                  </span>
+                  {obj}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-depro-gray mt-2">{objetivos.length}/2 seleccionados</p>
+        </div>
+
         {/* Frecuencia semanal */}
         <Toggle
-          label="Días de entrenamiento disponibles por semana *"
+          label="Días de entrenamiento por semana *"
           value={form.frecuencia}
           options={FREQUENCY}
           onChange={(v) => setForm({ ...form, frecuencia: v })}
+        />
+
+        {/* Día de competición */}
+        <Toggle
+          label="Día habitual de competición *"
+          value={form.diaCompeticion}
+          options={COMPETITION_DAYS}
+          onChange={(v) => setForm({ ...form, diaCompeticion: v })}
+        />
+
+        {/* Días disponibles */}
+        <div>
+          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-3 block">
+            Días en los que puedes entrenar *
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {WEEK_DAYS.map((day) => {
+              const sel = (form.disponibles || []).includes(day);
+              return (
+                <button key={day} type="button"
+                  onClick={() => {
+                    const cur = form.disponibles || [];
+                    const next = sel ? cur.filter((d) => d !== day) : [...cur, day];
+                    setForm({ ...form, disponibles: next });
+                  }}
+                  className={`text-xs font-bold px-3 py-2 rounded-xl border ${sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray"}`}
+                >
+                  {day.slice(0, 3)}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-depro-gray mt-2">Selecciona al menos tantos días como tu frecuencia ({freqN}).</p>
+        </div>
+
+        {/* Material */}
+        <Toggle
+          label="Material disponible *"
+          value={form.material}
+          options={MATERIALS}
+          onChange={(v) => setForm({ ...form, material: v })}
         />
 
         {/* Experiencia entrenando */}
@@ -628,18 +685,10 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           onChange={(v) => setForm({ ...form, experiencia: v })}
         />
 
-        {/* Material */}
-        <Toggle
-          label="Material disponible *"
-          value={form.material}
-          options={MATERIALS}
-          onChange={(v) => setForm({ ...form, material: v })}
-        />
-
         {/* Lesiones */}
         <div>
           <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-3 flex items-center gap-1.5">
-            <AlertCircle size={12} className="text-amber-500" /> Lesiones o molestias
+            <AlertCircle size={12} className="text-amber-500" /> Lesiones o molestias actuales
           </label>
           <div className="flex flex-wrap gap-2">
             {INJURIES.map((inj) => {
@@ -648,7 +697,7 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
                 <button
                   key={inj} type="button"
                   onClick={() => {
-                    if (inj === "Ninguna") { setForm({ ...form, lesion: [] }); return; }
+                    if (inj === "Ninguna") { setForm({ ...form, lesion: [], lesionSubtipo: [] }); return; }
                     const current = (form.lesion || []).filter((x) => x !== "Ninguna");
                     const next = current.includes(inj) ? current.filter((x) => x !== inj) : [...current, inj];
                     setForm({ ...form, lesion: next });
@@ -688,40 +737,6 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
             </div>
           ))}
         </div>
-
-        {/* Día de competición */}
-        <Toggle
-          label="Día habitual de competición *"
-          value={form.diaCompeticion}
-          options={COMPETITION_DAYS}
-          onChange={(v) => setForm({ ...form, diaCompeticion: v })}
-        />
-
-        {/* Días disponibles */}
-        <div>
-          <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-3 block">
-            Días en los que puedes entrenar *
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {WEEK_DAYS.map((day) => {
-              const sel = (form.disponibles || []).includes(day);
-              const freqN = parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3;
-              return (
-                <button key={day} type="button"
-                  onClick={() => {
-                    const cur = form.disponibles || [];
-                    const next = sel ? cur.filter((d) => d !== day) : [...cur, day];
-                    setForm({ ...form, disponibles: next });
-                  }}
-                  className={`text-xs font-bold px-3 py-2 rounded-xl border ${sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray"}`}
-                >
-                  {day.slice(0, 3)}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-depro-gray mt-2">Selecciona al menos tantos días como tu frecuencia ({parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3}).</p>
-        </div>
       </div>
 
       <div className="mt-8 flex justify-between">
@@ -754,13 +769,15 @@ function StepPago({ form, plan, onBack, authUserId }) {
   const profileRows = [
     ["Nombre", form.nombre],
     ["Email", form.email],
-    plan.audience === "player" ? ["Objetivo", form.objetivo] : null,
+    plan.audience === "player" ? ["Edad", form.edad] : null,
+    plan.audience === "player" ? ["Ubicación", form.club] : null,
+    plan.audience === "player" ? ["Objetivos", (form.objetivos?.length ? form.objetivos : [form.objetivo, form.objetivoSecundario].filter(Boolean)).join(" + ")] : null,
     plan.audience === "player" ? ["Deporte", form.deporte] : null,
     plan.audience === "player" ? ["Frecuencia", form.frecuencia] : null,
-    plan.audience === "player" ? ["Experiencia", form.experiencia] : null,
-    plan.audience === "player" ? ["Material", form.material] : null,
-    plan.audience === "player" ? ["Días", (form.disponibles || []).join(", ")] : null,
     plan.audience === "player" ? ["Competición", form.diaCompeticion] : null,
+    plan.audience === "player" ? ["Días", (form.disponibles || []).join(", ")] : null,
+    plan.audience === "player" ? ["Material", form.material] : null,
+    plan.audience === "player" ? ["Experiencia", form.experiencia] : null,
     plan.audience === "player" ? ["Lesiones", (form.lesion?.length > 0 ? form.lesion.join(", ") : "Ninguna")] : null,
     plan.audience !== "player" ? ["Club", form.club] : null,
     plan.audience !== "player" ? ["Equipos", form.equipos] : null,
@@ -908,8 +925,10 @@ function StepDone({ plan, form }) {
             <span className="text-depro-dark font-semibold">{plan.name}</span>
           </div>
           <div className="flex items-center justify-between text-depro-gray">
-            <span>Posición</span>
-            <span className="text-depro-dark font-semibold">{form.posicion}</span>
+            <span>Objetivos</span>
+            <span className="text-depro-dark font-semibold">
+              {(form.objetivos?.length ? form.objetivos : [form.objetivo, form.objetivoSecundario].filter(Boolean)).join(" + ")}
+            </span>
           </div>
           <div className="flex items-center justify-between text-depro-gray">
             <span>Frecuencia</span>
@@ -959,16 +978,17 @@ export default function OnboardingPage() {
     edad: "",
     club: "",
     equipos: "",
-    posicion: "",
     clubCode: "",
+    objetivos: [],
     objetivo:  "",
+    objetivoSecundario: "",
     deporte:   "",
     frecuencia: "",
     material:  "",
     experiencia: "",
     lesion:    [],
     lesionSubtipo: [],
-    diaCompeticion: "Sábado",
+    diaCompeticion: "Fin de semana",
     disponibles: ["Lunes", "Miércoles", "Viernes"],
   });
 

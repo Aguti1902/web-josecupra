@@ -129,10 +129,43 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], u
     candidates = candidates.filter((ex) => !usedPools.includes(ex.pool));
   }
 
+  // Fallback: relajar material (priorizar sin_material del mismo pool)
+  if (candidates.length === 0 && slot.pool) {
+    const poolCandidates = getExercisesByPool(slot.pool).filter((ex) => !usedExerciseIds.includes(ex.id));
+    const sinMat = poolCandidates.filter((ex) => {
+      const m = POOLS[ex.pool]?.material;
+      return !m || m === "sin_material";
+    });
+    candidates = filterExercisesForUser(sinMat, { ...userProfile, material: ["sin_material"] });
+  }
+
+  // Fallback: mismo patrón/familia con material relajado
+  if (candidates.length === 0 && slot.poolPattern) {
+    candidates = getExercisesByPattern(slot.poolPattern);
+    candidates = filterExercisesForUser(candidates, { ...userProfile, material: ["sin_material"] });
+    candidates = candidates.filter((ex) => !usedExerciseIds.includes(ex.id));
+  }
+
+  if (candidates.length === 0 && slot.poolFamily) {
+    candidates = getExercisesByPoolFamily(slot.poolFamily);
+    candidates = filterExercisesForUser(candidates, { ...userProfile, material: ["sin_material"] });
+    candidates = candidates.filter((ex) => !usedExerciseIds.includes(ex.id));
+  }
+
   if (candidates.length === 0 && slot.fallback) {
     candidates = getExercisesByPool(slot.fallback);
     candidates = filterExercisesForUser(candidates, userProfile);
     candidates = candidates.filter((ex) => !usedExerciseIds.includes(ex.id));
+  }
+
+  // Último recurso: pool sin filtro de lesión (evita sesión vacía)
+  if (candidates.length === 0 && (slot.pool || slot.poolPattern || slot.poolFamily)) {
+    let raw = [];
+    if (slot.pool) raw = getExercisesByPool(slot.pool);
+    else if (slot.poolPattern) raw = getExercisesByPattern(slot.poolPattern);
+    else if (slot.poolFamily) raw = getExercisesByPoolFamily(slot.poolFamily);
+    candidates = filterExercisesForUser(raw, { ...userProfile, lesiones: [] })
+      .filter((ex) => !usedExerciseIds.includes(ex.id));
   }
 
   if (candidates.length === 0) return null;
@@ -168,7 +201,7 @@ export function fillBlockSlots(block, userProfile, sessionUsedIds = [], sessionU
       );
 
       if (exercise) {
-        const vol = getVolume(userProfile.experiencia, block.type);
+        const vol = slot.volume || getVolume(userProfile.experiencia, block.type);
         exercises.push({
           ...exercise,
           slotDescription: slot.description,

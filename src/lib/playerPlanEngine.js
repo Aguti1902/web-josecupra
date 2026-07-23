@@ -280,7 +280,7 @@ export function buildPlayerPlan(user, options = {}) {
   const expLevel = experienciaLevel(user?.experiencia);
   const matchDay = normalizeMatchDay(user?.diaCompeticion || user?.dia_competicion);
 
-  const sessionTypes = sessionTypesOverride || getSessionTypesForUser(objetivo, frecuencia);
+  const sessionTypes = sessionTypesOverride || getSessionTypesForUser(objetivo, frecuencia, user?.objetivoSecundario);
   const assignments = assignSessionsToDays(sessionTypes, availableDays, matchDay);
   const filterParams = { material, lesiones, edad, deporte, experiencia: expLevel };
   const usedIds = new Set();
@@ -413,7 +413,7 @@ export function ensurePlayerPlan(user) {
 
 export function buildPlanAIPayload(user) {
   const frecuencia = user?.frecuencia || "3";
-  const sessionTypes = getSessionTypesForUser(user?.objetivo, frecuencia);
+  const sessionTypes = getSessionTypesForUser(user?.objetivo, frecuencia, user?.objetivoSecundario);
   const material = normalizeMaterial(user?.material);
   const lesiones = normalizeLesions(user?.lesion, user?.lesionSubtipo);
   const expLevel = experienciaLevel(user?.experiencia);

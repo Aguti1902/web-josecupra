@@ -58,11 +58,15 @@ const MATCH_DAY_MAP = {
   viernes: "Viernes",
 };
 
+/** Opciones de día de competición (onboarding + motor) */
+export const COMPETITION_DAY_OPTIONS = ["Fin de semana", "Entre semana", "No compito"];
+
 export function normalizeMatchDay(diaCompeticion) {
   if (!diaCompeticion) return null;
   const raw = String(diaCompeticion).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if (raw.includes("no compito") || raw.includes("no compite")) return null;
-  if (raw.includes("entre semana")) return null; // requiere día concreto aparte
+  if (raw.includes("fin de semana") || raw.includes("sabado") || raw.includes("domingo")) return "Sábado";
+  if (raw.includes("entre semana")) return "Viernes";
   return MATCH_DAY_MAP[raw] || null;
 }
 
@@ -185,6 +189,27 @@ export function assignSessionsToDays(sessionTypes, availableDays, matchDay = nul
   return assignments;
 }
 
-export function getSessionTypesForUser(objetivo, frecuencia) {
-  return getWeeklySessionTypes(objetivo, frecuencia);
+export function mergeSessionTypes(primary, secondary, n) {
+  const out = [];
+  const seen = new Set();
+  const add = (list) => {
+    for (const s of list || []) {
+      if (out.length >= n) return;
+      if (!seen.has(s)) {
+        seen.add(s);
+        out.push(s);
+      }
+    }
+  };
+  add(primary);
+  add(secondary);
+  return out.slice(0, n);
+}
+
+export function getSessionTypesForUser(objetivo, frecuencia, objetivoSecundario = null) {
+  const primary = getWeeklySessionTypes(objetivo, frecuencia);
+  if (!objetivoSecundario || objetivoSecundario === objetivo) return primary;
+  const n = Math.min(4, Math.max(1, parseInt(String(frecuencia).replace(/\D/g, "")) || 3));
+  const secondary = getWeeklySessionTypes(objetivoSecundario, frecuencia);
+  return mergeSessionTypes(primary, secondary, n);
 }

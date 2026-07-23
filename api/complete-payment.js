@@ -53,13 +53,16 @@ export default async function handler(req, res) {
         role: meta.audience === "club" ? "club" : meta.audience === "coach" ? "coach" : "player",
         plan: meta.plan || "player-essential",
         objetivo: meta.objetivo || "",
+        objetivoSecundario: meta.objetivoSecundario || "",
+        objetivos: meta.objetivos
+          ? meta.objetivos.split("|")
+          : (meta.objetivoSecundario ? [meta.objetivo, meta.objetivoSecundario].filter(Boolean) : meta.objetivo ? [meta.objetivo] : []),
         deporte: meta.deporte || "",
         frecuencia: meta.frecuencia || "",
         material: meta.material || "",
         experiencia: meta.experiencia || "",
         diaCompeticion: meta.diaCompeticion || "",
         edad: meta.edad || "",
-        posicion: meta.posicion || "",
         lesion: meta.lesion ? meta.lesion.split("|") : [],
         lesionSubtipo: meta.lesionSubtipo ? meta.lesionSubtipo.split("|") : [],
         disponibles: meta.disponibles ? meta.disponibles.split("|") : [],

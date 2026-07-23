@@ -29,7 +29,7 @@ import { loadPlanBlocks, savePlanBlock, deletePlanBlock, togglePlanBlock, loadMe
 import { EXERCISES, TAGS } from "../../data/exercises";
 import { Search, List, BookOpen } from "lucide-react";
 import { buildPlayerPlan, buildFourWeekPlan, refreshExercise, normalizeLesions } from "../../lib/playerPlanEngine";
-import { DAY_ORDER } from "../../lib/planLoadRules";
+import { DAY_ORDER, COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import { getYouTubeId } from "../../lib/youtube";
 
 const Youtube = PlayCircle;
@@ -43,7 +43,7 @@ const CATEGORIES = [
 const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
 const MATERIALS = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio", "Campo"];
 const SPORTS = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
-const COMPETITION_DAYS = ["Sábado", "Domingo", "Entre semana", "No compito regularmente"];
+const COMPETITION_DAYS = COMPETITION_DAY_OPTIONS;
 const WEEK_DAYS = DAY_ORDER;
 const INJURIES = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda", "Pubalgia"];
 const INJURY_SUBTYPES = {
@@ -78,13 +78,15 @@ function IASimulator() {
   const [profile, setProfile] = useState({
     edad: "22",
     objetivo: "Fuerza",
+    objetivoSecundario: "Velocidad",
+    objetivos: ["Fuerza", "Velocidad"],
     deporte: "Fútbol",
     frecuencia: "3",
     material: "Sin material",
     experiencia: "6–12 meses",
     lesion: ["Ninguna"],
     lesionSubtipo: [],
-    diaCompeticion: "Sábado",
+    diaCompeticion: "Fin de semana",
     disponibles: ["Lunes", "Martes", "Jueves", "Viernes"],
   });
   const [simulated, setSimulated] = useState(null);
@@ -166,15 +168,25 @@ function IASimulator() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Objetivo principal</label>
+            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Objetivos principales (2)</label>
             <div className="flex flex-wrap gap-1.5">
-              {OBJECTIVES.map((o) => (
-                <button key={o} type="button" onClick={() => setProfile((p) => ({ ...p, objetivo: o }))}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${profile.objetivo === o ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray hover:border-depro-blue"}`}>
-                  {o}
-                </button>
-              ))}
+              {OBJECTIVES.map((o) => {
+                const sel = (profile.objetivos || []).includes(o);
+                const full = (profile.objetivos || []).length >= 2 && !sel;
+                return (
+                  <button key={o} type="button" disabled={full}
+                    onClick={() => setProfile((p) => {
+                      const cur = p.objetivos || [];
+                      const next = sel ? cur.filter((x) => x !== o) : cur.length < 2 ? [...cur, o] : cur;
+                      return { ...p, objetivos: next, objetivo: next[0] || "", objetivoSecundario: next[1] || "" };
+                    })}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${sel ? "bg-depro-blue border-depro-blue text-white" : full ? "border-depro-border text-gray-300 cursor-not-allowed" : "border-depro-border text-depro-gray hover:border-depro-blue"}`}>
+                    {o}
+                  </button>
+                );
+              })}
             </div>
+            <p className="text-[10px] text-depro-gray mt-1">{(profile.objetivos || []).length}/2</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

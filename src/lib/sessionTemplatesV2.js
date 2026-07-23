@@ -356,60 +356,41 @@ export const SESSION_TEMPLATES = {
         slots: [
           { poolFamily: "movilidad", qty: 1, description: "Movilidad dinámica" },
           { pool: "GLU-SIN", qty: 1, description: "Activación glúteo" },
-          { pool: "PLIO-BAJO", qty: 1, description: "Saltos de activación" }
-        ]
+        ],
       },
       {
         type: "principal",
-        label: "Bloque Principal",
-        duration: "25 min",
+        label: "Fuerza máxima",
+        duration: "15 min",
         slots: [
           {
-            pool: "VEL-ACEL",
+            poolPattern: "cadera_bilateral",
             qty: 1,
-            description: "Aceleraciones cortas",
-            priority: 1
+            description: "Ejercicio de fuerza máxima",
+            volume: { sets: "4", reps: "2-3", rest: "180\"" },
           },
-          {
-            pool: "VEL-SPRINT",
-            qty: 1,
-            description: "Sprints",
-            priority: 2
-          },
-          {
-            pool: "VEL-COD",
-            qty: 1,
-            description: "Cambios de dirección",
-            priority: 3
-          }
         ],
-        rules: {
-          distinctPools: true,
-          noRepeatSession: true
-        }
+        rules: { noRepeatSession: true },
       },
       {
         type: "complementario",
-        label: "Trabajo Reactivo",
-        duration: "10 min",
+        label: "Bloque de velocidad",
+        duration: "20 min",
         slots: [
-          {
-            pool: "VEL-REAC",
-            qty: 1,
-            optional: true,
-            description: "Reacción a estímulos"
-          }
-        ]
+          { pool: "VEL-ACEL", qty: 1, description: "Aceleración" },
+          { pool: "VEL-REAC", qty: 1, description: "Reacción" },
+        ],
+        rules: { distinctPools: true, noRepeatSession: true },
       },
       {
         type: "vuelta_calma",
         label: "Vuelta a la calma",
         duration: "5 min",
         slots: [
-          { poolFamily: "movilidad", qty: 1, description: "Estiramientos" }
-        ]
-      }
-    ]
+          { poolFamily: "movilidad", qty: 1, description: "Estiramientos" },
+        ],
+      },
+    ],
   },
   // ═══════════════════════════════════════════════════════════════
   // PREVENCIÓN

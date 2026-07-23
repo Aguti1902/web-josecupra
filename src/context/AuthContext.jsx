@@ -164,6 +164,8 @@ function buildUser(authUser, profile) {
       clubName: meta.clubName || null,
       plan:      profile.plan      ?? meta.plan      ?? cached?.plan ?? null,
       objetivo:  profile.objetivo  ?? meta.objetivo  ?? null,
+      objetivoSecundario: profile.objetivoSecundario ?? meta.objetivoSecundario ?? null,
+      objetivos: profile.objetivos ?? meta.objetivos ?? (meta.objetivoSecundario ? [meta.objetivo, meta.objetivoSecundario].filter(Boolean) : meta.objetivo ? [meta.objetivo] : []),
       deporte:   profile.deporte   ?? meta.deporte   ?? null,
       frecuencia: profile.frecuencia ?? meta.frecuencia ?? null,
       material:  profile.material  ?? meta.material  ?? null,
@@ -203,6 +205,8 @@ function buildUser(authUser, profile) {
     // Plan y datos del formulario de onboarding
     plan:      meta.plan      ?? cached?.plan ?? null,
     objetivo:  meta.objetivo  ?? null,
+    objetivoSecundario: meta.objetivoSecundario ?? null,
+    objetivos: meta.objetivos ?? (meta.objetivoSecundario ? [meta.objetivo, meta.objetivoSecundario].filter(Boolean) : meta.objetivo ? [meta.objetivo] : []),
     deporte:   meta.deporte   ?? null,
     frecuencia: meta.frecuencia ?? null,
     material:  meta.material  ?? null,
