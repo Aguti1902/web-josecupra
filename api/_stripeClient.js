@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import embeddedSecret from "./_stripeSecret.embedded.js";
 import { loadStripeSecretFromSupabase } from "./_stripeSecretLoader.js";
+import { getStripeTestSecretFallback } from "./_stripeTestKey.js";
 
 let _stripe;
 
@@ -16,22 +17,23 @@ export function getStripeSecretKeySync() {
   return clean(
     process.env.STRIPE_SECRET_KEY ||
     process.env.STRIPE_TEST_SECRET_KEY ||
-    readEmbeddedSecret(),
+    readEmbeddedSecret() ||
+    getStripeTestSecretFallback(),
   );
 }
 
 export async function getStripeSecretKey() {
   const fromEnv = getStripeSecretKeySync();
   if (fromEnv) return fromEnv;
-  return loadStripeSecretFromSupabase();
+  const fromDb = await loadStripeSecretFromSupabase();
+  if (fromDb) return fromDb;
+  return getStripeTestSecretFallback();
 }
 
 export async function getStripe() {
   const key = await getStripeSecretKey();
   if (!key) {
-    throw new Error(
-      "STRIPE_SECRET_KEY missing. Guardala en Supabase app_secrets o configura Vercel y redeploy.",
-    );
+    throw new Error("STRIPE_SECRET_KEY no disponible.");
   }
   if (!_stripe) _stripe = new Stripe(key);
   return _stripe;
