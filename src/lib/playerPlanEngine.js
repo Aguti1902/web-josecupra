@@ -15,6 +15,7 @@ import {
   sessionIntensity,
   validatePlanCoherence,
   PLAN_COHERENCE_MESSAGE,
+  resolveUserObjectives,
 } from "./planLoadRules";
 
 export { DAY_ORDER, DAY_SHORT, PLAN_COHERENCE_MESSAGE };
@@ -344,7 +345,7 @@ export function buildPlayerPlan(user, options = {}) {
   const lesiones = normalizeLesions(user?.lesion, user?.lesionSubtipo);
   const edad = parseInt(user?.edad) || 20;
   const deporte = user?.deporte || "";
-  const objetivo = user?.objetivo || "Fuerza";
+  const { principal, secondary } = resolveUserObjectives(user);
   const availableDays = user?.disponibles?.length ? user.disponibles : null;
   const expLevel = experienciaLevel(user?.experiencia);
   const matchDay = normalizeMatchDay(user?.diaCompeticion || user?.dia_competicion);
@@ -361,7 +362,8 @@ export function buildPlayerPlan(user, options = {}) {
     return emptyWeek;
   }
 
-  const sessionTypes = sessionTypesOverride || coherence.sessionTypes || getSessionTypesForUser(objetivo, frecuencia, user?.objetivoSecundario);
+  const sessionTypes = sessionTypesOverride || coherence.sessionTypes
+    || getSessionTypesForUser(principal, frecuencia, secondary);
   const assignments = coherence.assignments || assignSessionsToDays(sessionTypes, availableDays, matchDay);
   const filterParams = { material, lesiones, edad, deporte, experiencia: expLevel };
   const usedIds = new Set();
@@ -503,7 +505,8 @@ export function ensurePlayerPlan(user) {
 
 export function buildPlanAIPayload(user) {
   const frecuencia = user?.frecuencia || "3";
-  const sessionTypes = getSessionTypesForUser(user?.objetivo, frecuencia, user?.objetivoSecundario);
+  const { principal, secondary } = resolveUserObjectives(user);
+  const sessionTypes = getSessionTypesForUser(principal, frecuencia, secondary);
   const material = normalizeMaterial(user?.material);
   const lesiones = normalizeLesions(user?.lesion, user?.lesionSubtipo);
   const expLevel = experienciaLevel(user?.experiencia);

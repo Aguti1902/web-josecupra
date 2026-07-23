@@ -5,9 +5,11 @@ import {
   resolveMatrixSessionTypes,
   parseWeeklyFrequency,
   SECONDARY_BLOCKED_FREQ1_MESSAGE,
+  resolveUserObjectives,
+  MATRIX_UNDEFINED_PREFIX,
 } from "./objectiveSessionMatrix";
 
-export { parseWeeklyFrequency, SECONDARY_BLOCKED_FREQ1_MESSAGE };
+export { parseWeeklyFrequency, SECONDARY_BLOCKED_FREQ1_MESSAGE, MATRIX_UNDEFINED_PREFIX, resolveUserObjectives };
 
 /** Mensaje cuando la combinación objetivo + días + competición no permite planificar bien */
 export const PLAN_COHERENCE_MESSAGE = `No es posible generar una planificación óptima con los parámetros seleccionados.
@@ -222,6 +224,10 @@ export function assignSessionsToDays(sessionTypes, availableDays, matchDay = nul
 /** Secuencia semanal determinista según matriz fija (PDF objetivos 2.0). */
 export function getSessionTypesForUser(objetivo, frecuencia, objetivoSecundario = null) {
   const result = resolveMatrixSessionTypes(objetivo, objetivoSecundario, frecuencia);
+  if (result.error) {
+    console.error("[DEPRO matriz] getSessionTypesForUser:", result.error);
+    return [];
+  }
   return result.sessionTypes || [];
 }
 
@@ -238,9 +244,11 @@ export function validatePlanCoherence(user) {
     return { ok: false, message: PLAN_COHERENCE_MESSAGE };
   }
 
+  const { principal, secondary } = resolveUserObjectives(user);
+
   const matrixResult = resolveMatrixSessionTypes(
-    user?.objetivo,
-    user?.objetivoSecundario,
+    principal,
+    secondary,
     user?.frecuencia,
   );
 
