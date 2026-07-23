@@ -33,8 +33,8 @@ const STEPS_STAFF  = ["Plan", "Tus datos", "Pago"];
 ───────────────────────────────────────────── */
 function StepHeader({ steps, current }) {
   return (
-    <div className="mb-10">
-      <div className="flex items-center justify-between mb-3">
+    <div className="mb-10 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex items-center justify-between mb-3 min-w-[280px] sm:min-w-0">
         {steps.map((label, i) => {
           const stepNumber = i + 1;
           const done = stepNumber < current;

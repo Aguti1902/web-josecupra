@@ -75,7 +75,8 @@ export function PageCompareSection({ dark = false, label, title, rows }) {
     <section className={s.section}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <PageSectionHeader dark={dark} label={label} title={title} />
-        <div className={`rounded-2xl border overflow-hidden ${dark ? "border-white/10" : "border-gray-200"}`}>
+        {/* Desktop table */}
+        <div className={`hidden sm:block rounded-2xl border overflow-hidden ${dark ? "border-white/10" : "border-gray-200"}`}>
           {rows.map(({ label: l, before, after }, i) => (
             <div
               key={l}
@@ -84,6 +85,24 @@ export function PageCompareSection({ dark = false, label, title, rows }) {
               <span className={`font-bold ${s.cardTitle}`}>{l}</span>
               <span className={s.body}>{before}</span>
               <span className={`font-semibold ${dark ? "text-holded-green" : "text-emerald-600"}`}>{after}</span>
+            </div>
+          ))}
+        </div>
+        {/* Mobile cards */}
+        <div className="sm:hidden space-y-3">
+          {rows.map(({ label: l, before, after }) => (
+            <div key={l} className={`rounded-xl border p-4 ${dark ? "border-white/10 bg-holded-card/30" : "border-gray-200 bg-white"}`}>
+              <p className={`font-bold mb-3 ${s.cardTitle}`}>{l}</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className={`text-[10px] font-bold uppercase mb-1 ${s.body}`}>Antes</p>
+                  <p className={s.body}>{before}</p>
+                </div>
+                <div>
+                  <p className={`text-[10px] font-bold uppercase mb-1 ${dark ? "text-holded-green" : "text-emerald-600"}`}>Con DEPRO</p>
+                  <p className={`font-semibold ${dark ? "text-holded-green" : "text-emerald-600"}`}>{after}</p>
+                </div>
+              </div>
             </div>
           ))}
         </div>

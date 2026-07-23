@@ -120,7 +120,7 @@ function BottomStickyBar({ onClose }) {
         <Link to="/comprar" className="text-xs font-bold bg-white text-gray-900 px-4 py-2 rounded-full hover:bg-gray-100 whitespace-nowrap shrink-0">
           Prueba gratis
         </Link>
-        <button onClick={onClose} className="p-1.5 text-white/40 hover:text-white shrink-0"><X size={16} /></button>
+        <button onClick={onClose} className="p-2.5 text-white/40 hover:text-white shrink-0 touch-target flex items-center justify-center"><X size={16} /></button>
       </div>
     </div>
   );
@@ -147,11 +147,16 @@ function TopBar() {
 function HoldedNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
+  const [mobileFeaturesOpen, setMobileFeaturesOpen] = useState(false);
   const megaRef = useRef(null);
   const { pathname } = useLocation();
   const { t } = useTranslation();
 
   useEffect(() => setMobileOpen(false), [pathname]);
+  useEffect(() => {
+    document.body.classList.toggle("sidebar-open-mobile", mobileOpen);
+    return () => document.body.classList.remove("sidebar-open-mobile");
+  }, [mobileOpen]);
   useEffect(() => {
     const fn = (e) => { if (megaRef.current && !megaRef.current.contains(e.target)) setMegaOpen(false); };
     document.addEventListener("mousedown", fn);
@@ -229,12 +234,30 @@ function HoldedNavbar() {
       </div>
 
       {mobileOpen && (
-        <div className="lg:hidden bg-holded-dark border-t border-white/10 px-4 py-4 space-y-1">
+        <div className="lg:hidden bg-holded-dark border-t border-white/10 px-4 py-4 space-y-1 max-h-[calc(100dvh-4rem)] overflow-y-auto">
           {NAV_MAIN.filter((n) => !n.mega).map((item) => (
             <Link key={item.label} to={item.to} className="block text-white/80 font-medium py-3 px-3 rounded-xl hover:bg-white/5">{item.label}</Link>
           ))}
-          <Link to="/funcionalidades" className="block text-white/80 font-medium py-3 px-3 rounded-xl hover:bg-white/5">Funcionalidades</Link>
+          <button
+            type="button"
+            onClick={() => setMobileFeaturesOpen(!mobileFeaturesOpen)}
+            className="w-full flex items-center justify-between text-white/80 font-medium py-3 px-3 rounded-xl hover:bg-white/5"
+          >
+            Funcionalidades
+            <ChevronDown size={16} className={`transition-transform ${mobileFeaturesOpen ? "rotate-180" : ""}`} />
+          </button>
+          {mobileFeaturesOpen && (
+            <div className="pl-2 pb-2 space-y-0.5 border-l border-white/10 ml-3">
+              {[...MEGA_PRODUCTS, ...MEGA_OTHER].map(({ label, to }) => (
+                <Link key={label} to={to} className="block text-white/65 text-sm font-medium py-2.5 px-3 rounded-lg hover:bg-white/5">{label}</Link>
+              ))}
+              <Link to="/funcionalidades" className="block text-holded-blue-light text-sm font-bold py-2.5 px-3">Ver todas →</Link>
+            </div>
+          )}
           <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
+            <div className="flex justify-center py-2">
+              <LanguageSwitcher light compact />
+            </div>
             <Link to="/login" className="text-center py-2.5 text-white/70">Iniciar sesión</Link>
             <Link to="/comprar" className="text-center py-3 bg-white text-gray-900 font-bold rounded-full">Prueba gratis</Link>
           </div>
@@ -332,7 +355,7 @@ export default function HoldedShell({ children, showBottomBar = true }) {
   };
 
   return (
-    <div className="min-h-screen bg-holded-dark text-white">
+    <div className="min-h-screen bg-holded-dark text-white overflow-x-hidden">
       <TopBar />
       <HoldedNavbar />
       <main>{children}</main>
@@ -360,11 +383,11 @@ export function HoldedHero({ subtitle = "El software todo en uno para el deporte
           DEPRO es la plataforma en la nube con todo lo que necesitas para planificar, monitorizar y optimizar el rendimiento — entrenadores, clubs y jugadores — desde cualquier lugar.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
-          <Link to="/comprar" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-bold px-8 py-3.5 rounded-full hover:bg-gray-100 transition-colors shadow-[0_0_40px_rgba(255,255,255,0.1)]">
+          <Link to="/comprar" className="inline-flex items-center justify-center gap-2 bg-transparent text-white font-bold px-8 py-3.5 rounded-full border-2 border-white hover:bg-white/10 transition-colors">
             Prueba gratis 15 días
           </Link>
-          <Link to="/login" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-bold px-8 py-3.5 rounded-full hover:bg-gray-100 transition-colors">
-            <GoogleIcon /> Empezar gratis con Google
+          <Link to="/login" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-bold px-6 sm:px-8 py-3.5 rounded-full hover:bg-gray-100 transition-colors">
+            <GoogleIcon /> <span className="hidden sm:inline">Empezar gratis con </span>Google
           </Link>
         </div>
         <p className="text-xs text-holded-muted mb-2">Sin tarjeta de crédito · Cancela cuando quieras</p>
@@ -401,9 +424,9 @@ export function HoldedStatsBand() {
             </div>
           ))}
         </div>
-        <div className="flex flex-wrap justify-center gap-8 md:gap-14 opacity-35 mb-2">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 md:gap-14 opacity-35 mb-2 px-2">
           {["FC BARCELONA ACADEMY", "REAL SOCCER", "ACADEMIA PRO", "BASE SPORT", "ELITE FC"].map((logo) => (
-            <span key={logo} className="text-[10px] sm:text-xs font-black tracking-widest text-white whitespace-nowrap">{logo}</span>
+            <span key={logo} className="text-[9px] sm:text-xs font-black tracking-wider sm:tracking-widest text-white text-center">{logo}</span>
           ))}
         </div>
       </div>

@@ -221,13 +221,13 @@ export function PricingTeaserSection({ dark = true }) {
               </Link>
             </div>
           </div>
-          <div className="relative h-64 lg:h-72 flex items-center justify-center">
+          <div className="relative h-64 lg:h-72 flex items-center justify-center overflow-hidden">
             {PLAN_CARDS.map(({ name, color, price, featured }, i) => (
               <div
                 key={name}
-                className={`absolute w-48 h-28 rounded-2xl bg-gradient-to-br ${color} shadow-2xl border border-white/10 p-4 flex flex-col justify-between transition-transform group hover:scale-105`}
+                className={`absolute w-36 sm:w-48 h-24 sm:h-28 rounded-2xl bg-gradient-to-br ${color} shadow-2xl border border-white/10 p-3 sm:p-4 flex flex-col justify-between transition-transform group hover:scale-105`}
                 style={{
-                  transform: `rotate(${(i - 1.5) * 8}deg) translateX(${(i - 1.5) * 28}px) translateY(${Math.abs(i - 1.5) * 8}px)`,
+                  transform: `rotate(${(i - 1.5) * 5}deg) translateX(${(i - 1.5) * 16}px) translateY(${Math.abs(i - 1.5) * 4}px)`,
                   zIndex: featured ? 10 : i,
                 }}
               >
@@ -605,7 +605,7 @@ export function FAQSection({ dark = false }) {
                   </button>
                   <div className={`grid transition-all duration-300 ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                     <div className="overflow-hidden">
-                      <div className={`px-5 pb-5 pl-[4.5rem] text-sm leading-relaxed border-t pt-3 ${s.body} ${dark ? "border-white/8" : "border-gray-100"}`}>
+                      <div className={`px-5 pb-5 pl-5 sm:pl-[4.5rem] text-sm leading-relaxed border-t pt-3 ${s.body} ${dark ? "border-white/8" : "border-gray-100"}`}>
                         {a}
                       </div>
                     </div>

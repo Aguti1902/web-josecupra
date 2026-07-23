@@ -9,6 +9,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { getAdherenceReminder, countCompletedSessions, loadProgressIds, weekKey } from "../../lib/sessionProgress";
+import { hasFeatureAccess } from "../../lib/subscription";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 import { coachFeedback } from "../../data/mockData";
@@ -414,8 +415,48 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
       {teams.length > 0 && (
         <div>
           <SectionHeading title="Estadísticas por equipo" safeAccent={sa} />
-          <div className="bg-white border rounded-2xl overflow-hidden" style={{ borderColor: sa + "25" }}>
-            {/* Header */}
+          {/* Mobile: cards */}
+          <div className="md:hidden space-y-3">
+            {teams.map((team) => {
+              const teamPlans = (club?.plans || []).filter((mc) => !mc.teamId || mc.teamId === team.id);
+              const teamSessions = teamPlans.reduce((s, mc) => s + (mc.sessions?.length || 0), 0);
+              return (
+                <button
+                  key={team.id}
+                  type="button"
+                  onClick={() => onViewTeam(team)}
+                  className="w-full text-left bg-white border rounded-2xl p-4 hover:bg-depro-gray-light transition-colors"
+                  style={{ borderColor: sa + "25" }}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-black shrink-0" style={{ backgroundColor: sa, color: contrastText(sa) }}>
+                      {(team.name || "?")[0].toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-depro-dark truncate">{team.name}</div>
+                      <div className="text-xs text-depro-gray">{team.category}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="rounded-xl bg-depro-gray-light/80 py-2">
+                      <p className="font-black text-depro-dark">{playerCount(team.id)}</p>
+                      <p className="text-depro-gray">Jugadores</p>
+                    </div>
+                    <div className="rounded-xl bg-depro-gray-light/80 py-2">
+                      <p className="font-black text-depro-dark">{teamPlans.length}</p>
+                      <p className="text-depro-gray">Microciclos</p>
+                    </div>
+                    <div className="rounded-xl bg-depro-gray-light/80 py-2">
+                      <p className="font-black text-depro-dark">{teamSessions}</p>
+                      <p className="text-depro-gray">Sesiones</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {/* Desktop: table */}
+          <div className="hidden md:block bg-white border rounded-2xl overflow-hidden" style={{ borderColor: sa + "25" }}>
             <div
               className="grid grid-cols-4 gap-2 px-5 py-3 text-xs font-bold uppercase tracking-wider"
               style={{ backgroundColor: sa + "10", color: sa }}
@@ -862,7 +903,7 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
 function JugadorDashboard({ user, club }) {
   const accent    = club?.primaryColor || "#0A36F7";
   const safeAccent = visibleOnWhite(accent, "#0A36F7");
-  const isPremium = user?.plan === "Premium" || user?.plan === "Pro";
+  const isPremium = hasFeatureAccess(user, "coach_contact");
   const lastFeedback = coachFeedback[0];
 
   const planKey = `depro_plan_${user?.id}`;

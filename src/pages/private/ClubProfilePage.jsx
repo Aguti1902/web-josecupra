@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   User, Camera, Lock, Mail, CheckCircle, AlertCircle,
   Eye, EyeOff, Save, Shield, Crown, UserCheck, Dumbbell,
-  Sparkles, SlidersHorizontal,
+  Sparkles, SlidersHorizontal, CreditCard,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -260,6 +261,21 @@ export default function ClubProfilePage() {
 
       {/* Plan y facturación */}
       <PlanUsageCard club={user?.club} user={user} audience={user?.club?.isSoloCoach ? "coach" : "club"} />
+      <Link
+        to="/dashboard/subscription"
+        className="flex items-center justify-between gap-3 bg-white border border-depro-border rounded-2xl p-4 hover:border-depro-blue transition-colors group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-depro-blue-light flex items-center justify-center">
+            <CreditCard size={18} className="text-depro-blue" />
+          </div>
+          <div>
+            <p className="font-bold text-depro-dark text-sm">Suscripción y mejoras</p>
+            <p className="text-xs text-depro-gray">Gestiona tu plan, trial y desbloqueos</p>
+          </div>
+        </div>
+        <Sparkles size={16} className="text-depro-border group-hover:text-depro-blue" />
+      </Link>
 
       {/* Editar nombre */}
       <div className="bg-white border border-depro-border rounded-2xl p-6">

@@ -114,6 +114,11 @@ function AdminLayoutInner({ children }) {
   const [profilePhoto, setProfilePhoto] = useState(() => localStorage.getItem("depro_admin_photo"));
 
   useEffect(() => {
+    document.body.classList.toggle("sidebar-open-mobile", sidebarOpen);
+    return () => document.body.classList.remove("sidebar-open-mobile");
+  }, [sidebarOpen]);
+
+  useEffect(() => {
     const sync = () => setProfilePhoto(localStorage.getItem("depro_admin_photo"));
     window.addEventListener("storage", sync);
     window.addEventListener("depro_photo_updated", sync);

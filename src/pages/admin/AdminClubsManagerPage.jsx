@@ -514,7 +514,7 @@ export default function AdminClubsManagerPage() {
               key={club.id}
               className="bg-white border border-depro-border rounded-xl p-5 hover:shadow-card transition-shadow"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 {/* Logo */}
                 <div className="w-12 h-12 rounded-xl bg-depro-gray-light flex items-center justify-center font-bold text-depro-dark text-sm shrink-0 overflow-hidden border border-depro-border">
                   {club.logo
@@ -550,10 +550,10 @@ export default function AdminClubsManagerPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
                   <button
                     onClick={() => navigate(`/admin/clubs/${club.id}`)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors text-sm font-medium"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors text-sm font-medium"
                   >
                     Ver detalle
                     <ChevronRight size={15} />

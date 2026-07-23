@@ -34,8 +34,8 @@ export function HoldedHeroMockup() {
           </div>
           <span className="text-xs font-mono text-gray-400 ml-2 flex-1 text-center">app.depro.es/dashboard/sesion</span>
         </div>
-        <div className="flex min-h-[400px] lg:min-h-[440px]">
-          <div className="w-16 lg:w-[4.5rem] bg-[#0a0e17] py-6 flex flex-col items-center gap-5 shrink-0">
+        <div className="flex min-h-[320px] sm:min-h-[400px] lg:min-h-[440px]">
+          <div className="hidden sm:flex w-16 lg:w-[4.5rem] bg-[#0a0e17] py-6 flex-col items-center gap-5 shrink-0">
             {SIDEBAR_NAV.map(({ icon: Icon, active }, i) => (
               <div
                 key={i}
@@ -265,8 +265,8 @@ export function HoldedIntegrationsMockup() {
 /** Mockup sesiones flotantes */
 export function HoldedFloatingCardsMockup() {
   return (
-    <div className="relative w-full max-w-lg h-80 mx-auto">
-      <div className="absolute top-6 left-0 right-10 bg-white rounded-xl shadow-lg p-5 border border-gray-100 transform -rotate-2">
+    <div className="relative w-full max-w-lg min-h-[420px] sm:h-80 mx-auto overflow-hidden px-2">
+      <div className="relative sm:absolute sm:top-6 sm:left-0 sm:right-10 bg-white rounded-xl shadow-lg p-5 border border-gray-100 sm:transform sm:-rotate-2 mb-4 sm:mb-0">
         <div className="flex items-center gap-2 mb-2">
           <Calendar size={14} className="text-holded-blue" />
           <p className="text-[10px] text-gray-400 font-bold uppercase">Sesión S-24011</p>
@@ -274,7 +274,7 @@ export function HoldedFloatingCardsMockup() {
         <p className="text-xl font-black text-depro-blue">Fuerza-Velocidad</p>
         <p className="text-xs text-gray-500 mt-1">Cadete A · 52 min</p>
       </div>
-      <div className="absolute top-24 right-0 w-48 bg-white rounded-xl shadow-xl p-5 border border-gray-100 transform rotate-3 z-10">
+      <div className="relative sm:absolute sm:top-24 sm:right-0 w-full sm:w-48 bg-white rounded-xl shadow-xl p-5 border border-gray-100 sm:transform sm:rotate-3 z-10 mb-4 sm:mb-0">
         <div className="flex items-center gap-2 mb-2">
           <Activity size={14} className="text-emerald-500" />
           <p className="text-[10px] text-gray-400 font-bold uppercase">Sesión S-24012</p>
@@ -282,8 +282,8 @@ export function HoldedFloatingCardsMockup() {
         <p className="text-xl font-black text-depro-blue">Descarga activa</p>
         <p className="text-xs text-gray-500 mt-1">Juvenil · 45 min</p>
       </div>
-      <div className="absolute bottom-0 left-2 right-2 bg-[#f8fafc] rounded-xl border border-gray-200 p-4 shadow-md">
-        <div className="grid grid-cols-4 gap-2 text-[9px] font-bold text-gray-400 uppercase mb-2">
+      <div className="relative sm:absolute sm:bottom-0 sm:left-2 sm:right-2 bg-[#f8fafc] rounded-xl border border-gray-200 p-4 shadow-md overflow-x-auto">
+        <div className="grid grid-cols-4 gap-2 text-[9px] font-bold text-gray-400 uppercase mb-2 min-w-[280px]">
           <span className="flex items-center gap-1"><Dumbbell size={10} /> Ejercicio</span>
           <span>Series</span><span>Carga</span><span>Total</span>
         </div>

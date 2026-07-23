@@ -248,10 +248,10 @@ export default function PricingPage() {
       </section>
       <section className="py-16 bg-white">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="flex justify-center mb-10">
-            <div className="inline-flex p-1 rounded-full bg-gray-100 border border-gray-200">
+          <div className="flex justify-center mb-10 -mx-4 px-4 overflow-x-auto">
+            <div className="inline-flex p-1 rounded-full bg-gray-100 border border-gray-200 min-w-0 shrink-0">
               {tabs.map(({ id, icon: Icon, label }) => (
-                <button key={id} type="button" onClick={() => setAudience(id)} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all ${audience === id ? "bg-holded-blue text-white shadow" : "text-gray-500 hover:text-gray-800"}`}>
+                <button key={id} type="button" onClick={() => setAudience(id)} className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${audience === id ? "bg-holded-blue text-white shadow" : "text-gray-500 hover:text-gray-800"}`}>
                   <Icon size={16} /> {label}
                 </button>
               ))}
@@ -325,7 +325,8 @@ export default function PricingPage() {
             <p className="text-xs font-bold uppercase tracking-widest text-holded-blue mb-3">Comparativa</p>
             <h2 className="text-2xl font-black text-gray-900">Límites entre planes</h2>
           </div>
-          <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white">
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white min-w-[480px] sm:min-w-0">
             <div
               className="grid gap-4 px-5 py-4 text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100"
               style={{ gridTemplateColumns: `1.4fr repeat(${list.length}, 1fr)` }}
@@ -347,6 +348,7 @@ export default function PricingPage() {
                 ))}
               </div>
             ))}
+          </div>
           </div>
         </div>
       </section>

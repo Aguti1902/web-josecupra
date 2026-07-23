@@ -6,9 +6,19 @@
 
 @layer base {
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply bg-white text-depro-dark font-sans antialiased;
+    overflow-x: hidden;
+    min-width: 0;
+  }
+  body.sidebar-open-mobile {
+    overflow: hidden;
+    touch-action: none;
   }
 }
 
@@ -439,6 +449,21 @@
 
 .dash-page {
   @apply p-4 md:p-6 lg:p-8 max-w-7xl mx-auto;
+}
+
+.dashboard-main-scroll {
+  padding-bottom: max(5rem, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .dashboard-main-scroll {
+    padding-bottom: 1.5rem;
+  }
+}
+
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .dash-card-premium {

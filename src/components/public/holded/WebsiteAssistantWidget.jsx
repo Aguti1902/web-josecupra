@@ -59,7 +59,7 @@ export default function WebsiteAssistantWidget() {
     <>
       {open && (
         <div
-          className="fixed bottom-24 right-4 md:right-6 z-[150] w-[min(400px,calc(100vw-32px))] flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-white animate-fade-in-up"
+          className="fixed bottom-24 sm:bottom-24 right-4 md:right-6 z-[150] w-[min(400px,calc(100vw-32px))] flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-white animate-fade-in-up max-h-[min(70dvh,520px)]"
           style={{ maxHeight: "min(560px, calc(100vh - 120px))" }}
         >
           <div className="flex items-center gap-3 px-4 py-3.5 bg-holded-dark text-white shrink-0 border-b border-white/10">
@@ -142,7 +142,7 @@ export default function WebsiteAssistantWidget() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label="Asistente DEPRO"
-        className={`fixed bottom-6 right-6 z-[140] flex items-center gap-2 pl-4 pr-5 py-3.5 rounded-2xl font-bold text-sm text-white shadow-[0_8px_30px_rgba(37,99,235,0.45)] transition-all duration-300 hover:scale-105 ${
+        className={`fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[140] flex items-center gap-2 pl-3 sm:pl-4 pr-4 sm:pr-5 py-3.5 rounded-2xl font-bold text-sm text-white shadow-[0_8px_30px_rgba(37,99,235,0.45)] transition-all duration-300 hover:scale-105 ${
           open ? "bg-holded-dark border border-white/15" : "bg-gradient-to-r from-holded-blue to-indigo-600"
         }`}
       >
