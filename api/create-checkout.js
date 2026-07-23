@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem } from "./_planCatalog.js";
-import { getStripe } from "./_stripeClient.js";
+import { getStripe, getSiteUrl } from "./_stripeClient.js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -26,12 +26,81 @@ async function validateClubCode(code) {
   return { valid: false };
 }
 
+function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPassword, finalAmount, lineItem }) {
+  const lesionArr = formData?.lesion || [];
+  const subArr = formData?.lesionSubtipo || [];
+  const dispArr = formData?.disponibles || [];
+
+  return {
+    payment_method_types: ["card"],
+    mode: "subscription",
+    subscription_data: {
+      trial_period_days: TRIAL_PERIOD_DAYS,
+      metadata: { plan: planId, audience },
+    },
+    line_items: [lineItem],
+    customer_email: formData?.email || undefined,
+    metadata: {
+      audience,
+      plan: planId,
+      nombre: formData?.nombre || "",
+      email: formData?.email || "",
+      edad: String(formData?.edad || ""),
+      posicion: formData?.posicion || "",
+      objetivo: formData?.objetivo || "",
+      deporte: formData?.deporte || "",
+      frecuencia: formData?.frecuencia || "",
+      material: formData?.material || "",
+      experiencia: formData?.experiencia || "",
+      diaCompeticion: formData?.diaCompeticion || "",
+      lesion: lesionArr.join("|"),
+      lesionSubtipo: subArr.join("|"),
+      disponibles: dispArr.join("|"),
+      clubName: formData?.club || "",
+      equipos: formData?.equipos || "",
+      clubCode,
+      clubId,
+      tempPassword,
+      billingSource: "stripe",
+    },
+    locale: "es",
+  };
+}
+
+async function createCheckoutSession(stripe, params, embedded, origin) {
+  const site = origin || getSiteUrl();
+
+  if (embedded) {
+    const embeddedParams = {
+      ...params,
+      ui_mode: "embedded",
+      return_url: `${site}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`,
+    };
+    try {
+      return await stripe.checkout.sessions.create(embeddedParams);
+    } catch (err) {
+      if (!String(err.message).includes("ui_mode")) throw err;
+      return stripe.checkout.sessions.create({
+        ...params,
+        ui_mode: "embedded_page",
+        return_url: `${site}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`,
+      });
+    }
+  }
+
+  return stripe.checkout.sessions.create({
+    ...params,
+    success_url: `${site}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${site}/comprar?cancelled=1`,
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { planId, formData, origin } = req.body;
+  const { planId, formData, origin, embedded = true } = req.body;
   const price = PRICES[planId];
 
   if (!price) {
@@ -50,9 +119,6 @@ export default async function handler(req, res) {
 
   const finalAmount = hasDiscount ? Math.round(price.amount * 0.85) : price.amount;
   const tempPassword = generatePassword();
-  const lesionArr = formData?.lesion || [];
-  const subArr = formData?.lesionSubtipo || [];
-  const dispArr = formData?.disponibles || [];
 
   try {
     const stripe = getStripe();
@@ -61,45 +127,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Plan no válido" });
     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      mode: "subscription",
-      subscription_data: {
-        trial_period_days: TRIAL_PERIOD_DAYS,
-        metadata: {
-          plan: planId,
-          audience,
-        },
-      },
-      line_items: [lineItem],
-      customer_email: formData?.email || undefined,
-      metadata: {
-        audience,
-        plan:         planId,
-        nombre:       formData?.nombre      || "",
-        email:        formData?.email       || "",
-        edad:         String(formData?.edad || ""),
-        posicion:     formData?.posicion    || "",
-        objetivo:     formData?.objetivo    || "",
-        deporte:      formData?.deporte     || "",
-        frecuencia:   formData?.frecuencia  || "",
-        material:     formData?.material    || "",
-        experiencia:  formData?.experiencia || "",
-        diaCompeticion: formData?.diaCompeticion || "",
-        lesion:       lesionArr.join("|"),
-        lesionSubtipo: subArr.join("|"),
-        disponibles:  dispArr.join("|"),
-        clubName:     formData?.club        || "",
-        equipos:      formData?.equipos     || "",
-        clubCode:     clubCode,
-        clubId:       clubId,
-        tempPassword,
-        billingSource: "stripe",
-      },
-      success_url: `${origin}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${origin}/comprar?cancelled=1`,
-      locale: "es",
-    });
+    const session = await createCheckoutSession(
+      stripe,
+      buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPassword, finalAmount, lineItem }),
+      embedded,
+      origin,
+    );
+
+    if (embedded) {
+      if (!session.client_secret) {
+        return res.status(500).json({ error: "Stripe no devolvió client_secret para checkout embebido" });
+      }
+      return res.status(200).json({ clientSecret: session.client_secret });
+    }
 
     return res.status(200).json({ url: session.url });
   } catch (err) {

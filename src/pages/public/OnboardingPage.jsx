@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, ArrowRight, CheckCircle, Zap, Trophy, User, Mail, Calendar,
@@ -8,6 +8,7 @@ import {
 import {
   AUDIENCES, PLANS, resolvePlanId, plansForAudience, formatPrice, applyClubDiscount,
 } from "../../lib/checkoutPlans";
+import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
 
 const POSITIONS  = ["Portero", "Defensa", "Lateral", "Pivote", "Centro", "Mediapunta", "Extremo", "Delantero"];
 const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
@@ -520,39 +521,17 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
    STEP 4 — Pago
 ───────────────────────────────────────────── */
 function StepPago({ form, plan, onBack }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+  const [error, setError] = useState("");
+  const formPayload = useMemo(() => ({ ...form, audience: plan.audience }), [form, plan.audience]);
 
   const hasDiscount = !!form.clubCode && plan.audience === "player";
   const discount    = hasDiscount ? Math.round(plan.price * 0.15 * 100) / 100 : 0;
   const total       = hasDiscount ? applyClubDiscount(plan.price) : plan.price;
 
-  const handleStripeCheckout = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/create-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId:   plan.id,
-          formData: { ...form, audience: plan.audience },
-          origin:   window.location.origin,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al crear sesión de pago");
-      window.location.href = data.url;
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
-  };
-
   return (
     <div>
-      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu pago</h2>
-      <p className="text-depro-gray text-sm mb-8">Serás redirigido a Stripe para completar el pago de forma segura.</p>
+      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu suscripción</h2>
+      <p className="text-depro-gray text-sm mb-8">Completa el pago de forma segura sin salir de DEPRO. 15 días de prueba incluidos.</p>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Info izquierda */}
@@ -640,17 +619,6 @@ function StepPago({ form, plan, onBack }) {
                   <AlertCircle size={13} className="shrink-0 mt-0.5" /> {error}
                 </div>
               )}
-              <button
-                onClick={handleStripeCheckout}
-                disabled={loading}
-                className="w-full bg-depro-blue hover:bg-depro-blue-dark text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <><div className="spinner border-white/20 border-t-white" /> Redirigiendo a Stripe...</>
-                ) : (
-                  <><Lock size={14} /> Pagar {formatPrice(total)} con Stripe</>
-                )}
-              </button>
               <div className="flex items-center justify-center gap-1.5 text-[10px] text-depro-gray">
                 <Shield size={11} className="text-depro-blue" /> Pago seguro · Cancela cuando quieras
               </div>
@@ -659,8 +627,16 @@ function StepPago({ form, plan, onBack }) {
         </div>
       </div>
 
+      <div className="mt-6">
+        <EmbeddedStripeCheckout
+          planId={plan.id}
+          formData={formPayload}
+          onError={setError}
+        />
+      </div>
+
       <div className="mt-8">
-        <button onClick={onBack} disabled={loading} className="btn-ghost flex items-center gap-2 disabled:opacity-50">
+        <button onClick={onBack} className="btn-ghost flex items-center gap-2">
           <ArrowLeft size={16} /> Volver
         </button>
       </div>
