@@ -448,7 +448,28 @@
 }
 
 .dash-page {
-  @apply p-4 md:p-8 max-w-5xl mx-auto;
+  @apply p-4 md:p-8 max-w-5xl mx-auto w-full;
+}
+
+@media (max-width: 639px) {
+  .dash-page h1 {
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+  }
+
+  .dash-card-premium {
+    @apply rounded-xl;
+  }
+
+  .dash-stat-premium {
+    @apply p-4 rounded-xl;
+  }
+}
+
+.dash-mobile-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .dashboard-main-scroll {

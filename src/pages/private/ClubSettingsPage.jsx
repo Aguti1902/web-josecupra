@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import {
   Building2, Users, UserPlus, Plus, Trash2, Pencil, Copy, CheckCircle,
-  ImagePlus, Palette, Save, X, RefreshCw, Loader2, KeyRound,
+  ImagePlus, Palette, Save, X, RefreshCw, Loader2, KeyRound, Gift,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import {
   loadClubDetail, saveClubDetail, createClubUser,
 } from "../../lib/adminStorage";
+import ClubReferralPanel from "../../components/private/ClubReferralPanel";
 
 const AGE_BLOCKS = [
   { label: "Bloque 1", ages: ["Sub-9", "Sub-10", "Sub-11", "Sub-12"] },
@@ -392,6 +393,7 @@ export default function ClubSettingsPage() {
     { id: "identidad", label: "Identidad", icon: Building2 },
     { id: "equipos", label: "Equipos", icon: Users },
     { id: "staff", label: "Staff", icon: UserPlus },
+    { id: "referidos", label: "Referidos", icon: Gift },
   ];
 
   return (
@@ -422,7 +424,7 @@ export default function ClubSettingsPage() {
         </div>
       )}
 
-      <div className="flex gap-2 border-b border-depro-border">
+      <div className="flex gap-2 border-b border-depro-border overflow-x-auto dash-mobile-scroll -mx-1 px-1">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -571,6 +573,13 @@ export default function ClubSettingsPage() {
             </div>
           )}
         </div>
+      )}
+
+      {tab === "referidos" && (
+        <ClubReferralPanel
+          clubId={clubId}
+          loginCode={loginCode}
+        />
       )}
 
       {showTeamModal && (

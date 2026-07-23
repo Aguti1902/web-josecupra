@@ -571,6 +571,9 @@ function PlayerWeeklyPlan({ accent }) {
   const completedMicro  = microSessions.filter((s) => s.status === "completed").length;
   const pctMicro        = microSessions.length ? Math.round((completedMicro / microSessions.length) * 100) : 0;
   const mesoWeeks       = view === "meso" ? buildMesoPlayerPlan(user) : [];
+  const completedMesoDays = new Set(
+    microSessions.filter((s) => s.status === "completed").map((s) => s.dayName),
+  );
 
   const activeSession = microSessions.find(
     (s) => s.id === activeSessionId || sessionMatchesTarget(s, activeSessionId),
@@ -615,18 +618,18 @@ function PlayerWeeklyPlan({ accent }) {
         </div>
       )}
       {/* Cabecera */}
-      <div className="flex items-start justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Plan de entrenamiento</h1>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-depro-dark mb-1">Plan de entrenamiento</h1>
           <p className="text-depro-gray text-sm">Objetivo: <strong>{user?.objetivo}</strong> · {user?.frecuencia} días/semana</p>
         </div>
-        <div className="flex-shrink-0 text-right">
+        <div className="flex-shrink-0 sm:text-right">
           {remainingSwaps != null ? (
-            <p className="text-[11px] text-depro-gray max-w-[140px]">
+            <p className="text-[11px] text-depro-gray">
               Cambios restantes: <strong>{remainingSwaps}</strong>/{MAX_PLAN_SWAPS}
             </p>
           ) : (
-            <p className="text-[11px] text-depro-gray max-w-[140px]">Cambios ilimitados</p>
+            <p className="text-[11px] text-depro-gray">Cambios ilimitados</p>
           )}
         </div>
       </div>
@@ -716,6 +719,8 @@ function PlayerWeeklyPlan({ accent }) {
             accentColor={accent}
             activeSessionId={activeSessionId}
             onSelectSession={openSession}
+            completedByDay={completedMesoDays}
+            completedWeek={1}
           />
         </div>
       )}

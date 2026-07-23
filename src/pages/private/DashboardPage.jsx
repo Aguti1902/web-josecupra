@@ -20,6 +20,7 @@ import {
 import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/sessionBlocks";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import CoachDashboard from "../../components/private/CoachDashboard";
+import ClubReferralPanel from "../../components/private/ClubReferralPanel";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -342,12 +343,18 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard label="Equipos" value={teams.length} sub="en el club" icon={Shield} accent={accent} secondary={secondColor} />
         <StatCardSecondary label="Jugadores" value={totalPlayers} sub="en total" icon={Users} accent={accent} secondary={secondColor} />
         <StatCard label="Microciclos" value={(club?.plans || []).length} sub="planificados" icon={ClipboardList} accent={accent} secondary={secondColor} />
         <StatCardSecondary label="Sesiones" value={totalSessions} sub="en planificación" icon={Calendar} accent={accent} secondary={secondColor} />
       </div>
+
+      <ClubReferralPanel
+        clubId={club?.id}
+        loginCode={club?.login_code || club?.loginCode}
+        compact
+      />
 
       {/* Equipos */}
       <div>
@@ -1036,25 +1043,25 @@ function JugadorDashboard({ user, club }) {
       </div>
 
       {isPremium && (
-        <div className="rounded-2xl bg-depro-blue p-5 flex items-center gap-4">
+        <div className="rounded-2xl bg-depro-blue p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0"><Phone size={20} className="text-white" /></div>
           <div className="flex-1">
             <div className="text-white font-bold text-sm">Contacto directo con tu preparador</div>
             <div className="text-blue-200 text-xs mt-0.5">Plan Premium · Acceso a contacto directo</div>
           </div>
-          <a href="tel:+34600000000" className="flex-shrink-0 bg-white text-depro-blue text-sm font-bold px-4 py-2 rounded-xl hover:bg-blue-50 transition-colors">Llamar</a>
+          <a href="tel:+34600000000" className="flex-shrink-0 bg-white text-depro-blue text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-blue-50 transition-colors w-full sm:w-auto text-center">Llamar</a>
         </div>
       )}
 
       {/* CTA si lleva días sin entrenar */}
       {completedDays === 0 && (
-        <div className="rounded-2xl border-2 border-dashed p-5 flex items-center gap-4" style={{ borderColor: safeAccent + "40", backgroundColor: safeAccent + "04" }}>
+        <div className="rounded-2xl border-2 border-dashed p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4" style={{ borderColor: safeAccent + "40", backgroundColor: safeAccent + "04" }}>
           <div className="text-3xl">💪</div>
           <div className="flex-1">
             <div className="font-bold text-depro-dark text-sm">¡Empieza la semana con fuerza!</div>
             <div className="text-xs text-depro-gray mt-0.5">Aún no has completado ninguna sesión esta semana. Tu plan te está esperando.</div>
           </div>
-          <Link to="/dashboard/plan" className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold" style={{ backgroundColor: safeAccent, color: contrastText(safeAccent) }}>
+          <Link to="/dashboard/plan" className="flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold w-full sm:w-auto text-center" style={{ backgroundColor: safeAccent, color: contrastText(safeAccent) }}>
             Ir al plan
           </Link>
         </div>
@@ -1081,7 +1088,7 @@ function JugadorDashboard({ user, club }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard label="Sesiones esta semana" value={`${completedDays}/${displayTotal}`} sub={`${progressPct}% completado`} icon={CheckCircle} accent="#3BC21D" />
         <StatCard label="Frecuencia semanal" value={freqNum} sub="días de entreno" icon={Calendar} accent={safeAccent} />
         <StatCard label="Valoración coach" value={`${lastFeedback.rating}/10`} sub="última revisión" icon={Trophy} accent="#F6CC12" />

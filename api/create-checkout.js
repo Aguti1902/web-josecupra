@@ -37,7 +37,14 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
     mode: "subscription",
     subscription_data: {
       trial_period_days: TRIAL_PERIOD_DAYS,
-      metadata: { plan: planId, audience },
+      metadata: {
+        plan: planId,
+        audience,
+        clubCode: clubCode || "",
+        clubId: clubId || "",
+        email: formData?.email || "",
+        nombre: formData?.nombre || "",
+      },
     },
     line_items: [lineItem],
     customer_email: formData?.email || undefined,

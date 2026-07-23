@@ -271,14 +271,15 @@ export function WeekCalendar({ plan, accentColor, activeSessionId, onSelectSessi
   });
 
   return (
-    <div className="bg-white border border-depro-border rounded-2xl p-4 shadow-card">
+    <div className="bg-white border border-depro-border rounded-2xl p-3 sm:p-4 shadow-card">
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="text-xs font-bold uppercase tracking-wide text-depro-gray">Calendario semanal</div>
           <div className="text-sm font-black text-depro-dark">Toca un día para abrir la sesión</div>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+      <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 min-w-[320px]">
         {WEEK_DAYS.map((day) => {
           const session = sessionByDay[day];
           const isToday = day === todayName;
@@ -287,30 +288,32 @@ export function WeekCalendar({ plan, accentColor, activeSessionId, onSelectSessi
           const short = day.slice(0, 3);
 
           return (
+            <div key={day} className="relative pt-2">
+              {isToday && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 z-10 text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-[#0A36F7] text-white shadow-sm ring-2 ring-white">
+                  HOY
+                </span>
+              )}
             <button
-              key={day}
               type="button"
               disabled={!session}
               onClick={() => session && onSelectSession(session)}
-              className={`relative flex flex-col items-center rounded-xl p-2 sm:p-3 min-h-[88px] sm:min-h-[104px] border transition-all text-center ${
+              className={`relative w-full flex flex-col items-center rounded-xl p-1.5 sm:p-3 min-h-[84px] sm:min-h-[104px] border transition-all text-center ${
                 !session
-                  ? "bg-depro-gray-light/60 border-depro-border opacity-60 cursor-default"
+                  ? isToday
+                    ? "bg-depro-gray-light/70 border-depro-blue/40 cursor-default"
+                    : "bg-depro-gray-light/60 border-depro-border opacity-60 cursor-default"
                   : isActive
                     ? "bg-depro-blue text-white border-depro-blue shadow-md scale-[1.02]"
                     : isDone
-                      ? "bg-green-50 border-green-200 hover:border-green-400"
+                      ? "bg-green-50 border-green-300 hover:border-green-500"
                       : isToday
-                        ? "bg-depro-blue-light border-depro-blue hover:border-depro-blue-dark"
+                        ? "bg-blue-50 border-[#0A36F7] hover:border-depro-blue-dark"
                         : "bg-white border-depro-border hover:border-depro-blue hover:shadow-sm"
               }`}
             >
-              {isToday && (
-                <span className={`absolute -top-1.5 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full ${
-                  isActive ? "bg-white text-depro-blue" : "bg-depro-blue text-white"
-                }`}>Hoy</span>
-              )}
               <span className={`text-[10px] font-bold uppercase tracking-wide mb-1 ${
-                isActive ? "text-white/80" : "text-depro-gray"
+                isActive ? "text-white/80" : isToday ? "text-[#0A36F7]" : "text-depro-gray"
               }`}>{short}</span>
               {session ? (
                 <>
@@ -325,11 +328,13 @@ export function WeekCalendar({ plan, accentColor, activeSessionId, onSelectSessi
                   )}
                 </>
               ) : (
-                <span className="text-[10px] text-depro-gray mt-2">Descanso</span>
+                <span className={`text-[10px] mt-2 ${isToday ? "text-[#0A36F7] font-semibold" : "text-depro-gray"}`}>Descanso</span>
               )}
             </button>
+            </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
@@ -487,7 +492,7 @@ export function PlayerSessionFullscreen({
 export { getNonEmptyBlocks, getSessionBlocks };
 
 /** Calendario mensual del mesociclo: 4 semanas × 7 días */
-export function MesoMonthCalendar({ mesoWeeks, accentColor, activeSessionId, onSelectSession }) {
+export function MesoMonthCalendar({ mesoWeeks, accentColor, activeSessionId, onSelectSession, completedByDay, completedWeek = 1 }) {
   const sessionByWeekDay = {};
   (mesoWeeks || []).forEach((week) => {
     week.sessions.forEach((s) => {
@@ -496,19 +501,24 @@ export function MesoMonthCalendar({ mesoWeeks, accentColor, activeSessionId, onS
   });
 
   const totalSessions = (mesoWeeks || []).reduce((a, w) => a + w.sessions.length, 0);
+  const doneDays = completedByDay instanceof Set
+    ? completedByDay
+    : new Set(Array.isArray(completedByDay) ? completedByDay : []);
 
   return (
-    <div className="bg-white border border-depro-border rounded-2xl p-4 shadow-card">
-      <div className="flex items-center justify-between mb-4 gap-3">
+    <div className="bg-white border border-depro-border rounded-2xl p-3 sm:p-4 shadow-card">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
         <div>
           <div className="text-xs font-bold uppercase tracking-wide text-depro-gray">Calendario mensual</div>
           <div className="text-sm font-black text-depro-dark">4 semanas · mismas sesiones cada semana</div>
         </div>
-        <div className="text-xs font-bold text-depro-gray bg-depro-gray-light px-3 py-1.5 rounded-lg">
+        <div className="text-xs font-bold text-depro-gray bg-depro-gray-light px-3 py-1.5 rounded-lg self-start">
           {totalSessions} sesiones
         </div>
       </div>
 
+      <div className="overflow-x-auto -mx-1 px-1">
+        <div className="min-w-[560px]">
       <div className="grid grid-cols-7 gap-1 mb-2">
         {WEEK_DAYS.map((day) => (
           <div key={day} className="text-center text-[10px] font-bold uppercase text-depro-gray py-1">
@@ -527,6 +537,7 @@ export function MesoMonthCalendar({ mesoWeeks, accentColor, activeSessionId, onS
               {WEEK_DAYS.map((day) => {
                 const session = sessionByWeekDay[`${week.week}_${day}`];
                 const isActive = session && activeSessionId === session.id;
+                const isDone = session && week.week === completedWeek && doneDays.has(day);
                 const shortTitle = session?.title?.split(" - ")?.[0]?.slice(0, 12) || session?.type?.slice(0, 10);
 
                 return (
@@ -535,22 +546,27 @@ export function MesoMonthCalendar({ mesoWeeks, accentColor, activeSessionId, onS
                     type="button"
                     disabled={!session}
                     onClick={() => session && onSelectSession(session)}
-                    className={`min-h-[72px] sm:min-h-[80px] rounded-xl border p-1.5 sm:p-2 text-left transition-all ${
+                    className={`min-h-[68px] sm:min-h-[80px] rounded-xl border p-1.5 sm:p-2 text-left transition-all ${
                       !session
                         ? "bg-depro-gray-light/50 border-depro-border/60 cursor-default opacity-50"
                         : isActive
                           ? "bg-depro-blue border-depro-blue text-white shadow-md"
-                          : "bg-white border-depro-border hover:border-depro-blue hover:shadow-sm"
+                          : isDone
+                            ? "bg-green-50 border-green-300 hover:border-green-500"
+                            : "bg-white border-depro-border hover:border-depro-blue hover:shadow-sm"
                     }`}
                   >
                     {session ? (
                       <>
                         <div className={`text-[9px] font-bold leading-tight line-clamp-2 ${
-                          isActive ? "text-white" : "text-depro-dark"
+                          isActive ? "text-white" : isDone ? "text-green-800" : "text-depro-dark"
                         }`}>
                           {shortTitle}
                         </div>
-                        <div className={`text-[8px] mt-1 ${isActive ? "text-white/70" : "text-depro-gray"}`}>
+                        <div className={`text-[8px] mt-1 flex items-center gap-0.5 ${
+                          isActive ? "text-white/70" : isDone ? "text-green-600" : "text-depro-gray"
+                        }`}>
+                          {isDone && !isActive && <CheckCircle size={9} className="shrink-0" />}
                           {session.duration}
                         </div>
                       </>
@@ -563,6 +579,8 @@ export function MesoMonthCalendar({ mesoWeeks, accentColor, activeSessionId, onS
             </div>
           </div>
         ))}
+      </div>
+        </div>
       </div>
     </div>
   );

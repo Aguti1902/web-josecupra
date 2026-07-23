@@ -1,6 +1,7 @@
 import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 import { syncCheckoutSession, syncSubscriptionToUser } from "./_stripeSync.js";
+import { recordReferralPayment } from "./_clubReferrals.js";
 
 export const config = {
   api: {
@@ -47,6 +48,25 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Supabase admin no configurado" });
   }
 
+  async function trackReferralFromMeta(meta, amountPaidCents, stripeInvoiceId, stripeSessionId) {
+    const clubId = meta?.clubId || "";
+    const clubCode = meta?.clubCode || "";
+    const audience = meta?.audience || "player";
+    if (!clubId || !clubCode || audience !== "player" || !amountPaidCents) return;
+
+    await recordReferralPayment(supabaseAdmin, {
+      clubId,
+      clubCode,
+      playerEmail: meta.email || "",
+      playerName: meta.nombre || meta.name || "",
+      playerId: meta.authUserId || "",
+      plan: meta.plan || "",
+      amountPaidCents,
+      stripeInvoiceId,
+      stripeSessionId,
+    });
+  }
+
   try {
     const stripe = await getStripe();
 
@@ -54,6 +74,9 @@ export default async function handler(req, res) {
       case "checkout.session.completed": {
         const session = event.data.object;
         await syncCheckoutSession(supabaseAdmin, session);
+        if (session.amount_total > 0) {
+          await trackReferralFromMeta(session.metadata || {}, session.amount_total, null, session.id);
+        }
         if (session.subscription) {
           const subId = typeof session.subscription === "string"
             ? session.subscription
@@ -92,6 +115,8 @@ export default async function handler(req, res) {
             : invoice.subscription.id;
           const sub = await stripe.subscriptions.retrieve(subId);
           await syncSubscriptionToUser(supabaseAdmin, sub, invoice.customer_email);
+          const meta = sub.metadata || invoice.metadata || {};
+          await trackReferralFromMeta(meta, invoice.amount_paid, invoice.id, null);
         }
         break;
       }
