@@ -443,20 +443,25 @@ export function buildPlanAIPayload(user) {
 }
 
 export function buildMesoPlayerPlan(user, weeks = 4) {
+  const baseWeek = buildPlayerPlan(user, { weekOffset: 0 });
+  const baseSessions = baseWeek
+    .filter((d) => d.sessions.length)
+    .map((d, i) => ({
+      day: d.day,
+      session: d.sessions[0],
+      sessionNumber: i + 1,
+    }));
+
   const result = [];
-  let counter = 0;
   for (let w = 0; w < weeks; w++) {
-    const weekPlan = buildPlayerPlan(user, { weekOffset: w });
-    const sessions = weekPlan
-      .filter((d) => d.sessions.length)
-      .map((d) => ({
-        ...d.sessions[0],
-        id: `meso_w${w}_${d.sessions[0].id}`,
-        title: `Sesión ${++counter}`,
-        sessionNumber: counter,
-        dayName: d.day,
-        templateVariant: ["S1", "S2", "S3", "S4"][w] || `S${w + 1}`,
-      }));
+    const sessions = baseSessions.map(({ day, session, sessionNumber }) => ({
+      ...session,
+      id: `meso_w${w}_${session.id}`,
+      sessionNumber,
+      dayName: day,
+      weekNumber: w + 1,
+      templateVariant: `S${w + 1}`,
+    }));
     result.push({ week: w + 1, label: `Semana ${w + 1}`, sessions });
   }
   return result;

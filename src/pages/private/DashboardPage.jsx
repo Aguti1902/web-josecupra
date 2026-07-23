@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { getAdherenceReminder, countCompletedSessions, loadProgressIds, weekKey } from "../../lib/sessionProgress";
+import { getAdherenceReminder, countCompletedSessions, loadProgressIds, weekKey, toggleSessionCompletion, isSessionCompleted } from "../../lib/sessionProgress";
 import { hasFeatureAccess, getPlanLabel, isInTrial } from "../../lib/subscription";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
@@ -927,26 +927,31 @@ function JugadorDashboard({ user, club }) {
   const progressPct = progressTotal ? Math.min(100, Math.round((planProgress.completed / progressTotal) * 100)) : 0;
 
   const wk = weekKey();
-  const [completedIds, setCompletedIds] = useState(() => loadProgressIds(user?.id, wk));
 
-  useEffect(() => {
-    setCompletedIds(loadProgressIds(user?.id, wk));
-  }, [user?.id, wk, planProgress.completed]);
+  const trainingSessionsByDay = {};
+  (playerPlan || []).forEach((d) => {
+    if (d.sessions?.[0]) trainingSessionsByDay[d.day] = d.sessions[0];
+  });
 
-  const markDayDone = (dayFull) => {
-    if (completedIds.includes(dayFull)) return;
-    const updated = [...completedIds, dayFull];
-    setCompletedIds(updated);
-    localStorage.setItem(`depro_progress_${user?.id}_${wk}`, JSON.stringify(updated));
+  const toggleTrainingDay = (dayFull) => {
+    const session = trainingSessionsByDay[dayFull];
+    if (!session || !user?.id) return;
+    const updated = toggleSessionCompletion({
+      userId: user.id,
+      planKey,
+      sessionId: session.id,
+      dayLabel: dayFull,
+    });
+    if (updated) {
+      setPlayerPlan(updated);
+      setPlanProgress(countCompletedSessions(updated));
+    }
   };
-
-  const completedDays = planProgress.completed || completedIds.length;
-  const displayTotal = progressTotal;
 
   const days7 = ["L", "M", "X", "J", "V", "S", "D"];
   const dayFullNames = DAY_ORDER;
   const todayIdx = (new Date().getDay() + 6) % 7;
-  const adherenceReminder = getAdherenceReminder(user?.id, displayTotal);
+  const adherenceReminder = getAdherenceReminder(user?.id, progressTotal);
 
   return (
     <div className="space-y-6">
@@ -1123,23 +1128,30 @@ function JugadorDashboard({ user, club }) {
               <div className="grid grid-cols-7 gap-1 mb-4">
                 {days7.map((d, i) => {
                   const dayFull = dayFullNames[i];
-                  const done    = completedIds.includes(dayFull) || completedIds.includes(d);
+                  const session = trainingSessionsByDay[dayFull];
+                  const hasTraining = !!session;
+                  const done = hasTraining && isSessionCompleted(session);
                   const isToday = i === todayIdx;
-                  // Colores siempre visibles:
-                  // Completado → verde; Hoy (sin completar) → azul DEPRO con borde; Resto → gris
-                  const bg    = done ? "#3BC21D" : isToday ? "#0A36F7" : "#F3F4F6";
-                  const fg    = done ? "#fff"    : isToday ? "#fff"    : "#9CA3AF";
-                  const label = done ? "✓"       : isToday ? "●"      : d;
+                  const bg = !hasTraining ? "#F9FAFB" : done ? "#3BC21D" : isToday ? "#0A36F7" : "#F3F4F6";
+                  const fg = !hasTraining ? "#D1D5DB" : done ? "#fff" : isToday ? "#fff" : "#9CA3AF";
+                  const label = !hasTraining ? "—" : done ? "✓" : isToday ? "●" : d;
                   return (
                     <button
                       key={d}
-                      onClick={() => markDayDone(dayFull)}
-                      title={done ? "Completado" : isToday ? "Hoy" : "Marcar como hecho"}
-                      className="flex flex-col items-center gap-1 group"
+                      type="button"
+                      disabled={!hasTraining}
+                      onClick={() => toggleTrainingDay(dayFull)}
+                      title={
+                        !hasTraining ? "Día de descanso"
+                          : done ? "Completado · Toca para desmarcar"
+                          : isToday ? "Entreno de hoy · Toca para marcar"
+                          : "Marcar como hecho"
+                      }
+                      className={`flex flex-col items-center gap-1 group ${hasTraining ? "cursor-pointer" : "cursor-default"}`}
                     >
                       <div className={`text-xs font-bold ${isToday ? "text-depro-dark" : "text-depro-gray"}`}>{d}</div>
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all group-hover:scale-110 ${isToday && !done ? "ring-2 ring-offset-1 ring-depro-blue" : ""}`}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${hasTraining ? "group-hover:scale-110" : ""} ${isToday && !done && hasTraining ? "ring-2 ring-offset-1 ring-depro-blue" : ""}`}
                         style={{ backgroundColor: bg, color: fg }}
                       >
                         {label}
@@ -1152,7 +1164,7 @@ function JugadorDashboard({ user, club }) {
                 <div className="flex-1 h-1.5 bg-depro-gray-light rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, backgroundColor: "#3BC21D" }} />
                 </div>
-                <span className="text-xs text-depro-gray font-medium">{completedDays}/{displayTotal}</span>
+                <span className="text-xs text-depro-gray font-medium">{planProgress.completed}/{progressTotal}</span>
               </div>
               <div className="flex items-center gap-3 mt-2">
                 <span className="flex items-center gap-1 text-[10px] text-depro-gray"><span className="w-2.5 h-2.5 rounded-sm bg-green-400 inline-block" /> Completado</span>
@@ -1162,13 +1174,16 @@ function JugadorDashboard({ user, club }) {
             </div>
           </div>
           <div>
-            <h3 className="font-bold text-depro-dark mb-3">Último feedback</h3>
+            <h3 className="font-bold text-depro-dark mb-1">Último feedback</h3>
+            <p className="text-xs text-depro-gray mb-3">
+              Revisión semanal del preparador: resume tu progreso, qué mejorar y el foco del próximo entrenamiento.
+            </p>
             <div className="bg-white border border-depro-border rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-xl bg-depro-blue/10 flex items-center justify-center"><Target size={14} className="text-depro-blue" /></div>
                 <div>
-                  <div className="text-sm font-bold text-depro-dark">Coach DEPRO</div>
-                  <div className="text-xs text-depro-gray">{lastFeedback.week}</div>
+                  <div className="text-sm font-bold text-depro-dark">{lastFeedback.coach}</div>
+                  <div className="text-xs text-depro-gray">{lastFeedback.week} · {lastFeedback.date}</div>
                 </div>
               </div>
               <p className="text-sm text-depro-gray leading-relaxed line-clamp-3">{lastFeedback.message}</p>
@@ -1176,6 +1191,9 @@ function JugadorDashboard({ user, club }) {
                 <div className="text-xs text-depro-gray mb-1">Próximo foco:</div>
                 <div className="text-xs font-bold text-depro-dark">{lastFeedback.nextFocus}</div>
               </div>
+              <Link to="/dashboard/feedback" className="inline-flex items-center gap-1 text-xs font-bold text-depro-blue mt-3 hover:underline">
+                Ver todo el feedback <ArrowRight size={12} />
+              </Link>
             </div>
           </div>
         </div>

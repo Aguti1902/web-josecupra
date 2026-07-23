@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft, CheckCircle, Clock, Dumbbell, FileText, Flame, Gauge, Info,
   Layers, Pause, Target, Video, Wind, X,
@@ -136,7 +136,7 @@ function BlockExerciseList({ exercises, accentColor, onSelect }) {
   );
 }
 
-function CompletionButton({ completion, onComplete, accentColor }) {
+function CompletionButton({ completion, onComplete, onUncomplete, accentColor }) {
   const [animating, setAnimating] = useState(false);
   const handleClick = () => {
     if (completion === 100) return;
@@ -145,10 +145,14 @@ function CompletionButton({ completion, onComplete, accentColor }) {
   };
   if (completion === 100) {
     return (
-      <div className="rounded-xl p-4 border border-green-200 bg-green-50 flex items-center justify-center gap-3">
+      <button
+        type="button"
+        onClick={onUncomplete}
+        className="w-full rounded-xl p-4 border border-green-200 bg-green-50 flex items-center justify-center gap-3 hover:bg-green-100 transition-colors"
+      >
         <CheckCircle size={18} className="text-green-600" />
-        <span className="text-sm font-bold text-green-700">Sesión completada</span>
-      </div>
+        <span className="text-sm font-bold text-green-700">Sesión completada · Toca para desmarcar</span>
+      </button>
     );
   }
   return (
@@ -241,6 +245,7 @@ export function PlayerSessionFullscreen({
   accentColor,
   onClose,
   onComplete,
+  onUncomplete,
   onDownloadPdf,
 }) {
   const blocks = getNonEmptyBlocks(session);
@@ -248,6 +253,10 @@ export function PlayerSessionFullscreen({
   const [selectedEx, setSelectedEx] = useState(null);
   const isDone = session.status === "completed" || session.completion === 100;
   const [completion, setCompletion] = useState(isDone ? 100 : 0);
+
+  useEffect(() => {
+    setCompletion(isDone ? 100 : 0);
+  }, [session.id, isDone]);
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
@@ -338,6 +347,7 @@ export function PlayerSessionFullscreen({
           <CompletionButton
             completion={completion}
             onComplete={() => { setCompletion(100); onComplete?.(); }}
+            onUncomplete={() => { setCompletion(0); onUncomplete?.(); }}
             accentColor={accentColor}
           />
           {onDownloadPdf && (
@@ -357,3 +367,85 @@ export function PlayerSessionFullscreen({
 }
 
 export { getNonEmptyBlocks, getSessionBlocks };
+
+/** Calendario mensual del mesociclo: 4 semanas × 7 días */
+export function MesoMonthCalendar({ mesoWeeks, accentColor, activeSessionId, onSelectSession }) {
+  const sessionByWeekDay = {};
+  (mesoWeeks || []).forEach((week) => {
+    week.sessions.forEach((s) => {
+      sessionByWeekDay[`${week.week}_${s.dayName}`] = { ...s, weekNumber: week.week };
+    });
+  });
+
+  const totalSessions = (mesoWeeks || []).reduce((a, w) => a + w.sessions.length, 0);
+
+  return (
+    <div className="bg-white border border-depro-border rounded-2xl p-4 shadow-card">
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wide text-depro-gray">Calendario mensual</div>
+          <div className="text-sm font-black text-depro-dark">4 semanas · mismas sesiones cada semana</div>
+        </div>
+        <div className="text-xs font-bold text-depro-gray bg-depro-gray-light px-3 py-1.5 rounded-lg">
+          {totalSessions} sesiones
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {WEEK_DAYS.map((day) => (
+          <div key={day} className="text-center text-[10px] font-bold uppercase text-depro-gray py-1">
+            {day.slice(0, 3)}
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {(mesoWeeks || []).map((week) => (
+          <div key={week.week}>
+            <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-1.5 px-0.5">
+              {week.label}
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {WEEK_DAYS.map((day) => {
+                const session = sessionByWeekDay[`${week.week}_${day}`];
+                const isActive = session && activeSessionId === session.id;
+                const shortTitle = session?.title?.split(" - ")?.[0]?.slice(0, 12) || session?.type?.slice(0, 10);
+
+                return (
+                  <button
+                    key={`${week.week}_${day}`}
+                    type="button"
+                    disabled={!session}
+                    onClick={() => session && onSelectSession(session)}
+                    className={`min-h-[72px] sm:min-h-[80px] rounded-xl border p-1.5 sm:p-2 text-left transition-all ${
+                      !session
+                        ? "bg-depro-gray-light/50 border-depro-border/60 cursor-default opacity-50"
+                        : isActive
+                          ? "bg-depro-blue border-depro-blue text-white shadow-md"
+                          : "bg-white border-depro-border hover:border-depro-blue hover:shadow-sm"
+                    }`}
+                  >
+                    {session ? (
+                      <>
+                        <div className={`text-[9px] font-bold leading-tight line-clamp-2 ${
+                          isActive ? "text-white" : "text-depro-dark"
+                        }`}>
+                          {shortTitle}
+                        </div>
+                        <div className={`text-[8px] mt-1 ${isActive ? "text-white/70" : "text-depro-gray"}`}>
+                          {session.duration}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-[9px] text-depro-gray">—</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -17,13 +17,13 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
 import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession } from "../../lib/playerPlanEngine";
-import { markSessionComplete, touchLastTrain } from "../../lib/sessionProgress";
+import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "../../lib/sessionProgress";
 import CoachSessions from "../../components/private/CoachSessions";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
 import { getSessionBlocks, BLOCK_LABELS, BLOCK_COLORS, ADMIN_BLOCK_TYPES, sessionMatchesTarget } from "../../lib/sessionBlocks";
-import { WeekCalendar, PlayerSessionFullscreen } from "../../components/private/PlayerPlanUI";
+import { WeekCalendar, PlayerSessionFullscreen, MesoMonthCalendar } from "../../components/private/PlayerPlanUI";
 import { resolveBlockGuideItems } from "../../lib/blockGuideItems";
 import {
   normalizeTaskDesigner, resolveTaskTypes, resolveTaskParams,
@@ -431,8 +431,19 @@ function PlayerWeeklyPlan({ accent }) {
     }
   };
 
+  const resolveMicroSession = (session) => {
+    if (!session?.dayName) return session;
+    return microSessions.find((s) => s.dayName === session.dayName) || session;
+  };
+
   const handleSessionComplete = (sessionId, dayLabel) => {
     const updated = markSessionComplete({ userId: user?.id, planKey, sessionId, dayLabel });
+    if (updated) setPlan(updated);
+    touchLastTrain(user?.id);
+  };
+
+  const handleSessionToggle = (sessionId, dayLabel) => {
+    const updated = toggleSessionCompletion({ userId: user?.id, planKey, sessionId, dayLabel });
     if (updated) setPlan(updated);
     touchLastTrain(user?.id);
   };
@@ -618,58 +629,35 @@ function PlayerWeeklyPlan({ accent }) {
 
       {/* ── MESOCICLO ── */}
       {view === "meso" && (
-        <div className="space-y-8">
-          <p className="text-depro-gray text-sm">3 semanas · Sesiones 1 a 9 · Progresión mensual</p>
-          {mesoWeeks.map((week) => (
-            <div key={week.week}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm"
-                  style={{ backgroundColor: accent + "20", color: accent }}>{week.week}</div>
-                <div>
-                  <div className="font-black text-depro-dark">{week.label}</div>
-                  <div className="text-xs text-depro-gray">{week.sessions.length} sesiones</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {week.sessions.map((session) => (
-                  <button
-                    key={session.id}
-                    type="button"
-                    onClick={() => openSession(session)}
-                    className="w-full text-left bg-white border border-depro-border rounded-xl p-4 hover:border-depro-blue hover:shadow-sm transition-all flex items-center gap-4"
-                  >
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0"
-                      style={{ backgroundColor: accent + "20", color: accent }}>
-                      {session.sessionNumber}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[10px] font-bold uppercase text-depro-gray">{session.dayName}</div>
-                      <div className="font-black text-depro-dark truncate">{session.title}</div>
-                      <div className="text-xs text-depro-gray">{session.duration} · {session.type}</div>
-                    </div>
-                    {session.status === "completed" && (
-                      <CheckCircle size={18} className="text-green-600 flex-shrink-0" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="space-y-6">
+          <p className="text-depro-gray text-sm">
+            4 semanas · {microSessions.length} sesiones por semana · Misma estructura cada semana
+          </p>
+          <MesoMonthCalendar
+            mesoWeeks={mesoWeeks}
+            accentColor={accent}
+            activeSessionId={activeSessionId}
+            onSelectSession={openSession}
+          />
         </div>
       )}
     </div>
 
-    {activeSession && (
+    {activeSession && (() => {
+      const microRef = resolveMicroSession(activeSession);
+      return (
       <PlayerSessionFullscreen
-        session={activeSession}
+        session={{ ...activeSession, status: microRef.status, completion: microRef.completion }}
         sessionNumber={activeSession.sessionNumber}
         dayLabel={activeSession.dayName}
         accentColor={accent}
         onClose={closeSession}
-        onComplete={() => handleSessionComplete(activeSession.id, activeSession.dayName)}
+        onComplete={() => handleSessionComplete(microRef.id, microRef.dayName)}
+        onUncomplete={() => handleSessionToggle(microRef.id, microRef.dayName)}
         onDownloadPdf={() => sessionPdf(activeSession)}
       />
-    )}
+      );
+    })()}
     </>
   );
 }

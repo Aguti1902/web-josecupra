@@ -22,18 +22,50 @@ export function saveProgressIds(userId, ids, wk = weekKey()) {
 }
 
 /** Marca sesión completada en el plan guardado y en el registro de progreso */
+export function isSessionCompleted(session) {
+  return session?.status === "completed" || session?.completion === 100;
+}
+
 export function markSessionComplete({ userId, planKey, sessionId, dayLabel }) {
+  return setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed: true });
+}
+
+export function unmarkSessionComplete({ userId, planKey, sessionId, dayLabel }) {
+  return setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed: false });
+}
+
+export function toggleSessionCompletion({ userId, planKey, sessionId, dayLabel }) {
   let plan = null;
   try {
     const raw = localStorage.getItem(planKey);
     if (raw) plan = JSON.parse(raw);
   } catch { /* ignore */ }
 
+  const session = plan?.flatMap((d) => d.sessions || []).find((s) => s.id === sessionId);
+  const completed = isSessionCompleted(session);
+  return setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed: !completed });
+}
+
+export function setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed }) {
+  let plan = null;
+  try {
+    const raw = localStorage.getItem(planKey);
+    if (raw) plan = JSON.parse(raw);
+  } catch { /* ignore */ }
+
+  const todayName = getTodayName();
+
   if (plan && Array.isArray(plan)) {
     const updated = plan.map((day) => ({
       ...day,
       sessions: (day.sessions || []).map((s) =>
-        s.id === sessionId ? { ...s, status: "completed", completion: 100 } : s
+        s.id === sessionId
+          ? {
+              ...s,
+              status: completed ? "completed" : (day.day === todayName ? "today" : "pending"),
+              completion: completed ? 100 : 0,
+            }
+          : s
       ),
     }));
     localStorage.setItem(planKey, JSON.stringify(updated));
@@ -43,12 +75,19 @@ export function markSessionComplete({ userId, planKey, sessionId, dayLabel }) {
   if (userId && dayLabel) {
     const wk = weekKey();
     const ids = loadProgressIds(userId, wk);
-    if (!ids.includes(dayLabel)) {
-      saveProgressIds(userId, [...ids, dayLabel], wk);
+    if (completed) {
+      if (!ids.includes(dayLabel)) saveProgressIds(userId, [...ids, dayLabel], wk);
+    } else {
+      saveProgressIds(userId, ids.filter((id) => id !== dayLabel), wk);
     }
   }
 
   return plan;
+}
+
+function getTodayName() {
+  const DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+  return DAY_ORDER[(new Date().getDay() + 6) % 7];
 }
 
 export function countCompletedSessions(plan) {
