@@ -367,16 +367,11 @@ function AppLayoutInner({ children }) {
           sidebarOpen={sidebarOpen}
           user={user}
         />
-        {pathname === "/dashboard" && isInTrial(user) && !paywallActive && (
-          <div className="px-4 md:px-6 py-3 border-b border-orange-200 bg-orange-50/90 flex-shrink-0">
-            <TrialBanner user={user} prominent />
-          </div>
-        )}
         <div className="md:hidden px-4 py-2 border-b border-depro-border/60 bg-white/90">
           <PanelSearch mode="client" navItems={displayNavItems} user={user} />
         </div>
         <main className="flex-1 overflow-y-auto dashboard-main-scroll">
-          {pathname !== "/dashboard" && isInTrial(user) && !paywallActive && <TrialBanner user={user} />}
+          {isInTrial(user) && !paywallActive && <TrialBanner user={user} />}
           {children}
         </main>
         <AiAssistantWidget />
