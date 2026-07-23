@@ -370,8 +370,8 @@ function AppLayoutInner({ children }) {
         <div className="md:hidden px-4 py-2 border-b border-depro-border/60 bg-white/90">
           <PanelSearch mode="client" navItems={displayNavItems} user={user} />
         </div>
+        {isInTrial(user) && !paywallActive && <TrialBanner user={user} />}
         <main className="flex-1 overflow-y-auto dashboard-main-scroll">
-          {isInTrial(user) && !paywallActive && <TrialBanner user={user} />}
           {children}
         </main>
         <AiAssistantWidget />

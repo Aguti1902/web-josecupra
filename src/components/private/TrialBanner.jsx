@@ -3,7 +3,7 @@ import { Clock, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getTrialDaysLeft, isInTrial } from "../../lib/subscription";
 
-const innerClass = "max-w-5xl mx-auto px-4 md:px-8";
+const innerClass = "w-full px-4 md:px-6";
 
 export default function TrialBanner({ user, prominent = false }) {
   const { t } = useTranslation();
@@ -15,7 +15,7 @@ export default function TrialBanner({ user, prominent = false }) {
   if (prominent) {
     return (
       <div
-        className={`border-y-2 shadow-sm ${
+        className={`w-full shrink-0 border-y-2 shadow-sm ${
           urgent ? "bg-orange-100 border-orange-400" : "bg-orange-50 border-orange-300"
         }`}
       >
@@ -54,7 +54,7 @@ export default function TrialBanner({ user, prominent = false }) {
   }
 
   return (
-    <div className="border-y border-orange-300 bg-orange-50">
+    <div className="w-full shrink-0 border-y border-orange-300 bg-orange-50">
       <div className={`${innerClass} py-3 flex flex-col sm:flex-row sm:items-center gap-3`}>
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 bg-orange-100">
