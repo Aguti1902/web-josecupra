@@ -12,8 +12,8 @@ export const PLAN_LABELS = {
   "club-inicial": "Club Inicial",
   "club-pro": "Club Profesional",
   "club-elite": "Club Elite",
-  "player-essential": "Jugador Esencial",
-  "player-pro": "Jugador Pro",
+  "player-essential": "Jugador Básico",
+  "player-pro": "Jugador Premium",
   basic: "Plan Básico",
   premium: "Plan Premium",
 };
@@ -25,8 +25,8 @@ export const PLAN_PRICES = {
   "club-inicial": "199€/mes",
   "club-pro": "399€/mes",
   "club-elite": "699€/mes",
-  "player-essential": "19,99€/mes",
-  "player-pro": "39,99€/mes",
+  "player-essential": "29€/mes",
+  "player-pro": "99€/mes",
   basic: "49€/mes",
   premium: "119€/mes",
 };
