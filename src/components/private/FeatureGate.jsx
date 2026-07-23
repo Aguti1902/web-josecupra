@@ -39,7 +39,8 @@ export default function FeatureGate({
   const meta = FEATURES[feature] || {};
   const reason = getFeatureLockReason(user, feature);
   const upsellPlan = getFeatureUpsellPlan(user, feature);
-  const trialAddon = isInTrial(user) ? addonForFeature(feature) : null;
+  const trialAddon = addonForFeature(feature);
+  const addon = trialAddon || addonForFeature(feature);
   const audience = audienceProp || (user.role === "club"
     ? (user.club?.isSoloCoach ? "coach" : "club")
     : "player");
@@ -88,6 +89,19 @@ export default function FeatureGate({
       </div>
       <h2 className="text-xl font-black text-depro-dark mb-2">{title}</h2>
       <p className="text-sm text-depro-gray mb-2">{desc}</p>
+      {meta.upsellBenefits?.length > 0 && (
+        <ul className="text-left text-sm text-depro-gray space-y-1.5 mb-4 max-w-sm mx-auto">
+          {meta.upsellBenefits.map((b) => (
+            <li key={b} className="flex items-start gap-2">
+              <span className="text-depro-blue font-bold">✓</span>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {addon && (
+        <p className="text-lg font-black text-depro-dark mb-2">{addon.price}€{addon.period}</p>
+      )}
       {isInTrial(user) && (
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-5 inline-block">
           {t("features.trial_note")}
@@ -102,7 +116,7 @@ export default function FeatureGate({
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
           >
             <Sparkles size={16} />
-            {t("subscription.buy_addon_named", { name: trialAddon.name, price: formatPrice(trialAddon.price) })}
+            Añadir al carrito · {trialAddon.name}
           </button>
         )}
         {upsellPlan && (

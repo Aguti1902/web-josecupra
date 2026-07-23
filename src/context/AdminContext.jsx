@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { clients as initialClients, weeklyPlan as initialPlan } from "../data/mockData";
 import { supabase } from "../lib/supabase";
+import { loadPlayerPlan, savePlayerPlan } from "../lib/playerPlanStorage";
 
 const AdminContext = createContext(null);
 
@@ -101,7 +102,13 @@ export function AdminProvider({ children }) {
       const next = { ...prev };
       let changed = false;
       for (const id of clientIds) {
-        if (!next[id]) {
+        const stored = loadPlayerPlan(id);
+        if (stored && !stored.planError) {
+          if (JSON.stringify(next[id]) !== JSON.stringify(stored)) {
+            next[id] = stored;
+            changed = true;
+          }
+        } else if (!next[id]) {
           next[id] = JSON.parse(JSON.stringify(initialPlan));
           changed = true;
         }
@@ -159,6 +166,10 @@ export function AdminProvider({ children }) {
   }, [refreshClients]);
 
   // ── PLAN ──────────────────────────────────────────────────────────
+  const persistClientPlan = useCallback((clientId, plan) => {
+    if (clientId && plan) savePlayerPlan(clientId, plan);
+  }, []);
+
   const updateSession = useCallback((clientId, dayIdx, sessionIdx, updates) => {
     setClientPlans((prev) => {
       const plans = JSON.parse(JSON.stringify(prev));
@@ -167,27 +178,30 @@ export function AdminProvider({ children }) {
           ...plans[clientId][dayIdx].sessions[sessionIdx],
           ...updates,
         };
+        persistClientPlan(clientId, plans[clientId]);
       }
       return plans;
     });
-  }, []);
+  }, [persistClientPlan]);
 
   const addSession = useCallback((clientId, dayIdx, session) => {
     setClientPlans((prev) => {
       const plans = JSON.parse(JSON.stringify(prev));
       if (!plans[clientId]) plans[clientId] = JSON.parse(JSON.stringify(initialPlan));
       plans[clientId][dayIdx].sessions.push({ ...session, id: Date.now() });
+      persistClientPlan(clientId, plans[clientId]);
       return plans;
     });
-  }, []);
+  }, [persistClientPlan]);
 
   const deleteSession = useCallback((clientId, dayIdx, sessionIdx) => {
     setClientPlans((prev) => {
       const plans = JSON.parse(JSON.stringify(prev));
       plans[clientId][dayIdx].sessions.splice(sessionIdx, 1);
+      persistClientPlan(clientId, plans[clientId]);
       return plans;
     });
-  }, []);
+  }, [persistClientPlan]);
 
   const addExercise = useCallback((clientId, dayIdx, sessionIdx, exercise) => {
     setClientPlans((prev) => {
@@ -196,9 +210,10 @@ export function AdminProvider({ children }) {
         ...exercise,
         id: Date.now(),
       });
+      persistClientPlan(clientId, plans[clientId]);
       return plans;
     });
-  }, []);
+  }, [persistClientPlan]);
 
   const updateExercise = useCallback((clientId, dayIdx, sessionIdx, exIdx, updates) => {
     setClientPlans((prev) => {
@@ -207,17 +222,24 @@ export function AdminProvider({ children }) {
         ...plans[clientId][dayIdx].sessions[sessionIdx].exercises[exIdx],
         ...updates,
       };
+      persistClientPlan(clientId, plans[clientId]);
       return plans;
     });
-  }, []);
+  }, [persistClientPlan]);
 
   const deleteExercise = useCallback((clientId, dayIdx, sessionIdx, exIdx) => {
     setClientPlans((prev) => {
       const plans = JSON.parse(JSON.stringify(prev));
       plans[clientId][dayIdx].sessions[sessionIdx].exercises.splice(exIdx, 1);
+      persistClientPlan(clientId, plans[clientId]);
       return plans;
     });
-  }, []);
+  }, [persistClientPlan]);
+
+  const setClientPlan = useCallback((clientId, plan) => {
+    setClientPlans((prev) => ({ ...prev, [clientId]: plan }));
+    persistClientPlan(clientId, plan);
+  }, [persistClientPlan]);
 
   // ── CONTENT ───────────────────────────────────────────────────────
   const addVideo = useCallback((clientId, video) => {
@@ -303,6 +325,7 @@ export function AdminProvider({ children }) {
         addExercise,
         updateExercise,
         deleteExercise,
+        setClientPlan,
         addVideo,
         deleteVideo,
         addPdf,

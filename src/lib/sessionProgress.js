@@ -26,15 +26,15 @@ export function isSessionCompleted(session) {
   return session?.status === "completed" || session?.completion === 100;
 }
 
-export function markSessionComplete({ userId, planKey, sessionId, dayLabel }) {
-  return setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed: true });
+export function markSessionComplete({ userId, planKey, sessionId, dayLabel, persist = true }) {
+  return setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed: true, persist });
 }
 
-export function unmarkSessionComplete({ userId, planKey, sessionId, dayLabel }) {
-  return setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed: false });
+export function unmarkSessionComplete({ userId, planKey, sessionId, dayLabel, persist = true }) {
+  return setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed: false, persist });
 }
 
-export function toggleSessionCompletion({ userId, planKey, sessionId, dayLabel }) {
+export function toggleSessionCompletion({ userId, planKey, sessionId, dayLabel, persist = true }) {
   let plan = null;
   try {
     const raw = localStorage.getItem(planKey);
@@ -43,10 +43,10 @@ export function toggleSessionCompletion({ userId, planKey, sessionId, dayLabel }
 
   const session = plan?.flatMap((d) => d.sessions || []).find((s) => s.id === sessionId);
   const completed = isSessionCompleted(session);
-  return setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed: !completed });
+  return setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed: !completed, persist });
 }
 
-export function setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed }) {
+export function setSessionCompletion({ userId, planKey, sessionId, dayLabel, completed, persist = true }) {
   let plan = null;
   try {
     const raw = localStorage.getItem(planKey);
@@ -68,11 +68,13 @@ export function setSessionCompletion({ userId, planKey, sessionId, dayLabel, com
           : s
       ),
     }));
-    localStorage.setItem(planKey, JSON.stringify(updated));
+    if (persist) {
+      localStorage.setItem(planKey, JSON.stringify(updated));
+    }
     plan = updated;
   }
 
-  if (userId && dayLabel) {
+  if (userId && dayLabel && persist) {
     const wk = weekKey();
     const ids = loadProgressIds(userId, wk);
     if (completed) {

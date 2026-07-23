@@ -33,7 +33,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
   const dispArr = formData?.disponibles || [];
 
   return {
-    payment_method_types: ["card"],
+    automatic_payment_methods: { enabled: true },
     mode: "subscription",
     subscription_data: {
       trial_period_days: TRIAL_PERIOD_DAYS,
@@ -58,6 +58,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
       lesion: lesionArr.join("|"),
       lesionSubtipo: subArr.join("|"),
       disponibles: dispArr.join("|"),
+      selectedAddons: (formData?.selectedAddons || []).join("|"),
       clubName: formData?.club || "",
       equipos: formData?.equipos || "",
       clubCode,

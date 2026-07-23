@@ -1,9 +1,12 @@
-import { Star, TrendingUp, MessageSquare, Calendar, Target, ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Star, TrendingUp, MessageSquare, Calendar, Target, ChevronDown, ChevronUp, Send } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import FeatureGate from "../../components/private/FeatureGate";
 import { coachFeedback } from "../../data/mockData";
+import { getChatMessages, sendChatMessage } from "../../lib/internalChat";
+import { canPersistInTrial } from "../../lib/trialPersistence";
+import { hasFeatureAccess } from "../../lib/subscription";
 
 function FeedbackCard({ fb }) {
   const [open, setOpen] = useState(false);
@@ -83,6 +86,59 @@ function lum(hex) {
   } catch { return 0; }
 }
 
+function InternalChatPanel({ user }) {
+  const [messages, setMessages] = useState(() => getChatMessages(user?.id));
+  const [text, setText] = useState("");
+  const canSave = canPersistInTrial(user, "save_stats");
+
+  const handleSend = () => {
+    if (!text.trim()) return;
+    if (!canSave) {
+      setMessages((prev) => [...prev, { id: `tmp_${Date.now()}`, text, from: "player" }]);
+      setText("");
+      return;
+    }
+    sendChatMessage(user?.id, { text, from: "player", authorName: user?.name });
+    setMessages(getChatMessages(user?.id));
+    setText("");
+  };
+
+  return (
+    <div className="card mb-8">
+      <h3 className="font-bold text-depro-dark mb-3 flex items-center gap-2">
+        <MessageSquare size={18} className="text-depro-blue" /> Chat con tu preparador
+      </h3>
+      {!canSave && (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2 mb-3">
+          Modo demo: puedes probar el chat, pero los mensajes no se guardan permanentemente.
+        </p>
+      )}
+      <div className="max-h-56 overflow-y-auto space-y-2 mb-3 bg-depro-gray-light rounded-xl p-3 border border-depro-border">
+        {messages.length === 0 && <p className="text-xs text-depro-gray text-center py-4">Sin mensajes aún.</p>}
+        {messages.map((m) => (
+          <div key={m.id} className={`text-sm rounded-lg px-3 py-2 max-w-[85%] ${
+            m.from === "player" ? "ml-auto bg-depro-blue text-white" : "bg-white border border-depro-border text-depro-dark"
+          }`}>
+            {m.text}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          className="admin-input flex-1 text-sm"
+          placeholder="Escribe tu mensaje…"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+        />
+        <button type="button" onClick={handleSend} className="btn-primary px-4 flex items-center gap-1">
+          <Send size={14} /> Enviar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function FeedbackPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -114,6 +170,8 @@ export default function FeedbackPage() {
           </div>
         ))}
       </div>
+
+      {hasFeatureAccess(user, "coach_contact") && <InternalChatPanel user={user} />}
 
       {/* Cards */}
       <div className="space-y-4">

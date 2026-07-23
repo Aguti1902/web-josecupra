@@ -578,17 +578,22 @@ export const SESSION_TEMPLATES = {
       {
         type: "principal",
         label: "Tren Inferior",
-        duration: "15 min",
+        duration: "18 min",
         slots: [
           {
             poolPattern: "rodilla_bilateral",
             qty: 1,
-            description: "Ejercicio dominante rodilla"
+            description: "Cuádriceps dominante"
           },
           {
             poolPattern: "cadera_bilateral",
             qty: 1,
-            description: "Ejercicio dominante cadera"
+            description: "Isquiotibiales / glúteos"
+          },
+          {
+            poolPattern: "gemelo",
+            qty: 1,
+            description: "Gemelos"
           }
         ],
         rules: {
@@ -598,17 +603,37 @@ export const SESSION_TEMPLATES = {
       {
         type: "principal",
         label: "Tren Superior",
-        duration: "15 min",
+        duration: "18 min",
         slots: [
           {
             poolPattern: "empuje_horizontal",
             qty: 1,
-            description: "Empuje"
+            description: "Pectoral / tríceps"
           },
           {
             poolPattern: "traccion_horizontal",
             qty: 1,
-            description: "Tracción"
+            description: "Espalda / bíceps"
+          },
+          {
+            poolPattern: "empuje_vertical",
+            qty: 1,
+            description: "Hombros / tríceps"
+          }
+        ],
+        rules: {
+          distinctPools: true
+        }
+      },
+      {
+        type: "complementario",
+        label: "Brazos",
+        duration: "8 min",
+        slots: [
+          {
+            poolPattern: "traccion_vertical",
+            qty: 1,
+            description: "Bíceps / dorsal"
           }
         ],
         rules: {
@@ -692,48 +717,54 @@ export const SESSION_TEMPLATES = {
 };
 
 export const WEEKLY_SESSION_CONFIG = {
-  
+
   "Fuerza": {
     1: ["Fuerza A"],
     2: ["Fuerza A", "Fuerza B"],
-    3: ["Fuerza A", "Fuerza B", "Velocidad"],
-    4: ["Fuerza A", "Fuerza B", "Velocidad", "Prevención"]
+    3: ["Fuerza A", "Fuerza B", "Fuerza Superior A"],
+    4: ["Fuerza A", "Fuerza B", "Fuerza Superior A", "Fuerza Superior B"],
+    5: ["Fuerza A", "Fuerza B", "Fuerza Superior A", "Fuerza Superior B", "Pliometría"],
   },
-  
+
   "Velocidad": {
     1: ["Velocidad"],
     2: ["Velocidad", "Fuerza A"],
     3: ["Velocidad", "Fuerza A", "Pliometría"],
-    4: ["Velocidad", "Fuerza A", "Pliometría", "Prevención"]
+    4: ["Velocidad", "Fuerza A", "Fuerza B", "Pliometría"],
+    5: ["Velocidad", "Fuerza A", "Fuerza B", "Pliometría", "Prevención"],
   },
-  
+
   "Resistencia": {
-    1: ["Full Body"],
-    2: ["Full Body", "Velocidad"],
-    3: ["Full Body", "Velocidad", "Fuerza A"],
-    4: ["Full Body", "Velocidad", "Fuerza A", "Prevención"]
+    1: ["Resistencia aeróbica"],
+    2: ["Resistencia aeróbica", "Resistencia umbral"],
+    3: ["Resistencia aeróbica", "Resistencia umbral", "Fuerza A"],
+    4: ["Resistencia aeróbica", "Resistencia umbral", "Resistencia anaeróbica", "Fuerza A"],
+    5: ["Resistencia aeróbica", "Resistencia umbral", "Resistencia anaeróbica", "Fuerza A", "Movilidad"],
   },
-  
+
   "Hipertrofia": {
     1: ["Full Body"],
-    2: ["Fuerza Superior A", "Fuerza A"],
-    3: ["Fuerza Superior A", "Fuerza Superior B", "Fuerza A"],
-    4: ["Fuerza Superior A", "Fuerza Superior B", "Fuerza A", "Fuerza B"]
+    2: ["Hipertrofia Pierna", "Full Body"],
+    3: ["Hipertrofia Pierna", "Hipertrofia Push", "Hipertrofia Pull"],
+    4: ["Hipertrofia Pierna", "Hipertrofia Push", "Hipertrofia Pull", "Full Body"],
+    5: ["Hipertrofia Pierna", "Hipertrofia Push", "Hipertrofia Pull", "Hipertrofia Anterior", "Hipertrofia Posterior"],
   },
-  
+
   "Prevención": {
     1: ["Prevención"],
     2: ["Prevención", "Movilidad"],
     3: ["Prevención", "Movilidad", "Isométricos"],
-    4: ["Prevención", "Movilidad", "Isométricos", "Fuerza B"]
+    4: ["Prevención", "Movilidad", "Isométricos", "Full Body"],
+    5: ["Prevención", "Movilidad", "Isométricos", "Full Body", "Fuerza B"],
   },
-  
+
   "Movilidad": {
     1: ["Movilidad"],
     2: ["Movilidad", "Prevención"],
     3: ["Movilidad", "Prevención", "Isométricos"],
-    4: ["Movilidad", "Prevención", "Isométricos", "Full Body"]
-  }
+    4: ["Movilidad", "Prevención", "Isométricos", "Full Body"],
+    5: ["Movilidad", "Prevención", "Isométricos", "Full Body", "Fuerza B"],
+  },
 };
 
 export function isV2Template(template) {

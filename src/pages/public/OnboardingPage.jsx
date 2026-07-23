@@ -9,14 +9,14 @@ import {
   AUDIENCES, PLANS, resolvePlanId, plansForAudience, formatPrice, applyClubDiscount,
 } from "../../lib/checkoutPlans";
 import { useAuth } from "../../context/AuthContext";
-import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
+import { PLAYER_ADDONS } from "../../lib/playerAddons";
 import StripeTestBanner from "../../components/public/StripeTestBanner";
 
 const ONBOARDING_STORAGE_KEY = "depro_onboarding";
 
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 const SPORTS     = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
-const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem"];
+const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem", "5 días / sem"];
 const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio", "Campo"];
 const INJURIES   = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda", "Pubalgia"];
 const INJURY_SUBTYPES = {
@@ -548,7 +548,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
 function StepFutbol({ form, setForm, onNext, onBack }) {
   const freqN = parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3;
   const objetivos = form.objetivos?.length ? form.objetivos : [form.objetivo, form.objetivoSecundario].filter(Boolean);
-  const valid = form.edad && objetivos.length === 2 && form.deporte && form.frecuencia && form.material && form.experiencia
+  const valid = form.edad && objetivos.length >= 1 && form.deporte && form.frecuencia && form.material && form.experiencia
     && form.diaCompeticion
     && (form.disponibles?.length || 0) >= freqN;
 
@@ -594,12 +594,14 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           onChange={(v) => setForm({ ...form, deporte: v })}
         />
 
-        {/* Objetivos (2) */}
+        {/* Objetivos */}
         <div>
           <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1 block flex items-center gap-1.5">
-            <Target size={12} className="text-depro-blue" /> Objetivo principal * <span className="font-normal normal-case">(elige 2)</span>
+            <Target size={12} className="text-depro-blue" /> Objetivos *
           </label>
-          <p className="text-xs text-depro-gray mb-3">El plan combinará sesiones de ambos objetivos según tu frecuencia semanal.</p>
+          <p className="text-xs text-depro-gray mb-3">
+            El objetivo principal es obligatorio. Puedes añadir un segundo objetivo opcional; si no lo eliges, el plan se basará solo en el principal.
+          </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {OBJECTIVES.map((obj) => {
               const sel = objetivos.includes(obj);
@@ -625,7 +627,13 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
               );
             })}
           </div>
-          <p className="text-xs text-depro-gray mt-2">{objetivos.length}/2 seleccionados</p>
+          <p className="text-xs text-depro-gray mt-2">
+            {objetivos.length === 0
+              ? "Selecciona al menos 1 objetivo"
+              : objetivos.length === 1
+                ? "1 objetivo (principal)"
+                : "2 objetivos (principal + secundario)"}
+          </p>
         </div>
 
         {/* Frecuencia semanal */}
@@ -754,17 +762,27 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
 /* ─────────────────────────────────────────────
    STEP 4 — Pago
 ───────────────────────────────────────────── */
-function StepPago({ form, plan, onBack, authUserId }) {
+function StepPago({ form, setForm, plan, onBack, authUserId }) {
   const [error, setError] = useState("");
   const [showDetails, setShowDetails] = useState(false);
+  const selectedAddons = form.selectedAddons || [];
+  const addonsTotal = selectedAddons.reduce((sum, id) => sum + (PLAYER_ADDONS.find((a) => a.id === id)?.price || 0), 0);
+
+  const toggleAddon = (id) => {
+    const next = selectedAddons.includes(id)
+      ? selectedAddons.filter((x) => x !== id)
+      : [...selectedAddons, id];
+    setForm({ ...form, selectedAddons: next });
+  };
+
   const formPayload = useMemo(
-    () => ({ ...form, audience: plan.audience, authUserId: authUserId || "" }),
-    [form, plan.audience, authUserId],
+    () => ({ ...form, audience: plan.audience, authUserId: authUserId || "", selectedAddons }),
+    [form, plan.audience, authUserId, selectedAddons],
   );
 
   const hasDiscount = !!form.clubCode && plan.audience === "player";
   const discount    = hasDiscount ? Math.round(plan.price * 0.15 * 100) / 100 : 0;
-  const total       = hasDiscount ? applyClubDiscount(plan.price) : plan.price;
+  const total       = (hasDiscount ? applyClubDiscount(plan.price) : plan.price) + addonsTotal;
 
   const profileRows = [
     ["Nombre", form.nombre],
@@ -823,6 +841,11 @@ function StepPago({ form, plan, onBack, authUserId }) {
                   <span>– {formatPrice(discount)}</span>
                 </div>
               )}
+              {addonsTotal > 0 && (
+                <div className="flex justify-between text-depro-gray">
+                  <span>Extras</span><span>{formatPrice(addonsTotal)}</span>
+                </div>
+              )}
               <div className="border-t border-depro-border pt-3 flex justify-between items-baseline">
                 <span className="font-bold text-depro-dark">Total / mes</span>
                 <span className="text-2xl font-black text-depro-dark">{formatPrice(total)}</span>
@@ -840,6 +863,32 @@ function StepPago({ form, plan, onBack, authUserId }) {
               </ul>
             </div>
           </div>
+
+          {plan.audience === "player" && (
+            <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card space-y-3">
+              <div className="font-bold text-depro-dark text-sm">Extras opcionales</div>
+              <p className="text-xs text-depro-gray">Añade funcionalidades al carrito antes de pagar.</p>
+              {PLAYER_ADDONS.map((addon) => {
+                const sel = selectedAddons.includes(addon.id);
+                return (
+                  <button
+                    key={addon.id}
+                    type="button"
+                    onClick={() => toggleAddon(addon.id)}
+                    className={`w-full text-left rounded-xl border p-3 transition-colors ${
+                      sel ? "border-depro-blue bg-depro-blue-light/40" : "border-depro-border hover:border-depro-blue/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-sm text-depro-dark">{addon.name}</span>
+                      <span className="text-xs font-bold text-depro-blue">{formatPrice(addon.price)}{addon.period}</span>
+                    </div>
+                    <p className="text-xs text-depro-gray mt-1">{addon.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <button
             type="button"
@@ -990,6 +1039,7 @@ export default function OnboardingPage() {
     lesionSubtipo: [],
     diaCompeticion: "Fin de semana",
     disponibles: ["Lunes", "Miércoles", "Viernes"],
+    selectedAddons: [],
   });
 
   const plan = PLANS[planId] || plansForAudience(audience)[0];
@@ -1113,6 +1163,7 @@ export default function OnboardingPage() {
         {step === paymentStep && (
           <StepPago
             form={form}
+            setForm={setForm}
             plan={plan}
             authUserId={user?.id}
             onBack={backFromPayment}

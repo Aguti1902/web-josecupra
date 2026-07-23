@@ -15,6 +15,8 @@ import ParaJugadoresPage from "./pages/public/ParaJugadoresPage";
 import PricingPage from "./pages/public/PricingPage";
 import ResourcesPage from "./pages/public/ResourcesPage";
 import LoginPage from "./pages/public/LoginPage";
+import ForgotPasswordPage from "./pages/public/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/public/ResetPasswordPage";
 import OnboardingPage from "./pages/public/OnboardingPage";
 import PaymentSuccessPage from "./pages/public/PaymentSuccessPage";
 import USClubPitchPage from "./pages/public/USClubPitchPage";
@@ -40,6 +42,7 @@ import SubscriptionPage from "./pages/private/SubscriptionPage";
 import ClubProfilePage from "./pages/private/ClubProfilePage";
 import TeamTestsPage from "./pages/private/TeamTestsPage";
 import CargasPage from "./pages/private/CargasPage";
+import PlayerLoadHistoryPage from "./pages/private/PlayerLoadHistoryPage";
 import CoachOnboardingPage from "./pages/private/CoachOnboardingPage";
 import ClubOnboardingPage from "./pages/private/ClubOnboardingPage";
 import ClubSettingsPage from "./pages/private/ClubSettingsPage";
@@ -163,6 +166,8 @@ function AppRoutes() {
             : <LoginPage />
         }
       />
+      <Route path="/recuperar-contrasena" element={<ForgotPasswordPage />} />
+      <Route path="/restablecer-contrasena" element={<ResetPasswordPage />} />
       <Route path="/comprar" element={<OnboardingPage />} />
       <Route path="/pago-exitoso" element={<PaymentSuccessPage />} />
       <Route path="/us-clubs" element={<USClubPitchPage variant="partner" />} />
@@ -189,6 +194,7 @@ function AppRoutes() {
       <Route path="/dashboard/subscription" element={<ClientRoute><AppLayout><SubscriptionPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/team-tests"   element={<ClientRoute><AppLayout><TeamTestsPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/cargas"       element={<ClientRoute><AppLayout><CargasPage /></AppLayout></ClientRoute>} />
+      <Route path="/dashboard/mis-cargas"    element={<ClientRoute><AppLayout><PlayerLoadHistoryPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/club-profile" element={<ClientRoute><AppLayout><ClubProfilePage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/club-settings" element={<ClientRoute><AppLayout><ClubSettingsPage /></AppLayout></ClientRoute>} />
 

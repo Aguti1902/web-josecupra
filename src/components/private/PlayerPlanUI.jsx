@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import {
   ArrowLeft, CheckCircle, Clock, Dumbbell, FileText, Flame, Gauge, Info,
-  Layers, Pause, Target, Video, Wind, X,
+  Layers, Pause, Target, Video, Wind, X, RefreshCw,
 } from "lucide-react";
 import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS } from "../../lib/sessionBlocks";
 import { getYouTubeId } from "../../lib/youtube";
+import { saveLoadLog, loadFieldsForObjective } from "../../lib/loadLogs";
+import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
+import { hasFeatureAccess } from "../../lib/subscription";
 
 const BLOCK_CONFIG = {
   calentamiento:  { label: "Calentamiento",     Icon: Flame,    color: "#F59E0B" },
@@ -31,8 +34,47 @@ function ConditionPill({ Icon, label, color = "#6B7280" }) {
   );
 }
 
-function ExerciseModal({ exercise, onClose, accent }) {
+function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, onSwap, canSwap }) {
   const ytId = getYouTubeId(exercise.videoUrl);
+  const fields = loadFieldsForObjective(objective);
+  const [loadDraft, setLoadDraft] = useState({});
+  const [loadSaved, setLoadSaved] = useState(false);
+  const [loadNotice, setLoadNotice] = useState("");
+
+  const handleSaveLoad = () => {
+    if (!canPersistInTrial(user, "save_loads")) {
+      setLoadNotice(trialPersistBlockedMessage());
+      return;
+    }
+    if (!hasFeatureAccess(user, "cargas")) {
+      setLoadNotice("Activa el extra «Registro de cargas» en Suscripción para guardar tus datos.");
+      return;
+    }
+    saveLoadLog(user?.id, {
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      sessionId: sessionMeta?.sessionId,
+      sessionTitle: sessionMeta?.sessionTitle,
+      weekLabel: sessionMeta?.weekLabel || new Date().toISOString().slice(0, 10),
+      objective,
+      ...loadDraft,
+    });
+    setLoadSaved(true);
+    setLoadNotice("");
+  };
+
+  const fieldLabels = {
+    weight: "Peso (kg)",
+    sets: "Series",
+    reps: "Repeticiones",
+    rpe: "RPE",
+    time: "Tiempo",
+    distance: "Distancia",
+    heartRate: "FC (ppm)",
+    feelings: "Sensaciones",
+    notes: "Observaciones",
+  };
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -90,13 +132,60 @@ function ExerciseModal({ exercise, onClose, accent }) {
             )}
           </div>
         )}
-        <button
-          onClick={onClose}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-          style={{ backgroundColor: accent, color: contrastText(accent) }}
-        >
-          <CheckCircle size={15} /> Entendido
-        </button>
+
+        <div className="rounded-xl border border-depro-border p-4 mb-4 space-y-3">
+          <div className="text-sm font-bold text-depro-dark">Registro de carga</div>
+          <div className="grid grid-cols-2 gap-2">
+            {fields.map((field) => (
+              <div key={field} className={field === "notes" || field === "feelings" ? "col-span-2" : ""}>
+                <label className="text-[10px] font-bold text-depro-gray uppercase">{fieldLabels[field]}</label>
+                {field === "notes" || field === "feelings" ? (
+                  <textarea
+                    className="admin-input w-full text-xs mt-1"
+                    rows={2}
+                    value={loadDraft[field] || ""}
+                    onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })}
+                  />
+                ) : (
+                  <input
+                    className="admin-input w-full text-xs mt-1"
+                    value={loadDraft[field] || ""}
+                    onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          {loadNotice && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">{loadNotice}</p>}
+          {loadSaved && <p className="text-xs text-green-700">Registro guardado para este entrenamiento.</p>}
+          <button
+            type="button"
+            onClick={handleSaveLoad}
+            className="w-full py-2.5 rounded-xl text-sm font-bold border border-depro-border hover:border-depro-blue hover:text-depro-blue transition-colors"
+          >
+            Guardar registro
+          </button>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          {onSwap && (
+            <button
+              type="button"
+              disabled={!canSwap}
+              onClick={() => { onSwap(exercise.id); onClose(); }}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-depro-border hover:border-depro-blue hover:text-depro-blue transition-all disabled:opacity-40"
+            >
+              <RefreshCw size={15} /> Cambiar ejercicio
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+            style={{ backgroundColor: accent, color: contrastText(accent) }}
+          >
+            <CheckCircle size={15} /> Entendido
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -247,6 +336,11 @@ export function PlayerSessionFullscreen({
   onComplete,
   onUncomplete,
   onDownloadPdf,
+  user,
+  objective,
+  onSwapExercise,
+  canSwap = true,
+  swapMessage,
 }) {
   const blocks = getNonEmptyBlocks(session);
   const totalEx = blocks.reduce((a, b) => a + (b.exercises?.length || 0), 0);
@@ -291,6 +385,12 @@ export function PlayerSessionFullscreen({
           {session.objective && (
             <p className="text-sm text-depro-gray leading-relaxed bg-depro-gray-light rounded-xl p-4 border border-depro-border">
               {session.objective}
+            </p>
+          )}
+
+          {swapMessage && (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-xl p-3 leading-relaxed">
+              {swapMessage}
             </p>
           )}
 
@@ -360,7 +460,16 @@ export function PlayerSessionFullscreen({
       </footer>
 
       {selectedEx && (
-        <ExerciseModal exercise={selectedEx} onClose={() => setSelectedEx(null)} accent={accentColor} />
+        <ExerciseModal
+          exercise={selectedEx}
+          onClose={() => setSelectedEx(null)}
+          accent={accentColor}
+          user={user}
+          objective={objective}
+          sessionMeta={{ sessionId: session.id, sessionTitle: session.title, weekLabel: dayLabel }}
+          onSwap={onSwapExercise}
+          canSwap={canSwap}
+        />
       )}
     </div>
   );

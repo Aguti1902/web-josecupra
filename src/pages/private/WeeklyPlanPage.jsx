@@ -16,8 +16,14 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession, refreshExercise, normalizeLesions } from "../../lib/playerPlanEngine";
 import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "../../lib/sessionProgress";
+import {
+  canSwapExercise, recordSwap, swapsRemaining, hasUnlimitedSwaps, MAINTENANCE_MESSAGE, MAX_PLAN_SWAPS,
+} from "../../lib/planSwapLimits";
+import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
+import { hasFeatureAccess } from "../../lib/subscription";
+import { savePlayerPlan } from "../../lib/playerPlanStorage";
 import CoachSessions from "../../components/private/CoachSessions";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
@@ -425,7 +431,11 @@ function PlayerWeeklyPlan({ accent }) {
         }
       } catch { /* motor local como fallback */ }
       setPlan(generated);
-      localStorage.setItem(planKey, JSON.stringify(generated));
+      if (!generated.planError) {
+        localStorage.setItem(planKey, JSON.stringify(generated));
+      } else {
+        localStorage.removeItem(planKey);
+      }
     } finally {
       setGen(false);
     }
@@ -437,22 +447,54 @@ function PlayerWeeklyPlan({ accent }) {
   };
 
   const handleSessionComplete = (sessionId, dayLabel) => {
-    const updated = markSessionComplete({ userId: user?.id, planKey, sessionId, dayLabel });
+    const persist = canPersistInTrial(user, "save_progress");
+    const updated = markSessionComplete({ userId: user?.id, planKey, sessionId, dayLabel, persist });
     if (updated) setPlan(updated);
-    touchLastTrain(user?.id);
+    if (persist) touchLastTrain(user?.id);
   };
 
   const handleSessionToggle = (sessionId, dayLabel) => {
-    const updated = toggleSessionCompletion({ userId: user?.id, planKey, sessionId, dayLabel });
+    const persist = canPersistInTrial(user, "save_progress");
+    const updated = toggleSessionCompletion({ userId: user?.id, planKey, sessionId, dayLabel, persist });
     if (updated) setPlan(updated);
-    touchLastTrain(user?.id);
+    if (persist) touchLastTrain(user?.id);
   };
 
-  const handleReset = () => {
-    if (!confirm(t("weekly_plan.regenerate") + "?")) return;
-    localStorage.removeItem(planKey);
-    setPlan(null);
+  const buildFilterParams = () => ({
+    material: user?.material?.toLowerCase().replace(/\s|\//g, "_").replace("barra_gimnasio", "barra") || "sin_material",
+    lesiones: normalizeLesions(user?.lesion, user?.lesionSubtipo),
+    edad: parseInt(user?.edad, 10) || 20,
+    deporte: user?.deporte || "",
+    experiencia: user?.experiencia?.includes("Nunca") || user?.experiencia?.includes("Menos") ? "novato"
+      : user?.experiencia?.includes("Más de 3") ? "avanzado" : "intermedio",
+  });
+
+  const handleExerciseSwap = (sessionId, exerciseId) => {
+    if (!canSwapExercise(user)) {
+      alert(`Has usado tus ${MAX_PLAN_SWAPS} cambios de ejercicio. Añade el extra «Ejercicios ilimitados» en Suscripción.`);
+      return;
+    }
+    if (!hasUnlimitedSwaps(user) && !window.confirm(`${MAINTENANCE_MESSAGE}\n\n¿Sustituir este ejercicio?`)) return;
+
+    let nextPlan = null;
+    setPlan((prev) => {
+      if (!prev) return prev;
+      nextPlan = prev.map((day) => ({
+        ...day,
+        sessions: (day.sessions || []).map((s) =>
+          s.id === sessionId ? refreshExercise(s, exerciseId, buildFilterParams()) : s
+        ),
+      }));
+      return nextPlan;
+    });
+    if (nextPlan && user?.id) {
+      savePlayerPlan(user.id, nextPlan);
+      localStorage.setItem(planKey, JSON.stringify(nextPlan));
+      recordSwap(user.id);
+    }
   };
+
+  const remainingSwaps = swapsRemaining(user);
 
   // ── Sin plan generado ──────────────────────────────────────
   if (!plan) {
@@ -485,6 +527,37 @@ function PlayerWeeklyPlan({ accent }) {
               </a>
             </>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Plan incoherente (objetivo + días + competición) ─────
+  if (plan?.planError) {
+    return (
+      <div className="p-4 md:p-8 max-w-3xl mx-auto">
+        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">{t("weekly_plan.title")}</h1>
+        <p className="text-depro-gray text-sm mb-6">{t("weekly_plan.subtitle")}</p>
+        <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-6 shadow-card">
+          <h2 className="text-lg font-black text-amber-950 mb-3">No podemos generar tu plan con estos datos</h2>
+          <p className="text-sm text-amber-900 whitespace-pre-line leading-relaxed">{plan.planError}</p>
+          <div className="flex flex-wrap gap-3 mt-6">
+            <Link
+              to="/dashboard/profile"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark"
+            >
+              Ajustar perfil
+            </Link>
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={generating}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-amber-400 text-amber-900 text-sm font-bold hover:bg-amber-100 disabled:opacity-60"
+            >
+              {generating ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+              Reintentar
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -547,10 +620,15 @@ function PlayerWeeklyPlan({ accent }) {
           <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Plan de entrenamiento</h1>
           <p className="text-depro-gray text-sm">Objetivo: <strong>{user?.objetivo}</strong> · {user?.frecuencia} días/semana</p>
         </div>
-        <button onClick={handleReset}
-          className="flex-shrink-0 flex items-center gap-1.5 text-xs text-depro-gray border border-depro-border px-3 py-2 rounded-xl hover:border-red-300 hover:text-red-500 transition-colors">
-          <RefreshCw size={13} /> Regenerar
-        </button>
+        <div className="flex-shrink-0 text-right">
+          {remainingSwaps != null ? (
+            <p className="text-[11px] text-depro-gray max-w-[140px]">
+              Cambios restantes: <strong>{remainingSwaps}</strong>/{MAX_PLAN_SWAPS}
+            </p>
+          ) : (
+            <p className="text-[11px] text-depro-gray max-w-[140px]">Cambios ilimitados</p>
+          )}
+        </div>
       </div>
 
       {/* Toggle Microciclo / Mesociclo */}
@@ -651,10 +729,22 @@ function PlayerWeeklyPlan({ accent }) {
         sessionNumber={activeSession.sessionNumber}
         dayLabel={activeSession.dayName}
         accentColor={accent}
+        user={user}
+        objective={user?.objetivo}
         onClose={closeSession}
         onComplete={() => handleSessionComplete(microRef.id, microRef.dayName)}
         onUncomplete={() => handleSessionToggle(microRef.id, microRef.dayName)}
-        onDownloadPdf={() => sessionPdf(activeSession)}
+        onDownloadPdf={() => {
+          if (!hasFeatureAccess(user, "pdf_export")) return;
+          if (!canPersistInTrial(user, "pdf_export")) {
+            alert(trialPersistBlockedMessage());
+            return;
+          }
+          sessionPdf(activeSession);
+        }}
+        onSwapExercise={(exerciseId) => handleExerciseSwap(activeSession.id, exerciseId)}
+        canSwap={canSwapExercise(user)}
+        swapMessage={MAINTENANCE_MESSAGE}
       />
       );
     })()}

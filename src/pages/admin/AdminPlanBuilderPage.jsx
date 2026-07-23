@@ -105,7 +105,14 @@ function IASimulator() {
     setSimulated(null);
     setExpandedKey(null);
     setTimeout(() => {
-      const weeks = buildFourWeekPlan(buildUser());
+      const user = buildUser();
+      const probe = buildPlayerPlan(user);
+      if (probe.planError) {
+        setSimulated({ error: probe.planError });
+        setLoading(false);
+        return;
+      }
+      const weeks = buildFourWeekPlan(user);
       setSimulated({ weeks });
       setViewWeek(1);
       setLoading(false);
@@ -168,7 +175,7 @@ function IASimulator() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Objetivos principales (2)</label>
+            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Objetivos (principal + secundario opcional)</label>
             <div className="flex flex-wrap gap-1.5">
               {OBJECTIVES.map((o) => {
                 const sel = (profile.objetivos || []).includes(o);
@@ -186,13 +193,19 @@ function IASimulator() {
                 );
               })}
             </div>
-            <p className="text-[10px] text-depro-gray mt-1">{(profile.objetivos || []).length}/2</p>
+            <p className="text-[10px] text-depro-gray mt-1">
+              {(profile.objetivos || []).length === 0
+                ? "Selecciona al menos 1"
+                : (profile.objetivos || []).length === 1
+                  ? "1 objetivo"
+                  : "2 objetivos"}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Frecuencia</label>
-              {["1", "2", "3", "4"].map((d) => (
+              {["1", "2", "3", "4", "5"].map((d) => (
                 <button key={d} type="button" onClick={() => setProfile((p) => ({ ...p, frecuencia: d }))}
                   className={`w-full mb-1 py-1.5 rounded-lg border text-xs font-semibold ${profile.frecuencia === d ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray"}`}>
                   {d} día{d !== "1" ? "s" : ""}/sem
@@ -303,7 +316,13 @@ function IASimulator() {
             </div>
           )}
 
-          {simulated && currentWeek && (
+          {simulated?.error && (
+            <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-5 text-sm text-amber-900 whitespace-pre-line">
+              {simulated.error}
+            </div>
+          )}
+
+          {simulated && !simulated.error && currentWeek && (
             <div className="space-y-3">
               <div className="flex gap-1 p-1 bg-white rounded-xl border border-depro-border">
                 {[1, 2, 3, 4].map((w) => (

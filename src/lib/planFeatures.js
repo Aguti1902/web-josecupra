@@ -1,6 +1,9 @@
 /**
  * Registro de funcionalidades del panel: qué plan las incluye y si
  * quedan bloqueadas durante el periodo de prueba de 15 días.
+ *
+ * PDF §6: durante la demo el usuario explora casi todo; solo se bloquea
+ * persistencia (PDF, export, guardar progreso/cargas/estadísticas).
  */
 import { PLAN_ORDER, PLANS } from "./checkoutPlans";
 
@@ -11,7 +14,8 @@ export const FEATURES = {
     descKey: "features.feedback_desc",
     audiences: ["player"],
     minPlan: { player: "player-pro" },
-    trialLocked: true,
+    trialLocked: false,
+    upsellBenefits: ["Feedback semanal personalizado", "Ajustes automáticos del plan", "Seguimiento del preparador"],
   },
   ranking: {
     id: "ranking",
@@ -19,7 +23,7 @@ export const FEATURES = {
     descKey: "features.ranking_desc",
     audiences: ["player"],
     minPlan: { player: "player-essential" },
-    trialLocked: true,
+    trialLocked: false,
   },
   physical_tests: {
     id: "physical_tests",
@@ -27,7 +31,9 @@ export const FEATURES = {
     descKey: "features.physical_tests_desc",
     audiences: ["player"],
     minPlan: { player: "player-essential" },
-    trialLocked: true,
+    trialLocked: false,
+    addonId: "addon-physical-tests",
+    upsellBenefits: ["Tests físicos guiados", "Histórico y comparativas", "Recomendaciones automáticas"],
   },
   pdf_export: {
     id: "pdf_export",
@@ -37,6 +43,7 @@ export const FEATURES = {
     minPlan: { player: "player-essential", coach: "coach-starter", club: "club-inicial" },
     trialLocked: true,
     addonId: "addon-pdf",
+    upsellBenefits: ["Descarga de sesiones en PDF", "Plan semanal imprimible", "Formato profesional DEPRO"],
   },
   mesocycle: {
     id: "mesocycle",
@@ -44,15 +51,17 @@ export const FEATURES = {
     descKey: "features.mesocycle_desc",
     audiences: ["coach", "club"],
     minPlan: { coach: "coach-starter", club: "club-inicial" },
-    trialLocked: true,
+    trialLocked: false,
   },
   cargas: {
     id: "cargas",
     labelKey: "features.cargas",
     descKey: "features.cargas_desc",
-    audiences: ["coach", "club"],
-    minPlan: { coach: "coach-pro", club: "club-pro" },
-    trialLocked: true,
+    audiences: ["player", "coach", "club"],
+    minPlan: { player: "player-pro", coach: "coach-pro", club: "club-pro" },
+    trialLocked: false,
+    addonId: "addon-cargas",
+    upsellBenefits: ["Registro de cargas por ejercicio", "Histórico y gráficos", "Sincronizado con tus sesiones"],
   },
   team_tests: {
     id: "team_tests",
@@ -60,7 +69,7 @@ export const FEATURES = {
     descKey: "features.team_tests_desc",
     audiences: ["coach", "club"],
     minPlan: { coach: "coach-pro", club: "club-inicial" },
-    trialLocked: true,
+    trialLocked: false,
   },
   coach_contact: {
     id: "coach_contact",
@@ -68,7 +77,8 @@ export const FEATURES = {
     descKey: "features.coach_contact_desc",
     audiences: ["player"],
     minPlan: { player: "player-pro" },
-    trialLocked: true,
+    trialLocked: false,
+    upsellBenefits: ["Chat directo con tu preparador", "Respuestas personalizadas", "Historial de conversaciones"],
   },
   progression: {
     id: "progression",
@@ -76,7 +86,7 @@ export const FEATURES = {
     descKey: "features.progression_desc",
     audiences: ["player"],
     minPlan: { player: "player-essential" },
-    trialLocked: true,
+    trialLocked: false,
     addonId: "addon-progression",
   },
   exercise_library: {
@@ -85,8 +95,18 @@ export const FEATURES = {
     descKey: "features.exercise_library_desc",
     audiences: ["player"],
     minPlan: { player: "player-essential" },
-    trialLocked: true,
+    trialLocked: false,
     addonId: "addon-library",
+  },
+  unlimited_exercises: {
+    id: "unlimited_exercises",
+    labelKey: "features.unlimited_exercises",
+    descKey: "features.unlimited_exercises_desc",
+    audiences: ["player"],
+    minPlan: { player: "player-essential" },
+    trialLocked: false,
+    addonId: "addon-unlimited-exercises",
+    upsellBenefits: ["Cambios de ejercicio ilimitados", "Misma planificación base", "Ideal para probar variantes"],
   },
 };
 

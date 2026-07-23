@@ -201,6 +201,12 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="flex justify-end mb-1">
+              <Link to="/recuperar-contrasena" className="text-xs font-semibold text-depro-blue hover:underline">
+                {t("login.forgot")}
+              </Link>
+            </div>
+
             {error && (
               <div className="flex items-center gap-2 text-depro-red text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">
                 <AlertCircle size={16} className="flex-shrink-0" /> {error}

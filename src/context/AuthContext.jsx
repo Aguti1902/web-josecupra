@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { getCachedSubscription } from "../lib/subscription";
+import { getCachedSubscription, isInTrial } from "../lib/subscription";
+import { clearTrialLoadLogs } from "../lib/loadLogs";
 
 const AuthContext = createContext(null);
 
@@ -430,9 +431,59 @@ export function AuthProvider({ children }) {
     } catch {}
   };
 
+  // ── Recuperación de contraseña ─────────────────────────────
+  const resetPasswordForEmail = async (email) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        redirectTo: `${window.location.origin}/restablecer-contrasena`,
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch {
+      return { success: false, error: "Error de red. Inténtalo de nuevo." };
+    }
+  };
+
+  const updatePassword = async (password) => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch {
+      return { success: false, error: "No se pudo actualizar la contraseña" };
+    }
+  };
+
+  const recoverSessionFromHash = async () => {
+    try {
+      if (window.location.hash.includes("access_token") || window.location.hash.includes("type=recovery")) {
+        await new Promise((r) => setTimeout(r, 300));
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          window.history.replaceState(null, "", window.location.pathname);
+          return true;
+        }
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      return !!session;
+    } catch {
+      return false;
+    }
+  };
+
   // ── Logout ─────────────────────────────────────────────────
   const logout = async () => {
-    try { await supabase.auth.signOut(); } catch {}
+    try {
+      if (user?.id && isInTrial(user)) {
+        clearTrialLoadLogs(user.id);
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith(`depro_progress_${user.id}`) || key.startsWith(`depro_chat_${user.id}`)) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+      await supabase.auth.signOut();
+    } catch {}
     setUser(null);
   };
 
@@ -452,7 +503,10 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout, register, refreshUser }}>
+    <AuthContext.Provider value={{
+      user, loading, login, loginWithGoogle, logout, register, refreshUser,
+      resetPasswordForEmail, updatePassword, recoverSessionFromHash,
+    }}>
       {children}
     </AuthContext.Provider>
   );

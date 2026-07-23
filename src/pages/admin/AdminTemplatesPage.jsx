@@ -30,17 +30,15 @@ function TemplateCard({ template, onUpdate }) {
   ).toLowerCase();
 
   const changeSlot = (idx, delta) => {
-    if (v2) return;
     setLocalSlots((prev) => {
       const next = [...prev];
-      next[idx] = Math.max(1, Math.min(8, (next[idx] || 1) + delta));
+      next[idx] = Math.max(1, Math.min(12, (next[idx] || 1) + delta));
       return next;
     });
     setSaved(false);
   };
 
   const handleSave = () => {
-    if (v2) return;
     localSlots.forEach((slots, i) => updateTemplateBlockSlots(template.id, i, slots));
     onUpdate();
     setSaved(true);
@@ -83,7 +81,15 @@ function TemplateCard({ template, onUpdate }) {
                 <p className="text-xs text-depro-gray truncate">{block.duration} · {slotSummary(block)}</p>
               </div>
               {v2 ? (
-                <span className="text-sm font-bold text-depro-dark shrink-0">{countBlockSlots(block)} ej.</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button type="button" onClick={() => changeSlot(i, -1)} className="w-8 h-8 rounded-lg border border-depro-border flex items-center justify-center hover:bg-depro-gray-light">
+                    <Minus size={14} />
+                  </button>
+                  <span className="w-8 text-center font-bold text-depro-dark">{localSlots[i]}</span>
+                  <button type="button" onClick={() => changeSlot(i, 1)} className="w-8 h-8 rounded-lg border border-depro-border flex items-center justify-center hover:bg-depro-gray-light">
+                    <Plus size={14} />
+                  </button>
+                </div>
               ) : (
                 <div className="flex items-center gap-2 shrink-0">
                   <button type="button" onClick={() => changeSlot(i, -1)} className="w-8 h-8 rounded-lg border border-depro-border flex items-center justify-center hover:bg-depro-gray-light">
@@ -97,19 +103,17 @@ function TemplateCard({ template, onUpdate }) {
               )}
             </div>
           ))}
-          {!v2 && (
-            <button
-              type="button"
-              onClick={handleSave}
-              className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark transition-colors"
-            >
-              <Save size={15} />
-              {saved ? "Guardado" : "Guardar cambios"}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleSave}
+            className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark transition-colors"
+          >
+            <Save size={15} />
+            {saved ? "Guardado" : "Guardar cambios"}
+          </button>
           {v2 && (
             <p className="text-xs text-depro-gray text-center pt-1">
-              Plantilla v2: los slots están definidos por pool en el código. El refresh solo sustituye dentro del mismo pool.
+              Plantilla v2: ajusta el número de ejercicios por bloque (pools fijos).
             </p>
           )}
         </div>

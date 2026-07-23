@@ -10,18 +10,30 @@ export default function PaymentSuccessPage() {
   const navigate = useNavigate();
   const { user, login, refreshUser, loading: authLoading } = useAuth();
   const [visible, setVisible] = useState(false);
-  const [status, setStatus] = useState({ loading: true, redirecting: false, error: null });
+  const [status, setStatus] = useState({ loading: !!sessionId, redirecting: false, error: null, done: false });
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 100);
   }, []);
 
   useEffect(() => {
-    if (!sessionId || authLoading) return;
+    if (!sessionId) {
+      if (!authLoading) setStatus({ loading: false, redirecting: false, error: null, done: true });
+      return;
+    }
 
     let cancelled = false;
 
+    async function waitForAuth() {
+      if (!authLoading) return;
+      await new Promise((r) => setTimeout(r, 2500));
+    }
+
     async function finalize() {
+      setStatus((s) => ({ ...s, loading: true, error: null }));
+      await waitForAuth();
+      if (cancelled) return;
+
       try {
         const res = await fetch("/api/complete-payment", {
           method: "POST",
@@ -32,7 +44,7 @@ export default function PaymentSuccessPage() {
         if (cancelled) return;
 
         if (!data.ok) {
-          setStatus({ loading: false, redirecting: false, error: data.error || "No se pudo activar tu cuenta" });
+          setStatus({ loading: false, redirecting: false, error: data.error || "No se pudo activar tu cuenta", done: true });
           return;
         }
 
@@ -46,7 +58,7 @@ export default function PaymentSuccessPage() {
           });
         }
 
-        setStatus({ loading: false, redirecting: true, error: null });
+        setStatus({ loading: false, redirecting: true, error: null, done: false });
 
         if (user) {
           await refreshUser();
@@ -66,10 +78,11 @@ export default function PaymentSuccessPage() {
           loading: false,
           redirecting: false,
           error: "Pago confirmado. Inicia sesión con el email que usaste al registrarte.",
+          done: true,
         });
       } catch (e) {
         if (!cancelled) {
-          setStatus({ loading: false, redirecting: false, error: e.message });
+          setStatus({ loading: false, redirecting: false, error: e.message, done: true });
         }
       }
     }
@@ -78,11 +91,7 @@ export default function PaymentSuccessPage() {
     return () => { cancelled = true; };
   }, [sessionId, user, authLoading, login, refreshUser, navigate]);
 
-  useEffect(() => {
-    if (!sessionId && !authLoading) {
-      setStatus({ loading: false, redirecting: false, error: null });
-    }
-  }, [sessionId, authLoading]);
+  const busy = status.loading || status.redirecting;
 
   return (
     <div className="min-h-screen bg-depro-gray-light flex items-center justify-center px-4">
@@ -99,12 +108,12 @@ export default function PaymentSuccessPage() {
 
         <h1 className="text-3xl font-black text-depro-dark mb-3">¡Pago completado!</h1>
         <p className="text-depro-gray mb-2">
-          {status.loading || status.redirecting
+          {busy
             ? "Activando tu suscripción y entrando al panel…"
             : "Tu suscripción está activa."}
         </p>
 
-        {(status.loading || status.redirecting) && (
+        {busy && (
           <div className="flex justify-center mb-6">
             <Loader2 size={28} className="animate-spin text-depro-blue" />
           </div>
@@ -114,10 +123,13 @@ export default function PaymentSuccessPage() {
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">{status.error}</p>
         )}
 
-        {!status.loading && !status.redirecting && (
+        {!busy && (
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/login" className="btn-primary flex items-center justify-center gap-2 px-6 py-3">
               Acceder al panel <ArrowRight size={16} />
+            </Link>
+            <Link to="/dashboard" className="btn-ghost flex items-center justify-center gap-2 px-6 py-3">
+              Ir al dashboard
             </Link>
             <Link to="/" className="btn-ghost flex items-center justify-center gap-2 px-6 py-3">
               Volver al inicio

@@ -957,6 +957,15 @@ function JugadorDashboard({ user, club }) {
 
   return (
     <div className="space-y-6">
+      {playerPlan?.planError && (
+        <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
+          <p className="font-black text-amber-950 mb-2">Planificación pendiente de ajuste</p>
+          <p className="whitespace-pre-line line-clamp-4">{playerPlan.planError}</p>
+          <Link to="/dashboard/profile" className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-depro-blue hover:underline">
+            Ajustar días u objetivos <ArrowRight size={12} />
+          </Link>
+        </div>
+      )}
       {adherenceReminder && (
         <div className="rounded-2xl p-4 border border-amber-200 bg-amber-50 text-sm text-amber-800 flex flex-col sm:flex-row sm:items-center gap-3">
           <span className="flex-1">{adherenceReminder.message}</span>

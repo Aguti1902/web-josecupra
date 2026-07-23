@@ -12,9 +12,13 @@ import {
   getSessionTypesForUser,
   normalizeMatchDay,
   sessionIntensity,
+  validatePlanCoherence,
+  PLAN_COHERENCE_MESSAGE,
 } from "./planLoadRules";
 
-export { DAY_ORDER, DAY_SHORT };
+export { DAY_ORDER, DAY_SHORT, PLAN_COHERENCE_MESSAGE };
+
+export const MIN_SESSION_EXERCISES = 5;
 
 const SUBTIPO_TO_AREA = {
   acl: "rodilla", menisco: "rodilla", rotuliana: "rodilla", condromalacia: "rodilla",
@@ -172,7 +176,7 @@ function fillTemplateV2(sessionType, filterParams, usedIds) {
   }
 
   const intensity = template.intensityLevel || template.intensity;
-  return {
+  const session = {
     type: sessionType,
     title: template.title || sessionType,
     objective: `Sesión ${sessionType} según tu plan personalizado DEPRO.`,
@@ -180,6 +184,69 @@ function fillTemplateV2(sessionType, filterParams, usedIds) {
     intensity,
     intensityLevel: intensity || sessionIntensity(sessionType),
     status: "pending",
+    blocks,
+    exercises: blocks.flatMap((b) => b.exercises),
+  };
+  return ensureMinimumExercises(session, filterParams, usedIds);
+}
+
+function countSessionExercises(session) {
+  if (session.exercises?.length) return session.exercises.length;
+  return (session.blocks || []).reduce((n, b) => n + (b.exercises?.length || 0), 0);
+}
+
+/** Garantiza al menos MIN_SESSION_EXERCISES añadiendo slots complementarios. */
+function ensureMinimumExercises(session, filterParams, usedIds) {
+  let total = countSessionExercises(session);
+  if (total >= MIN_SESSION_EXERCISES) return session;
+
+  const userProfile = buildUserProfile(filterParams);
+  let sessionUsedIds = [...usedIds].map(parseCatalogId).filter((n) => n != null);
+  const fillerSlot = {
+    type: "complementario",
+    label: "Complementario",
+    duration: "8 min",
+    slots: [{ poolFamily: "movilidad", qty: 1, description: "Complemento de sesión" }],
+  };
+
+  const blocks = [...(session.blocks || [])];
+  let globalIdx = total;
+
+  while (total < MIN_SESSION_EXERCISES) {
+    const { exercises: raw, usedIds: newIds } = fillBlockSlots(
+      fillerSlot,
+      userProfile,
+      sessionUsedIds,
+      [],
+    );
+    if (!raw.length) break;
+
+    sessionUsedIds = newIds;
+    const newExercises = raw.map((ex, i) => {
+      usedIds.add(ex.id);
+      return makeExerciseFromV2(ex, globalIdx + i, "complementario");
+    });
+    globalIdx += newExercises.length;
+    total += newExercises.length;
+
+    const last = blocks[blocks.length - 1];
+    if (last?.type === "complementario" && last.label === fillerSlot.label) {
+      blocks[blocks.length - 1] = {
+        ...last,
+        exercises: [...(last.exercises || []), ...newExercises],
+      };
+    } else {
+      blocks.push({
+        type: fillerSlot.type,
+        label: fillerSlot.label,
+        duration: fillerSlot.duration,
+        exercises: newExercises,
+      });
+    }
+  }
+
+  return {
+    ...session,
     blocks,
     exercises: blocks.flatMap((b) => b.exercises),
   };
@@ -249,7 +316,7 @@ function fillTemplate(sessionType, filterParams, usedIds, weekOffset = 0) {
 
   globalIdx += blocks.reduce((n, b) => n + b.exercises.length, 0);
 
-  return {
+  const session = {
     type: sessionType,
     title: sessionType,
     objective: `Sesión ${sessionType} según tu plan personalizado DEPRO.`,
@@ -260,6 +327,7 @@ function fillTemplate(sessionType, filterParams, usedIds, weekOffset = 0) {
     blocks,
     exercises: blocks.flatMap((b) => b.exercises),
   };
+  return ensureMinimumExercises(session, filterParams, usedIds);
 }
 
 /** @deprecated Usar assignSessionsToDays de planLoadRules */
@@ -280,8 +348,20 @@ export function buildPlayerPlan(user, options = {}) {
   const expLevel = experienciaLevel(user?.experiencia);
   const matchDay = normalizeMatchDay(user?.diaCompeticion || user?.dia_competicion);
 
-  const sessionTypes = sessionTypesOverride || getSessionTypesForUser(objetivo, frecuencia, user?.objetivoSecundario);
-  const assignments = assignSessionsToDays(sessionTypes, availableDays, matchDay);
+  const coherence = validatePlanCoherence(user);
+  if (!coherence.ok) {
+    const emptyWeek = DAY_ORDER.map((nombre, i) => ({
+      day: nombre,
+      shortDay: DAY_SHORT[i],
+      date: nombre,
+      sessions: [],
+    }));
+    emptyWeek.planError = coherence.message;
+    return emptyWeek;
+  }
+
+  const sessionTypes = sessionTypesOverride || coherence.sessionTypes || getSessionTypesForUser(objetivo, frecuencia, user?.objetivoSecundario);
+  const assignments = coherence.assignments || assignSessionsToDays(sessionTypes, availableDays, matchDay);
   const filterParams = { material, lesiones, edad, deporte, experiencia: expLevel };
   const usedIds = new Set();
 
@@ -404,10 +484,19 @@ export function ensurePlayerPlan(user) {
   const planKey = `depro_plan_${user.id}`;
   try {
     const existing = localStorage.getItem(planKey);
-    if (existing) return JSON.parse(existing);
+    if (existing) {
+      const parsed = JSON.parse(existing);
+      if (parsed?.planError) {
+        localStorage.removeItem(planKey);
+      } else {
+        return parsed;
+      }
+    }
   } catch { /* ignore */ }
   const plan = buildPlayerPlan(user);
-  localStorage.setItem(planKey, JSON.stringify(plan));
+  if (!plan.planError) {
+    localStorage.setItem(planKey, JSON.stringify(plan));
+  }
   return plan;
 }
 

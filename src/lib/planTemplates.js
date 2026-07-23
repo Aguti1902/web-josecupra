@@ -112,9 +112,13 @@ export const PLAYER_TEMPLATES = {
   },
 };
 
-/** Secuencia semanal según objetivo y frecuencia (v2 + legacy resistencia) */
+/** Secuencia semanal según objetivo y frecuencia (PDF lógica selección sesiones) */
+export function parseWeeklyFrequency(frecuencia) {
+  return Math.min(5, Math.max(1, parseInt(String(frecuencia).replace(/\D/g, "")) || 3));
+}
+
 export function getWeeklySessionTypes(objetivo, frecuencia) {
-  const n = Math.min(4, Math.max(1, parseInt(String(frecuencia).replace(/\D/g, "")) || 3));
+  const n = parseWeeklyFrequency(frecuencia);
   const obj = (objetivo || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   const v2KeyMap = {
@@ -128,22 +132,28 @@ export function getWeeklySessionTypes(objetivo, frecuencia) {
   };
   const v2Key = v2KeyMap[obj];
   if (v2Key && WEEKLY_SESSION_CONFIG[v2Key]?.[n]) {
-    return WEEKLY_SESSION_CONFIG[v2Key][n];
+    return [...WEEKLY_SESSION_CONFIG[v2Key][n]];
   }
 
   if (obj === "resistencia") {
     if (n === 1) return ["Resistencia aeróbica"];
-    if (n === 2) return ["Resistencia aeróbica", "Resistencia anaeróbica"];
-    if (n === 3) return ["Resistencia aeróbica", "Resistencia anaeróbica", "Fuerza A"];
-    return ["Resistencia aeróbica", "Resistencia anaeróbica", "Fuerza A", "Velocidad"];
+    if (n === 2) return ["Resistencia aeróbica", "Resistencia umbral"];
+    if (n === 3) return ["Resistencia aeróbica", "Resistencia umbral", "Fuerza A"];
+    if (n === 4) return ["Resistencia aeróbica", "Resistencia umbral", "Resistencia anaeróbica", "Fuerza A"];
+    return ["Resistencia aeróbica", "Resistencia umbral", "Resistencia anaeróbica", "Fuerza A", "Movilidad"];
   }
   if (obj === "hipertrofia" || obj === "estetica") {
     if (n === 1) return ["Full Body"];
-    if (n === 2) return ["Fuerza Superior A", "Fuerza A"];
-    if (n === 3) return ["Fuerza Superior A", "Fuerza Superior B", "Fuerza A"];
-    return ["Fuerza Superior A", "Fuerza Superior B", "Fuerza A", "Fuerza B"];
+    if (n === 2) return ["Hipertrofia Pierna", "Full Body"];
+    if (n === 3) return ["Hipertrofia Pierna", "Hipertrofia Push", "Hipertrofia Pull"];
+    if (n === 4) return ["Hipertrofia Pierna", "Hipertrofia Push", "Hipertrofia Pull", "Full Body"];
+    return ["Hipertrofia Pierna", "Hipertrofia Push", "Hipertrofia Pull", "Hipertrofia Anterior", "Hipertrofia Posterior"];
   }
-  return ["Fuerza A", "Fuerza B", "Velocidad"].slice(0, n);
+  if (n === 1) return ["Fuerza A"];
+  if (n === 2) return ["Fuerza A", "Fuerza B"];
+  if (n === 3) return ["Fuerza A", "Fuerza B", "Fuerza Superior A"];
+  if (n === 4) return ["Fuerza A", "Fuerza B", "Fuerza Superior A", "Fuerza Superior B"];
+  return ["Fuerza A", "Fuerza B", "Fuerza Superior A", "Fuerza Superior B", "Pliometría"];
 }
 
 export function countBlockSlots(block) {
@@ -168,8 +178,24 @@ export function saveTemplateOverrides(overrides) {
 
 export function getTemplate(sessionType) {
   const base = PLAYER_TEMPLATES[sessionType] || PLAYER_TEMPLATES["Fuerza A"];
-  if (isV2Template(base)) return base;
   const overrides = loadOverrides()[sessionType];
+
+  if (isV2Template(base)) {
+    if (!overrides?.v2Blocks) return base;
+    const blocks = base.blocks.map((b, i) => {
+      const slotQtys = overrides.v2Blocks[i]?.slotQtys;
+      if (!slotQtys || !Array.isArray(b.slots)) return b;
+      return {
+        ...b,
+        slots: b.slots.map((s, si) => ({
+          ...s,
+          qty: Math.max(1, slotQtys[si] != null ? slotQtys[si] : (s.qty || 1)),
+        })),
+      };
+    });
+    return { ...base, blocks };
+  }
+
   if (!overrides?.blocks) return base;
   const blocks = base.blocks.map((b, i) => {
     const slotOverride = overrides.blocks[i]?.slots;
@@ -186,10 +212,27 @@ export function getAllTemplates() {
 }
 
 export function updateTemplateBlockSlots(sessionType, blockIndex, slots) {
+  const base = PLAYER_TEMPLATES[sessionType] || PLAYER_TEMPLATES["Fuerza A"];
   const overrides = loadOverrides();
-  if (!overrides[sessionType]) overrides[sessionType] = { blocks: [] };
-  if (!overrides[sessionType].blocks) overrides[sessionType].blocks = [];
-  overrides[sessionType].blocks[blockIndex] = { slots };
+  if (!overrides[sessionType]) overrides[sessionType] = { blocks: [], v2Blocks: [] };
+
+  if (isV2Template(base)) {
+    const block = base.blocks[blockIndex];
+    if (!Array.isArray(block?.slots)) return;
+    const existing = overrides[sessionType].v2Blocks?.[blockIndex]?.slotQtys
+      || block.slots.map((s) => s.qty || 1);
+    const current = existing.reduce((n, q) => n + q, 0);
+    const target = Math.max(1, Math.min(12, slots));
+    const delta = target - current;
+    const slotQtys = [...existing];
+    const lastIdx = Math.max(0, slotQtys.length - 1);
+    slotQtys[lastIdx] = Math.max(1, slotQtys[lastIdx] + delta);
+    if (!overrides[sessionType].v2Blocks) overrides[sessionType].v2Blocks = [];
+    overrides[sessionType].v2Blocks[blockIndex] = { slotQtys };
+  } else {
+    if (!overrides[sessionType].blocks) overrides[sessionType].blocks = [];
+    overrides[sessionType].blocks[blockIndex] = { slots };
+  }
   saveTemplateOverrides(overrides);
 }
 

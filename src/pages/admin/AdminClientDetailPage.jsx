@@ -38,6 +38,9 @@ function PlanTab({ clientId }) {
 
   return (
     <div className="space-y-5">
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        Plan sincronizado con el jugador (<code className="text-xs">depro_plan_{clientId}</code>). Los cambios se reflejan en su perfil.
+      </div>
       {/* Day selector */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {plan.map((d, i) => (
