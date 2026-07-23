@@ -114,6 +114,7 @@ export default async function handler(req, res) {
       email,
       password: created ? password : null,
       plan: meta.plan,
+      subscriptionStatus,
       trialEndsAt,
     });
   } catch (err) {

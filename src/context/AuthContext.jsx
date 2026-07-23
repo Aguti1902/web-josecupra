@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { getCachedSubscription } from "../lib/subscription";
 
 const AuthContext = createContext(null);
 
@@ -119,6 +120,7 @@ function loadPlayerClubFromStorage(userId) {
 function buildUser(authUser, profile) {
   const meta = authUser.user_metadata ?? {};
   const email = authUser.email ?? "";
+  const cached = getCachedSubscription(authUser.id);
 
   if (profile) {
     let club = profile.club;   // Supabase solo devuelve: id, name, abbreviation, login_code
@@ -160,7 +162,7 @@ function buildUser(authUser, profile) {
       // para detectar altas de club pendientes sin falsos positivos por timing.
       clubId: meta.clubId || club?.id || null,
       clubName: meta.clubName || null,
-      plan:      profile.plan      ?? meta.plan      ?? null,
+      plan:      profile.plan      ?? meta.plan      ?? cached?.plan ?? null,
       objetivo:  profile.objetivo  ?? meta.objetivo  ?? null,
       deporte:   profile.deporte   ?? meta.deporte   ?? null,
       frecuencia: profile.frecuencia ?? meta.frecuencia ?? null,
@@ -173,12 +175,13 @@ function buildUser(authUser, profile) {
       managedTeamIds: meta.managedTeamIds ?? profile.managedTeamIds ?? [],
       edad: profile.age ?? meta.edad ?? null,
       posicion: profile.position ?? meta.posicion ?? null,
-      subscriptionStatus: meta.subscriptionStatus ?? null,
+      subscriptionStatus: meta.subscriptionStatus ?? cached?.status ?? null,
       subscriptionCancelAt: meta.subscriptionCancelAt ?? null,
-      trialEndsAt: meta.trialEndsAt ?? null,
-      billingSource: meta.billingSource ?? null,
-      stripeSubscriptionId: meta.stripeSubscriptionId ?? null,
+      trialEndsAt: meta.trialEndsAt ?? cached?.trialEndsAt ?? null,
+      billingSource: meta.billingSource ?? cached?.billingSource ?? null,
+      stripeSubscriptionId: meta.stripeSubscriptionId ?? cached?.stripeSubscriptionId ?? null,
       stripeCustomerId: meta.stripeCustomerId ?? null,
+      purchasedAddons: meta.purchasedAddons ?? cached?.purchasedAddons ?? [],
     };
   }
 
@@ -198,7 +201,7 @@ function buildUser(authUser, profile) {
     avatar:    (meta.name ?? email)[0]?.toUpperCase() ?? "U",
     role:      detectedRole,
     // Plan y datos del formulario de onboarding
-    plan:      meta.plan      ?? null,
+    plan:      meta.plan      ?? cached?.plan ?? null,
     objetivo:  meta.objetivo  ?? null,
     deporte:   meta.deporte   ?? null,
     frecuencia: meta.frecuencia ?? null,
@@ -217,12 +220,13 @@ function buildUser(authUser, profile) {
     team,
     clubId:    meta.clubId || club?.id || playerClub?.id || null,
     clubName:  meta.clubName || null,
-    subscriptionStatus: meta.subscriptionStatus ?? null,
+    subscriptionStatus: meta.subscriptionStatus ?? cached?.status ?? null,
     subscriptionCancelAt: meta.subscriptionCancelAt ?? null,
-    trialEndsAt: meta.trialEndsAt ?? null,
-    billingSource: meta.billingSource ?? null,
-    stripeSubscriptionId: meta.stripeSubscriptionId ?? null,
+    trialEndsAt: meta.trialEndsAt ?? cached?.trialEndsAt ?? null,
+    billingSource: meta.billingSource ?? cached?.billingSource ?? null,
+    stripeSubscriptionId: meta.stripeSubscriptionId ?? cached?.stripeSubscriptionId ?? null,
     stripeCustomerId: meta.stripeCustomerId ?? null,
+    purchasedAddons: meta.purchasedAddons ?? cached?.purchasedAddons ?? [],
   };
 }
 
@@ -412,6 +416,7 @@ export function AuthProvider({ children }) {
   // ── Refresh user (recargar datos sin nuevo login) ──────────
   const refreshUser = async () => {
     try {
+      await supabase.auth.refreshSession();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
       const basic = buildUser(session.user, null);

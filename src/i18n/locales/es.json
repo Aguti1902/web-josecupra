@@ -401,7 +401,17 @@
     "upgrades_desc": "Desbloquea más capacidades con un plan superior.",
     "get_plan": "Contratar plan",
     "manage_billing": "Gestionar pago",
-    "portal_error": "No se pudo abrir el portal de facturación."
+    "portal_error": "No se pudo abrir el portal de facturación.",
+    "addons_title": "Extras y upsells",
+    "addons_desc": "Contrata complementos individuales para desbloquear funciones durante la prueba.",
+    "buy_addon": "Contratar extra",
+    "buy_addon_named": "Contratar {{name}} · {{price}}/mes",
+    "addons_owned": "Extras activos en tu cuenta",
+    "addon_success": "Extra contratado correctamente.",
+    "addon_error": "No se pudo contratar el extra.",
+    "activate_now": "Activar plan ahora",
+    "activate_success": "Suscripción activada. Todas las funciones están desbloqueadas.",
+    "activate_error": "No se pudo activar la suscripción."
   },
   "features": {
     "locked": "Sección bloqueada",
@@ -424,7 +434,11 @@
     "team_tests": "Tests del equipo",
     "team_tests_desc": "Evaluaciones T1→T3 y evolución por jugador.",
     "coach_contact": "Contacto con preparador",
-    "coach_contact_desc": "Acceso directo al preparador físico vía WhatsApp."
+    "coach_contact_desc": "Acceso directo al preparador físico vía WhatsApp.",
+    "progression": "Progresión avanzada",
+    "progression_desc": "Gráficos de evolución y histórico detallado de cargas.",
+    "exercise_library": "Biblioteca ampliada",
+    "exercise_library_desc": "Acceso completo a la biblioteca de ejercicios DEPRO."
   },
   "home": {
     "hero_label": "SaaS · Preparación física en fútbol",

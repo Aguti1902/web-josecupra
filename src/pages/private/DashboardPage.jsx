@@ -9,7 +9,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { getAdherenceReminder, countCompletedSessions, loadProgressIds, weekKey } from "../../lib/sessionProgress";
-import { hasFeatureAccess } from "../../lib/subscription";
+import { hasFeatureAccess, getPlanLabel, isInTrial } from "../../lib/subscription";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 import { coachFeedback } from "../../data/mockData";
@@ -20,6 +20,8 @@ import {
 import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/sessionBlocks";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import CoachDashboard from "../../components/private/CoachDashboard";
+import TrialBanner from "../../components/private/TrialBanner";
+import TrialWatermark from "../../components/private/TrialWatermark";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -948,7 +950,8 @@ function JugadorDashboard({ user, club }) {
   const adherenceReminder = getAdherenceReminder(user?.id, displayTotal);
 
   return (
-    <div className="space-y-6">
+    <TrialWatermark user={user} className="space-y-6">
+      <TrialBanner user={user} prominent />
       {adherenceReminder && (
         <div className="rounded-2xl p-4 border border-amber-200 bg-amber-50 text-sm text-amber-800 flex flex-col sm:flex-row sm:items-center gap-3">
           <span className="flex-1">{adherenceReminder.message}</span>
@@ -1068,7 +1071,7 @@ function JugadorDashboard({ user, club }) {
         <StatCard label="Sesiones esta semana" value={`${completedDays}/${displayTotal}`} sub={`${progressPct}% completado`} icon={CheckCircle} accent="#3BC21D" />
         <StatCard label="Frecuencia semanal" value={freqNum} sub="días de entreno" icon={Calendar} accent={safeAccent} />
         <StatCard label="Valoración coach" value={`${lastFeedback.rating}/10`} sub="última revisión" icon={Trophy} accent="#F6CC12" />
-        <StatCard label="Plan actual" value={user?.plan || "—"} sub="activo" icon={Zap} accent="#0A36F7" />
+        <StatCard label="Plan actual" value={getPlanLabel(user?.plan) || "—"} sub={isInTrial(user) ? "periodo de prueba" : "activo"} icon={Zap} accent="#0A36F7" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -1178,7 +1181,7 @@ function JugadorDashboard({ user, club }) {
           </div>
         </div>
       </div>
-    </div>
+    </TrialWatermark>
   );
 }
 

@@ -20,7 +20,7 @@ export default function TrialWatermark({ user, children, className = "" }) {
         className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[inherit]"
         aria-hidden
       >
-        <div className="absolute inset-0 flex flex-wrap content-center justify-center gap-8 opacity-[0.07] rotate-[-24deg] scale-110 select-none">
+        <div className="absolute inset-0 flex flex-wrap content-center justify-center gap-8 opacity-[0.09] rotate-[-24deg] scale-110 select-none">
           {Array.from({ length: 12 }).map((_, i) => (
             <span
               key={i}

@@ -36,6 +36,7 @@ export const FEATURES = {
     audiences: ["player", "coach", "club"],
     minPlan: { player: "player-essential", coach: "coach-starter", club: "club-inicial" },
     trialLocked: true,
+    addonId: "addon-pdf",
   },
   mesocycle: {
     id: "mesocycle",
@@ -68,6 +69,24 @@ export const FEATURES = {
     audiences: ["player"],
     minPlan: { player: "player-pro" },
     trialLocked: true,
+  },
+  progression: {
+    id: "progression",
+    labelKey: "features.progression",
+    descKey: "features.progression_desc",
+    audiences: ["player"],
+    minPlan: { player: "player-essential" },
+    trialLocked: true,
+    addonId: "addon-progression",
+  },
+  exercise_library: {
+    id: "exercise_library",
+    labelKey: "features.exercise_library",
+    descKey: "features.exercise_library_desc",
+    audiences: ["player"],
+    minPlan: { player: "player-essential" },
+    trialLocked: true,
+    addonId: "addon-library",
   },
 };
 
@@ -114,5 +133,6 @@ export function lockedFeaturesForUser(user, { isInTrial, hasFeatureAccess, resol
     ...f,
     reason: isInTrial(user) && f.trialLocked ? "trial" : "plan",
     upsellPlan: upsellPlanForFeature(planId, audience, f),
+    trialAddon: f.addonId || null,
   }));
 }

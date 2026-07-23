@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
-  CreditCard, Lock, Sparkles, ArrowUpCircle, Check, X, Clock,
+  CreditCard, Lock, Sparkles, ArrowUpCircle, Check, X, Clock, Loader2, Zap,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
@@ -18,30 +18,68 @@ import {
   getTrialDaysLeft,
   resolveUserAudience,
   hasFeatureAccess,
+  activateSubscriptionNow,
+  purchaseAddon,
+  syncLocalSubscription,
 } from "../../lib/subscription";
 import { lockedFeaturesForUser } from "../../lib/planFeatures";
 import { plansForAudience, formatPrice, PLANS } from "../../lib/checkoutPlans";
+import { PLAYER_ADDONS, addonById } from "../../lib/playerAddons";
 import ChangePlanModal from "../../components/private/ChangePlanModal";
 
 export default function SubscriptionPage() {
   const { user, refreshUser } = useAuth();
   const { t } = useTranslation();
+  const [params, setParams] = useSearchParams();
   const [showChangePlan, setShowChangePlan] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [activateLoading, setActivateLoading] = useState(false);
+  const [addonLoading, setAddonLoading] = useState(null);
   const [msg, setMsg] = useState(null);
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  useEffect(() => {
+    const sessionId = params.get("addon_session");
+    if (!sessionId || !user?.id) return;
+
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/complete-addon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, userId: user.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (cancelled) return;
+      if (data.ok) {
+        setMsg({ type: "ok", text: t("subscription.addon_success") });
+        await refreshUser();
+      } else {
+        setMsg({ type: "error", text: data.error || t("subscription.addon_error") });
+      }
+      params.delete("addon_session");
+      setParams(params, { replace: true });
+    })();
+
+    return () => { cancelled = true; };
+  }, [params, user?.id, refreshUser, setParams, t]);
 
   const audience = resolveUserAudience(user);
   const isPlayer = user?.role === "player";
-  const showBilling = isPlayer ? isIndividualSubscriber(user) : !!user?.plan;
-  const subscription = showBilling ? getSubscriptionFromUser(user) : null;
+  const subscription = getSubscriptionFromUser(user);
+  const showBilling = isPlayer ? isIndividualSubscriber(user) : !!subscription?.plan;
   const subActive = isSubscriptionActive(subscription);
   const subPendingCancel = subscription?.status === "cancel_at_period_end";
   const inTrial = isInTrial(user);
   const daysLeft = getTrialDaysLeft(user);
   const currentPlanId = subscription?.plan || user?.plan;
   const currentPlan = currentPlanId ? PLANS[currentPlanId] : null;
+  const purchasedAddons = user?.purchasedAddons || subscription?.purchasedAddons || [];
 
   const locked = lockedFeaturesForUser(user, {
     isInTrial,
@@ -76,11 +114,39 @@ export default function SubscriptionPage() {
     }
   };
 
+  const handleActivateNow = async () => {
+    setActivateLoading(true);
+    setMsg(null);
+    const res = await activateSubscriptionNow(user);
+    setActivateLoading(false);
+    if (res.ok) {
+      syncLocalSubscription(user.id, { plan: user.plan, status: "active", trialEndsAt: null });
+      setMsg({ type: "ok", text: t("subscription.activate_success") });
+      await refreshUser();
+    } else {
+      setMsg({ type: "error", text: res.error || t("subscription.activate_error") });
+    }
+  };
+
+  const handlePurchaseAddon = async (addonId) => {
+    setAddonLoading(addonId);
+    setMsg(null);
+    const res = await purchaseAddon(user, addonId);
+    if (!res.ok) {
+      setAddonLoading(null);
+      setMsg({ type: "error", text: res.error || t("subscription.addon_error") });
+    }
+  };
+
   const upgradePlans = plansForAudience(audience).filter((p) => {
     if (!currentPlanId) return true;
     const order = Object.keys(PLANS).filter((id) => PLANS[id].audience === audience);
     return order.indexOf(p.id) > order.indexOf(currentPlanId);
   });
+
+  const availableAddons = isPlayer
+    ? PLAYER_ADDONS.filter((a) => !purchasedAddons.includes(a.id) && !hasFeatureAccess(user, a.featureId))
+    : [];
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6">
@@ -102,11 +168,22 @@ export default function SubscriptionPage() {
               <p className="text-sm text-depro-gray">{t("subscription.trial_explainer")}</p>
             </div>
           </div>
-          <div className="text-center sm:text-right">
-            <div className="text-4xl font-black text-depro-blue">{daysLeft}</div>
-            <div className="text-xs font-bold text-depro-gray uppercase tracking-wide">
-              {t("subscription.days_remaining")}
+          <div className="flex flex-col sm:items-end gap-2">
+            <div className="text-center sm:text-right">
+              <div className="text-4xl font-black text-depro-blue">{daysLeft}</div>
+              <div className="text-xs font-bold text-depro-gray uppercase tracking-wide">
+                {t("subscription.days_remaining")}
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={handleActivateNow}
+              disabled={activateLoading}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-depro-blue text-white text-xs font-bold hover:bg-depro-blue-dark disabled:opacity-50"
+            >
+              {activateLoading ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+              {t("subscription.activate_now")}
+            </button>
           </div>
         </div>
       )}
@@ -200,6 +277,50 @@ export default function SubscriptionPage() {
         </div>
       )}
 
+      {availableAddons.length > 0 && (
+        <div className="bg-white border border-depro-border rounded-2xl p-6">
+          <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
+            <Sparkles size={18} className="text-depro-blue" />
+            {t("subscription.addons_title")}
+          </h2>
+          <p className="text-sm text-depro-gray mb-5">{t("subscription.addons_desc")}</p>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {availableAddons.map((addon) => (
+              <div key={addon.id} className="rounded-xl border border-depro-border p-4 flex flex-col">
+                <p className="font-bold text-depro-dark text-sm">{addon.name}</p>
+                <p className="text-xs text-depro-gray mt-1 mb-3 flex-1">{addon.description}</p>
+                <div className="flex items-baseline gap-1 mb-3">
+                  <span className="text-xl font-black text-depro-dark">{formatPrice(addon.price)}</span>
+                  <span className="text-xs text-depro-gray">{addon.period}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handlePurchaseAddon(addon.id)}
+                  disabled={addonLoading === addon.id}
+                  className="w-full py-2 rounded-lg bg-depro-blue text-white text-xs font-bold hover:bg-depro-blue-dark disabled:opacity-50 flex items-center justify-center gap-1"
+                >
+                  {addonLoading === addon.id ? <Loader2 size={12} className="animate-spin" /> : null}
+                  {t("subscription.buy_addon")}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {purchasedAddons.length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+          <p className="text-sm font-bold text-green-800 mb-2">{t("subscription.addons_owned")}</p>
+          <div className="flex flex-wrap gap-2">
+            {purchasedAddons.map((id) => (
+              <span key={id} className="text-xs font-bold px-2.5 py-1 rounded-full bg-white border border-green-200 text-green-800">
+                {addonById(id)?.name || id}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {locked.length > 0 && (
         <div className="bg-white border border-depro-border rounded-2xl p-6">
           <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
@@ -208,29 +329,55 @@ export default function SubscriptionPage() {
           </h2>
           <p className="text-sm text-depro-gray mb-5">{t("subscription.locked_features_desc")}</p>
           <div className="grid sm:grid-cols-2 gap-3">
-            {locked.map((f) => (
-              <div key={f.id} className="rounded-xl border border-depro-border p-4 flex flex-col gap-3">
-                <div>
-                  <p className="font-bold text-depro-dark text-sm">{t(f.labelKey)}</p>
-                  <p className="text-xs text-depro-gray mt-0.5">{t(f.descKey)}</p>
-                  <span className={`inline-block mt-2 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
-                    f.reason === "trial" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
-                  }`}>
-                    {f.reason === "trial" ? t("subscription.lock_trial") : t("subscription.lock_plan")}
-                  </span>
+            {locked.map((f) => {
+              const addon = f.trialAddon ? addonById(f.trialAddon) : null;
+              return (
+                <div key={f.id} className="rounded-xl border border-depro-border p-4 flex flex-col gap-3">
+                  <div>
+                    <p className="font-bold text-depro-dark text-sm">{t(f.labelKey)}</p>
+                    <p className="text-xs text-depro-gray mt-0.5">{t(f.descKey)}</p>
+                    <span className={`inline-block mt-2 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                      f.reason === "trial" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
+                    }`}>
+                      {f.reason === "trial" ? t("subscription.lock_trial") : t("subscription.lock_plan")}
+                    </span>
+                  </div>
+                  <div className="mt-auto flex flex-col gap-2">
+                    {f.reason === "trial" && addon && (
+                      <button
+                        type="button"
+                        onClick={() => handlePurchaseAddon(addon.id)}
+                        disabled={addonLoading === addon.id}
+                        className="text-xs font-bold text-depro-blue hover:underline text-left flex items-center gap-1"
+                      >
+                        {addonLoading === addon.id ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                        {t("subscription.buy_addon_named", { name: addon.name, price: formatPrice(addon.price) })}
+                      </button>
+                    )}
+                    {f.upsellPlan && (
+                      <button
+                        type="button"
+                        onClick={() => setShowChangePlan(true)}
+                        className="text-xs font-bold text-depro-blue hover:underline text-left flex items-center gap-1"
+                      >
+                        <Sparkles size={12} />
+                        {t("features.upgrade_to", { plan: f.upsellPlan.name, price: formatPrice(f.upsellPlan.price) })}
+                      </button>
+                    )}
+                    {f.reason === "trial" && !addon && !f.upsellPlan && (
+                      <button
+                        type="button"
+                        onClick={handleActivateNow}
+                        disabled={activateLoading}
+                        className="text-xs font-bold text-depro-blue hover:underline text-left flex items-center gap-1"
+                      >
+                        <Zap size={12} /> {t("subscription.activate_now")}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                {f.upsellPlan && (
-                  <button
-                    type="button"
-                    onClick={() => setShowChangePlan(true)}
-                    className="mt-auto text-xs font-bold text-depro-blue hover:underline text-left flex items-center gap-1"
-                  >
-                    <Sparkles size={12} />
-                    {t("features.upgrade_to", { plan: f.upsellPlan.name, price: formatPrice(f.upsellPlan.price) })}
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

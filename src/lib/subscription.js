@@ -55,12 +55,30 @@ function saveLocalSubscription(userId, data) {
   } catch { /* ignore */ }
 }
 
+/** Plan en caché local (tras checkout si la sesión JWT aún no se refrescó). */
+export function getCachedSubscription(userId) {
+  return loadLocalSubscription(userId);
+}
+
+/** Sincroniza suscripción en localStorage tras checkout o webhook. */
+export function syncLocalSubscription(userId, data) {
+  if (!userId || !data?.plan) return;
+  saveLocalSubscription(userId, {
+    plan: data.plan,
+    status: data.status || data.subscriptionStatus || "trialing",
+    trialEndsAt: data.trialEndsAt || null,
+    stripeSubscriptionId: data.stripeSubscriptionId || null,
+    billingSource: data.billingSource || "stripe",
+    purchasedAddons: data.purchasedAddons || [],
+  });
+}
+
 /** Jugador individual con plan de pago (no usuario de club) */
 export function isIndividualSubscriber(user) {
   if (!user || user.role !== "player") return false;
-  if (user.team_role || user.role === "club") return false;
+  if (user.team_role) return false;
   const sub = getSubscriptionFromUser(user);
-  return !!(sub?.plan || user.plan);
+  return !!(sub?.plan || user.plan || user.stripeSubscriptionId || user.billingSource === "stripe");
 }
 
 export function getSubscriptionFromUser(user) {
@@ -68,16 +86,17 @@ export function getSubscriptionFromUser(user) {
   const local = loadLocalSubscription(user.id);
   const meta = user;
   const plan = meta.plan || local?.plan || null;
-  if (!plan) return null;
+  if (!plan && !meta.stripeSubscriptionId && meta.billingSource !== "stripe") return null;
 
-  const status = meta.subscriptionStatus || local?.status || "active";
+  const status = meta.subscriptionStatus || local?.status || (meta.trialEndsAt ? "trialing" : "active");
   return {
-    plan,
+    plan: plan || local?.plan || "player-essential",
     status,
     cancelAt: meta.subscriptionCancelAt || local?.cancelAt || null,
     trialEndsAt: meta.trialEndsAt || local?.trialEndsAt || null,
     billingSource: meta.billingSource || local?.billingSource || null,
     stripeSubscriptionId: meta.stripeSubscriptionId || local?.stripeSubscriptionId || null,
+    purchasedAddons: meta.purchasedAddons || local?.purchasedAddons || [],
   };
 }
 
@@ -104,13 +123,12 @@ export function isInTrial(user) {
   if (!user || isManualBilling(user)) return false;
   const sub = getSubscriptionFromUser(user);
   if (!sub) return false;
-  if (sub.status === "trialing") {
-    if (!sub.trialEndsAt) return true;
-    return new Date(sub.trialEndsAt) > new Date();
-  }
-  if (sub.trialEndsAt && sub.status !== "active") {
-    return new Date(sub.trialEndsAt) > new Date();
-  }
+
+  const trialEnd = sub.trialEndsAt ? new Date(sub.trialEndsAt) : null;
+  const trialActive = trialEnd ? trialEnd > new Date() : false;
+
+  if (sub.status === "trialing") return trialActive || !trialEnd;
+  if (trialActive) return true;
   return false;
 }
 
@@ -141,7 +159,7 @@ export function isPlayerPro(user) {
   return p === "player-pro" || p === "premium" || p === "pro";
 }
 
-/** Acceso a una funcionalidad concreta (plan + trial). */
+/** Acceso a una funcionalidad concreta (plan + trial + extras comprados). */
 export function hasFeatureAccess(user, featureId) {
   if (!user) return false;
   if (isManualBilling(user)) return true;
@@ -154,6 +172,12 @@ export function hasFeatureAccess(user, featureId) {
 
   const sub = getSubscriptionFromUser(user);
   const planId = sub?.plan || user.plan;
+  const purchased = user.purchasedAddons || sub?.purchasedAddons || [];
+
+  if (feature.addonId && purchased.includes(feature.addonId)) return true;
+
+  // Premium incluye todos los extras cuando no está en trial
+  if (audience === "player" && isPlayerPro(user) && !isInTrial(user)) return true;
 
   if (isInTrial(user) && feature.trialLocked) return false;
 
@@ -171,7 +195,61 @@ export function getFeatureLockReason(user, featureId) {
 export function getFeatureUpsellPlan(user, featureId) {
   const audience = resolveUserAudience(user);
   const planId = user?.plan || getSubscriptionFromUser(user)?.plan;
-  return upsellPlanForFeature(planId, audience, FEATURES[featureId]);
+  const feature = FEATURES[featureId];
+  if (isInTrial(user) && feature?.addonId) {
+    return null;
+  }
+  return upsellPlanForFeature(planId, audience, feature);
+}
+
+/** Activa la suscripción antes de fin de trial (cobro inmediato). */
+export async function activateSubscriptionNow(user) {
+  if (!user?.id) return { ok: false, error: "Usuario no válido" };
+  try {
+    const res = await fetch("/api/activate-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      return { ok: false, error: data.error || "No se pudo activar la suscripción" };
+    }
+    syncLocalSubscription(user.id, {
+      plan: data.plan || user.plan,
+      status: "active",
+      trialEndsAt: null,
+      stripeSubscriptionId: user.stripeSubscriptionId,
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message || "Error de red" };
+  }
+}
+
+/** Compra un extra (upsell) vía Stripe Checkout. */
+export async function purchaseAddon(user, addonId) {
+  if (!user?.id) return { ok: false, error: "Usuario no válido" };
+  try {
+    const res = await fetch("/api/create-addon-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        addonId,
+        userId: user.id,
+        email: user.email,
+        origin: window.location.origin,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.url) {
+      return { ok: false, error: data.error || "No se pudo iniciar el pago" };
+    }
+    window.location.href = data.url;
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message || "Error de red" };
+  }
 }
 
 export { FEATURES, lockedFeaturesForUser } from "./planFeatures";

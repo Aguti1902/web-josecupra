@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { syncLocalSubscription } from "../../lib/subscription";
 
 export default function PaymentSuccessPage() {
   const [params] = useSearchParams();
@@ -37,6 +38,12 @@ export default function PaymentSuccessPage() {
 
         if (data.userId) {
           sessionStorage.setItem("depro_pending_plan_user", data.userId);
+          syncLocalSubscription(data.userId, {
+            plan: data.plan,
+            status: data.subscriptionStatus || "trialing",
+            trialEndsAt: data.trialEndsAt,
+            billingSource: "stripe",
+          });
         }
 
         setStatus({ loading: false, redirecting: true, error: null });

@@ -60,6 +60,26 @@ export async function syncSubscriptionToUser(supabaseAdmin, subscription, emailH
 
 export async function syncCheckoutSession(supabaseAdmin, session) {
   const meta = session.metadata || {};
+
+  if (meta.type === "addon" && meta.addonId && meta.userId) {
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(meta.userId);
+    if (!userData?.user) return { ok: false, reason: "user_not_found" };
+    const existing = userData.user.user_metadata?.purchasedAddons || [];
+    const purchasedAddons = existing.includes(meta.addonId)
+      ? existing
+      : [...existing, meta.addonId];
+    await supabaseAdmin.auth.admin.updateUserById(meta.userId, {
+      user_metadata: {
+        ...userData.user.user_metadata,
+        purchasedAddons,
+        stripeCustomerId: typeof session.customer === "string"
+          ? session.customer
+          : userData.user.user_metadata?.stripeCustomerId,
+      },
+    });
+    return { ok: true, userId: meta.userId, addon: meta.addonId };
+  }
+
   const email = meta.email || session.customer_email;
   if (!email) return { ok: false, reason: "no_email" };
 

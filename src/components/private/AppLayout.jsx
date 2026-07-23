@@ -359,7 +359,7 @@ function AppLayoutInner({ children }) {
           <PanelSearch mode="client" navItems={navItems} user={user} />
         </div>
         <main className="flex-1 overflow-y-auto dashboard-main-scroll">
-          <TrialBanner user={user} />
+          {pathname !== "/dashboard" && <TrialBanner user={user} />}
           {children}
         </main>
         <AiAssistantWidget />

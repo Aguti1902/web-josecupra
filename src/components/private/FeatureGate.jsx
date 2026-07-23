@@ -7,10 +7,14 @@ import {
   getFeatureLockReason,
   getFeatureUpsellPlan,
   isInTrial,
+  activateSubscriptionNow,
+  purchaseAddon,
 } from "../../lib/subscription";
 import { FEATURES } from "../../lib/planFeatures";
+import { addonForFeature } from "../../lib/playerAddons";
 import { formatPrice } from "../../lib/checkoutPlans";
 import ChangePlanModal from "./ChangePlanModal";
+import { useAuth } from "../../context/AuthContext";
 
 /**
  * Bloquea una sección si el usuario está en trial o no tiene el plan necesario.
@@ -24,7 +28,9 @@ export default function FeatureGate({
   audience: audienceProp,
 }) {
   const { t } = useTranslation();
+  const { refreshUser } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   if (!user || hasFeatureAccess(user, feature)) {
     return children;
@@ -33,6 +39,7 @@ export default function FeatureGate({
   const meta = FEATURES[feature] || {};
   const reason = getFeatureLockReason(user, feature);
   const upsellPlan = getFeatureUpsellPlan(user, feature);
+  const trialAddon = isInTrial(user) ? addonForFeature(feature) : null;
   const audience = audienceProp || (user.role === "club"
     ? (user.club?.isSoloCoach ? "coach" : "club")
     : "player");
@@ -41,6 +48,20 @@ export default function FeatureGate({
   const desc = reason === "trial"
     ? t("features.trial_locked_desc")
     : t(meta.descKey || "features.plan_locked_desc");
+
+  const handleActivate = async () => {
+    setActionLoading(true);
+    const res = await activateSubscriptionNow(user);
+    setActionLoading(false);
+    if (res.ok) await refreshUser();
+  };
+
+  const handleBuyAddon = async () => {
+    if (!trialAddon) return;
+    setActionLoading(true);
+    await purchaseAddon(user, trialAddon.id);
+    setActionLoading(false);
+  };
 
   if (compact) {
     return (
@@ -74,14 +95,37 @@ export default function FeatureGate({
           </p>
         )}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
+          {trialAddon && (
+            <button
+              type="button"
+              onClick={handleBuyAddon}
+              disabled={actionLoading}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
+            >
+              <Sparkles size={16} />
+              {t("subscription.buy_addon_named", { name: trialAddon.name, price: formatPrice(trialAddon.price) })}
+            </button>
+          )}
           {upsellPlan && (
             <button
               type="button"
               onClick={() => setShowUpgrade(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors"
+              disabled={actionLoading}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
             >
               <ArrowUpCircle size={16} />
               {t("features.upgrade_to", { plan: upsellPlan.name, price: formatPrice(upsellPlan.price) })}
+            </button>
+          )}
+          {reason === "trial" && !trialAddon && !upsellPlan && (
+            <button
+              type="button"
+              onClick={handleActivate}
+              disabled={actionLoading}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
+            >
+              <ArrowUpCircle size={16} />
+              {t("subscription.activate_now")}
             </button>
           )}
           <Link
