@@ -21,7 +21,6 @@ import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/ses
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import CoachDashboard from "../../components/private/CoachDashboard";
 import TrialBanner from "../../components/private/TrialBanner";
-import TrialWatermark from "../../components/private/TrialWatermark";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -950,7 +949,7 @@ function JugadorDashboard({ user, club }) {
   const adherenceReminder = getAdherenceReminder(user?.id, displayTotal);
 
   return (
-    <TrialWatermark user={user} className="space-y-6">
+    <div className="space-y-6">
       <TrialBanner user={user} prominent />
       {adherenceReminder && (
         <div className="rounded-2xl p-4 border border-amber-200 bg-amber-50 text-sm text-amber-800 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -1181,7 +1180,7 @@ function JugadorDashboard({ user, club }) {
           </div>
         </div>
       </div>
-    </TrialWatermark>
+    </div>
   );
 }
 

@@ -13,6 +13,7 @@ import LanguageSwitcher from "../shared/LanguageSwitcher";
 import { TutorialProvider, useTutorial } from "./DashboardTutorial";
 import AiAssistantWidget from "./AiAssistantWidget";
 import PanelSearch from "../shared/PanelSearch";
+import { getPlanLabel } from "../../lib/subscription";
 
 function luminance(hex) {
   try {
@@ -191,6 +192,8 @@ function AppLayoutInner({ children }) {
   const navItems = user?.role === "club"
     ? (isSoloCoach ? coachNav : (user?.team_role === "coordinador" && !isCoordViewingTeam ? coordinadorNav : entrenadorNav))
     : playerNav;
+  const isPlayer = user?.role === "player";
+  const playerPlanLabel = user?.plan ? getPlanLabel(user.plan) : "Jugador";
 
   useEffect(() => {
     const load = () => {
@@ -247,6 +250,8 @@ function AppLayoutInner({ children }) {
               </div>
             ) : club?.logo ? (
               <img src={club.logo} alt={club.name} className="w-11 h-11 rounded-xl object-contain dash-sidebar-icon p-0.5" />
+            ) : isPlayer ? (
+              <img src="/logo.png" alt="DEPRO" className="w-11 h-11 rounded-xl object-contain bg-white p-1 dash-sidebar-icon" />
             ) : (
               <div className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-black dash-sidebar-icon">
                 {club?.abbreviation || club?.name?.[0] || "D"}
@@ -265,7 +270,7 @@ function AppLayoutInner({ children }) {
                   ? (user?.team_role === "coordinador" && viewingTeam ? viewingTeam.name
                     : user?.team_role === "coordinador" ? "Coordinador"
                     : user?.team?.name || "Entrenador")
-                  : (user?.plan || "Jugador")}
+                  : playerPlanLabel}
               </span>
             </div>
           </div>

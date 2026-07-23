@@ -33,7 +33,9 @@ export const PLAN_PRICES = {
 
 export function getPlanLabel(plan) {
   if (!plan) return "Plan DEPRO";
-  return PLAN_LABELS[String(plan).toLowerCase()] || plan;
+  const id = String(plan).toLowerCase();
+  if (PLANS[id]?.name) return PLANS[id].name;
+  return PLAN_LABELS[id] || plan;
 }
 
 export function getPlanPrice(plan) {

@@ -15,7 +15,6 @@ import {
 import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import TrialWatermark from "../../components/private/TrialWatermark";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
 import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession } from "../../lib/playerPlanEngine";
 import { markSessionComplete, touchLastTrain } from "../../lib/sessionProgress";
@@ -1616,9 +1615,5 @@ export default function WeeklyPlanPage() {
     content = <PlayerWeeklyPlan accent={accent} />;
   }
 
-  return (
-    <TrialWatermark user={user} className="min-h-full">
-      {content}
-    </TrialWatermark>
-  );
+  return content;
 }
