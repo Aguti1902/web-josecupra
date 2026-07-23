@@ -320,7 +320,7 @@ export default function RankingPage() {
   useEffect(() => {
     const code = searchParams.get("invite");
     if (!code || !user?.id) return;
-    const normalized = String(code).toUpperCase().replace(/^.*INVITE=/I, "").split("&")[0];
+    const normalized = String(code).toUpperCase().replace(/^.*invite=/i, "").split("&")[0];
     if (getFriends(user.id).some((f) => f.inviteCode === normalized)) return;
     processInviteFromUrl(user, normalized, (next) => {
       setFriends(next);
