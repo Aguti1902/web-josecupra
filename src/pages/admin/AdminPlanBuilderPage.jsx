@@ -748,7 +748,8 @@ function CatalogTab() {
         <span className="text-xs text-depro-gray font-medium">{shown.length} ejercicios</span>
       </div>
 
-      <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
+      <div className="bg-white border border-depro-border rounded-2xl overflow-hidden overflow-x-auto">
+        <div className="min-w-[560px]">
         <div className="grid grid-cols-[auto_1fr_auto_auto] gap-0 text-xs font-bold text-depro-gray uppercase tracking-wide border-b border-depro-border px-4 py-2.5">
           <span className="w-10">#</span>
           <span>Ejercicio</span>
@@ -784,6 +785,7 @@ function CatalogTab() {
               </div>
             </div>
           ))}
+        </div>
         </div>
       </div>
     </div>
@@ -841,7 +843,7 @@ export default function AdminPlanBuilderPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-depro-dark">Motor de planes</h1>
           <p className="text-depro-gray text-sm mt-0.5">

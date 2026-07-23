@@ -175,6 +175,8 @@ function buildUser(authUser, profile) {
       posicion: profile.position ?? meta.posicion ?? null,
       subscriptionStatus: meta.subscriptionStatus ?? null,
       subscriptionCancelAt: meta.subscriptionCancelAt ?? null,
+      trialEndsAt: meta.trialEndsAt ?? null,
+      billingSource: meta.billingSource ?? null,
       stripeSubscriptionId: meta.stripeSubscriptionId ?? null,
     };
   }
@@ -216,6 +218,8 @@ function buildUser(authUser, profile) {
     clubName:  meta.clubName || null,
     subscriptionStatus: meta.subscriptionStatus ?? null,
     subscriptionCancelAt: meta.subscriptionCancelAt ?? null,
+    trialEndsAt: meta.trialEndsAt ?? null,
+    billingSource: meta.billingSource ?? null,
     stripeSubscriptionId: meta.stripeSubscriptionId ?? null,
   };
 }

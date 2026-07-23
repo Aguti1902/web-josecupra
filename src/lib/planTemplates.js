@@ -1,7 +1,11 @@
 /**
  * Plantillas fijas del PDF — estructura de sesiones jugador (§2.1)
- * La IA / motor local solo rellena ejercicios dentro de estos bloques.
+ * v2.0: slots por pool (sessionTemplatesV2.js)
+ * Legacy: tags + slots numéricos (hipertrofia/resistencia detallada)
  */
+import { SESSION_TEMPLATES, WEEKLY_SESSION_CONFIG, isV2Template } from "./sessionTemplatesV2";
+
+export { isV2Template, WEEKLY_SESSION_CONFIG };
 
 const STORAGE_KEY = "depro_template_overrides";
 
@@ -14,36 +18,8 @@ const BASE_BLOCKS = {
 };
 
 export const PLAYER_TEMPLATES = {
-  "Fuerza A": {
-    duration: "55–65 min", intensity: "Alta",
-    blocks: [
-      { ...BASE_BLOCKS.warmup8, duration: "8 min" },
-      { type: "principal", label: "Básicos", duration: "20 min", slots: 2, tags: ["fuerza", "fuerza_principal", "tren_inferior", "tren_superior"] },
-      { type: "principal", label: "Accesorios", duration: "15 min", slots: 3, tags: ["fuerza", "fuerza_complementaria", "gluteo", "prevencion"] },
-      BASE_BLOCKS.core,
-      BASE_BLOCKS.calm,
-    ],
-  },
-  "Fuerza B": {
-    duration: "45–55 min", intensity: "Media",
-    blocks: [
-      { ...BASE_BLOCKS.warmup6, duration: "6 min" },
-      { type: "principal", label: "Básico", duration: "15 min", slots: 1, tags: ["fuerza", "fuerza_complementaria", "tren_inferior", "tren_superior"] },
-      { type: "principal", label: "Accesorios", duration: "18 min", slots: 3, tags: ["fuerza", "fuerza_complementaria", "prevencion"] },
-      BASE_BLOCKS.coreSoft,
-      BASE_BLOCKS.calm,
-    ],
-  },
-  Velocidad: {
-    duration: "45–55 min", intensity: "Alta",
-    blocks: [
-      { type: "calentamiento", label: "Warm-up", duration: "10 min", slots: 2, tags: ["movilidad", "activacion", "velocidad"] },
-      { type: "principal", label: "Fuerza máxima técnica", duration: "12 min", slots: 2, tags: ["fuerza_maxima", "fuerza_explosiva", "velocidad"] },
-      { type: "complementario", label: "Pliometría", duration: "10 min", slots: 2, tags: ["pliometria", "fuerza_explosiva"] },
-      { type: "principal", label: "Sprints dosificados", duration: "15 min", slots: 3, tags: ["velocidad", "fuerza_explosiva"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
+  ...SESSION_TEMPLATES,
+  // Plantillas legacy (sin slots v2) — resistencia detallada e hipertrofía por split
   "Resistencia aeróbica": {
     duration: "30–40 min", intensity: "Baja",
     blocks: [
@@ -126,25 +102,6 @@ export const PLAYER_TEMPLATES = {
       BASE_BLOCKS.calm,
     ],
   },
-  Prevención: {
-    duration: "40–50 min", intensity: "Baja",
-    blocks: [
-      { type: "calentamiento", label: "Movilidad", duration: "10 min", slots: 2, tags: ["movilidad", "prevencion"] },
-      { type: "principal", label: "Estabilidad", duration: "12 min", slots: 3, tags: ["prevencion", "core"] },
-      { type: "complementario", label: "Compensatorio", duration: "12 min", slots: 3, tags: ["prevencion", "gluteo", "hombro"] },
-      { type: "complementario", label: "Core", duration: "8 min", slots: 2, tags: ["core", "prevencion"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
-  Movilidad: {
-    duration: "35–45 min", intensity: "Baja",
-    blocks: [
-      { type: "calentamiento", label: "Dinámica", duration: "8 min", slots: 2, tags: ["movilidad"] },
-      { type: "principal", label: "Articular", duration: "12 min", slots: 3, tags: ["movilidad", "prevencion"] },
-      { type: "complementario", label: "Control motor", duration: "10 min", slots: 2, tags: ["movilidad", "core", "prevencion"] },
-      { type: "complementario", label: "Estiramientos", duration: "10 min", slots: 2, tags: ["movilidad"] },
-    ],
-  },
   "Sesión mínima": {
     duration: "20–25 min", intensity: "Baja",
     blocks: [
@@ -155,23 +112,25 @@ export const PLAYER_TEMPLATES = {
   },
 };
 
-/** Secuencia semanal según objetivo y frecuencia (PDF §3.4) */
+/** Secuencia semanal según objetivo y frecuencia (v2 + legacy resistencia) */
 export function getWeeklySessionTypes(objetivo, frecuencia) {
-  const n = parseInt(String(frecuencia).replace(/\D/g, "")) || 3;
+  const n = Math.min(4, Math.max(1, parseInt(String(frecuencia).replace(/\D/g, "")) || 3));
   const obj = (objetivo || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  if (obj === "fuerza") {
-    if (n === 1) return ["Fuerza A"];
-    if (n === 2) return ["Fuerza A", "Fuerza B"];
-    if (n === 3) return ["Fuerza A", "Fuerza B", "Velocidad"];
-    return ["Fuerza A", "Fuerza B", "Velocidad", "Prevención"];
+  const v2KeyMap = {
+    fuerza: "Fuerza",
+    velocidad: "Velocidad",
+    resistencia: "Resistencia",
+    hipertrofia: "Hipertrofia",
+    estetica: "Hipertrofia",
+    prevencion: "Prevención",
+    movilidad: "Movilidad",
+  };
+  const v2Key = v2KeyMap[obj];
+  if (v2Key && WEEKLY_SESSION_CONFIG[v2Key]?.[n]) {
+    return WEEKLY_SESSION_CONFIG[v2Key][n];
   }
-  if (obj === "velocidad") {
-    if (n === 1) return ["Velocidad"];
-    if (n === 2) return ["Velocidad", "Fuerza A"];
-    if (n === 3) return ["Velocidad", "Fuerza A", "Fuerza B"];
-    return ["Velocidad", "Fuerza A", "Fuerza B", "Prevención"];
-  }
+
   if (obj === "resistencia") {
     if (n === 1) return ["Resistencia aeróbica"];
     if (n === 2) return ["Resistencia aeróbica", "Resistencia anaeróbica"];
@@ -179,18 +138,19 @@ export function getWeeklySessionTypes(objetivo, frecuencia) {
     return ["Resistencia aeróbica", "Resistencia anaeróbica", "Fuerza A", "Velocidad"];
   }
   if (obj === "hipertrofia" || obj === "estetica") {
-    if (n === 1) return ["Hipertrofia"];
-    if (n === 2) return ["Hipertrofia Anterior", "Hipertrofia Posterior"];
-    if (n === 3) return ["Hipertrofia Push", "Hipertrofia Pull", "Hipertrofia Pierna"];
-    return ["Hipertrofia Push", "Hipertrofia Pull", "Hipertrofia Pierna", "Prevención"];
-  }
-  if (obj === "prevencion" || obj === "movilidad") {
-    if (n === 1) return ["Prevención"];
-    if (n === 2) return ["Prevención", "Movilidad"];
-    if (n === 3) return ["Prevención", "Movilidad", "Fuerza B"];
-    return ["Prevención", "Movilidad", "Fuerza B", "Movilidad"];
+    if (n === 1) return ["Full Body"];
+    if (n === 2) return ["Fuerza Superior A", "Fuerza A"];
+    if (n === 3) return ["Fuerza Superior A", "Fuerza Superior B", "Fuerza A"];
+    return ["Fuerza Superior A", "Fuerza Superior B", "Fuerza A", "Fuerza B"];
   }
   return ["Fuerza A", "Fuerza B", "Velocidad"].slice(0, n);
+}
+
+export function countBlockSlots(block) {
+  if (Array.isArray(block.slots)) {
+    return block.slots.reduce((n, s) => n + (s.qty || 1), 0);
+  }
+  return typeof block.slots === "number" ? block.slots : 0;
 }
 
 function loadOverrides() {
@@ -208,6 +168,7 @@ export function saveTemplateOverrides(overrides) {
 
 export function getTemplate(sessionType) {
   const base = PLAYER_TEMPLATES[sessionType] || PLAYER_TEMPLATES["Fuerza A"];
+  if (isV2Template(base)) return base;
   const overrides = loadOverrides()[sessionType];
   if (!overrides?.blocks) return base;
   const blocks = base.blocks.map((b, i) => {
@@ -234,5 +195,11 @@ export function updateTemplateBlockSlots(sessionType, blockIndex, slots) {
 
 export function templateToPromptText(sessionType) {
   const t = getTemplate(sessionType);
-  return t.blocks.map((b) => `${b.label} (${b.duration}): ${b.slots} ejercicios [${b.tags.join(", ")}]`).join("\n");
+  return t.blocks.map((b) => {
+    if (Array.isArray(b.slots)) {
+      const slotDesc = b.slots.map((s) => s.pool || s.poolPattern || s.poolFamily || "?").join(", ");
+      return `${b.label} (${b.duration}): pools [${slotDesc}]`;
+    }
+    return `${b.label} (${b.duration}): ${b.slots} ejercicios [${(b.tags || []).join(", ")}]`;
+  }).join("\n");
 }

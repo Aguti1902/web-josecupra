@@ -10,7 +10,12 @@ export const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 export const SESSION_INTENSITY = {
   "Fuerza A": "alta",
   "Fuerza B": "media",
+  "Fuerza Superior A": "alta",
+  "Fuerza Superior B": "media",
   Velocidad: "alta",
+  "Full Body": "media",
+  Pliometría: "alta",
+  Isométricos: "baja",
   Hipertrofia: "alta",
   "Hipertrofia Anterior": "alta",
   "Hipertrofia Posterior": "alta",
@@ -28,7 +33,10 @@ export const SESSION_INTENSITY = {
 /** Adaptación cuando el día no permite la intensidad requerida (PDF §3.6) */
 export const SESSION_ADAPTATIONS = {
   "Fuerza A": { media: "Fuerza B", baja: "Movilidad" },
+  "Fuerza Superior A": { media: "Fuerza Superior B", baja: "Movilidad" },
   Velocidad: { media: "Fuerza B", baja: "Movilidad" },
+  Pliometría: { media: "Isométricos", baja: "Movilidad" },
+  "Full Body": { media: "Fuerza B", baja: "Movilidad" },
   "Resistencia anaeróbica": { media: "Resistencia umbral", baja: "Resistencia aeróbica" },
   Hipertrofia: { media: "Fuerza B", baja: "Movilidad" },
   "Hipertrofia Anterior": { media: "Fuerza B", baja: "Movilidad" },

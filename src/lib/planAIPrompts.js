@@ -4,14 +4,23 @@
 
 function formatExerciseList(exercises) {
   return (exercises || [])
-    .map((e) => `- ${e.nombre} [${(e.etiquetas || []).join(", ")}] material:${e.material}`)
+    .map((e) => {
+      const poolStr = e.pool ? ` pool:${e.pool}` : "";
+      return `- ${e.nombre} [${(e.etiquetas || []).join(", ")}] material:${e.material}${poolStr}`;
+    })
     .join("\n");
 }
 
 function formatPlantilla(plantilla) {
   if (!plantilla?.blocks) return "";
   return plantilla.blocks
-    .map((b) => `${b.label} (${b.duration}): ${b.slots} ejercicios [${b.tags.join(", ")}]`)
+    .map((b) => {
+      if (Array.isArray(b.slots)) {
+        const slotDesc = b.slots.map((s) => s.pool || s.poolPattern || s.poolFamily || "?").join(", ");
+        return `${b.label} (${b.duration}): pools [${slotDesc}]`;
+      }
+      return `${b.label} (${b.duration}): ${b.slots} ejercicios [${(b.tags || []).join(", ")}]`;
+    })
     .join("\n");
 }
 

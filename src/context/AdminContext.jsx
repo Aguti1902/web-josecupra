@@ -1,7 +1,42 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { clients as initialClients, weeklyPlan as initialPlan } from "../data/mockData";
+import { supabase } from "../lib/supabase";
 
 const AdminContext = createContext(null);
+
+function clientInitials(name = "") {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "?";
+}
+
+/** Convierte un usuario jugador de /api/admin-users al formato de cliente del panel. */
+export function mapPlayerToClient(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: "player",
+    plan: user.plan || "player-essential",
+    club: {
+      name: user.clubName || "Plan individual",
+      logo: clientInitials(user.name),
+      primaryColor: "#0A36F7",
+    },
+    joinedDate: user.created_at
+      ? new Date(user.created_at).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })
+      : undefined,
+    subscriptionStatus: user.subscriptionStatus,
+  };
+}
+
+function defaultContent() {
+  return { videos: [], pdfs: [] };
+}
 
 // Initial admin state: one plan per client, content library per client
 function buildInitialState() {
@@ -58,6 +93,70 @@ export function AdminProvider({ children }) {
   const [clients, setClients] = useState(
     initialClients.filter((c) => c.role !== "admin")
   );
+  const [clientsLoading, setClientsLoading] = useState(false);
+
+  const ensureClientAssets = useCallback((clientIds) => {
+    if (!clientIds.length) return;
+    setClientPlans((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const id of clientIds) {
+        if (!next[id]) {
+          next[id] = JSON.parse(JSON.stringify(initialPlan));
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    setClientContent((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const id of clientIds) {
+        if (!next[id]) {
+          next[id] = defaultContent();
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    setClientFeedback((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const id of clientIds) {
+        if (!next[id]) {
+          next[id] = [];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, []);
+
+  const refreshClients = useCallback(async () => {
+    setClientsLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch("/api/admin-users", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+      const players = (json.users || [])
+        .filter((u) => u.type === "player")
+        .map(mapPlayerToClient);
+      setClients(players);
+      ensureClientAssets(players.map((p) => p.id));
+    } catch {
+      /* sin conexión: mantener lista actual */
+    } finally {
+      setClientsLoading(false);
+    }
+  }, [ensureClientAssets]);
+
+  useEffect(() => {
+    refreshClients();
+  }, [refreshClients]);
 
   // ── PLAN ──────────────────────────────────────────────────────────
   const updateSession = useCallback((clientId, dayIdx, sessionIdx, updates) => {
@@ -76,7 +175,7 @@ export function AdminProvider({ children }) {
   const addSession = useCallback((clientId, dayIdx, session) => {
     setClientPlans((prev) => {
       const plans = JSON.parse(JSON.stringify(prev));
-      if (!plans[clientId]) return prev;
+      if (!plans[clientId]) plans[clientId] = JSON.parse(JSON.stringify(initialPlan));
       plans[clientId][dayIdx].sessions.push({ ...session, id: Date.now() });
       return plans;
     });
@@ -193,6 +292,8 @@ export function AdminProvider({ children }) {
     <AdminContext.Provider
       value={{
         clients,
+        clientsLoading,
+        refreshClients,
         clientPlans,
         clientContent,
         clientFeedback,

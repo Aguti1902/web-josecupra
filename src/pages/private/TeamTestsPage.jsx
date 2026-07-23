@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
+import FeatureGate from "../../components/private/FeatureGate";
 import {
   RATING_LEGEND, getEvalValues, loadSeasonData, saveSeasonData,
   getRatingForEval, getLastEvalInfo,
@@ -326,6 +327,15 @@ function EditMarksModal({ player, accent, players, onClose, onSave }) {
 
 /* ── Página principal ────────────────────────────────────── */
 export default function TeamTestsPage() {
+  const { user } = useAuth();
+  return (
+    <FeatureGate user={user} feature="team_tests">
+      <TeamTestsPageInner />
+    </FeatureGate>
+  );
+}
+
+function TeamTestsPageInner() {
   const { user }  = useAuth();
   const activeTeam = useActiveTeam();
   const isReadOnly = useIsReadOnly();

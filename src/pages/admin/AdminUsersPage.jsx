@@ -4,6 +4,7 @@ import {
   Search, Users, RefreshCw, CreditCard, Building2, User, Shield, Plus, Dumbbell,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useAdmin } from "../../context/AdminContext";
 import AdminProvisionProfileModal from "../../components/admin/AdminProvisionProfileModal";
 import AdminProvisionHelp from "../../components/admin/AdminProvisionHelp";
 
@@ -57,6 +58,7 @@ function TypeBadge({ type, label }) {
 }
 
 export default function AdminUsersPage() {
+  const { refreshClients } = useAdmin();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -262,7 +264,7 @@ export default function AdminUsersPage() {
         <AdminProvisionProfileModal
           audience={provisionAudience}
           onClose={closeProvision}
-          onCreated={() => { closeProvision(); load(); }}
+          onCreated={() => { closeProvision(); load(); refreshClients(); }}
         />
       )}
     </div>

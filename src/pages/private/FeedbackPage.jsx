@@ -2,6 +2,7 @@ import { Star, TrendingUp, MessageSquare, Calendar, Target, ChevronDown, Chevron
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
+import FeatureGate from "../../components/private/FeatureGate";
 import { coachFeedback } from "../../data/mockData";
 
 function FeedbackCard({ fb }) {
@@ -90,6 +91,7 @@ export default function FeedbackPage() {
   const avg = (coachFeedback.reduce((a, f) => a + f.rating, 0) / coachFeedback.length).toFixed(1);
 
   return (
+    <FeatureGate user={user} feature="feedback">
     <div className="p-4 md:p-8 max-w-3xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">{t("feedback.title")}</h1>
@@ -118,5 +120,6 @@ export default function FeedbackPage() {
         {coachFeedback.map((fb) => <FeedbackCard key={fb.week} fb={fb} />)}
       </div>
     </div>
+    </FeatureGate>
   );
 }

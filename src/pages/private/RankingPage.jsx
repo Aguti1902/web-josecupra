@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import FeatureGate from "../../components/private/FeatureGate";
 
 // ── Utilidades de localStorage ─────────────────────────────
 function weekKey(offset = 0) {
@@ -247,6 +248,7 @@ export default function RankingPage() {
   const accent = lum(raw) > 0.75 ? "#0A36F7" : raw;
 
   return (
+    <FeatureGate user={user} feature="ranking">
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
 
       {/* Page header */}
@@ -478,5 +480,6 @@ export default function RankingPage() {
         </div>
       </div>
     </div>
+    </FeatureGate>
   );
 }

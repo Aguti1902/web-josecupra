@@ -3,8 +3,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, Activity, MessageSquare, LogOut, Menu, X,
   ChevronRight, Trophy, ClipboardList, Users as UsersIcon, User, TrendingUp,
-  Building2, HelpCircle, Bell,
+  Building2, HelpCircle, Bell, CreditCard,
 } from "lucide-react";
+import TrialBanner from "./TrialBanner";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useView } from "../../context/ViewContext";
@@ -44,6 +45,7 @@ function tourIdForRoute(to) {
     "/dashboard/club-settings": "nav-club-settings",
     "/dashboard/profile": "nav-profile",
     "/dashboard/club-profile": "nav-profile",
+    "/dashboard/subscription": "nav-subscription",
   };
   return map[to] || null;
 }
@@ -126,9 +128,16 @@ function AppLayoutInner({ children }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  useEffect(() => {
+    document.body.classList.toggle("sidebar-open-mobile", sidebarOpen);
+    return () => document.body.classList.remove("sidebar-open-mobile");
+  }, [sidebarOpen]);
+
   const activeTeamForNav = viewingTeam || user?.team;
   const activeCategory = activeTeamForNav?.category;
   const isBlock2or3 = ["Sub-13", "Sub-14", "Sub-15", "Sub-16", "Juvenil"].includes(activeCategory);
+
+  const subscriptionNav = { to: "/dashboard/subscription", icon: CreditCard, label: t("nav.subscription") };
 
   const playerNav = [
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
@@ -136,6 +145,7 @@ function AppLayoutInner({ children }) {
     { to: "/dashboard/physical", icon: Activity, label: t("nav.tests") },
     { to: "/dashboard/feedback", icon: MessageSquare, label: t("nav.feedback") },
     { to: "/dashboard/ranking", icon: Trophy, label: t("nav.ranking") },
+    subscriptionNav,
     { to: "/dashboard/profile", icon: User, label: t("nav.my_profile") },
   ];
 
@@ -143,6 +153,7 @@ function AppLayoutInner({ children }) {
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/dashboard/squad", icon: UsersIcon, label: t("nav.squad") },
     { to: "/dashboard/club-settings", icon: Building2, label: "Mi Club" },
+    subscriptionNav,
     { to: "/dashboard/club-profile", icon: User, label: t("nav.my_profile") },
   ];
 
@@ -153,6 +164,7 @@ function AppLayoutInner({ children }) {
     { to: "/dashboard/squad", icon: UsersIcon, label: t("nav.squad") },
     { to: "/dashboard/team-tests", icon: Activity, label: t("nav.tests") },
     ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Cargas" }] : []),
+    subscriptionNav,
     { to: "/dashboard/club-profile", icon: User, label: t("nav.my_profile") },
   ];
 
@@ -166,6 +178,7 @@ function AppLayoutInner({ children }) {
     { to: "/dashboard/squad", icon: UsersIcon, label: "Plantilla" },
     { to: "/dashboard/team-tests", icon: Activity, label: "Tests" },
     ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Carga" }] : []),
+    subscriptionNav,
     { to: "/dashboard/club-profile", icon: User, label: "Mi perfil" },
   ];
 
@@ -346,6 +359,7 @@ function AppLayoutInner({ children }) {
           <PanelSearch mode="client" navItems={navItems} user={user} />
         </div>
         <main className="flex-1 overflow-y-auto dashboard-main-scroll">
+          <TrialBanner user={user} />
           {children}
         </main>
         <AiAssistantWidget />

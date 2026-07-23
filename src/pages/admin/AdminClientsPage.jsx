@@ -1,9 +1,14 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Video, FileText, MessageSquare, Calendar, Users } from "lucide-react";
+import { ArrowRight, Video, FileText, MessageSquare, Calendar, Users, RefreshCw } from "lucide-react";
 import { useAdmin } from "../../context/AdminContext";
 
 export default function AdminClientsPage() {
-  const { clients, clientFeedback, clientContent } = useAdmin();
+  const { clients, clientsLoading, refreshClients, clientFeedback, clientContent } = useAdmin();
+
+  useEffect(() => {
+    refreshClients();
+  }, [refreshClients]);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -12,11 +17,31 @@ export default function AdminClientsPage() {
           <h1 className="text-2xl font-black text-depro-dark mb-0.5">Clientes</h1>
           <p className="text-depro-gray text-sm">{clients.length} clientes activos en el programa</p>
         </div>
-        <div className="flex items-center gap-2 text-depro-gray text-sm">
-          <Users size={16} /> {clients.length} total
+        <div className="flex items-center gap-3 text-depro-gray text-sm">
+          <button
+            type="button"
+            onClick={refreshClients}
+            disabled={clientsLoading}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold hover:text-depro-blue disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={clientsLoading ? "animate-spin" : ""} /> Actualizar
+          </button>
+          <span className="inline-flex items-center gap-2">
+            <Users size={16} /> {clients.length} total
+          </span>
         </div>
       </div>
 
+      {clientsLoading && clients.length === 0 ? (
+        <div className="py-16 flex justify-center">
+          <div className="spinner border-depro-blue/20 border-t-depro-blue" />
+        </div>
+      ) : clients.length === 0 ? (
+        <div className="py-16 text-center text-depro-gray text-sm">
+          No hay jugadores todavía. Créalos en{" "}
+          <Link to="/admin/users?alta=player" className="text-depro-blue hover:underline">Usuarios → Nuevo jugador</Link>.
+        </div>
+      ) : (
       <div className="space-y-3">
         {clients.map((client) => {
           const accent = client.club?.primaryColor || "#0A36F7";
@@ -69,6 +94,7 @@ export default function AdminClientsPage() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }

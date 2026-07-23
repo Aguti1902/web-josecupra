@@ -1,7 +1,9 @@
 import { supabase } from "./supabase";
 import { PLANS, getPlanLimits, getNextPlan, resolvePlanForClub } from "./checkoutPlans";
+import { FEATURES, planIncludesFeature, upsellPlanForFeature } from "./planFeatures";
 
 const STORAGE_PREFIX = "depro_subscription_";
+export const TRIAL_PERIOD_DAYS = 15;
 
 export const PLAN_LABELS = {
   "coach-starter": "Entrenador Starter",
@@ -73,6 +75,8 @@ export function getSubscriptionFromUser(user) {
     plan,
     status,
     cancelAt: meta.subscriptionCancelAt || local?.cancelAt || null,
+    trialEndsAt: meta.trialEndsAt || local?.trialEndsAt || null,
+    billingSource: meta.billingSource || local?.billingSource || null,
     stripeSubscriptionId: meta.stripeSubscriptionId || local?.stripeSubscriptionId || null,
   };
 }
@@ -80,11 +84,97 @@ export function getSubscriptionFromUser(user) {
 export function isSubscriptionActive(sub) {
   if (!sub) return false;
   if (sub.status === "active") return true;
+  if (sub.status === "trialing") {
+    if (!sub.trialEndsAt) return true;
+    return new Date(sub.trialEndsAt) > new Date();
+  }
   if (sub.status === "cancel_at_period_end" && sub.cancelAt) {
     return new Date(sub.cancelAt) > new Date();
   }
   return false;
 }
+
+/** Cuentas admin/manual sin restricciones de trial. */
+export function isManualBilling(user) {
+  const sub = getSubscriptionFromUser(user);
+  return sub?.billingSource === "manual" || user?.billingSource === "manual";
+}
+
+export function isInTrial(user) {
+  if (!user || isManualBilling(user)) return false;
+  const sub = getSubscriptionFromUser(user);
+  if (!sub) return false;
+  if (sub.status === "trialing") {
+    if (!sub.trialEndsAt) return true;
+    return new Date(sub.trialEndsAt) > new Date();
+  }
+  if (sub.trialEndsAt && sub.status !== "active") {
+    return new Date(sub.trialEndsAt) > new Date();
+  }
+  return false;
+}
+
+export function getTrialDaysLeft(user) {
+  if (!isInTrial(user)) return 0;
+  const sub = getSubscriptionFromUser(user);
+  if (!sub?.trialEndsAt) return TRIAL_PERIOD_DAYS;
+  const ms = new Date(sub.trialEndsAt) - Date.now();
+  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
+export function shouldShowTrialWatermark(user) {
+  return isInTrial(user);
+}
+
+export function resolveUserAudience(user) {
+  if (user?.role === "player") return "player";
+  if (user?.role === "club") {
+    if (user?.club?.isSoloCoach) return "coach";
+    return "club";
+  }
+  return "player";
+}
+
+export function isPlayerPro(user) {
+  const plan = user?.plan || getSubscriptionFromUser(user)?.plan;
+  const p = String(plan || "").toLowerCase();
+  return p === "player-pro" || p === "premium" || p === "pro";
+}
+
+/** Acceso a una funcionalidad concreta (plan + trial). */
+export function hasFeatureAccess(user, featureId) {
+  if (!user) return false;
+  if (isManualBilling(user)) return true;
+
+  const feature = FEATURES[featureId];
+  if (!feature) return true;
+
+  const audience = resolveUserAudience(user);
+  if (!feature.audiences.includes(audience)) return true;
+
+  const sub = getSubscriptionFromUser(user);
+  const planId = sub?.plan || user.plan;
+
+  if (isInTrial(user) && feature.trialLocked) return false;
+
+  if (!planId) return true;
+  return planIncludesFeature(planId, audience, feature);
+}
+
+export function getFeatureLockReason(user, featureId) {
+  const feature = FEATURES[featureId];
+  if (!feature || hasFeatureAccess(user, featureId)) return null;
+  if (isInTrial(user) && feature.trialLocked) return "trial";
+  return "plan";
+}
+
+export function getFeatureUpsellPlan(user, featureId) {
+  const audience = resolveUserAudience(user);
+  const planId = user?.plan || getSubscriptionFromUser(user)?.plan;
+  return upsellPlanForFeature(planId, audience, FEATURES[featureId]);
+}
+
+export { FEATURES, lockedFeaturesForUser } from "./planFeatures";
 
 function billingPeriodEnd(from = new Date()) {
   const d = new Date(from);

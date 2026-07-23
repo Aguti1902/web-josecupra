@@ -15,6 +15,7 @@ import {
 import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import TrialWatermark from "../../components/private/TrialWatermark";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
 import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession } from "../../lib/playerPlanEngine";
 import { markSessionComplete, touchLastTrain } from "../../lib/sessionProgress";
@@ -526,16 +527,17 @@ function PlayerWeeklyPlan({ accent }) {
       </div>
 
       {/* Toggle Microciclo / Mesociclo */}
-      <div className="inline-flex bg-depro-gray-light rounded-xl p-1 mb-6 border border-depro-border">
+      <div className="flex w-full sm:w-auto bg-depro-gray-light rounded-xl p-1 mb-6 border border-depro-border">
         {[
-          { id:"micro", label:"Microciclo · Semana" },
-          { id:"meso",  label:"Mesociclo · Mes" },
+          { id:"micro", label:"Microciclo · Semana", short:"Semana" },
+          { id:"meso",  label:"Mesociclo · Mes", short:"Mes" },
         ].map((v) => (
           <button key={v.id} onClick={() => setView(v.id)}
-            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+            className={`flex-1 sm:flex-none px-3 sm:px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
               view === v.id ? "bg-white text-depro-blue shadow-sm" : "text-depro-gray hover:text-depro-dark"
             }`}>
-            {v.label}
+            <span className="sm:hidden">{v.short}</span>
+            <span className="hidden sm:inline">{v.label}</span>
           </button>
         ))}
       </div>
@@ -1605,9 +1607,18 @@ export default function WeeklyPlanPage() {
   const raw    = user?.club?.primaryColor || "#0A36F7";
   const accent = safeColor(raw);
 
+  let content;
   if (user?.role === "club" && user?.club?.isSoloCoach) {
-    return <CoachSessions club={user.club} team={user.team} user={user} />;
+    content = <CoachSessions club={user.club} team={user.team} user={user} />;
+  } else if (user?.role === "club") {
+    content = <ClubMicrocycles accent={accent} />;
+  } else {
+    content = <PlayerWeeklyPlan accent={accent} />;
   }
-  if (user?.role === "club") return <ClubMicrocycles accent={accent} />;
-  return <PlayerWeeklyPlan accent={accent} />;
+
+  return (
+    <TrialWatermark user={user} className="min-h-full">
+      {content}
+    </TrialWatermark>
+  );
 }

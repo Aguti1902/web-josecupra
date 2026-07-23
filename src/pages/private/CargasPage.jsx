@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam } from "../../context/ViewContext";
+import FeatureGate from "../../components/private/FeatureGate";
 import { saveClubDetail, loadClubDetail } from "../../lib/adminStorage";
 import { supabase } from "../../lib/supabase";
 
@@ -541,6 +542,7 @@ export default function CargasPage() {
   const activeSessionDef = visibleSessions.find((s) => s.key === resolvedSession) || visibleSessions[0];
 
   return (
+    <FeatureGate user={user} feature="cargas">
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-6">
@@ -745,5 +747,6 @@ export default function CargasPage() {
         </div>
       </div>
     </div>
+    </FeatureGate>
   );
 }

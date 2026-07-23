@@ -500,11 +500,11 @@ const TABS = [
 
 export default function AdminClientDetailPage() {
   const { id } = useParams();
-  const clientId = parseInt(id);
+  const clientId = id;
   const { clients } = useAdmin();
   const [activeTab, setActiveTab] = useState("plan");
 
-  const client = clients.find((c) => c.id === clientId);
+  const client = clients.find((c) => String(c.id) === String(clientId));
   if (!client) {
     return (
       <div className="p-8 text-center text-depro-gray">

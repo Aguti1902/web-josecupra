@@ -3,6 +3,7 @@
 // Etiquetas, material y contraindicaciones según spec.
 // ═══════════════════════════════════════════════════════
 import { EXTRA_EXERCISES } from "./extraExercises.js";
+import { getLegacyCatalogFromV2 } from "../lib/catalogAdapter.js";
 
 const BASE_EXERCISES = [
   // ── 1. FUERZA – TREN INFERIOR ──────────────────────────
@@ -160,7 +161,7 @@ const BASE_EXERCISES = [
   { id:"m120", nombre:"Flow movilidad completa 5'",   etiquetas:["movilidad"],                      material:"sin_material", contraindicado:[] },
 ];
 
-export const EXERCISES = [...BASE_EXERCISES, ...EXTRA_EXERCISES];
+export const EXERCISES = [...getLegacyCatalogFromV2(), ...EXTRA_EXERCISES];
 
 // ── Etiquetas oficiales ───────────────────────────────────
 export const TAGS = {

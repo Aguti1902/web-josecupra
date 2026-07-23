@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Lock, Save, Trash2, TrendingUp, TrendingDown, Minus, ChevronRight, Activity } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
+import FeatureGate from "../../components/private/FeatureGate";
 
 // ── 4 tests oficiales ─────────────────────────────────────────
 const TESTS = [
@@ -311,7 +312,6 @@ function DetailPanel({ test, userId }) {
 export default function PhysicalPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const isPremium = user?.plan === "Premium" || user?.plan === "premium";
   const [selected, setSelected] = useState(TESTS[0].id);
   const activeTest = TESTS.find((t) => t.id === selected);
 
@@ -321,29 +321,8 @@ export default function PhysicalPage() {
     return h[h.length - 1]?.value ?? null;
   }
 
-  if (!isPremium) {
-    return (
-      <div className="p-4 md:p-8 max-w-3xl mx-auto">
-          <div className="flex items-center gap-2 text-xs font-bold text-depro-blue uppercase tracking-wide mb-6">
-          <Activity size={13} /> {t("physical.title")}
-        </div>
-        <div className="bg-white border-2 border-dashed border-depro-border rounded-2xl p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-depro-yellow/15 flex items-center justify-center mx-auto mb-4">
-            <Lock size={28} className="text-depro-yellow" />
-          </div>
-          <h2 className="text-xl font-bold text-depro-dark mb-2">{t("physical.premium_only")}</h2>
-          <p className="text-sm text-depro-gray max-w-sm mx-auto mb-6">
-            {t("physical.subtitle")}
-          </p>
-          <a href="/comprar?audience=player&plan=pro" className="inline-flex items-center gap-2 px-6 py-3 bg-depro-yellow text-depro-dark font-bold rounded-xl hover:opacity-90 transition-opacity text-sm">
-            {t("physical.upgrade")}
-          </a>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <FeatureGate user={user} feature="physical_tests">
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
@@ -408,5 +387,6 @@ export default function PhysicalPage() {
         </div>
       </div>
     </div>
+    </FeatureGate>
   );
 }

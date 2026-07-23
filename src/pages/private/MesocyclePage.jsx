@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
+import FeatureGate from "../../components/private/FeatureGate";
 import {
   distributeMesocycleForTeam, getDayRationale, getSessionType,
   getCurrentWeekIndex, formatDate, getWeekStartDate, isMesocicloActive, getMesocicloWeeks,
@@ -373,13 +374,16 @@ export default function MesocyclePage() {
 
   if (user?.role === "club" && user?.club?.isSoloCoach) {
     return (
+      <FeatureGate user={user} feature="mesocycle">
       <div className="p-4 md:p-8 max-w-7xl mx-auto">
         <CoachPlanning club={user.club} team={user.team} />
       </div>
+      </FeatureGate>
     );
   }
 
   return (
+    <FeatureGate user={user} feature="mesocycle">
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
       {isReadOnly && (
         <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs font-medium text-amber-700">
@@ -616,5 +620,6 @@ export default function MesocyclePage() {
         </>
       )}
     </div>
+    </FeatureGate>
   );
 }
