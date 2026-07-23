@@ -13,12 +13,12 @@ export default function TrialBanner({ user, prominent = false }) {
   if (prominent) {
     return (
       <div
-        className={`rounded-2xl border-2 px-5 py-4 flex flex-col md:flex-row md:items-center gap-4 shadow-sm ${
+        className={`border-2 px-5 py-4 flex flex-col md:flex-row md:items-center gap-4 shadow-sm ${
           urgent ? "bg-orange-100 border-orange-400" : "bg-orange-50 border-orange-300"
         }`}
       >
         <div className="flex items-center gap-4 flex-1">
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+          <div className={`w-16 h-16 flex items-center justify-center flex-shrink-0 ${
             urgent ? "bg-orange-200" : "bg-orange-100"
           }`}>
             <Clock size={28} className="text-orange-700" />
@@ -39,7 +39,7 @@ export default function TrialBanner({ user, prominent = false }) {
           </div>
           <Link
             to="/dashboard/subscription"
-            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors"
           >
             <Sparkles size={16} />
             {t("trial.banner_cta")}
@@ -50,9 +50,9 @@ export default function TrialBanner({ user, prominent = false }) {
   }
 
   return (
-    <div className="rounded-2xl border border-orange-300 bg-orange-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+    <div className="border border-orange-300 bg-orange-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
       <div className="flex items-start gap-3 flex-1 min-w-0">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-orange-100">
+        <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 bg-orange-100">
           <Clock size={18} className="text-orange-700" />
         </div>
         <div className="min-w-0">
@@ -66,7 +66,7 @@ export default function TrialBanner({ user, prominent = false }) {
       </div>
       <Link
         to="/dashboard/subscription"
-        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors flex-shrink-0"
+        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors flex-shrink-0"
       >
         <Sparkles size={14} />
         {t("trial.banner_cta")}
