@@ -1,15 +1,18 @@
-import stripePublic from "../../config/stripe.public.json" with { type: "json" };
+/** Clave publicable TEST (segura en cliente). Fallback si Vercel no inyecta env. */
 
 function clean(value) {
   return String(value || "").trim().replace(/^["']|["']$/g, "");
 }
+
+export const STRIPE_TEST_PUBLISHABLE_KEY =
+  "pk_test_51TVzAWL0FQK1XtUnkAE6it45JKwnJnF2fDTrUYYcNDzmey00viN4Iaji4yM753tQVB1wvuURdKhDPF5xv2DGtpJf00HrLOieCX";
 
 export function resolveStripePublishableKey() {
   return clean(
     process.env.VITE_STRIPE_PUBLISHABLE_KEY ||
     process.env.STRIPE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
-    stripePublic.testPublishableKey,
+    STRIPE_TEST_PUBLISHABLE_KEY,
   );
 }
 
@@ -19,5 +22,3 @@ export function resolveStripeMode(publishableKey = resolveStripePublishableKey()
   if (forced === "live") return false;
   return publishableKey.includes("_test_");
 }
-
-export { stripePublic };
