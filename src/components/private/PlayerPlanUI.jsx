@@ -5,7 +5,8 @@ import {
 } from "lucide-react";
 import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS } from "../../lib/sessionBlocks";
 import { getYouTubeId } from "../../lib/youtube";
-import { saveLoadLog, loadFieldsForObjective } from "../../lib/loadLogs";
+import { saveLoadLog } from "../../lib/loadLogs";
+import { loadFieldsForExercise, exerciseNeedsWeight } from "../../lib/loadAnalytics";
 import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
 import { hasFeatureAccess } from "../../lib/subscription";
 
@@ -36,7 +37,8 @@ function ConditionPill({ Icon, label, color = "#6B7280" }) {
 
 function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, onSwap, canSwap }) {
   const ytId = getYouTubeId(exercise.videoUrl);
-  const fields = loadFieldsForObjective(objective);
+  const fields = loadFieldsForExercise(exercise, objective);
+  const needsWeight = exerciseNeedsWeight(exercise);
   const [loadDraft, setLoadDraft] = useState({});
   const [loadSaved, setLoadSaved] = useState(false);
   const [loadNotice, setLoadNotice] = useState("");
@@ -46,8 +48,8 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
       setLoadNotice(trialPersistBlockedMessage());
       return;
     }
-    if (!hasFeatureAccess(user, "cargas")) {
-      setLoadNotice("Activa el extra «Registro de cargas» en Suscripción para guardar tus datos.");
+    if (!needsWeight && !hasFeatureAccess(user, "cargas")) {
+      setLoadNotice("Activa el extra «Registro de cargas» en Suscripción para guardar todos los datos.");
       return;
     }
     saveLoadLog(user?.id, {
@@ -134,7 +136,14 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
         )}
 
         <div className="rounded-xl border border-depro-border p-4 mb-4 space-y-3">
-          <div className="text-sm font-bold text-depro-dark">Registro de carga</div>
+          <div className="text-sm font-bold text-depro-dark">
+            {needsWeight ? "Registra el peso usado" : "Registro de carga"}
+          </div>
+          {needsWeight && (
+            <p className="text-[11px] text-depro-gray -mt-1">
+              Este ejercicio requiere peso. Anótalo para ver tu evolución en el ranking con amigos.
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-2">
             {fields.map((field) => (
               <div key={field} className={field === "notes" || field === "feelings" ? "col-span-2" : ""}>

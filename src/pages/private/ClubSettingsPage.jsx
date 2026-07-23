@@ -395,7 +395,7 @@ export default function ClubSettingsPage() {
   ];
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="dash-page space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-depro-dark">Mi Club</h1>

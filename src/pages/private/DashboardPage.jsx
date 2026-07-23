@@ -1283,7 +1283,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+    <div className="dash-page space-y-6">
       <JugadorDashboard user={user} club={club} />
     </div>
   );

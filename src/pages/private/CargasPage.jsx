@@ -496,7 +496,7 @@ export default function CargasPage() {
   // Solo accesible para Bloques 2 y 3
   if (!ageBlock) {
     return (
-      <div className="p-8 max-w-2xl mx-auto text-center">
+      <div className="dash-page text-center">
         <div className="w-16 h-16 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
           <Zap size={28} className="text-depro-gray opacity-40" />
         </div>
@@ -543,7 +543,7 @@ export default function CargasPage() {
 
   return (
     <FeatureGate user={user} feature="cargas">
-    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+    <div className="dash-page">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-depro-gray mb-1">

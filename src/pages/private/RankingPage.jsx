@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Trophy, Zap, CheckCircle, Flame, Star, Medal, Crown,
   TrendingUp, Users, Calendar, Activity,
@@ -6,6 +7,19 @@ import {
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import FeatureGate from "../../components/private/FeatureGate";
+import FriendsPanel, { processInviteFromUrl } from "../../components/private/FriendsPanel";
+import RankingCharts from "../../components/private/RankingCharts";
+import {
+  getFriends,
+  fetchFriendProfiles,
+  registerSocialProfile,
+} from "../../lib/playerFriends";
+import {
+  getMaxWeightByWeek,
+  getTopWeightedExercises,
+  getImprovementSummary,
+  buildPublicStats,
+} from "../../lib/loadAnalytics";
 
 // ── Utilidades de localStorage ─────────────────────────────
 function weekKey(offset = 0) {
@@ -149,6 +163,48 @@ function buildRealRanking(user) {
   return { leaderboard, activityFeed: feed, myEntry };
 }
 
+function entryFromSocialProfile(profile) {
+  const weekly = profile.stats?.weeklySessions ?? 0;
+  const pct = profile.stats?.planPct ?? 0;
+  const completed = profile.stats?.completedSessions ?? 0;
+  const name = profile.name || "Jugador";
+  return {
+    id: profile.userId,
+    name,
+    avatar: name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase(),
+    plan: profile.plan || "básico",
+    club: { primaryColor: "#0A36F7" },
+    points: {
+      daily: weekly * 20 + (profile.stats?.maxWeight || 0),
+      weekly: weekly * 20 + pct + (profile.stats?.maxWeight || 0) * 2,
+      monthly: completed * 15 + pct + (profile.stats?.loadCount || 0) * 5,
+    },
+    sessions: { thisWeek: weekly, lastWeek: 0, total: profile.stats?.totalSessions || 0, completed },
+    streak: weekly,
+    stats: profile.stats,
+  };
+}
+
+function buildFriendsRanking(user, friendProfiles) {
+  const base = buildRealRanking(user);
+  const friendEntries = friendProfiles.map(entryFromSocialProfile);
+  const myStats = buildPublicStats(user?.id);
+  const myEntry = {
+    ...base.myEntry,
+    stats: {
+      ...myStats,
+      weeklySessions: base.myEntry.sessions?.thisWeek,
+      planPct: getTotalSessions(user?.id).total
+        ? Math.round((getTotalSessions(user?.id).completed / getTotalSessions(user?.id).total) * 100)
+        : 0,
+      completedSessions: getTotalSessions(user?.id).completed,
+      totalSessions: getTotalSessions(user?.id).total,
+    },
+  };
+  const leaderboard = [myEntry, ...friendEntries.filter((f) => f.id !== user?.id)];
+  return { ...base, leaderboard, myEntry, friendProfiles };
+}
+
 const TABS = ["Diario", "Semanal", "Mensual"];
 const TAB_KEY = { Diario: "daily", Semanal: "weekly", Mensual: "monthly" };
 
@@ -231,10 +287,61 @@ function lum(hex) {
 export default function RankingPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const TABS_I18N = [t("ranking.daily"), t("ranking.weekly"), t("ranking.monthly")];
   const [activeTab, setActiveTab] = useState(t("ranking.weekly"));
+  const [rankingMode, setRankingMode] = useState("friends");
+  const [friends, setFriends] = useState(() => getFriends(user?.id));
+  const [friendProfiles, setFriendProfiles] = useState([]);
+  const [inviteNotice, setInviteNotice] = useState("");
 
-  const rankingData = useMemo(() => buildRealRanking(user), [user?.id]);
+  useEffect(() => {
+    if (!user?.id) return;
+    const pctData = getTotalSessions(user.id);
+    const pct = pctData.total ? Math.round((pctData.completed / pctData.total) * 100) : 0;
+    registerSocialProfile(user, {
+      weeklySessions: getCompletedDays(user.id, weekKey()),
+      planPct: pct,
+      completedSessions: pctData.completed,
+      totalSessions: pctData.total,
+    });
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const ids = friends.map((f) => f.id);
+    if (!ids.length) {
+      setFriendProfiles([]);
+      return;
+    }
+    fetchFriendProfiles(ids).then(setFriendProfiles);
+  }, [user?.id, friends]);
+
+  useEffect(() => {
+    const code = searchParams.get("invite");
+    if (!code || !user?.id) return;
+    const normalized = String(code).toUpperCase().replace(/^.*INVITE=/I, "").split("&")[0];
+    if (getFriends(user.id).some((f) => f.inviteCode === normalized)) return;
+    processInviteFromUrl(user, normalized, (next) => {
+      setFriends(next);
+      setInviteNotice("¡Amigo añadido correctamente!");
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("invite");
+      setSearchParams(nextParams, { replace: true });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const rankingData = useMemo(() => {
+    if (rankingMode === "friends") {
+      return buildFriendsRanking(user, friendProfiles);
+    }
+    return buildRealRanking(user);
+  }, [user, rankingMode, friendProfiles]);
+
+  const weightWeeks = useMemo(() => getMaxWeightByWeek(user?.id), [user?.id]);
+  const topExercises = useMemo(() => getTopWeightedExercises(user?.id), [user?.id]);
+  const improvement = useMemo(() => getImprovementSummary(user?.id), [user?.id]);
 
   const key     = TAB_KEY[activeTab] ?? "weekly";
   const sorted  = [...(rankingData.leaderboard || [])].sort((a, b) => b.points[key] - a.points[key]);
@@ -249,19 +356,57 @@ export default function RankingPage() {
 
   return (
     <FeatureGate user={user} feature="ranking">
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="dash-page space-y-6">
 
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-black text-depro-dark">{t("ranking.title")}</h1>
           <p className="text-depro-gray text-sm mt-0.5">{t("ranking.subtitle")}</p>
         </div>
-        <div className="hidden sm:flex items-center gap-2 bg-white border border-depro-border rounded-xl px-4 py-2 shadow-card">
-          <Users size={15} className="text-depro-blue" />
-          <span className="text-sm font-semibold text-depro-dark">{sorted.length} {t("dashboard.players").toLowerCase()}</span>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 bg-depro-gray-light p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setRankingMode("friends")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${rankingMode === "friends" ? "bg-white text-depro-dark shadow-card" : "text-depro-gray"}`}
+            >
+              Amigos
+            </button>
+            <button
+              type="button"
+              onClick={() => setRankingMode("team")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${rankingMode === "team" ? "bg-white text-depro-dark shadow-card" : "text-depro-gray"}`}
+            >
+              Equipo
+            </button>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 bg-white border border-depro-border rounded-xl px-4 py-2 shadow-card">
+            <Users size={15} className="text-depro-blue" />
+            <span className="text-sm font-semibold text-depro-dark">{sorted.length} {t("dashboard.players").toLowerCase()}</span>
+          </div>
         </div>
       </div>
+
+      {inviteNotice && (
+        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-3">{inviteNotice}</p>
+      )}
+
+      <FriendsPanel user={user} onFriendsChange={setFriends} />
+
+      {improvement && (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <span className="font-bold">Mejora reciente:</span>{" "}
+          {improvement.exerciseName} — de {improvement.from} kg a {improvement.to} kg (+{improvement.diff} kg)
+        </div>
+      )}
+
+      <RankingCharts
+        weightWeeks={weightWeeks}
+        topExercises={topExercises}
+        friendsProfiles={friendProfiles}
+        accent={accent}
+      />
 
       {/* My position banner */}
       <div

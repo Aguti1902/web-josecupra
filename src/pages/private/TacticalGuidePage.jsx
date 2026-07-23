@@ -30,7 +30,7 @@ export default function TacticalGuidePage() {
   const guide = tacticalGuides.find((g) => g.key === selectedKey);
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+    <div className="dash-page">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-depro-gray text-xs font-bold uppercase tracking-wide mb-2">

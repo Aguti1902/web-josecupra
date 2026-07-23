@@ -10,7 +10,7 @@ export default function PlayerLoadHistoryPage() {
 
   return (
     <FeatureGate user={user} feature="cargas">
-      <div className="p-4 md:p-8 max-w-5xl mx-auto">
+      <div className="dash-page">
         <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Control de cargas</h1>
         <p className="text-depro-gray text-sm mb-8">
           Histórico de registros por entrenamiento. Cada sesión es independiente y no modifica semanas anteriores.

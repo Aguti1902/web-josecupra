@@ -148,7 +148,7 @@ export default function FeedbackPage() {
 
   return (
     <FeatureGate user={user} feature="feedback">
-    <div className="p-4 md:p-8 max-w-3xl mx-auto">
+    <div className="dash-page space-y-6">
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">{t("feedback.title")}</h1>
         <p className="text-depro-gray text-sm">{t("feedback.subtitle")}</p>

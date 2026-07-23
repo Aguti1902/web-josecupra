@@ -323,7 +323,7 @@ export default function PhysicalPage() {
 
   return (
     <FeatureGate user={user} feature="physical_tests">
-    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+    <div className="dash-page">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs font-bold text-depro-blue uppercase tracking-wide mb-2">

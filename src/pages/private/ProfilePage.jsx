@@ -346,7 +346,7 @@ export default function ProfilePage() {
   const accent = safeColor(currentClub?.primaryColor);
 
   return (
-    <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
+    <div className="dash-page space-y-6">
       {/* Datos personales */}
       <div className="bg-white border border-depro-border rounded-2xl p-6">
         <h2 className="font-bold text-depro-dark text-lg mb-5 flex items-center gap-2">
