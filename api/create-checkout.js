@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem } from "./_planCatalog.js";
 import { getStripe, getSiteUrl } from "./_stripeClient.js";
+import { SUPABASE_SERVICE_ROLE_FALLBACK } from "./_serviceRoleKey.js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_ROLE_FALLBACK;
 
 function generatePassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -11,7 +12,7 @@ function generatePassword() {
 }
 
 async function validateClubCode(code) {
-  if (!code || !SERVICE_ROLE_KEY) return { valid: false };
+  if (!code) return { valid: false };
   try {
     const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
     const { data: clubs } = await sb.from("clubs").select("id, login_code").eq("login_code", code.toUpperCase()).limit(1);
@@ -60,6 +61,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
       equipos: formData?.equipos || "",
       clubCode,
       clubId,
+      authUserId: formData?.authUserId || "",
       tempPassword,
       billingSource: "stripe",
     },
@@ -118,7 +120,8 @@ export default async function handler(req, res) {
   }
 
   const finalAmount = hasDiscount ? Math.round(price.amount * 0.85) : price.amount;
-  const tempPassword = generatePassword();
+  const hasRegisteredUser = Boolean(formData?.authUserId);
+  const tempPassword = hasRegisteredUser ? "" : generatePassword();
 
   try {
     const stripe = await getStripe();

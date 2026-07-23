@@ -361,13 +361,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   // ── Login con Google (OAuth) ───────────────────────────────
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (redirectTo) => {
     try {
-      const redirectTo = `${window.location.origin}/login`;
+      const target = redirectTo || `${window.location.origin}/login`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo,
+          redirectTo: target,
           queryParams: { access_type: "online", prompt: "select_account" },
         },
       });

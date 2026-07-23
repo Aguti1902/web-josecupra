@@ -1,15 +1,18 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, ArrowRight, CheckCircle, Zap, Trophy, User, Mail, Calendar,
-  Target, AlertCircle, Shield, Lock,
+  Target, AlertCircle, Shield, Lock, Loader2,
   ChevronRight, ChevronDown, BadgeCheck, MapPin, Building2, Users,
 } from "lucide-react";
 import {
   AUDIENCES, PLANS, resolvePlanId, plansForAudience, formatPrice, applyClubDiscount,
 } from "../../lib/checkoutPlans";
+import { useAuth } from "../../context/AuthContext";
 import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
 import StripeTestBanner from "../../components/public/StripeTestBanner";
+
+const ONBOARDING_STORAGE_KEY = "depro_onboarding";
 
 const POSITIONS  = ["Portero", "Defensa", "Lateral", "Pivote", "Centro", "Mediapunta", "Extremo", "Delantero"];
 const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
@@ -27,8 +30,19 @@ const INJURY_SUBTYPES = {
 const COMPETITION_DAYS = ["Sábado", "Domingo", "Entre semana", "No compito regularmente"];
 const WEEK_DAYS  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
-const STEPS_PLAYER = ["Plan", "Tus datos", "Tu entrenamiento", "Pago"];
-const STEPS_STAFF  = ["Plan", "Tus datos", "Pago"];
+const STEPS_PLAYER = ["Plan", "Tu cuenta", "Tus datos", "Tu entrenamiento", "Pago"];
+const STEPS_STAFF  = ["Plan", "Tu cuenta", "Tus datos", "Pago"];
+
+function GoogleIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+    </svg>
+  );
+}
 
 /* ─────────────────────────────────────────────
    COMPONENTES AUX
@@ -203,11 +217,206 @@ function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
 }
 
 /* ─────────────────────────────────────────────
-   STEP 2 — Datos personales
+   STEP 2 — Crear cuenta
 ───────────────────────────────────────────── */
-function StepDatos({ audience, form, setForm, onNext, onBack }) {
+function StepCuenta({ audience, planId, form, setForm, onNext, onBack, saveForOAuth }) {
+  const { user, register, loginWithGoogle } = useAuth();
+  const [email, setEmail] = useState(form.email || "");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const role = audience === "club" ? "club" : audience === "coach" ? "coach" : "player";
+
+  const handleContinueLoggedIn = () => {
+    setForm({
+      ...form,
+      email: user.email,
+      nombre: form.nombre || user.name || user.user_metadata?.name || "",
+    });
+    onNext();
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
+    setLoading(true);
+    const result = await register({
+      email: email.trim().toLowerCase(),
+      password,
+      name: form.nombre || email.split("@")[0],
+      role,
+    });
+    setLoading(false);
+    if (!result.success) {
+      setError(result.error || "No se pudo crear la cuenta");
+      return;
+    }
+    setForm({ ...form, email: email.trim().toLowerCase() });
+    onNext();
+  };
+
+  const handleGoogle = async () => {
+    setError("");
+    setGoogleLoading(true);
+    saveForOAuth();
+    const qs = new URLSearchParams({ audience, plan: planId, oauth: "1" });
+    const redirectTo = `${window.location.origin}/comprar?${qs.toString()}`;
+    const result = await loginWithGoogle(redirectTo);
+    if (!result.success) {
+      setGoogleLoading(false);
+      setError(result.error || "Error al conectar con Google");
+    }
+  };
+
+  if (user) {
+    return (
+      <div>
+        <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Tu cuenta</h2>
+        <p className="text-depro-gray text-sm mb-8">Continuarás con la sesión que ya tienes abierta.</p>
+
+        <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-depro-blue/10 flex items-center justify-center">
+              <User size={22} className="text-depro-blue" />
+            </div>
+            <div className="text-left min-w-0">
+              <div className="font-bold text-depro-dark truncate">{user.name || user.email}</div>
+              <div className="text-sm text-depro-gray truncate">{user.email}</div>
+            </div>
+            <CheckCircle size={20} className="text-depro-green ml-auto shrink-0" />
+          </div>
+        </div>
+
+        <div className="flex justify-between">
+          <button onClick={onBack} className="btn-ghost flex items-center gap-2">
+            <ArrowLeft size={16} /> Atrás
+          </button>
+          <button onClick={handleContinueLoggedIn} className="btn-primary flex items-center gap-2">
+            Continuar <ArrowRight size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Crea tu cuenta</h2>
+      <p className="text-depro-gray text-sm mb-8">
+        Regístrate antes del pago para entrar al panel automáticamente cuando termines.
+      </p>
+
+      <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card space-y-5">
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={googleLoading || loading}
+          className="w-full flex items-center justify-center gap-3 border border-depro-border rounded-xl py-3 font-bold text-sm hover:bg-depro-bg/40 transition-colors disabled:opacity-50"
+        >
+          {googleLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
+          Continuar con Google
+        </button>
+
+        <div className="flex items-center gap-3 text-xs text-depro-gray">
+          <div className="flex-1 h-px bg-depro-border" />
+          <span>o con email</span>
+          <div className="flex-1 h-px bg-depro-border" />
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">
+            <AlertCircle size={16} className="shrink-0 mt-0.5" /> {error}
+          </div>
+        )}
+
+        <form onSubmit={handleRegister} className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Email *</label>
+            <div className="relative">
+              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="admin-input w-full pl-10"
+                placeholder="tu@email.com"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Contraseña *</label>
+            <div className="relative">
+              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="admin-input w-full pl-10"
+                placeholder="Mínimo 8 caracteres"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Confirmar contraseña *</label>
+            <div className="relative">
+              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="password"
+                required
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                className="admin-input w-full pl-10"
+                placeholder="Repite la contraseña"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || googleLoading}
+            className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+            Crear cuenta y continuar
+          </button>
+        </form>
+      </div>
+
+      <div className="mt-8 flex justify-between">
+        <button onClick={onBack} className="btn-ghost flex items-center gap-2">
+          <ArrowLeft size={16} /> Atrás
+        </button>
+      </div>
+
+      <p className="text-xs text-depro-gray mt-6 text-center">
+        ¿Ya tienes cuenta?{" "}
+        <Link to="/login" className="text-depro-blue font-bold hover:underline">Inicia sesión</Link>
+      </p>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   STEP 3 — Datos personales
+───────────────────────────────────────────── */
+function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
   const isPlayer = audience === "player";
-  const valid = form.nombre && form.email && (isPlayer ? form.edad : form.club);
+  const email = loggedInEmail || form.email;
+  const valid = form.nombre && email && (isPlayer ? form.edad : form.club);
 
   return (
     <div>
@@ -240,12 +449,21 @@ function StepDatos({ audience, form, setForm, onNext, onBack }) {
             <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Email *</label>
             <div className="relative">
               <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="email" value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="admin-input w-full pl-10"
-                placeholder="tu@email.com"
-              />
+              {loggedInEmail ? (
+                <input
+                  type="email"
+                  readOnly
+                  value={loggedInEmail}
+                  className="admin-input w-full pl-10 bg-depro-gray-light/60 cursor-not-allowed"
+                />
+              ) : (
+                <input
+                  type="email" value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="admin-input w-full pl-10"
+                  placeholder="tu@email.com"
+                />
+              )}
             </div>
           </div>
         </div>
@@ -346,7 +564,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack }) {
 }
 
 /* ─────────────────────────────────────────────
-   STEP 3 — Datos de fútbol
+   STEP 4 — Datos de fútbol
 ───────────────────────────────────────────── */
 function StepFutbol({ form, setForm, onNext, onBack }) {
   const freqN = parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3;
@@ -521,10 +739,13 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
 /* ─────────────────────────────────────────────
    STEP 4 — Pago
 ───────────────────────────────────────────── */
-function StepPago({ form, plan, onBack }) {
+function StepPago({ form, plan, onBack, authUserId }) {
   const [error, setError] = useState("");
   const [showDetails, setShowDetails] = useState(false);
-  const formPayload = useMemo(() => ({ ...form, audience: plan.audience }), [form, plan.audience]);
+  const formPayload = useMemo(
+    () => ({ ...form, audience: plan.audience, authUserId: authUserId || "" }),
+    [form, plan.audience, authUserId],
+  );
 
   const hasDiscount = !!form.clubCode && plan.audience === "player";
   const discount    = hasDiscount ? Math.round(plan.price * 0.15 * 100) / 100 : 0;
@@ -721,6 +942,7 @@ function StepDone({ plan, form }) {
 ───────────────────────────────────────────── */
 export default function OnboardingPage() {
   const [params] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const audienceParam = params.get("audience") || "player";
   const initialPlanId = resolvePlanId(audienceParam, params.get("plan"));
   const initialAudience = initialPlanId
@@ -753,7 +975,10 @@ export default function OnboardingPage() {
   const plan = PLANS[planId] || plansForAudience(audience)[0];
   const isPlayerFlow = plan?.audience === "player";
   const stepLabels = isPlayerFlow ? STEPS_PLAYER : STEPS_STAFF;
-  const headerStep = !isPlayerFlow && step === 4 ? 3 : step;
+
+  const datosStep = 3;
+  const futbolStep = 4;
+  const paymentStep = isPlayerFlow ? 5 : 4;
 
   const handleAudienceChange = (nextAudience) => {
     setAudience(nextAudience);
@@ -761,10 +986,50 @@ export default function OnboardingPage() {
     setPlanId(first?.id || "");
   };
 
-  const goToPayment = () => setStep(isPlayerFlow ? 4 : 3);
-  const paymentStep = isPlayerFlow ? 4 : 3;
-  const backFromPayment = () => setStep(isPlayerFlow ? 3 : 2);
+  const saveOnboardingForOAuth = () => {
+    sessionStorage.setItem(
+      ONBOARDING_STORAGE_KEY,
+      JSON.stringify({ audience, planId, form, step: datosStep }),
+    );
+  };
 
+  useEffect(() => {
+    if (window.location.hash.includes("access_token")) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (params.get("oauth") !== "1" || authLoading || !user) return;
+    const saved = sessionStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const state = JSON.parse(saved);
+      if (state.audience) setAudience(state.audience);
+      if (state.planId) setPlanId(state.planId);
+      setForm((f) => ({
+        ...f,
+        ...(state.form || {}),
+        email: user.email || state.form?.email || f.email,
+        nombre: user.name || user.user_metadata?.name || state.form?.nombre || f.nombre,
+      }));
+      setStep(state.step || datosStep);
+    } catch { /* ignore */ }
+    sessionStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [params, user, authLoading, datosStep]);
+
+  useEffect(() => {
+    if (!user) return;
+    setForm((f) => ({
+      ...f,
+      email: f.email || user.email || "",
+      nombre: f.nombre || user.name || user.user_metadata?.name || "",
+    }));
+  }, [user]);
+
+  const goToPayment = () => setStep(paymentStep);
+  const backFromPayment = () => setStep(isPlayerFlow ? futbolStep : datosStep);
 
   return (
     <div className="min-h-screen bg-depro-gray-light pt-16 pb-24">
@@ -781,7 +1046,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Wizard */}
-        <StepHeader steps={stepLabels} current={headerStep} />
+        <StepHeader steps={stepLabels} current={step} />
 
         {step === 1 && (
           <StepPlan
@@ -794,21 +1059,34 @@ export default function OnboardingPage() {
         )}
 
         {step === 2 && (
+          <StepCuenta
+            audience={plan?.audience || audience}
+            planId={planId}
+            form={form}
+            setForm={setForm}
+            onNext={() => setStep(datosStep)}
+            onBack={() => setStep(1)}
+            saveForOAuth={saveOnboardingForOAuth}
+          />
+        )}
+
+        {step === datosStep && (
           <StepDatos
             audience={plan?.audience || audience}
             form={form}
             setForm={setForm}
-            onNext={() => (isPlayerFlow ? setStep(3) : goToPayment())}
-            onBack={() => setStep(1)}
+            loggedInEmail={user?.email}
+            onNext={() => (isPlayerFlow ? setStep(futbolStep) : goToPayment())}
+            onBack={() => setStep(2)}
           />
         )}
 
-        {step === 3 && isPlayerFlow && (
+        {step === futbolStep && isPlayerFlow && (
           <StepFutbol
             form={form}
             setForm={setForm}
             onNext={goToPayment}
-            onBack={() => setStep(2)}
+            onBack={() => setStep(datosStep)}
           />
         )}
 
@@ -816,6 +1094,7 @@ export default function OnboardingPage() {
           <StepPago
             form={form}
             plan={plan}
+            authUserId={user?.id}
             onBack={backFromPayment}
           />
         )}

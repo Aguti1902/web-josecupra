@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { sessionId } = req.body || {};
+  const { sessionId, authUserId: bodyAuthUserId } = req.body || {};
   if (!sessionId) return res.status(400).json({ error: "sessionId requerido" });
 
   try {
@@ -37,6 +37,7 @@ export default async function handler(req, res) {
       stripeCustomerId = typeof session.customer === "string" ? session.customer : session.customer.id;
     }
 
+    const authUserId = bodyAuthUserId || meta.authUserId || null;
     const password = meta.tempPassword || generatePassword();
     const name = meta.nombre || meta.name || email.split("@")[0];
 
@@ -72,27 +73,38 @@ export default async function handler(req, res) {
         billingSource: "stripe",
       };
 
-      const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
-      const found = existing?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
-
-      if (found) {
-        userId = found.id;
-        await supabaseAdmin.auth.admin.updateUserById(found.id, {
-          user_metadata: { ...found.user_metadata, ...userMeta },
+      if (authUserId) {
+        const { data: byId, error: getErr } = await supabaseAdmin.auth.admin.getUserById(authUserId);
+        if (getErr) return res.status(400).json({ error: getErr.message });
+        if (!byId?.user) return res.status(404).json({ error: "Usuario no encontrado" });
+        userId = byId.user.id;
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: { ...byId.user.user_metadata, ...userMeta },
         });
       } else {
-        const { data, error } = await supabaseAdmin.auth.admin.createUser({
-          email,
-          password,
-          user_metadata: userMeta,
-          email_confirm: true,
-        });
-        if (error) return res.status(400).json({ error: error.message });
-        userId = data.user?.id;
-        created = true;
+        const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
+        const found = existing?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+
+        if (found) {
+          userId = found.id;
+          await supabaseAdmin.auth.admin.updateUserById(found.id, {
+            user_metadata: { ...found.user_metadata, ...userMeta },
+          });
+        } else {
+          const { data, error } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            user_metadata: userMeta,
+            email_confirm: true,
+          });
+          if (error) return res.status(400).json({ error: error.message });
+          userId = data.user?.id;
+          created = true;
+        }
       }
     } catch (adminErr) {
-      console.warn("complete-payment supabase:", adminErr.message);
+      console.error("complete-payment supabase:", adminErr.message);
+      return res.status(500).json({ error: adminErr.message || "Error al activar la cuenta" });
     }
 
     return res.status(200).json({
