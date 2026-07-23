@@ -23,6 +23,7 @@ import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessio
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
 import { getSessionBlocks, BLOCK_LABELS, BLOCK_COLORS, ADMIN_BLOCK_TYPES, sessionMatchesTarget } from "../../lib/sessionBlocks";
+import { WeekCalendar, PlayerSessionFullscreen } from "../../components/private/PlayerPlanUI";
 import { resolveBlockGuideItems } from "../../lib/blockGuideItems";
 import {
   normalizeTaskDesigner, resolveTaskTypes, resolveTaskParams,
@@ -194,17 +195,17 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
   const isToday = session.status === "today";
   const isDone  = completion === 100;
 
-  const blocks = session.blocks || [
+  const blocks = (session.blocks || [
     { type: "principal", label: "Ejercicios", exercises: session.exercises || [] },
-  ];
+  ]).filter((b) => (b.exercises?.length || 0) > 0);
 
   const TABS = [
-    { id: "resumen",        label: "Resumen" },
-    { id: "calentamiento",  label: "Calentamiento" },
-    { id: "principal",      label: "Principal" },
+    { id: "resumen", label: "Resumen" },
+    ...blocks.map((b) => ({
+      id: b.type,
+      label: BLOCK_CONFIG[b.type]?.label || b.label || b.type,
+    })),
   ];
-
-  const getBlock = (type) => blocks.find((b) => b.type === type) || { exercises: [] };
 
   return (
     <div className={`bg-white border rounded-2xl overflow-hidden shadow-card ${isToday && !isDone ? "border-depro-blue" : "border-depro-border"}`}>
@@ -312,10 +313,10 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
               </div>
             )}
 
-            {/* ── BLOQUES: calentamiento / principal / complementario / vuelta_calma ── */}
-            {ADMIN_BLOCK_TYPES.map((blockType) => {
-              if (activeBlock !== blockType) return null;
-              const block = getBlock(blockType);
+            {/* ── BLOQUES con ejercicios ── */}
+            {blocks.map((block) => {
+              if (activeBlock !== block.type) return null;
+              const blockType = block.type;
               const cfg = BLOCK_CONFIG[blockType] || { label: blockType, Icon: Layers, color: accentColor };
               const BIcon = cfg.Icon;
               return (
@@ -355,8 +356,9 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
 function PlayerWeeklyPlan({ accent }) {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const wantMinimal = searchParams.get("minimal") === "1";
+  const activeSessionId = searchParams.get("session");
   const planKey = `depro_plan_${user?.id}`;
 
   const [plan, setPlan]       = useState(null);
@@ -486,7 +488,31 @@ function PlayerWeeklyPlan({ accent }) {
   const pctMicro        = microSessions.length ? Math.round((completedMicro / microSessions.length) * 100) : 0;
   const mesoWeeks       = view === "meso" ? buildMesoPlayerPlan(user) : [];
 
+  const activeSession = microSessions.find(
+    (s) => s.id === activeSessionId || sessionMatchesTarget(s, activeSessionId),
+  ) || (view === "meso" && activeSessionId
+    ? mesoWeeks.flatMap((w) => w.sessions).find(
+        (s) => s.id === activeSessionId || sessionMatchesTarget(s, activeSessionId),
+      )
+    : null);
+
+  const openSession = (session) => {
+    if (!session?.id) return;
+    setSearchParams({ session: session.id });
+  };
+
+  const closeSession = () => setSearchParams({});
+
+  const sessionPdf = (session) => downloadSessionPdf({
+    title: session.title,
+    subtitle: session.objective,
+    blocks: getSessionBlocks(session),
+    meta: { duration: session.duration, type: session.type, intensity: session.intensity },
+    brandColor: accent,
+  });
+
   return (
+    <>
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       {minimalSession && (
         <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -497,20 +523,11 @@ function PlayerWeeklyPlan({ accent }) {
             </div>
             <Link to="/dashboard/plan" className="text-xs font-bold text-amber-700 hover:underline">Ver plan completo</Link>
           </div>
-          <SessionCard
-            session={minimalSession}
-            accentColor={accent}
-            sessionNumber={0}
-            dayLabel="Hoy"
-            onComplete={() => {}}
-            onDownloadPdf={() => downloadSessionPdf({
-              title: "Sesión mínima",
-              subtitle: minimalSession.objective,
-              blocks: minimalSession.blocks,
-              meta: { duration: minimalSession.duration, type: minimalSession.type },
-              brandColor: accent,
-            })}
-          />
+          <button type="button" onClick={() => openSession(minimalSession)}
+            className="w-full text-left rounded-xl border border-amber-200 bg-white p-4 hover:border-amber-400 transition-colors">
+            <div className="font-black text-depro-dark">{minimalSession.title}</div>
+            <div className="text-xs text-depro-gray mt-1">Toca para abrir la sesión reducida</div>
+          </button>
         </div>
       )}
       {/* Cabecera */}
@@ -559,46 +576,43 @@ function PlayerWeeklyPlan({ accent }) {
             </div>
           </div>
 
-          {/* Selector de sesiones (igual a Club Zone) */}
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {microSessions.map((s) => (
-              <div key={s.id}
-                className="flex-shrink-0 px-5 py-3.5 rounded-2xl border bg-white text-left"
-                style={{ borderColor: s.status === "completed" ? "#16A34A" : accent + "40" }}>
-                <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray">{s.dayName}</div>
-                <div className="text-base font-black text-depro-dark mt-0.5">{s.title}</div>
-                <div className="text-[11px] font-semibold mt-1 text-depro-gray">{s.type}</div>
-                <div className="text-[10px] text-depro-gray mt-0.5">⏱ {s.duration}</div>
-                {s.status === "completed" && <div className="text-[10px] text-green-700 font-bold mt-1">✓ Completada</div>}
-              </div>
-            ))}
-          </div>
+          {/* Calendario semanal */}
+          <WeekCalendar
+            plan={plan}
+            accentColor={accent}
+            activeSessionId={activeSessionId}
+            onSelectSession={openSession}
+          />
 
-          {/* Sesiones con los 4 bloques */}
-          <div className="space-y-4">
-            {microSessions.map((session) => (
-              <SessionCard key={session.id} session={session} accentColor={accent}
-                sessionNumber={session.sessionNumber} dayLabel={session.dayName}
-                onComplete={() => handleSessionComplete(session.id, session.dayName)}
-                onDownloadPdf={() => downloadSessionPdf({
-                  title: session.title,
-                  subtitle: session.objective,
-                  blocks: session.blocks,
-                  meta: { duration: session.duration, type: session.type, intensity: session.intensity },
-                  brandColor: accent,
-                })}
-              />
-            ))}
-            {microSessions.length === 0 && (
-              <div className="bg-white border border-depro-border rounded-2xl text-center py-16 shadow-card">
-                <div className="w-14 h-14 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
-                  <Moon size={26} className="text-depro-gray" />
-                </div>
-                <h3 className="text-lg font-bold text-depro-dark mb-2">Sin sesiones esta semana</h3>
-                <p className="text-depro-gray text-sm max-w-xs mx-auto">Ajusta tu frecuencia de entrenamiento en el perfil.</p>
+          {/* Acceso rápido: sesión de hoy */}
+          {microSessions.filter((s) => s.status === "today").map((session) => (
+            <button
+              key={session.id}
+              type="button"
+              onClick={() => openSession(session)}
+              className="w-full text-left rounded-2xl p-5 border-2 border-depro-blue bg-depro-blue-light/30 hover:bg-depro-blue-light transition-colors"
+            >
+              <div className="text-[10px] font-bold uppercase tracking-wide text-depro-blue mb-1">Entreno de hoy</div>
+              <div className="font-black text-depro-dark text-lg">{session.title}</div>
+              <div className="text-sm text-depro-gray mt-1">{session.dayName} · {session.duration} · {session.type}</div>
+              <div className="text-xs font-bold text-depro-blue mt-3">Abrir sesión →</div>
+            </button>
+          ))}
+
+          {microSessions.length === 0 && (
+            <div className="bg-white border border-depro-border rounded-2xl text-center py-16 shadow-card">
+              <div className="w-14 h-14 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
+                <Moon size={26} className="text-depro-gray" />
               </div>
-            )}
-          </div>
+              <h3 className="text-lg font-bold text-depro-dark mb-2">Sin sesiones esta semana</h3>
+              <p className="text-depro-gray text-sm max-w-xs mx-auto mb-4">
+                Ajusta tus días de entrenamiento en el perfil.
+              </p>
+              <Link to="/dashboard/profile" className="text-sm font-bold text-depro-blue hover:underline">
+                Ir al perfil
+              </Link>
+            </div>
+          )}
         </div>
       )}
 
@@ -616,19 +630,27 @@ function PlayerWeeklyPlan({ accent }) {
                   <div className="text-xs text-depro-gray">{week.sessions.length} sesiones</div>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {week.sessions.map((session) => (
-                  <SessionCard key={session.id} session={session} accentColor={accent}
-                    sessionNumber={session.sessionNumber} dayLabel={session.dayName}
-                    onComplete={() => handleSessionComplete(session.id, session.dayName)}
-                    onDownloadPdf={() => downloadSessionPdf({
-                      title: session.title,
-                      subtitle: session.objective,
-                      blocks: session.blocks,
-                      meta: { duration: session.duration, type: session.type },
-                      brandColor: accent,
-                    })}
-                  />
+                  <button
+                    key={session.id}
+                    type="button"
+                    onClick={() => openSession(session)}
+                    className="w-full text-left bg-white border border-depro-border rounded-xl p-4 hover:border-depro-blue hover:shadow-sm transition-all flex items-center gap-4"
+                  >
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0"
+                      style={{ backgroundColor: accent + "20", color: accent }}>
+                      {session.sessionNumber}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] font-bold uppercase text-depro-gray">{session.dayName}</div>
+                      <div className="font-black text-depro-dark truncate">{session.title}</div>
+                      <div className="text-xs text-depro-gray">{session.duration} · {session.type}</div>
+                    </div>
+                    {session.status === "completed" && (
+                      <CheckCircle size={18} className="text-green-600 flex-shrink-0" />
+                    )}
+                  </button>
                 ))}
               </div>
             </div>
@@ -636,6 +658,19 @@ function PlayerWeeklyPlan({ accent }) {
         </div>
       )}
     </div>
+
+    {activeSession && (
+      <PlayerSessionFullscreen
+        session={activeSession}
+        sessionNumber={activeSession.sessionNumber}
+        dayLabel={activeSession.dayName}
+        accentColor={accent}
+        onClose={closeSession}
+        onComplete={() => handleSessionComplete(activeSession.id, activeSession.dayName)}
+        onDownloadPdf={() => sessionPdf(activeSession)}
+      />
+    )}
+    </>
   );
 }
 

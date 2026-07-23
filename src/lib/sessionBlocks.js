@@ -154,7 +154,8 @@ export function getExercisesForBlock(session, blockType) {
   return block?.exercises || [];
 }
 
-const DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+export const WEEK_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const DAY_ORDER = WEEK_DAYS;
 
 export function getTodayName() {
   return DAY_ORDER[(new Date().getDay() + 6) % 7];
@@ -175,6 +176,10 @@ export function findNextSession(weekSessions, trainingDays) {
     }
   }
   return weekSessions.find((s) => s.assignedDay === sorted[0]) || weekSessions[0];
+}
+
+export function getNonEmptyBlocks(session) {
+  return getSessionBlocks(session).filter((b) => (b.exercises?.length || 0) > 0);
 }
 
 export function previewExercises(session, limit = 3) {

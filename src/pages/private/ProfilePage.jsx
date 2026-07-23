@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera, CreditCard, Sparkles } from "lucide-react";
+import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera, CreditCard, Sparkles, Calendar, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
+import { WEEK_DAYS } from "../../lib/sessionBlocks";
+import { ensurePlayerPlan } from "../../lib/playerPlanEngine";
 
 function lsGet(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -84,6 +86,15 @@ export default function ProfilePage() {
   // Club actual del jugador
   const [currentClub, setCurrentClub] = useState(null);
   const [currentTeam, setCurrentTeam] = useState(null);
+
+  const freqN = parseInt(String(user?.frecuencia || "").replace(/\D/g, "")) || 3;
+  const [trainingDays, setTrainingDays] = useState(() => user?.disponibles?.length ? user.disponibles : ["Lunes", "Miércoles", "Viernes"]);
+  const [daysSaving, setDaysSaving] = useState(false);
+  const [daysMsg, setDaysMsg] = useState("");
+
+  useEffect(() => {
+    if (user?.disponibles?.length) setTrainingDays(user.disponibles);
+  }, [user?.disponibles]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -200,6 +211,35 @@ export default function ProfilePage() {
     await refreshUser();
   };
 
+  const toggleTrainingDay = (day) => {
+    setTrainingDays((prev) => (
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    ));
+    setDaysMsg("");
+  };
+
+  const handleSaveTrainingDays = async () => {
+    if (trainingDays.length < freqN) {
+      setDaysMsg(`Selecciona al menos ${freqN} días (tu frecuencia semanal).`);
+      return;
+    }
+    setDaysSaving(true);
+    setDaysMsg("");
+    try {
+      await supabase.auth.updateUser({ data: { disponibles: trainingDays } });
+      localStorage.removeItem(`depro_plan_${user.id}`);
+      const newPlan = ensurePlayerPlan({ ...user, disponibles: trainingDays });
+      if (newPlan) localStorage.setItem(`depro_plan_${user.id}`, JSON.stringify(newPlan));
+      await refreshUser();
+      setDaysMsg("Días actualizados · plan regenerado ✓");
+      setTimeout(() => setDaysMsg(""), 4000);
+    } catch {
+      setDaysMsg("No se pudieron guardar los días. Inténtalo de nuevo.");
+    } finally {
+      setDaysSaving(false);
+    }
+  };
+
   // ── Salir del club ──────────────────────────────────────────
   const handleLeaveClub = async () => {
     if (!window.confirm(t("profile.leave_club_confirm"))) return;
@@ -310,6 +350,49 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {user?.role === "player" && (
+        <div className="bg-white border border-depro-border rounded-2xl p-6">
+          <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
+            <Calendar size={18} className="text-depro-blue" /> Días de entrenamiento
+          </h2>
+          <p className="text-sm text-depro-gray mb-4">
+            Cambia los días en los que entrenas. El plan semanal se regenerará automáticamente.
+          </p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {WEEK_DAYS.map((day) => {
+              const sel = trainingDays.includes(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleTrainingDay(day)}
+                  className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
+                    sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray hover:border-depro-blue"
+                  }`}
+                >
+                  {day.slice(0, 3)}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-depro-gray mb-4">
+            Mínimo {freqN} días · seleccionados: {trainingDays.length}
+          </p>
+          {daysMsg && (
+            <p className={`text-xs mb-3 ${daysMsg.includes("✓") ? "text-green-600" : "text-amber-700"}`}>{daysMsg}</p>
+          )}
+          <button
+            type="button"
+            onClick={handleSaveTrainingDays}
+            disabled={daysSaving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
+          >
+            {daysSaving ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+            Guardar y regenerar plan
+          </button>
+        </div>
+      )}
 
       <Link
         to="/dashboard/subscription"

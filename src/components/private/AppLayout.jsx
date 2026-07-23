@@ -251,7 +251,7 @@ function AppLayoutInner({ children }) {
             ) : club?.logo ? (
               <img src={club.logo} alt={club.name} className="w-11 h-11 rounded-xl object-contain dash-sidebar-icon p-0.5" />
             ) : isPlayer ? (
-              <img src="/logo.png" alt="DEPRO" className="w-11 h-11 rounded-xl object-contain bg-white p-1 dash-sidebar-icon" />
+              <img src="/logo%20blanco.png" alt="DEPRO" className="w-11 h-11 rounded-xl object-contain p-1 dash-sidebar-icon" />
             ) : (
               <div className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-black dash-sidebar-icon">
                 {club?.abbreviation || club?.name?.[0] || "D"}

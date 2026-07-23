@@ -81,60 +81,74 @@ export default function FeatureGate({
     );
   }
 
-  return (
-    <>
-      <div className="max-w-lg mx-auto py-16 px-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mx-auto mb-5">
-          <Lock size={28} className="text-amber-600" />
-        </div>
-        <h2 className="text-xl font-black text-depro-dark mb-2">{title}</h2>
-        <p className="text-sm text-depro-gray mb-2">{desc}</p>
-        {isInTrial(user) && (
-          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-5 inline-block">
-            {t("features.trial_note")}
-          </p>
-        )}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
-          {trialAddon && (
-            <button
-              type="button"
-              onClick={handleBuyAddon}
-              disabled={actionLoading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
-            >
-              <Sparkles size={16} />
-              {t("subscription.buy_addon_named", { name: trialAddon.name, price: formatPrice(trialAddon.price) })}
-            </button>
-          )}
-          {upsellPlan && (
-            <button
-              type="button"
-              onClick={() => setShowUpgrade(true)}
-              disabled={actionLoading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
-            >
-              <ArrowUpCircle size={16} />
-              {t("features.upgrade_to", { plan: upsellPlan.name, price: formatPrice(upsellPlan.price) })}
-            </button>
-          )}
-          {reason === "trial" && !trialAddon && !upsellPlan && (
-            <button
-              type="button"
-              onClick={handleActivate}
-              disabled={actionLoading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
-            >
-              <ArrowUpCircle size={16} />
-              {t("subscription.activate_now")}
-            </button>
-          )}
-          <Link
-            to="/dashboard/subscription"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-depro-border text-sm font-semibold text-depro-dark hover:border-depro-blue hover:text-depro-blue transition-colors"
+  const lockOverlay = (
+    <div className="max-w-lg w-full mx-auto bg-white rounded-2xl shadow-xl border border-depro-border p-6 sm:p-8 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mx-auto mb-5">
+        <Lock size={28} className="text-amber-600" />
+      </div>
+      <h2 className="text-xl font-black text-depro-dark mb-2">{title}</h2>
+      <p className="text-sm text-depro-gray mb-2">{desc}</p>
+      {isInTrial(user) && (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-5 inline-block">
+          {t("features.trial_note")}
+        </p>
+      )}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
+        {trialAddon && (
+          <button
+            type="button"
+            onClick={handleBuyAddon}
+            disabled={actionLoading}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
           >
             <Sparkles size={16} />
-            {t("trial.view_plans")}
-          </Link>
+            {t("subscription.buy_addon_named", { name: trialAddon.name, price: formatPrice(trialAddon.price) })}
+          </button>
+        )}
+        {upsellPlan && (
+          <button
+            type="button"
+            onClick={() => setShowUpgrade(true)}
+            disabled={actionLoading}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
+          >
+            <ArrowUpCircle size={16} />
+            {t("features.upgrade_to", { plan: upsellPlan.name, price: formatPrice(upsellPlan.price) })}
+          </button>
+        )}
+        {reason === "trial" && !trialAddon && !upsellPlan && (
+          <button
+            type="button"
+            onClick={handleActivate}
+            disabled={actionLoading}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
+          >
+            <ArrowUpCircle size={16} />
+            {t("subscription.activate_now")}
+          </button>
+        )}
+        <Link
+          to="/dashboard/subscription"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-depro-border text-sm font-semibold text-depro-dark hover:border-depro-blue hover:text-depro-blue transition-colors"
+        >
+          <Sparkles size={16} />
+          {t("trial.view_plans")}
+        </Link>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="relative min-h-[50vh]">
+        <div
+          className="pointer-events-none select-none blur-[4px] opacity-50 saturate-75 max-h-[calc(100vh-6rem)] overflow-hidden"
+          aria-hidden="true"
+        >
+          {children}
+        </div>
+        <div className="absolute inset-0 flex items-start justify-center pt-8 sm:pt-16 px-4 pb-8 bg-gradient-to-b from-white/70 via-white/80 to-white/95">
+          {lockOverlay}
         </div>
       </div>
 
