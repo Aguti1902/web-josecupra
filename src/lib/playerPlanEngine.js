@@ -17,6 +17,7 @@ import {
   PLAN_COHERENCE_MESSAGE,
   resolveUserObjectives,
 } from "./planLoadRules";
+import { applySplitAlternationToAssignments } from "./muscleSplitAlternation";
 
 export { DAY_ORDER, DAY_SHORT, PLAN_COHERENCE_MESSAGE };
 
@@ -147,8 +148,8 @@ function makeExerciseFromV2(ex, ei, blockType) {
   };
 }
 
-function fillTemplateV2(sessionType, filterParams, usedIds) {
-  const template = getTemplate(sessionType);
+function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessionType, titleOverride = null) {
+  const template = getTemplate(templateKey);
   const userProfile = buildUserProfile(filterParams);
   const sessionUsedIds = [...usedIds].map(parseCatalogId).filter((n) => n != null);
   const sessionUsedPools = [];
@@ -180,7 +181,8 @@ function fillTemplateV2(sessionType, filterParams, usedIds) {
   const intensity = template.intensityLevel || template.intensity;
   const session = {
     type: sessionType,
-    title: template.title || sessionType,
+    title: titleOverride || template.title || sessionType,
+    templateKey,
     objective: `Sesión ${sessionType} según tu plan personalizado DEPRO.`,
     duration: template.duration,
     intensity,
@@ -286,10 +288,10 @@ function makeExercise(ex, ei, blockType, blockTags, expLevel) {
   };
 }
 
-function fillTemplate(sessionType, filterParams, usedIds, weekOffset = 0) {
-  const template = getTemplate(sessionType);
+function fillTemplate(sessionType, filterParams, usedIds, weekOffset = 0, templateKey = sessionType, titleOverride = null) {
+  const template = getTemplate(templateKey);
   if (isV2Template(template)) {
-    return fillTemplateV2(sessionType, filterParams, usedIds);
+    return fillTemplateV2(sessionType, filterParams, usedIds, templateKey, titleOverride);
   }
   let globalIdx = 0;
   const lesiones = filterParams.lesiones || [];
@@ -320,7 +322,8 @@ function fillTemplate(sessionType, filterParams, usedIds, weekOffset = 0) {
 
   const session = {
     type: sessionType,
-    title: sessionType,
+    title: titleOverride || sessionType,
+    templateKey,
     objective: `Sesión ${sessionType} según tu plan personalizado DEPRO.`,
     duration: template.duration,
     intensity: template.intensity,
@@ -339,7 +342,7 @@ export function assignTrainingDays(sessionTypes, availableDays) {
 }
 
 export function buildPlayerPlan(user, options = {}) {
-  const { weekOffset = 0, sessionTypesOverride = null } = options;
+  const { weekOffset = 0, sessionTypesOverride = null, lastMuscleGroup = null } = options;
   const frecuencia = user?.frecuencia || "3";
   const material = normalizeMaterial(user?.material);
   const lesiones = normalizeLesions(user?.lesion, user?.lesionSubtipo);
@@ -366,11 +369,22 @@ export function buildPlayerPlan(user, options = {}) {
     || getSessionTypesForUser(principal, frecuencia, secondary);
   const assignments = coherence.assignments || assignSessionsToDays(sessionTypes, availableDays, matchDay);
   const filterParams = { material, lesiones, edad, deporte, experiencia: expLevel };
+
+  const { assignments: resolvedAssignments, lastMuscleGroup: nextLastGroup } =
+    applySplitAlternationToAssignments(assignments, filterParams, lastMuscleGroup);
+
   const usedIds = new Set();
 
   const dayMap = {};
-  assignments.forEach(({ sessionType, day }, i) => {
-    const session = fillTemplate(sessionType, filterParams, usedIds, weekOffset + i);
+  resolvedAssignments.forEach(({ sessionType, day, templateKey, titleOverride }, i) => {
+    const session = fillTemplate(
+      sessionType,
+      filterParams,
+      usedIds,
+      weekOffset + i,
+      templateKey || sessionType,
+      titleOverride,
+    );
     session.id = `gen_${day}_w${weekOffset}_${i}`;
     session.sessionNumber = i + 1;
     session.assignedDay = day;
@@ -379,7 +393,7 @@ export function buildPlayerPlan(user, options = {}) {
 
   const todayName = DAY_ORDER[(new Date().getDay() + 6) % 7];
 
-  return DAY_ORDER.map((nombre, i) => {
+  const weekPlan = DAY_ORDER.map((nombre, i) => {
     const session = dayMap[nombre];
     if (!session) {
       return { day: nombre, shortDay: DAY_SHORT[i], date: nombre, sessions: [] };
@@ -395,13 +409,18 @@ export function buildPlayerPlan(user, options = {}) {
       }],
     };
   });
+
+  weekPlan._lastMuscleGroup = nextLastGroup;
+  return weekPlan;
 }
 
 /** Plan completo de 4 semanas (PDF §9.1 paso 5) */
 export function buildFourWeekPlan(user) {
   const weeks = [];
+  let lastMuscleGroup = null;
   for (let w = 0; w < 4; w++) {
-    const weekPlan = buildPlayerPlan(user, { weekOffset: w });
+    const weekPlan = buildPlayerPlan(user, { weekOffset: w, lastMuscleGroup });
+    lastMuscleGroup = weekPlan._lastMuscleGroup ?? lastMuscleGroup;
     const sessions = weekPlan
       .filter((d) => d.sessions.length)
       .map((d) => ({
