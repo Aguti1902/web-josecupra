@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, Activity, MessageSquare, LogOut, Menu, X,
@@ -13,7 +13,7 @@ import LanguageSwitcher from "../shared/LanguageSwitcher";
 import { TutorialProvider, useTutorial } from "./DashboardTutorial";
 import AiAssistantWidget from "./AiAssistantWidget";
 import PanelSearch from "../shared/PanelSearch";
-import { getPlanLabel, isInTrial, mustPayToContinue } from "../../lib/subscription";
+import { getPlanLabel, isInTrial, mustPayToContinue, getTrialDaysLeft } from "../../lib/subscription";
 import { isClubAdmin, isClubGlobalView, canManageClubBilling, clubRoleLabel } from "../../lib/clubRoles";
 
 function luminance(hex) {
@@ -65,11 +65,70 @@ function TutorialButtonMobile() {
   );
 }
 
-function HeaderBar({ navItems, pathname, sidebarAccent, onMenuToggle, sidebarOpen, user }) {
+function HeaderBar({ navItems, pathname, sidebarAccent, onMenuToggle, sidebarOpen, user, profilePhoto, profilePath }) {
   const { start } = useTutorial();
+  const navigate = useNavigate();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
+
+  const notifications = useMemo(() => {
+    const items = [];
+    if (mustPayToContinue(user)) {
+      items.push({
+        id: "paywall",
+        title: "Suscripción pendiente",
+        body: "Activa tu plan para seguir usando el panel.",
+        to: "/dashboard/subscription",
+      });
+    } else if (isInTrial(user)) {
+      const days = getTrialDaysLeft(user);
+      items.push({
+        id: "trial",
+        title: days > 0 ? `Prueba gratuita · ${days} día${days === 1 ? "" : "s"} restante${days === 1 ? "" : "s"}` : "Tu prueba termina hoy",
+        body: "Gestiona tu suscripción antes de que finalice el periodo de prueba.",
+        to: "/dashboard/subscription",
+      });
+    }
+    if (user?.role === "player" && !user?.disponibles?.length) {
+      items.push({
+        id: "days",
+        title: "Configura tus días de entrenamiento",
+        body: "Indica qué días puedes entrenar para generar tu plan semanal.",
+        to: "/dashboard/profile",
+      });
+    }
+    if (items.length === 0) {
+      items.push({
+        id: "empty",
+        title: "Sin avisos nuevos",
+        body: "Te avisaremos aquí de novedades importantes sobre tu plan.",
+        to: null,
+      });
+    }
+    return items;
+  }, [user]);
+
+  const hasAlerts = notifications.some((n) => n.id !== "empty");
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    const onPointerDown = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [notifOpen]);
+
   const current =
     navItems.find((n) => n.to === pathname) ||
     navItems.find((n) => pathname.startsWith(n.to) && n.to !== "/dashboard");
+
+  const handleNotifClick = (item) => {
+    setNotifOpen(false);
+    if (item.to) navigate(item.to);
+  };
 
   return (
     <header className="h-[4.25rem] border-b border-depro-border/60 flex items-center px-4 md:px-6 gap-3 flex-shrink-0 bg-white/80 backdrop-blur-xl sticky top-0 z-30">
@@ -99,23 +158,65 @@ function HeaderBar({ navItems, pathname, sidebarAccent, onMenuToggle, sidebarOpe
         >
           <HelpCircle size={15} /> Guía
         </button>
-        <button className="p-2.5 rounded-xl text-depro-gray hover:text-depro-dark hover:bg-slate-100 relative">
-          <Bell size={18} />
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-depro-red ring-2 ring-white" />
-        </button>
-        <div
-          className="hidden sm:flex items-center gap-2 pl-1 pr-3 py-1 rounded-xl border border-depro-border/60 bg-white"
+        <div className="relative" ref={notifRef}>
+          <button
+            type="button"
+            onClick={() => setNotifOpen((v) => !v)}
+            className={`p-2.5 rounded-xl relative transition-colors ${
+              notifOpen ? "text-depro-blue bg-blue-50" : "text-depro-gray hover:text-depro-dark hover:bg-slate-100"
+            }`}
+            aria-label="Notificaciones"
+            aria-expanded={notifOpen}
+          >
+            <Bell size={18} />
+            {hasAlerts && (
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-depro-red ring-2 ring-white" />
+            )}
+          </button>
+
+          {notifOpen && (
+            <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white border border-depro-border rounded-2xl shadow-depro z-50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-depro-border bg-depro-gray-light/40">
+                <p className="text-sm font-bold text-depro-dark">Notificaciones</p>
+              </div>
+              <ul className="max-h-72 overflow-y-auto divide-y divide-depro-border/60">
+                {notifications.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleNotifClick(item)}
+                      disabled={!item.to}
+                      className={`w-full text-left px-4 py-3 transition-colors ${
+                        item.to ? "hover:bg-blue-50/80 cursor-pointer" : "cursor-default"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold text-depro-dark">{item.title}</p>
+                      <p className="text-xs text-depro-gray mt-0.5">{item.body}</p>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate(profilePath)}
+          className="hidden sm:flex items-center gap-2 pl-1 pr-3 py-1 rounded-xl border border-depro-border/60 bg-white hover:border-depro-blue/40 hover:bg-blue-50/30 transition-colors"
+          aria-label="Ir a mi perfil"
         >
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black"
+            className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center text-xs font-black shrink-0"
             style={{ backgroundColor: sidebarAccent + "18", color: sidebarAccent }}
           >
-            {user?.avatar || "?"}
+            {profilePhoto
+              ? <img src={profilePhoto} alt="" className="w-full h-full object-cover" />
+              : (user?.avatar || "?")}
           </div>
           <span className="text-xs font-semibold text-depro-dark max-w-[100px] truncate hidden lg:block">
             {user?.name?.split(" ")[0]}
           </span>
-        </div>
+        </button>
       </div>
     </header>
   );
@@ -226,6 +327,8 @@ function AppLayoutInner({ children }) {
     const iv = setInterval(load, 3000);
     return () => clearInterval(iv);
   }, [user?.id, user?.role]);
+
+  const profilePath = user?.role === "club" ? "/dashboard/club-profile" : "/dashboard/profile";
 
   if (user?.role === "club" && club?.status === "inactivo") {
     return (
@@ -376,6 +479,8 @@ function AppLayoutInner({ children }) {
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           sidebarOpen={sidebarOpen}
           user={user}
+          profilePhoto={profilePhoto}
+          profilePath={profilePath}
         />
         <div className="md:hidden px-4 py-2 border-b border-depro-border/60 bg-white/90">
           <PanelSearch mode="client" navItems={displayNavItems} user={user} />
