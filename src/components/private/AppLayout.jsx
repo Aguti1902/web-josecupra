@@ -14,6 +14,7 @@ import { TutorialProvider, useTutorial } from "./DashboardTutorial";
 import AiAssistantWidget from "./AiAssistantWidget";
 import PanelSearch from "../shared/PanelSearch";
 import { getPlanLabel, isInTrial, mustPayToContinue } from "../../lib/subscription";
+import { isClubAdmin, isClubGlobalView, canManageClubBilling, clubRoleLabel } from "../../lib/clubRoles";
 
 function luminance(hex) {
   try {
@@ -151,11 +152,17 @@ function AppLayoutInner({ children }) {
     { to: "/dashboard/profile", icon: User, label: t("nav.my_profile") },
   ];
 
-  const coordinadorNav = [
+  const administradorNav = [
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/dashboard/squad", icon: UsersIcon, label: t("nav.squad") },
     { to: "/dashboard/club-settings", icon: Building2, label: "Mi Club" },
     subscriptionNav,
+    { to: "/dashboard/club-profile", icon: User, label: t("nav.my_profile") },
+  ];
+
+  const coordinadorNav = [
+    { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dashboard/squad", icon: UsersIcon, label: t("nav.squad") },
     { to: "/dashboard/club-profile", icon: User, label: t("nav.my_profile") },
   ];
 
@@ -166,7 +173,6 @@ function AppLayoutInner({ children }) {
     { to: "/dashboard/squad", icon: UsersIcon, label: t("nav.squad") },
     { to: "/dashboard/team-tests", icon: Activity, label: t("nav.tests") },
     ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Cargas" }] : []),
-    subscriptionNav,
     { to: "/dashboard/club-profile", icon: User, label: t("nav.my_profile") },
   ];
 
@@ -189,13 +195,19 @@ function AppLayoutInner({ children }) {
   const rawAccent = club?.primaryColor || "#0A36F7";
   const rawSecondary = club?.secondaryColor || "#ffffff";
   const sidebarAccent = visibleOnWhite(rawAccent, visibleOnWhite(rawSecondary, "#0A36F7"));
-  const isCoordViewingTeam = user?.team_role === "coordinador" && viewingTeam;
+  const isGlobalClubView = isClubGlobalView(user, viewingTeam);
+  const isClubOverviewRole = user?.team_role === "coordinador" || user?.team_role === "administrador";
+  const isCoordViewingTeam = isClubOverviewRole && !!viewingTeam;
   const navItems = user?.role === "club"
-    ? (isSoloCoach ? coachNav : (user?.team_role === "coordinador" && !isCoordViewingTeam ? coordinadorNav : entrenadorNav))
+    ? (isSoloCoach
+      ? coachNav
+      : (isClubAdmin(user) && isGlobalClubView
+        ? administradorNav
+        : (user?.team_role === "coordinador" && isGlobalClubView ? coordinadorNav : entrenadorNav)))
     : playerNav;
   const isPlayer = user?.role === "player";
   const playerPlanLabel = user?.plan ? getPlanLabel(user.plan) : "Jugador";
-  const paywallActive = mustPayToContinue(user);
+  const paywallActive = mustPayToContinue(user) && canManageClubBilling(user);
   const displayNavItems = paywallActive ? [subscriptionNav] : navItems;
 
   if (paywallActive && pathname !== "/dashboard/subscription") {
@@ -274,9 +286,7 @@ function AppLayoutInner({ children }) {
               >
                 {isSoloCoach ? (user?.team?.name || "Mi equipo")
                   : user?.role === "club"
-                  ? (user?.team_role === "coordinador" && viewingTeam ? viewingTeam.name
-                    : user?.team_role === "coordinador" ? "Coordinador"
-                    : user?.team?.name || "Entrenador")
+                  ? (viewingTeam ? viewingTeam.name : clubRoleLabel(user?.team_role))
                   : playerPlanLabel}
               </span>
             </div>

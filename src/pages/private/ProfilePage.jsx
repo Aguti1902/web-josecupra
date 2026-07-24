@@ -6,7 +6,12 @@ import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { WEEK_DAYS } from "../../lib/sessionBlocks";
 import { ensurePlayerPlan } from "../../lib/playerPlanEngine";
-import { openBillingPortal } from "../../lib/subscription";
+import { openBillingPortal, isSubscriptionActive } from "../../lib/subscription";
+import {
+  registerPendingClubPlayer,
+  activateClubPlayerInSquad,
+  applyClubBrandingToPlayer,
+} from "../../lib/clubPlayerRegistry";
 
 function lsGet(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -189,6 +194,7 @@ export default function ProfilePage() {
         const detail = lsGet(`depro_club_${clubId}`, null);
         if (detail) Object.assign(club, {
           logo: detail.logo || club.logo,
+          banner: detail.banner || club.banner,
           primaryColor: detail.primaryColor || club.primaryColor,
           secondaryColor: detail.secondaryColor || club.secondaryColor,
           slogan: detail.slogan || club.slogan,
@@ -244,38 +250,43 @@ export default function ProfilePage() {
     setJoining(true);
 
     const team = teams.find((t) => t.id === selectedTeam);
-    const assoc = { clubId: foundClub.id, teamId: selectedTeam };
-
-    // Guardar en localStorage con nombre y plan para que el entrenador pueda leerlo
-    localStorage.setItem(`depro_player_club_${user.id}`, JSON.stringify({
-      ...assoc,
-      name:  user.name  || user.email?.split("@")[0] || "Jugador",
-      plan:  user.plan  || "Plan activo",
+    const playerData = {
+      userId: user.id,
+      clubId: foundClub.id,
+      teamId: selectedTeam,
+      name: user.name || user.email?.split("@")[0] || "Jugador",
       email: user.email || "",
-    }));
+      plan: user.plan || "Plan activo",
+    };
 
-    // Registrar en el registro compartido del equipo (localStorage — funciona en local inmediatamente)
-    try {
-      const regKey  = `depro_team_registry_${selectedTeam}`;
-      const reg     = JSON.parse(localStorage.getItem(regKey) || "[]");
-      const entry   = { id: user.id, name: user.name || user.email?.split("@")[0] || "Jugador", plan: user.plan || "—", email: user.email };
-      const idx     = reg.findIndex((p) => p.id === user.id);
-      if (idx >= 0) reg[idx] = entry; else reg.push(entry);
-      localStorage.setItem(regKey, JSON.stringify(reg));
-    } catch {}
+    const paid = isSubscriptionActive({
+      plan: user.plan,
+      status: user.subscriptionStatus,
+      stripeSubscriptionId: user.stripeSubscriptionId,
+      billingSource: user.billingSource,
+    });
 
-    // Actualizar Supabase user_metadata + intentar tabla player_team_links (Vercel/producción)
+    if (paid) {
+      activateClubPlayerInSquad(playerData);
+    } else {
+      registerPendingClubPlayer(playerData);
+    }
+
+    applyClubBrandingToPlayer(user.id, foundClub.id);
+
     try {
       await supabase.auth.updateUser({
         data: { clubId: foundClub.id, teamId: selectedTeam, teamRole: "jugador" },
       });
-      await supabase.from("player_team_links").upsert({
-        player_id: user.id,
-        team_id:   selectedTeam,
-        club_id:   foundClub.id,
-        name:      user.name || user.email?.split("@")[0] || "Jugador",
-        plan:      user.plan || "—",
-      }, { onConflict: "player_id" });
+      if (paid) {
+        await supabase.from("player_team_links").upsert({
+          player_id: user.id,
+          team_id: selectedTeam,
+          club_id: foundClub.id,
+          name: playerData.name,
+          plan: playerData.plan,
+        }, { onConflict: "player_id" });
+      }
     } catch {}
 
     setCurrentClub(foundClub);

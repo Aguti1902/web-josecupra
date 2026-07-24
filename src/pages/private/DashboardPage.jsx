@@ -21,6 +21,8 @@ import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/ses
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import CoachDashboard from "../../components/private/CoachDashboard";
 import ClubReferralPanel from "../../components/private/ClubReferralPanel";
+import ClubPlayersMonitor from "../../components/private/ClubPlayersMonitor";
+import { isClubAdmin } from "../../lib/clubRoles";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -82,8 +84,13 @@ function visibleOnWhite(color, fallback = "#0A36F7") {
 // ── Shared header banner ─────────────────────────────────────
 function ClubBanner({ club, team, teamRole, accent, secondColor }) {
   const { t: tg } = useTranslation();
-  const roleLabel = { coordinador: tg("dashboard.coordinator"), entrenador: tg("dashboard.coach"), ayudante: tg("dashboard.assistant") };
-  const RoleIcon = { coordinador: Crown, entrenador: UserCheck, ayudante: Dumbbell }[teamRole] || UserCheck;
+  const roleLabel = {
+    administrador: "Administrador",
+    coordinador: tg("dashboard.coordinator"),
+    entrenador: tg("dashboard.coach"),
+    ayudante: tg("dashboard.assistant"),
+  };
+  const RoleIcon = { administrador: Crown, coordinador: Crown, entrenador: UserCheck, ayudante: Dumbbell }[teamRole] || UserCheck;
   const hasBanner = !!club?.banner;
 
   // Color seguro para el fondo del banner cuando no hay imagen
@@ -307,7 +314,7 @@ function CoachAvatar({ coach, safeAccent }) {
 // ════════════════════════════════════════════════════════════
 // COORDINADOR DASHBOARD
 // ════════════════════════════════════════════════════════════
-function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
+function CoordinadorDashboard({ club, accent, secondColor, onViewTeam, showReferrals = false }) {
   const { user } = useAuth();
   const allTeams = club?.teams || [];
   const managedTeamIds = user?.managedTeamIds || [];
@@ -350,11 +357,13 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
         <StatCardSecondary label="Sesiones" value={totalSessions} sub="en planificación" icon={Calendar} accent={accent} secondary={secondColor} />
       </div>
 
-      <ClubReferralPanel
-        clubId={club?.id}
-        loginCode={club?.login_code || club?.loginCode}
-        compact
-      />
+      {showReferrals && (
+        <ClubReferralPanel
+          clubId={club?.id}
+          loginCode={club?.login_code || club?.loginCode}
+          compact
+        />
+      )}
 
       {/* Equipos */}
       <div>
@@ -693,6 +702,8 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
         <StatCard label="Sesiones" value={myPlans.reduce((s, mc) => s + (mc.sessions?.length || 0), 0)} sub="en total" icon={Calendar} accent={accent} secondary={secondColor} />
         <StatCardSecondary label="Categoría" value={team?.category || "—"} sub={team?.season} icon={Shield} accent={accent} secondary={secondColor} />
       </div>
+
+      <ClubPlayersMonitor clubId={club?.id} teamId={team?.id} accent={sa} />
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Sesión de hoy / Descanso + Próxima sesión */}
@@ -1266,10 +1277,18 @@ export default function DashboardPage() {
           accent={accent}
           secondColor={secondColor}
         />
-        {(teamRole === "coordinador" || teamRole === "entrenador") && (
+        {isClubAdmin(user) && !selectedTeam && (
           <PlanUsageCard club={club} user={user} audience="club" />
         )}
-        {(teamRole === "coordinador" && !selectedTeam)
+        {(teamRole === "administrador" && !selectedTeam)
+          ? <CoordinadorDashboard
+              club={club}
+              accent={accent}
+              secondColor={secondColor}
+              onViewTeam={handleViewTeam}
+              showReferrals
+            />
+          : (teamRole === "coordinador" && !selectedTeam)
           ? <CoordinadorDashboard
               club={club}
               accent={accent}

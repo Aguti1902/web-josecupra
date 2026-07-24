@@ -518,8 +518,8 @@ export default function SquadPage() {
   const teamRole  = user?.team_role;
   const clubId    = club?.id;
   // Si el coordinador está viendo un equipo específico → no es "coordinador general"
-  const isCoord   = teamRole === "coordinador" && !viewingTeam;
-  const canEdit   = teamRole !== "coordinador"; // coordinador nunca puede editar
+  const isCoord   = (teamRole === "coordinador" || teamRole === "administrador") && !viewingTeam;
+  const canEdit   = teamRole !== "coordinador" && teamRole !== "administrador";
 
   const rawAccent = club?.primaryColor   || "#0A36F7";
   const rawSec    = club?.secondaryColor || "#ffffff";
@@ -601,6 +601,7 @@ export default function SquadPage() {
         const key = localStorage.key(i);
         if (!key?.startsWith("depro_player_club_")) continue;
         const val = JSON.parse(localStorage.getItem(key) || "{}");
+        if (val.status === "pending") continue;
         if (teamIds.includes(val.teamId)) {
           // Buscar nombre del jugador en depro_player_photo o user sessions — usamos email si disponible
           fromLS.push({

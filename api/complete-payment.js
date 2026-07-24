@@ -68,6 +68,7 @@ export default async function handler(req, res) {
         disponibles: meta.disponibles ? meta.disponibles.split("|") : [],
         clubCode: meta.clubCode || "",
         clubId: meta.clubId || "",
+        teamId: meta.teamId || "",
         clubName: meta.clubName || meta.club || "",
         subscriptionStatus,
         stripeSubscriptionId,
@@ -117,6 +118,9 @@ export default async function handler(req, res) {
       email,
       password: created ? password : null,
       plan: meta.plan,
+      clubId: meta.clubId || "",
+      teamId: meta.teamId || "",
+      name,
       subscriptionStatus,
       trialEndsAt,
     });

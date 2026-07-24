@@ -9,6 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { loadClubDetail, saveClubDetail } from "../../lib/adminStorage";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
+import { canManageClubBilling, clubRoleLabel } from "../../lib/clubRoles";
 
 // Comprime imagen de perfil a 200×200
 function compressAvatar(file) {
@@ -35,8 +36,8 @@ function compressAvatar(file) {
   });
 }
 
-const ROLE_LABEL = { coordinador: "Coordinador", entrenador: "Entrenador", ayudante: "Ayudante técnico" };
-const ROLE_ICON  = { coordinador: Crown, entrenador: UserCheck, ayudante: Dumbbell };
+const ROLE_LABEL = { administrador: "Administrador", coordinador: "Coordinador", entrenador: "Entrenador", ayudante: "Ayudante técnico" };
+const ROLE_ICON  = { administrador: Crown, coordinador: Crown, entrenador: UserCheck, ayudante: Dumbbell };
 
 export default function ClubProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -57,6 +58,7 @@ export default function ClubProfilePage() {
   const [savingMode, setSavingMode] = useState(false);
   const photoRef = useRef();
   const isSoloCoach = !!user?.club?.isSoloCoach;
+  const showBilling = canManageClubBilling(user);
 
   const handleChangeMode = async (nextMode) => {
     if (nextMode === mode || !user?.club?.id) return;
@@ -181,7 +183,7 @@ export default function ClubProfilePage() {
                   className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
                   style={{ backgroundColor: accent + "15", color: accent }}
                 >
-                  <RoleIcon size={10} /> {ROLE_LABEL[teamRole] || teamRole || "Club"}
+                  <RoleIcon size={10} /> {clubRoleLabel(teamRole)}
                 </span>
                 {user?.team && (
                   <span className="text-xs text-depro-gray">· {user.team.name}</span>
@@ -259,23 +261,26 @@ export default function ClubProfilePage() {
         </div>
       )}
 
-      {/* Plan y facturación */}
-      <PlanUsageCard club={user?.club} user={user} audience={user?.club?.isSoloCoach ? "coach" : "club"} />
-      <Link
-        to="/dashboard/subscription"
-        className="flex items-center justify-between gap-3 bg-white border border-depro-border rounded-2xl p-4 hover:border-depro-blue transition-colors group"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-depro-blue-light flex items-center justify-center">
-            <CreditCard size={18} className="text-depro-blue" />
-          </div>
-          <div>
-            <p className="font-bold text-depro-dark text-sm">Suscripción y mejoras</p>
-            <p className="text-xs text-depro-gray">Gestiona tu plan, trial y desbloqueos</p>
-          </div>
-        </div>
-        <Sparkles size={16} className="text-depro-border group-hover:text-depro-blue" />
-      </Link>
+      {showBilling && (
+        <>
+          <PlanUsageCard club={user?.club} user={user} audience={user?.club?.isSoloCoach ? "coach" : "club"} />
+          <Link
+            to="/dashboard/subscription"
+            className="flex items-center justify-between gap-3 bg-white border border-depro-border rounded-2xl p-4 hover:border-depro-blue transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-depro-blue-light flex items-center justify-center">
+                <CreditCard size={18} className="text-depro-blue" />
+              </div>
+              <div>
+                <p className="font-bold text-depro-dark text-sm">Suscripción y mejoras</p>
+                <p className="text-xs text-depro-gray">Gestiona tu plan, trial y desbloqueos</p>
+              </div>
+            </div>
+            <Sparkles size={16} className="text-depro-border group-hover:text-depro-blue" />
+          </Link>
+        </>
+      )}
 
       {/* Editar nombre */}
       <div className="bg-white border border-depro-border rounded-2xl p-6">

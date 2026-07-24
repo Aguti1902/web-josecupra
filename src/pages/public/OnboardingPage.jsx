@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { registerPendingClubPlayer } from "../../lib/clubPlayerRegistry";
 import {
   ArrowLeft, ArrowRight, CheckCircle, Zap, Trophy, User, Mail, Calendar,
   Target, AlertCircle, Shield, Lock, Loader2,
@@ -417,7 +418,47 @@ function StepCuenta({ audience, planId, form, setForm, onNext, onBack, saveForOA
 function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
   const isPlayer = audience === "player";
   const email = loggedInEmail || form.email;
-  const valid = form.nombre && email;
+  const [clubTeams, setClubTeams] = useState([]);
+  const [clubCodeMsg, setClubCodeMsg] = useState("");
+
+  const resolveClubFromCode = (codeRaw) => {
+    if (!codeRaw?.trim()) {
+      setClubTeams([]);
+      setClubCodeMsg("");
+      setForm((f) => ({ ...f, clubId: "", clubTeamId: "" }));
+      return true;
+    }
+    try {
+      const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+      const code = codeRaw.trim().toUpperCase();
+      const found = clubs.find((c) => (c.loginCode || c.login_code || "").toUpperCase() === code);
+      if (!found) {
+        setClubTeams([]);
+        setClubCodeMsg("Código no encontrado");
+        return false;
+      }
+      const detail = JSON.parse(localStorage.getItem(`depro_club_${found.id}`) || "null");
+      const teams = detail?.teams || found.teams || [];
+      if (teams.length === 0) {
+        setClubCodeMsg("Este club aún no tiene equipos configurados");
+        return false;
+      }
+      setClubTeams(teams);
+      setClubCodeMsg(`Club encontrado: ${found.name}`);
+      setForm((f) => ({ ...f, clubId: found.id, clubTeamId: f.clubTeamId || teams[0]?.id || "" }));
+      return true;
+    } catch {
+      setClubCodeMsg("No se pudo validar el código");
+      return false;
+    }
+  };
+
+  const valid = form.nombre && email && (!form.clubCode?.trim() || (form.clubId && form.clubTeamId));
+
+  const handleNext = () => {
+    if (form.clubCode?.trim() && !resolveClubFromCode(form.clubCode)) return;
+    onNext();
+  };
 
   return (
     <div>
@@ -486,16 +527,46 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
 
             <div>
               <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
-                Código de club <span className="text-depro-gray font-normal normal-case">(opcional, para descuento)</span>
+                Código de club <span className="text-depro-gray font-normal normal-case">(descuento 15% y escudo del club)</span>
               </label>
               <input
                 type="text" value={form.clubCode}
-                onChange={(e) => setForm({ ...form, clubCode: e.target.value.toUpperCase() })}
+                onChange={(e) => {
+                  setForm({ ...form, clubCode: e.target.value.toUpperCase(), clubId: "", clubTeamId: "" });
+                  setClubTeams([]);
+                  setClubCodeMsg("");
+                }}
+                onBlur={() => { if (form.clubCode?.trim()) resolveClubFromCode(form.clubCode); }}
                 className="admin-input w-full uppercase tracking-wider"
                 placeholder="EJ. DEPRO-CLUB-2025"
                 maxLength={32}
               />
+              {clubCodeMsg && (
+                <p className={`text-xs mt-1.5 ${clubCodeMsg.includes("encontrado") ? "text-green-700" : "text-red-600"}`}>
+                  {clubCodeMsg}
+                </p>
+              )}
             </div>
+
+            {clubTeams.length > 0 && (
+              <div>
+                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
+                  Equipo dentro del club *
+                </label>
+                <select
+                  value={form.clubTeamId || ""}
+                  onChange={(e) => setForm({ ...form, clubTeamId: e.target.value })}
+                  className="admin-input w-full"
+                >
+                  {clubTeams.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name} · {t.category}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-depro-gray mt-1.5">
+                  Tras el pago entrarás en la plantilla de este equipo con el escudo y banner del club.
+                </p>
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -535,7 +606,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
         <button onClick={onBack} className="btn-ghost flex items-center gap-2">
           <ArrowLeft size={16} /> Atrás
         </button>
-        <button onClick={onNext} disabled={!valid} className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <button onClick={handleNext} disabled={!valid} className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
           Continuar <ArrowRight size={16} />
         </button>
       </div>
@@ -791,6 +862,18 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
   const [error, setError] = useState("");
   const [showDetails, setShowDetails] = useState(false);
   const selectedAddons = form.selectedAddons || [];
+
+  useEffect(() => {
+    if (!authUserId || !form.clubId || !form.clubTeamId) return;
+    registerPendingClubPlayer({
+      userId: authUserId,
+      clubId: form.clubId,
+      teamId: form.clubTeamId,
+      name: form.nombre,
+      email: form.email,
+      plan: plan?.id,
+    });
+  }, [authUserId, form.clubId, form.clubTeamId, form.nombre, form.email, plan?.id]);
   const addonsTotal = selectedAddons.reduce((sum, id) => sum + (PLAYER_ADDONS.find((a) => a.id === id)?.price || 0), 0);
 
   const toggleAddon = (id) => {
@@ -1053,6 +1136,8 @@ export default function OnboardingPage() {
     club: "",
     equipos: "",
     clubCode: "",
+    clubId: "",
+    clubTeamId: "",
     objetivos: [],
     objetivo:  "",
     objetivoSecundario: "",

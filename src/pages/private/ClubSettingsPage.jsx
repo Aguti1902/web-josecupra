@@ -9,6 +9,7 @@ import {
   loadClubDetail, saveClubDetail, createClubUser,
 } from "../../lib/adminStorage";
 import ClubReferralPanel from "../../components/private/ClubReferralPanel";
+import { canAccessClubSettings } from "../../lib/clubRoles";
 
 const AGE_BLOCKS = [
   { label: "Bloque 1", ages: ["Sub-9", "Sub-10", "Sub-11", "Sub-12"] },
@@ -335,7 +336,7 @@ export default function ClubSettingsPage() {
     }
   }, [clubId, user?.club]);
 
-  if (user?.role !== "club" || user?.team_role !== "coordinador" || user?.club?.isSoloCoach) {
+  if (!canAccessClubSettings(user) || user?.club?.isSoloCoach) {
     return <Navigate to="/dashboard" replace />;
   }
   if (!club) {

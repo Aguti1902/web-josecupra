@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, Navigate } from "react-router-dom";
 import {
   CreditCard, Lock, Sparkles, ArrowUpCircle, Check, X, Clock, Loader2, Zap,
 } from "lucide-react";
@@ -28,6 +28,7 @@ import { lockedFeaturesForUser } from "../../lib/planFeatures";
 import { plansForAudience, formatPrice, PLANS } from "../../lib/checkoutPlans";
 import { PLAYER_ADDONS, addonById } from "../../lib/playerAddons";
 import ChangePlanModal from "../../components/private/ChangePlanModal";
+import { canManageClubBilling } from "../../lib/clubRoles";
 
 export default function SubscriptionPage() {
   const { user, refreshUser } = useAuth();
@@ -177,6 +178,10 @@ export default function SubscriptionPage() {
   const availableAddons = isPlayer
     ? PLAYER_ADDONS.filter((a) => !purchasedAddons.includes(a.id) && !hasFeatureAccess(user, a.featureId))
     : [];
+
+  if (user?.role === "club" && !canManageClubBilling(user)) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="dash-page space-y-6">

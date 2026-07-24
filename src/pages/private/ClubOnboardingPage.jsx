@@ -118,7 +118,7 @@ export default function ClubOnboardingPage() {
           role: "club",
           clubId,
           teamId,
-          teamRole: "coordinador",
+          teamRole: "administrador",
           managedTeamIds: [teamId],
           clubName: form.clubName.trim(),
         },

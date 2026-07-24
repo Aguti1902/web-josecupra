@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { PLANS, getPlanLimits, getNextPlan, resolvePlanForClub } from "./checkoutPlans";
 import { FEATURES, planIncludesFeature, upsellPlanForFeature } from "./planFeatures";
+import { isClubAdmin } from "./clubRoles";
 
 const STORAGE_PREFIX = "depro_subscription_";
 export const TRIAL_PERIOD_DAYS = 15;
@@ -148,6 +149,9 @@ export function getTrialDaysLeft(user) {
  */
 export function mustPayToContinue(user) {
   if (!user || isManualBilling(user) || user.role === "admin") return false;
+
+  // Solo el administrador del club gestiona la suscripción del club
+  if (user.role === "club" && !user.club?.isSoloCoach && !isClubAdmin(user)) return false;
 
   const sub = getSubscriptionFromUser(user);
   if (!sub || isSubscriptionActive(sub)) return false;

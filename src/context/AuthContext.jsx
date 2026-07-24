@@ -21,8 +21,8 @@ function loadClubDataFromStorage(meta, userEmail) {
     const isClubUser = !!teamRole || meta?.role === "club";
     if (!baseClub && userEmail && isClubUser) {
       const lc = userEmail.toLowerCase();
-      if (!teamRole || teamRole === "coordinador") {
-        // Buscar por email del coordinador
+      if (!teamRole || teamRole === "coordinador" || teamRole === "administrador") {
+        // Buscar por email del administrador/coordinador
         baseClub = clubs.find((c) =>
           c.coordinator?.email?.toLowerCase() === lc
         ) || null;
@@ -75,7 +75,7 @@ function loadClubDataFromStorage(meta, userEmail) {
     const ext      = JSON.parse(localStorage.getItem("depro_clubs_ext") || "{}");
     const allTeams = club.teams.length > 0 ? club.teams : ((ext[effectiveClubId] || {}).teams || []);
     let   team     = allTeams.find((t) => t.id === teamId) || null;
-    if (!team && userEmail && teamRole && teamRole !== "coordinador") {
+    if (!team && userEmail && teamRole && !["coordinador", "administrador"].includes(teamRole)) {
       const lc = userEmail.toLowerCase();
       team = allTeams.find((t) => t.coach?.email?.toLowerCase() === lc) || null;
     }
@@ -108,8 +108,9 @@ function loadPlayerClubFromStorage(userId) {
 
     return {
       ...baseClub,
-      logo:           clubDetail?.logo          ?? baseClub.logo,
-      primaryColor:   clubDetail?.primaryColor  ?? baseClub.primaryColor,
+      logo:           clubDetail?.logo           ?? baseClub.logo           ?? null,
+      banner:         clubDetail?.banner         ?? baseClub.banner         ?? null,
+      primaryColor:   clubDetail?.primaryColor   ?? baseClub.primaryColor,
       secondaryColor: clubDetail?.secondaryColor ?? baseClub.secondaryColor,
       slogan:         clubDetail?.slogan         ?? baseClub.slogan,
     };
