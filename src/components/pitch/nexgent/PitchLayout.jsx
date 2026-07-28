@@ -23,7 +23,7 @@ export function PitchCtaLink({ href, className, style, children }) {
 
 const NAV_KEYS = [
   { id: "alianza", key: "nav.alliance" },
-  { id: "lakers", key: "nav.lakers" },
+  { id: "palmeiras", key: "nav.palmeiras" },
   { id: "plataforma", key: "nav.platform" },
   { id: "ventajas", key: "nav.advantages" },
   { id: "roadmap", key: "nav.roadmap" },

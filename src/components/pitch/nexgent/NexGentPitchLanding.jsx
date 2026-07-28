@@ -10,11 +10,11 @@ import NexGentFeatureShowcase, { HeroAnimatedDemo } from "./NexGentFeatureDemos"
 import NexGentCommissionCalculator from "./NexGentCommissionCalculator";
 import { COMPARE_VALUES, COMPARE_CATEGORIES } from "../../../lib/nexgentCompareData";
 import {
-  LAKERS, DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, nexgentDemoUrl, nexgentSlidesUrl,
+  PALMEIRAS, DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, nexgentDemoUrl, nexgentSlidesUrl,
 } from "../../../lib/nexgentConfig";
 
 const ACCENT = DEPRO_ACCENT;
-const CLUB_ACCENT = LAKERS.accent;
+const CLUB_ACCENT = PALMEIRAS.accent;
 
 const ADVANTAGE_ICONS = [Brain, Zap, Shield, BarChart3, Target, Sparkles];
 const WORKFLOW_ICONS = [Calendar, Target, TrendingUp, BarChart3];
@@ -128,28 +128,28 @@ export default function NexGentPitchLanding() {
         </div>
       </section>
 
-      <section id="lakers" className="py-20 bg-gray-50 border-b border-gray-100">
+      <section id="palmeiras" className="py-20 bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="max-w-2xl mb-12">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t("lakers.eyebrow")}</p>
-            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">{t("lakers.title", { club: LAKERS.shortName })}</h2>
-            <p className="text-gray-600 leading-relaxed">{t("lakers.desc")}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">{t("palmeiras.eyebrow")}</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">{t("palmeiras.title", { club: PALMEIRAS.shortName })}</h2>
+            <p className="text-gray-600 leading-relaxed">{t("palmeiras.desc")}</p>
           </div>
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 md:p-8 shadow-sm">
               <div className="flex items-start gap-4 mb-6">
-                <img src={LAKERS.logo} alt={LAKERS.shortName} className="w-14 h-14 rounded-xl border border-gray-200 bg-white p-1.5 object-contain" />
+                <img src={PALMEIRAS.logo} alt={PALMEIRAS.shortName} className="w-14 h-14 rounded-xl border border-gray-200 bg-white p-1.5 object-contain" />
                 <div>
-                  <h3 className="text-xl font-black">{LAKERS.name}</h3>
-                  <p className="text-sm text-gray-500">{LAKERS.city} · {LAKERS.category}</p>
+                  <h3 className="text-xl font-black">{PALMEIRAS.name}</h3>
+                  <p className="text-sm text-gray-500">{PALMEIRAS.city} · {PALMEIRAS.category}</p>
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4 mb-6">
                 {[
-                  { icon: Users, label: t("lakers.players"), value: String(LAKERS.players) },
-                  { icon: Building2, label: t("lakers.teams"), value: String(LAKERS.teams) },
-                  { icon: Calendar, label: t("lakers.training"), value: LAKERS.trainingDays },
-                  { icon: Target, label: t("lakers.staff"), value: t("lakers.staffValue", { count: LAKERS.coaches }) },
+                  { icon: Users, label: t("palmeiras.players"), value: String(PALMEIRAS.players) },
+                  { icon: Building2, label: t("palmeiras.teams"), value: String(PALMEIRAS.teams) },
+                  { icon: Calendar, label: t("palmeiras.training"), value: PALMEIRAS.trainingDays },
+                  { icon: Target, label: t("palmeiras.staff"), value: t("palmeiras.staffValue", { count: PALMEIRAS.coaches }) },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-4">
                     <item.icon size={18} className="flex-shrink-0" style={{ color: CLUB_ACCENT }} />
@@ -161,14 +161,14 @@ export default function NexGentPitchLanding() {
                 ))}
               </div>
               <PitchCtaLink href={demoUrl} className="inline-flex items-center gap-2 font-bold text-sm px-5 py-2.5 rounded-lg text-white transition-opacity hover:opacity-90" style={{ backgroundColor: CLUB_ACCENT }}>
-                {t("lakers.openDashboard")} <ChevronRight size={16} />
+                {t("palmeiras.openDashboard")} <ChevronRight size={16} />
               </PitchCtaLink>
             </div>
             <div className="space-y-4">
               <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <div className="text-xs font-bold text-gray-400 uppercase mb-3">{t("lakers.snapshot")}</div>
+                <div className="text-xs font-bold text-gray-400 uppercase mb-3">{t("palmeiras.snapshot")}</div>
                 <div className="font-black text-gray-900 mb-1">LeBron James · SF · #23</div>
-                <div className="text-xs text-gray-500 mb-4">{t("lakers.playerPlan")}</div>
+                <div className="text-xs text-gray-500 mb-4">{t("palmeiras.playerPlan")}</div>
                 <div className="space-y-2 text-xs">
                   {[
                     { t: "Vertical jump T3", v: "78 cm", r: "+6% vs media" },
@@ -184,8 +184,8 @@ export default function NexGentPitchLanding() {
               </div>
               <div className="rounded-2xl border p-5" style={{ borderColor: `${CLUB_ACCENT}44`, backgroundColor: `${CLUB_ACCENT}11` }}>
                 <div className="text-xs font-bold uppercase mb-2" style={{ color: CLUB_ACCENT }}>Resultado dirección</div>
-                <p className="text-sm leading-relaxed" style={{ color: "#37145a" }}>&quot;{t("lakers.directorQuote")}&quot;</p>
-                <p className="text-xs mt-2 font-semibold" style={{ color: CLUB_ACCENT }}>{t("lakers.directorRole")}</p>
+                <p className="text-sm leading-relaxed" style={{ color: "#004d2a" }}>&quot;{t("palmeiras.directorQuote")}&quot;</p>
+                <p className="text-xs mt-2 font-semibold" style={{ color: CLUB_ACCENT }}>{t("palmeiras.directorRole")}</p>
               </div>
             </div>
           </div>

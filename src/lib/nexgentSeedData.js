@@ -98,7 +98,7 @@ export const SEASON_BLOCKS = [
 
 export const PLANNING_OVERVIEW = {
   season: "2026",
-  competition: "NBA Regular Season + Playoffs",
+  competition: "Campeonato Paulista Sub-20 + Copinha",
   currentWeek: 24,
   totalWeeks: 26,
   matchesPlayed: 18,
@@ -109,15 +109,15 @@ export const PLANNING_OVERVIEW = {
   adherence: 94,
   avgWeeklyLoad: 28900,
   injured: 2,
-  nextMatch: { opponent: "Boston Celtics", date: "Vie 21 Jun · 22:00", venue: "Crypto.com Arena", round: "J42 NBA" },
+  nextMatch: { opponent: "Corinthians", date: "Sáb 21 Jun · 16:00", venue: "Allianz Parque", round: "J12 Paulista" },
 };
 
 export const SEASON_MATCHES = [
-  { id: "m1", date: "14 Jun", opponent: "Golden State Warriors", result: "W 112-108", venue: "Chase Center", round: "J41", played: true },
-  { id: "m2", date: "21 Jun", opponent: "Boston Celtics", result: null, venue: "Crypto.com Arena", round: "J42", played: false, highlight: true },
-  { id: "m3", date: "24 Jun", opponent: "Denver Nuggets", result: null, venue: "Ball Arena", round: "J43", played: false },
-  { id: "m4", date: "28 Jun", opponent: "Phoenix Suns", result: null, venue: "Crypto.com Arena", round: "J44", played: false },
-  { id: "m5", date: "2 Jul", opponent: "LA Clippers", result: null, venue: "Intuit Dome", round: "J45", played: false },
+  { id: "m1", date: "14 Jun", opponent: "Santos", result: "W 2-1", venue: "Vila Belmiro", round: "J11", played: true },
+  { id: "m2", date: "21 Jun", opponent: "Corinthians", result: null, venue: "Allianz Parque", round: "J12", played: false, highlight: true },
+  { id: "m3", date: "24 Jun", opponent: "São Paulo", result: null, venue: "Morumbi", round: "J13", played: false },
+  { id: "m4", date: "28 Jun", opponent: "Red Bull Bragantino", result: null, venue: "Allianz Parque", round: "J14", played: false },
+  { id: "m5", date: "2 Jul", opponent: "Guarani", result: null, venue: "Brinco de Ouro", round: "J15", played: false },
 ];
 
 export const MICROCYCLE = [
@@ -154,14 +154,14 @@ export const MICROCYCLE = [
     rpe: 5, duration: "50 min", load: 2900, players: 20,
     objectives: ["Activación neuromuscular", "Set pieces ofensivos", "Ajuste táctico rival"],
     blocks: ["Activación 10 min", "Rondo 8 min", "SP corners 15 min", "Partido reducido 12 min", "Charla rival 5 min"],
-    notes: "Celtics: pick-and-roll + spacing exterior. Repaso vídeo 09:00.",
+    notes: "Corinthians: bloque bajo + transiciones rápidas. Repaso vídeo 09:00.",
   },
   {
-    id: "sat", day: "Sáb", date: "21 Jun", label: "Partido · NBA", type: "match", sessionType: "—",
+    id: "sat", day: "Sáb", date: "21 Jun", label: "Partido · Paulista", type: "match", sessionType: "—",
     rpe: 9, duration: "90 min", load: 7200, players: 18,
-    objectives: ["Victoria J19", "Presión alta sostenida", "Control transiciones"],
+    objectives: ["Victoria J12", "Presión alta sostenida", "Control transiciones"],
     blocks: ["Calentamiento 25 min", "Partido 90 min", "Recuperación inmediata 15 min"],
-    notes: "Convocatoria activa: 15 jugadores. LeBron titular.",
+    notes: "Convocatoria activa: 18 jugadores. Estêvão titular.",
   },
   {
     id: "sun", day: "Dom", date: "22 Jun", label: "Descanso", type: "rest", sessionType: "—",
@@ -196,7 +196,7 @@ export const VIDEO_EVENTS = [
 
 export const VIDEO_CLIPS = [
   { id: "v1", title: "Presión alta J24", duration: "0:42", tags: ["Pressing", "Transición"] },
-  { id: "v2", title: "Lakers vs Celtics — transiciones", duration: "1:15", tags: ["Contraataque", "Finalización"] },
+  { id: "v2", title: "Palmeiras vs Corinthians — transiciones", duration: "1:15", tags: ["Contraataque", "Finalización"] },
   { id: "v3", title: "Microciclo táctico — rondo 4v2", duration: "0:28", tags: ["Entrenamiento", "Posesión"] },
 ];
 

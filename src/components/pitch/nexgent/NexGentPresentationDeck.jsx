@@ -5,16 +5,16 @@ import {
   ArrowLeft, ArrowRight, BarChart3, Brain, Calendar, CheckCircle2,
   ChevronLeft, ChevronRight, Clock, Shield, Sparkles, Target, TrendingUp, Users, X, Zap,
 } from "lucide-react";
-import { DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, LAKERS, nexgentDemoUrl } from "../../../lib/nexgentConfig.js";
+import { DEPRO_ACCENT, DEPRO_LOGO, NEXGENT_LOGO, PALMEIRAS, nexgentDemoUrl } from "../../../lib/nexgentConfig.js";
 import { PitchCtaLink } from "./PitchLayout.jsx";
 import {
   PITCH_STATS, FEATURES, MODULE_GROUPS, ROADMAP_PHASES, COMPARE_ROWS,
-  COMMISSION_TIERS, WORKFLOW_STEPS, ADVANTAGES, LAKERS_STATS,
+  COMMISSION_TIERS, WORKFLOW_STEPS, ADVANTAGES, PALMEIRAS_STATS,
 } from "../../../lib/nexgentPitchContent.js";
 import { FeatureDemo, HeroAnimatedDemo } from "./NexGentFeatureDemos";
 
 const ACCENT = DEPRO_ACCENT;
-const ROADMAP_COLORS = ["#6366F1", "#0A36F7", "#552583", "#F59E0B", "#8B5CF6", "#22C55E"];
+const ROADMAP_COLORS = ["#6366F1", "#0A36F7", "#006437", "#F59E0B", "#8B5CF6", "#22C55E"];
 const ADV_ICONS = [Brain, Zap, Shield, BarChart3, Target, Sparkles];
 const WF_ICONS = [Calendar, Target, TrendingUp, BarChart3];
 
@@ -46,7 +46,7 @@ const SLIDES = [
   },
   { kind: "modules" },
   ...FEATURES.map((f) => ({ kind: "feature", featureId: f.id })),
-  { kind: "lakers" },
+  { kind: "palmeiras" },
   { kind: "roadmap" },
   { kind: "compare" },
   { kind: "commission" },
@@ -183,8 +183,8 @@ export default function NexGentPresentationDeck() {
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 {[
-                  { icon: Users, label: "Lakers demo", value: `${LAKERS.players} jugadores · ${LAKERS.teams} equipos` },
-                  { icon: Target, label: "Staff técnico", value: `${LAKERS.coaches} entrenadores · ${LAKERS.category}` },
+                  { icon: Users, label: "Demo Palmeiras", value: `${PALMEIRAS.players} jugadores · ${PALMEIRAS.teams} equipos` },
+                  { icon: Target, label: "Staff técnico", value: `${PALMEIRAS.coaches} entrenadores · ${PALMEIRAS.category}` },
                   { icon: Zap, label: "Integraciones GPS", value: "Catapult · STATSports · Polar · WIMU" },
                   { icon: Clock, label: "Roadmap típico", value: "12 meses · requisitos → go-live" },
                 ].map(({ icon: Icon, label, value }) => (
@@ -251,28 +251,28 @@ export default function NexGentPresentationDeck() {
             </div>
           )}
 
-          {slide.kind === "lakers" && (
+          {slide.kind === "palmeiras" && (
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div>
                 <SlideEyebrow>Demo en vivo</SlideEyebrow>
-                <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-4">Así se ve con {LAKERS.shortName}</h2>
+                <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-4">Así se ve con {PALMEIRAS.shortName}</h2>
                 <div className="flex items-start gap-4 mb-6">
-                  <img src={LAKERS.logo} alt={LAKERS.shortName} className="w-14 h-14 rounded-xl border border-gray-200 bg-white p-1.5 object-contain" />
+                  <img src={PALMEIRAS.logo} alt={PALMEIRAS.shortName} className="w-14 h-14 rounded-xl border border-gray-200 bg-white p-1.5 object-contain" />
                   <div>
-                    <div className="font-black text-lg">{LAKERS.name}</div>
-                    <div className="text-sm text-gray-500">{LAKERS.city}</div>
+                    <div className="font-black text-lg">{PALMEIRAS.name}</div>
+                    <div className="text-sm text-gray-500">{PALMEIRAS.city}</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-6">
-                  {LAKERS_STATS.map((s) => (
+                  {PALMEIRAS_STATS.map((s) => (
                     <div key={s.label} className="rounded-lg bg-gray-50 border border-gray-100 p-3 text-center">
-                      <div className="text-xl font-black" style={{ color: LAKERS.accent }}>{s.value}</div>
+                      <div className="text-xl font-black" style={{ color: PALMEIRAS.accent }}>{s.value}</div>
                       <div className="text-[10px] text-gray-400 font-bold uppercase">{s.label}</div>
                     </div>
                   ))}
                 </div>
-                <p className="text-sm text-gray-600 italic border-l-4 pl-4" style={{ borderColor: LAKERS.accent }}>
-                  &quot;Por fin tenemos rendimiento, planificación y scouting en un solo sitio — con la cara de los Lakers.&quot;
+                <p className="text-sm text-gray-600 italic border-l-4 pl-4" style={{ borderColor: PALMEIRAS.accent }}>
+                  &quot;Por fin tenemos rendimiento, planificación y scouting en un solo sitio — con la cara del Palmeiras.&quot;
                 </p>
               </div>
               <AnimatedFeaturePanel featureId="dashboard" active />
@@ -403,7 +403,7 @@ export default function NexGentPresentationDeck() {
               <SlideEyebrow>Siguiente paso</SlideEyebrow>
               <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-4">¿Listo para verlo en acción?</h2>
               <p className="text-base sm:text-lg text-gray-600 mb-8">
-                Demo interactiva Lakers · {FEATURES.length} módulos con demo animada · Roadmap 12 meses desde requisitos
+                Demo interactiva Palmeiras · {FEATURES.length} módulos con demo animada · Roadmap 12 meses desde requisitos
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <PitchCtaLink href={demoUrl} className="inline-flex items-center justify-center gap-2 text-white font-black px-8 py-4 rounded-xl" style={{ backgroundColor: ACCENT }}>
@@ -414,7 +414,7 @@ export default function NexGentPresentationDeck() {
                 </Link>
               </div>
               <p className="text-xs text-gray-400 mt-6 flex items-center justify-center gap-2">
-                <Clock size={14} /> Demo Lakers · Sin registro · Datos de ejemplo
+                <Clock size={14} /> Demo Palmeiras · Sin registro · Datos de ejemplo
               </p>
             </div>
           )}

@@ -2,7 +2,7 @@
   "lang": { "en": "English", "es": "Español" },
   "nav": {
     "alliance": "Alianza",
-    "lakers": "Lakers",
+    "palmeiras": "Palmeiras",
     "platform": "Plataforma",
     "advantages": "Ventajas",
     "compare": "Comparativa",
@@ -26,7 +26,7 @@
     "eyebrow": "Alianza estratégica · Clubes profesionales",
     "title": "El software más completo para clubes de fútbol profesional",
     "desc": "NexGent y DEPRO unen IA, GPS, periodización, tests, médico, cantera, vídeo, scouting y white-label en una plataforma enterprise — pensada para el staff de clubes de élite.",
-    "ctaDemo": "Ver demo Lakers",
+    "ctaDemo": "Ver demo Palmeiras",
     "ctaExplore": "Explorar capacidades",
     "statModules": "Módulos integrados",
     "statAi": "Sesiones · Carga · Chat",
@@ -51,19 +51,19 @@
       "PDFs de sesión y adherencia al plan"
     ]
   },
-  "lakers": {
+  "palmeiras": {
     "eyebrow": "Demo en vivo",
     "title": "Así se ve con {{club}}",
-    "desc": "El dashboard demo replica el diseño DEPRO real — sidebar claro, banner del club, cards de entrenador — con los colores púrpura y oro de Los Angeles Lakers.",
+    "desc": "El dashboard demo replica el diseño DEPRO real — sidebar claro, banner del club, cards de entrenador — con los colores verde y oro del Palmeiras.",
     "players": "Jugadores",
     "teams": "Equipos",
     "training": "Entrenamientos",
     "staff": "Staff técnico",
     "staffValue": "{{count}} entrenadores",
-    "openDashboard": "Abrir dashboard Lakers",
+    "openDashboard": "Abrir dashboard Palmeiras",
     "snapshot": "Snapshot jugador",
-    "playerPlan": "Plantilla NBA · Semana 24",
-    "directorQuote": "Por fin tenemos rendimiento, planificación y scouting en un solo sitio — con la cara de los Lakers.",
+    "playerPlan": "Sub-20 · Semana 24",
+    "directorQuote": "Por fin tenemos rendimiento, planificación y scouting en un solo sitio — con la cara del Palmeiras.",
     "directorRole": "Dirección deportiva · Demo"
   },
   "demo": {
@@ -144,7 +144,7 @@
     "brand": {
       "title": "White-label completo",
       "summary": "Tu club en cada pantalla — no una app genérica.",
-      "bullets": ["Logo, colores, equipos", "Familias ven Lakers", "Multi-categoría"]
+      "bullets": ["Logo, colores, equipos", "Familias ven Palmeiras", "Multi-categoría"]
     }
   },
   "advantages": {
@@ -154,7 +154,7 @@
     "items": [
       { "title": "IA que entiende fútbol", "desc": "Diagramas tácticos, clasificación de carga y resúmenes del staff en lenguaje natural." },
       { "title": "Cero fricción con vuestro GPS", "desc": "Catapult, STATSports, Polar, WIMU… importáis el CSV y la plataforma mapea columnas." },
-      { "title": "White-label real", "desc": "Lakers en cada pantalla. Jugadores, familias y staff ven al club — no un SaaS genérico." },
+      { "title": "White-label real", "desc": "Palmeiras en cada pantalla. Jugadores, familias y staff ven al club — no un SaaS genérico." },
       { "title": "Un solo cerebro de datos", "desc": "Rendimiento, salud, planificación y scouting conectados sin duplicar datos." },
       { "title": "Periodización DEPRO", "desc": "Mesociclos, microciclos, tests y adherencia al plan — base operativa probada." },
       { "title": "NexGent encima", "desc": "Capa de IA y módulos pro que elevan lo que DEPRO ya hace bien." }
@@ -343,18 +343,18 @@
   },
   "cta": {
     "title": "¿Listo para verlo en acción?",
-    "desc": "Explora la demo interactiva con Lakers o revisa la presentación completa diapositiva a diapositiva.",
+    "desc": "Explora la demo interactiva con Palmeiras o revisa la presentación completa diapositiva a diapositiva.",
     "slides": "Ver presentación más completa por diapositivas",
     "demo": "Ver la demo",
-    "footnote": "Demo Lakers · Sin registro · Datos de ejemplo"
+    "footnote": "Demo Palmeiras · Sin registro · Datos de ejemplo"
   },
   "footer": {
     "headline": "NexGent y DEPRO se han unido para crear el software más completo a nivel de clubes de fútbol profesional.",
     "desc": "NexGent aporta inteligencia artificial, integración GPS y módulos avanzados. DEPRO aporta periodización, tests físicos, white-label y experiencia operativa.",
-    "copyright": "© {{year}} NexGent × DEPRO · Demo comercial · Lakers"
+    "copyright": "© {{year}} NexGent × DEPRO · Demo comercial · Palmeiras"
   },
   "demos": {
-    "clubName": "Lakers · NBA",
+    "clubName": "Palmeiras · Sub-20",
     "ui": {
       "dashboard": "Dashboard",
       "microcycle": "Microciclo",
@@ -404,7 +404,7 @@
       "pdfLine2": "Bloque principal: posesión 3v3 + transiciones (25 min)",
       "pdfLine3": "Task designer: finalización + pressing (20 min)",
       "sessionTitle": "Sesión B · Técnico-táctico",
-      "pdfReady": "PDF listo · logo y colores Lakers",
+      "pdfReady": "PDF listo · logo y colores Palmeiras",
       "brandPreview": "Vista previa white-label",
       "brandApplied": "Branding aplicado a todos los módulos",
       "medicalTitle": "Departamento médico",
@@ -412,7 +412,7 @@
       "medStatus_available": "Disponible",
       "medStatus_alert": "Alerta médica",
       "medAlertSync": "Alerta sincronizada con carga GPS y chat staff",
-      "academyLabel": "Cantera Lakers",
+      "academyLabel": "Cantera Palmeiras",
       "prospect": "Prospectos",
       "promoted": "Promovidos",
       "academyNoGps": "Cantera operativa sin hardware GPS obligatorio",

@@ -2,24 +2,25 @@ export const DEPRO_ACCENT = "#0A36F7";
 export const DEPRO_LOGO = "/logo.png";
 export const NEXGENT_LOGO = "/LOGO NEXGENT.png";
 
-export const LAKERS = {
-  name: "Los Angeles Lakers",
-  shortName: "Lakers",
-  abbrev: "LAL",
-  city: "Los Angeles, USA",
-  logo: "/lakers.png",
-  accent: "#552583",
-  secondary: "#FDB927",
-  team: "Plantilla NBA",
-  category: "NBA · G League – Profesional",
-  teams: 3,
-  players: 18,
-  coaches: 12,
-  trainingDays: "Lun · Mié · Vie",
+/** Club demo — Sociedade Esportiva Palmeiras */
+export const PALMEIRAS = {
+  name: "Sociedade Esportiva Palmeiras",
+  shortName: "Palmeiras",
+  abbrev: "SEP",
+  city: "São Paulo, Brasil",
+  logo: "/Palmeiras_logo.svg.png",
+  accent: "#006437",
+  secondary: "#FDB913",
+  team: "Sub-20",
+  category: "Sub-17 – Profesional",
+  teams: 8,
+  players: 142,
+  coaches: 14,
+  trainingDays: "Seg · Qua · Sex",
 };
 
-/** @deprecated Usar LAKERS */
-export const PALMEIRAS = LAKERS;
+/** @deprecated Usar PALMEIRAS */
+export const LAKERS = PALMEIRAS;
 
 export const LOCAL_SLIDES_PATH = "/nexgent/presentacion";
 export const LOCAL_DEMO_PATH = "/nexgent/demo";
@@ -41,7 +42,7 @@ function isSameOriginNexGentApp() {
   }
 }
 
-/** Demo interactiva Lakers — dashboard local en el sitio DEPRO */
+/** Demo interactiva Palmeiras — dashboard local en el sitio DEPRO */
 export function nexgentDemoUrl() {
   return LOCAL_DEMO_PATH;
 }
