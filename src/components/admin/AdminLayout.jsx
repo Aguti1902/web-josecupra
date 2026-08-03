@@ -45,8 +45,8 @@ const navGroups = [
     items: [
       { to: "/admin/clients", icon: Users, label: "Clientes jugadores" },
       { to: "/admin/plan-builder", icon: Brain, label: "Motor de planes" },
-      { to: "/admin/templates", icon: Layers, label: "Plantillas" },
-      { to: "/admin/catalog", icon: BookOpen, label: "Biblioteca de ejercicios" },
+      { to: "/admin/templates", icon: Layers, label: "Plantillas F_*" },
+      { to: "/admin/catalog", icon: BookOpen, label: "Catálogo multi-eje" },
     ],
   },
   {

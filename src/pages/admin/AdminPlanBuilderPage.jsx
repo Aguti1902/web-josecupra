@@ -42,7 +42,7 @@ const CATEGORIES = [
   { id: "prevención", label: "Prevención", icon: Zap, color: "text-green-600 bg-green-50" },
 ];
 const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
-const MATERIALS = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio", "Campo"];
+const MATERIALS = ["Sin material", "Gomas", "Mancuernas", "Barra", "Gimnasio completo"];
 const SPORTS = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const COMPETITION_DAYS = COMPETITION_DAY_OPTIONS;
 const WEEK_DAYS = DAY_ORDER;
@@ -83,7 +83,7 @@ function IASimulator() {
     objetivos: ["Fuerza", "Velocidad"],
     deporte: "Fútbol",
     frecuencia: "3",
-    material: "Sin material",
+    material: ["Sin material"],
     experiencia: "6–12 meses",
     lesion: ["Ninguna"],
     lesionSubtipo: [],
@@ -98,6 +98,7 @@ function IASimulator() {
   const buildUser = () => ({
     ...profile,
     edad: parseInt(profile.edad, 10) || 22,
+    material: Array.isArray(profile.material) ? profile.material : [profile.material].filter(Boolean),
     lesion: profile.lesion?.includes("Ninguna") ? [] : profile.lesion,
   });
 
@@ -109,12 +110,17 @@ function IASimulator() {
       const user = buildUser();
       const probe = buildPlayerPlan(user);
       if (probe.planError) {
-        setSimulated({ error: probe.planError });
+        setSimulated({ error: probe.planError, hardBlock: true });
         setLoading(false);
         return;
       }
       const weeks = buildFourWeekPlan(user);
-      setSimulated({ weeks });
+      setSimulated({
+        weeks,
+        qualityWarning: probe.qualityWarning || null,
+        pending: probe.sesiones_pendientes_compensar || null,
+        sesiones: probe.sesiones_semana || [],
+      });
       setViewWeek(1);
       setLoading(false);
     }, 400);
@@ -124,7 +130,7 @@ function IASimulator() {
     if (!simulated) return;
     const user = buildUser();
     const filterParams = {
-      material: user.material?.toLowerCase().replace(/\s|\//g, "_").replace("barra_gimnasio", "barra") || "sin_material",
+      material: user.material,
       lesiones: normalizeLesions(user.lesion, user.lesionSubtipo),
       edad: user.edad,
       deporte: user.deporte,
@@ -151,10 +157,10 @@ function IASimulator() {
       <div className="p-5 border-b border-depro-blue/15">
         <div className="flex items-center gap-2 mb-1">
           <Sparkles size={18} className="text-depro-blue" />
-          <h2 className="font-bold text-depro-dark">Motor de planes (PDF §2.3)</h2>
+          <h2 className="font-bold text-depro-dark">Simulador del motor (3 fases)</h2>
         </div>
         <p className="text-sm text-depro-gray">
-          Genera un plan de 4 semanas con el motor real: objetivo, día de competición, días disponibles, lesiones y material.
+          Compatibilidad → construcción de sesiones → colocación. Cobertura de patrones garantizada. Material multiselección y <code className="text-xs bg-white/80 px-1 rounded">gym_completo</code>.
         </p>
       </div>
 
@@ -266,15 +272,29 @@ function IASimulator() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Material</label>
+            <label className="block text-xs font-semibold text-depro-dark mb-2 uppercase">Material (multiselección)</label>
             <div className="flex flex-wrap gap-1.5">
-              {MATERIALS.map((m) => (
-                <button key={m} type="button" onClick={() => setProfile((p) => ({ ...p, material: m }))}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium ${profile.material === m ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray"}`}>
-                  {m}
-                </button>
-              ))}
+              {MATERIALS.map((m) => {
+                const selected = Array.isArray(profile.material)
+                  ? profile.material.includes(m)
+                  : profile.material === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setProfile((p) => {
+                      const cur = Array.isArray(p.material) ? p.material : (p.material ? [p.material] : []);
+                      const next = selected ? cur.filter((x) => x !== m) : [...cur, m];
+                      return { ...p, material: next.length ? next : ["Sin material"] };
+                    })}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-medium ${selected ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray"}`}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
             </div>
+            <p className="text-[10px] text-depro-gray mt-1">«Gimnasio completo» desbloquea barra + máquinas + todo el catálogo.</p>
           </div>
 
           <div>
@@ -340,13 +360,25 @@ function IASimulator() {
           )}
 
           {simulated?.error && (
-            <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-5 text-sm text-amber-900 whitespace-pre-line">
+            <div className="rounded-xl border-2 border-red-300 bg-red-50 p-5 text-sm text-red-900 whitespace-pre-line">
+              <p className="font-black text-red-950 mb-2">Bloqueo duro — no se genera plan</p>
               {simulated.error}
             </div>
           )}
 
           {simulated && !simulated.error && currentWeek && (
             <div className="space-y-3">
+              {simulated.qualityWarning && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 whitespace-pre-line">
+                  <strong>Aviso de calidad:</strong> {simulated.qualityWarning}
+                </div>
+              )}
+              {simulated.sesiones?.length > 0 && (
+                <div className="rounded-xl border border-depro-border bg-white p-3 text-[11px] text-depro-gray">
+                  <p className="font-bold text-depro-dark mb-1">Sesiones construidas (Fase 2)</p>
+                  <p>{simulated.sesiones.map((s) => `${s.day}: ${s.sessionType}${s.adaptedIntensity ? ` → ${s.adaptedIntensity}` : ""}`).join(" · ")}</p>
+                </div>
+              )}
               <div className="flex gap-1 p-1 bg-white rounded-xl border border-depro-border">
                 {[1, 2, 3, 4].map((w) => (
                   <button key={w} type="button" onClick={() => setViewWeek(w)}
@@ -366,7 +398,12 @@ function IASimulator() {
                       <div>
                         <span className="text-xs font-bold text-depro-blue">{session.dayName}</span>
                         <p className="text-sm font-medium text-depro-dark">{session.title}</p>
-                        <p className="text-xs text-depro-gray">{(session.exercises || []).length} ej. · {session.intensity}</p>
+                        <p className="text-xs text-depro-gray">
+                          {(session.exercises || []).length} ej. · {session.intensityLevel || session.intensity}
+                          {session.templateCode ? ` · ${session.templateCode}` : ""}
+                          {session.adaptedIntensity ? ` · adaptada ${session.adaptedIntensity}` : ""}
+                          {session.resistanceVariant ? ` · ${session.resistanceVariant.key}` : ""}
+                        </p>
                       </div>
                       {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
@@ -758,7 +795,7 @@ function BlockModal({ block, onClose, onSave }) {
   );
 }
 
-/* ── Catálogo de ejercicios (120) ────────────────────────────── */
+/* ── Catálogo embebido (multi-eje) ────────────────────────────── */
 const TAG_LABEL = {
   fuerza:"Fuerza", fuerza_maxima:"F. Máxima", fuerza_explosiva:"F. Explosiva",
   resistencia:"Resistencia", velocidad:"Velocidad", pliometria:"Pliometría",
@@ -767,7 +804,7 @@ const TAG_LABEL = {
   gluteo:"Glúteo", rodilla:"Rodilla", tobillo:"Tobillo", hombro:"Hombro",
   empuje:"Empuje", traccion:"Tracción", sin_material:"Sin material",
   gomas:"Gomas", mancuernas:"Mancuernas", barra:"Barra", maquina:"Máquina",
-  casa:"Casa", campo:"Campo", gimnasio:"Gimnasio",
+  maquina_polea:"Máq. polea", maquina_disco:"Máq. disco", gym_completo:"Gym completo",
 };
 
 function CatalogTab() {
@@ -776,13 +813,19 @@ function CatalogTab() {
   const [matF,  setMatF]  = useState("");
 
   const shown = EXERCISES.filter((ex) => {
-    const matchQ  = !q   || ex.nombre.toLowerCase().includes(q.toLowerCase());
-    const matchT  = !tagF || ex.etiquetas.includes(tagF);
-    const matchM  = !matF || ex.material === matF;
+    const mats = ex.materiales || [ex.material].filter(Boolean);
+    const multiStr = JSON.stringify(ex.etiquetasMulti || {}).toLowerCase();
+    const matchQ = !q
+      || ex.nombre.toLowerCase().includes(q.toLowerCase())
+      || multiStr.includes(q.toLowerCase());
+    const matchT = !tagF
+      || (ex.etiquetas || []).includes(tagF)
+      || (ex.etiquetasMulti?.objetivo || []).includes(tagF);
+    const matchM = !matF || mats.includes(matF) || ex.material === matF;
     return matchQ && matchT && matchM;
   });
 
-  const matOptions = [...new Set(EXERCISES.map((e) => e.material))];
+  const matOptions = [...new Set(EXERCISES.flatMap((e) => e.materiales || [e.material]).filter(Boolean))];
 
   return (
     <div className="space-y-4">
@@ -824,18 +867,24 @@ function CatalogTab() {
                   </div>
                 )}
               </div>
-              <div className="w-28 text-center">
-                <span className="text-xs px-2 py-0.5 rounded-full bg-depro-gray-light text-depro-gray font-medium">
-                  {TAG_LABEL[ex.material] || ex.material}
-                </span>
+              <div className="w-28 text-center flex flex-col gap-0.5 items-center">
+                {(ex.materiales || [ex.material].filter(Boolean)).slice(0, 2).map((m) => (
+                  <span key={m} className="text-[10px] px-2 py-0.5 rounded-full bg-depro-gray-light text-depro-gray font-medium">
+                    {TAG_LABEL[m] || m}
+                  </span>
+                ))}
               </div>
-              <div className="w-24 flex flex-wrap gap-1 justify-end">
-                {ex.etiquetas.slice(0, 2).map((t) => (
+              <div className="w-28 flex flex-wrap gap-1 justify-end">
+                {(ex.etiquetasMulti?.objetivo || ex.etiquetas || []).slice(0, 2).map((t) => (
                   <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-md bg-depro-blue/8 text-depro-blue border border-depro-blue/15">
                     {TAG_LABEL[t] || t}
                   </span>
                 ))}
-                {ex.etiquetas.length > 2 && <span className="text-[10px] text-depro-gray">+{ex.etiquetas.length - 2}</span>}
+                {ex.etiquetasMulti?.rol && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-100">
+                    {ex.etiquetasMulti.rol}
+                  </span>
+                )}
               </div>
             </div>
           ))}
@@ -848,7 +897,7 @@ function CatalogTab() {
 
 /* ── Main Page ───────────────────────────────────────────────── */
 export default function AdminPlanBuilderPage() {
-  const [activeTab, setActiveTab]   = useState("bloques");
+  const [activeTab, setActiveTab]   = useState("motor");
   const [blocks, setBlocks]         = useState([]);
   const [mediaLibrary, setMediaLibrary] = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -901,7 +950,7 @@ export default function AdminPlanBuilderPage() {
         <div>
           <h1 className="text-2xl font-bold text-depro-dark">Motor de planes</h1>
           <p className="text-depro-gray text-sm mt-0.5">
-            Catálogo de ejercicios, bloques de entrenamiento y simulador para planes automáticos de jugadores
+            Motor multi-eje en 3 fases · plantillas F_* · catálogo etiquetado · material multiselección
           </p>
         </div>
         {activeTab === "bloques" && (
@@ -916,10 +965,11 @@ export default function AdminPlanBuilderPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-depro-gray-light rounded-xl w-fit">
+      <div className="flex gap-1 p-1 bg-depro-gray-light rounded-xl w-fit flex-wrap">
         {[
-          { id: "bloques",  label: "Bloques", icon: List },
+          { id: "motor", label: "Simulador", icon: Sparkles },
           { id: "catalogo", label: `Catálogo (${EXERCISES.length})`, icon: BookOpen },
+          { id: "bloques", label: "Bloques (legacy)", icon: List },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -934,124 +984,127 @@ export default function AdminPlanBuilderPage() {
       </div>
 
       {activeTab === "catalogo" && <CatalogTab />}
-      {activeTab !== "catalogo" && (<>
 
-      {/* How it works */}
-      <div className="bg-depro-dark rounded-2xl p-5 text-white">
-        <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-depro-blue/20 flex items-center justify-center shrink-0">
-            <Brain size={20} className="text-depro-blue" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold mb-1">¿Cómo funciona?</h3>
-            <p className="text-sm text-white/70 leading-relaxed">
-              Cuando un jugador completa el onboarding y paga, el motor lee su perfil físico
-              (objetivo: Fuerza / Velocidad / Resistencia…, material, días, lesiones) y rellena
-              plantillas con ejercicios del catálogo.
-              <strong className="text-white"> Usa el simulador de abajo para ver qué ejercicios salen de verdad.</strong>
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs">
-          {[
-            { step: "1", label: "Jugador elige objetivo físico y material" },
-            { step: "2", label: "El motor filtra el catálogo y arma la semana" },
-            { step: "3", label: "Plan listo en su área privada" },
-          ].map(({ step, label }) => (
-            <div key={step} className="bg-white/8 rounded-xl p-3">
-              <div className="w-6 h-6 rounded-full bg-depro-blue text-white text-xs font-bold flex items-center justify-center mx-auto mb-1.5">
-                {step}
+      {activeTab === "motor" && (
+        <>
+          <div className="bg-depro-dark rounded-2xl p-5 text-white">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-depro-blue/20 flex items-center justify-center shrink-0">
+                <Brain size={20} className="text-depro-blue" />
               </div>
-              <p className="text-white/70">{label}</p>
+              <div className="flex-1">
+                <h3 className="font-bold mb-1">Motor DEPRO — 3 fases</h3>
+                <p className="text-sm text-white/70 leading-relaxed">
+                  Fase 1 comprueba si el objetivo cabe en los días/competición (bloqueo duro o aviso de calidad).
+                  Fase 2 construye las sesiones con cobertura de patrones. Fase 3 las coloca adaptando cargas.
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs">
+              {[
+                { step: "1", label: "Chequeo de compatibilidad" },
+                { step: "2", label: "Sesiones con cobertura garantizada" },
+                { step: "3", label: "Colocación + adaptación de cargas" },
+              ].map(({ step, label }) => (
+                <div key={step} className="bg-white/8 rounded-xl p-3">
+                  <div className="w-6 h-6 rounded-full bg-depro-blue text-white text-xs font-bold flex items-center justify-center mx-auto mb-1.5">
+                    {step}
+                  </div>
+                  <p className="text-white/70">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <IASimulator />
+        </>
+      )}
 
-      {/* Simulator */}
-      <IASimulator />
+      {activeTab === "bloques" && (
+        <>
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <strong>Legacy:</strong> estos bloques manuales ya no alimentan el motor de planes del jugador.
+            El motor usa plantillas F_* + catálogo multi-eje. Mantén esta sección solo como referencia histórica.
+          </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-depro-border rounded-xl p-4">
-          <p className="text-xs text-depro-gray mb-1">Total bloques</p>
-          <p className="text-2xl font-bold text-depro-dark">{blocks.length}</p>
-        </div>
-        <div className="bg-white border border-depro-border rounded-xl p-4">
-          <p className="text-xs text-depro-gray mb-1">Activos</p>
-          <p className="text-2xl font-bold text-green-600">{activeCount}</p>
-        </div>
-        <div className="bg-white border border-depro-border rounded-xl p-4">
-          <p className="text-xs text-depro-gray mb-1">Inactivos</p>
-          <p className="text-2xl font-bold text-depro-gray">{blocks.length - activeCount}</p>
-        </div>
-        <div className="bg-white border border-depro-border rounded-xl p-4">
-          <p className="text-xs text-depro-gray mb-1">Con vídeo</p>
-          <p className="text-2xl font-bold text-red-500">
-            {blocks.reduce((acc, b) => acc + (b.exercises || []).filter((ex) => getYouTubeId(ex.videoUrl)).length, 0)}
-          </p>
-        </div>
-      </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white border border-depro-border rounded-xl p-4">
+              <p className="text-xs text-depro-gray mb-1">Total bloques</p>
+              <p className="text-2xl font-bold text-depro-dark">{blocks.length}</p>
+            </div>
+            <div className="bg-white border border-depro-border rounded-xl p-4">
+              <p className="text-xs text-depro-gray mb-1">Activos</p>
+              <p className="text-2xl font-bold text-green-600">{activeCount}</p>
+            </div>
+            <div className="bg-white border border-depro-border rounded-xl p-4">
+              <p className="text-xs text-depro-gray mb-1">Inactivos</p>
+              <p className="text-2xl font-bold text-depro-gray">{blocks.length - activeCount}</p>
+            </div>
+            <div className="bg-white border border-depro-border rounded-xl p-4">
+              <p className="text-xs text-depro-gray mb-1">Con vídeo</p>
+              <p className="text-2xl font-bold text-red-500">
+                {blocks.reduce((acc, b) => acc + (b.exercises || []).filter((ex) => getYouTubeId(ex.videoUrl)).length, 0)}
+              </p>
+            </div>
+          </div>
 
-      {/* Category filter */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setFilterCat("todos")}
-          className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
-            filterCat === "todos"
-              ? "bg-depro-blue border-depro-blue text-white"
-              : "border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue"
-          }`}
-        >
-          Todos
-        </button>
-        {CATEGORIES.map((c) => {
-          const Icon = c.icon;
-          return (
+          <div className="flex flex-wrap gap-2">
             <button
-              key={c.id}
-              onClick={() => setFilterCat(c.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                filterCat === c.id
+              onClick={() => setFilterCat("todos")}
+              className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                filterCat === "todos"
                   ? "bg-depro-blue border-depro-blue text-white"
                   : "border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue"
               }`}
             >
-              <Icon size={13} />
-              {c.label}
+              Todos
             </button>
-          );
-        })}
-      </div>
+            {CATEGORIES.map((c) => {
+              const Icon = c.icon;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setFilterCat(c.id)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                    filterCat === c.id
+                      ? "bg-depro-blue border-depro-blue text-white"
+                      : "border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue"
+                  }`}
+                >
+                  <Icon size={13} />
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
 
-      {/* Blocks */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-16 text-depro-gray">
-          <Brain size={40} className="mx-auto mb-3 opacity-30" />
-          <p className="font-medium">No hay bloques en esta categoría</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filtered.map((block) => (
-            <BlockCard
-              key={block.id}
-              block={block}
-              onToggle={handleToggle}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 text-depro-gray">
+              <Brain size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium">No hay bloques en esta categoría</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {filtered.map((block) => (
+                <BlockCard
+                  key={block.id}
+                  block={block}
+                  onToggle={handleToggle}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
+
+          {showModal && (
+            <BlockModal
+              block={editingBlock}
+              onClose={() => setShowModal(false)}
+              onSave={handleSave}
             />
-          ))}
-        </div>
+          )}
+        </>
       )}
-
-      {showModal && (
-        <BlockModal
-          block={editingBlock}
-          onClose={() => setShowModal(false)}
-          onSave={handleSave}
-        />
-      )}
-      </>)}
     </div>
   );
 }

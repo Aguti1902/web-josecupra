@@ -167,7 +167,7 @@ export const EXERCISES = [...getLegacyCatalogFromV2(), ...EXTRA_EXERCISES];
 export const TAGS = {
   objetivo:  ["fuerza","fuerza_maxima","fuerza_explosiva","resistencia","resistencia_aerobica","resistencia_anaerobica","resistencia_umbral","velocidad","pliometria","core","core_avanzado","prevencion","movilidad","estetica","isometrico","lesion_rodilla","lesion_tobillo","lesion_hombro","lesion_espalda"],
   zona:      ["tren_inferior","tren_superior","core","gluteo","rodilla","tobillo","hombro","empuje","traccion"],
-  material:  ["sin_material","gomas","mancuernas","barra","maquina","casa","campo","gimnasio"],
+  material:  ["sin_material","gomas","mancuernas","barra","maquina","maquina_polea","maquina_disco","gym_completo"],
 };
 
 // ── Tags extra que añade el deporte al pool de búsqueda ──
