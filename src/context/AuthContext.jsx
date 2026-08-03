@@ -170,7 +170,11 @@ function buildUser(authUser, profile) {
       objetivos: profile.objetivos ?? meta.objetivos ?? (meta.objetivoSecundario ? [meta.objetivo, meta.objetivoSecundario].filter(Boolean) : meta.objetivo ? [meta.objetivo] : []),
       deporte:   profile.deporte   ?? meta.deporte   ?? null,
       frecuencia: profile.frecuencia ?? meta.frecuencia ?? null,
-      material:  profile.material  ?? meta.material  ?? null,
+      material:  (() => {
+        const m = profile.material ?? meta.material ?? null;
+        if (typeof m === "string" && m.includes("|")) return m.split("|").filter(Boolean);
+        return m;
+      })(),
       lesion:    profile.lesion    ?? meta.lesion    ?? [],
       lesionSubtipo: profile.lesionSubtipo ?? meta.lesionSubtipo ?? [],
       experiencia: profile.experiencia ?? meta.experiencia ?? null,
@@ -211,7 +215,11 @@ function buildUser(authUser, profile) {
     objetivos: meta.objetivos ?? (meta.objetivoSecundario ? [meta.objetivo, meta.objetivoSecundario].filter(Boolean) : meta.objetivo ? [meta.objetivo] : []),
     deporte:   meta.deporte   ?? null,
     frecuencia: meta.frecuencia ?? null,
-    material:  meta.material  ?? null,
+    material:  (() => {
+      const m = meta.material ?? null;
+      if (typeof m === "string" && m.includes("|")) return m.split("|").filter(Boolean);
+      return m;
+    })(),
     lesion:    meta.lesion    ?? [],
     lesionSubtipo: meta.lesionSubtipo ?? [],
     experiencia: meta.experiencia ?? null,
