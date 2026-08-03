@@ -16,7 +16,8 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession, refreshExercise, normalizeLesions } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession, refreshExercise, normalizeLesions, checkPlanCompatibility } from "../../lib/playerPlanEngine";
+import PlanCompatibilityModal from "../../components/private/PlanCompatibilityModal";
 import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "../../lib/sessionProgress";
 import {
   canSwapExercise, recordSwap, swapsRemaining, hasUnlimitedSwaps, MAINTENANCE_MESSAGE, MAX_PLAN_SWAPS,
@@ -371,6 +372,7 @@ function PlayerWeeklyPlan({ accent }) {
   const [generating, setGen]  = useState(false);
   const [view, setView]       = useState("micro"); // "micro" | "meso"
   const [minimalSession, setMinimalSession] = useState(null);
+  const [compatModal, setCompatModal] = useState(null); // { hardBlock, message }
 
   useEffect(() => {
     if (!user?.id) return;
@@ -393,7 +395,7 @@ function PlayerWeeklyPlan({ accent }) {
     }
   }, [wantMinimal, user?.id, user?.material, user?.lesion]);
 
-  const handleGenerate = async () => {
+  const runGenerate = async () => {
     setGen(true);
     try {
       let generated = buildPlayerPlan(user);
@@ -438,7 +440,20 @@ function PlayerWeeklyPlan({ accent }) {
       }
     } finally {
       setGen(false);
+      setCompatModal(null);
     }
+  };
+
+  const handleGenerate = async () => {
+    const check = checkPlanCompatibility(user);
+    if (check.hardBlock || check.qualityWarning) {
+      setCompatModal({
+        hardBlock: !!check.hardBlock,
+        message: check.message || check.qualityWarning || "",
+      });
+      return;
+    }
+    await runGenerate();
   };
 
   const resolveMicroSession = (session) => {
@@ -496,11 +511,23 @@ function PlayerWeeklyPlan({ accent }) {
 
   const remainingSwaps = swapsRemaining(user);
 
+  const compatModalEl = (
+    <PlanCompatibilityModal
+      open={!!compatModal}
+      hardBlock={!!compatModal?.hardBlock}
+      message={compatModal?.message || ""}
+      continuing={generating}
+      onClose={() => setCompatModal(null)}
+      onContinue={runGenerate}
+    />
+  );
+
   // ── Sin plan generado ──────────────────────────────────────
   if (!plan) {
     const hasProfile = !!(user?.objetivo || user?.frecuencia);
     return (
       <div className="dash-page">
+        {compatModalEl}
         <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">{t("weekly_plan.title")}</h1>
         <p className="text-depro-gray text-sm mb-8">{t("weekly_plan.subtitle")}</p>
         <div className="bg-white border border-depro-border rounded-2xl p-8 text-center shadow-card">
@@ -536,6 +563,7 @@ function PlayerWeeklyPlan({ accent }) {
   if (plan?.planError) {
     return (
       <div className="dash-page">
+        {compatModalEl}
         <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">{t("weekly_plan.title")}</h1>
         <p className="text-depro-gray text-sm mb-6">{t("weekly_plan.subtitle")}</p>
         <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-6 shadow-card">

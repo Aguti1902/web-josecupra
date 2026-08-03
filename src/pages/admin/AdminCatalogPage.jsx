@@ -51,24 +51,46 @@ const MATERIAL_COLORS = {
   mancuernas:   "bg-blue-50 text-blue-700",
   barra:        "bg-purple-50 text-purple-700",
   maquina:      "bg-pink-50 text-pink-700",
-  casa:         "bg-orange-50 text-orange-700",
-  campo:        "bg-green-50 text-green-700",
-  gimnasio:     "bg-indigo-50 text-indigo-700",
+  maquina_polea: "bg-pink-50 text-pink-700",
+  maquina_disco: "bg-fuchsia-50 text-fuchsia-700",
+  gym_completo: "bg-indigo-50 text-indigo-700",
 };
 
+function multi(e) {
+  return e.etiquetasMulti || {};
+}
+
+function hasTag(e, key) {
+  const et = multi(e);
+  if (et.objetivo?.includes(key) || et.segmento === key || et.patron?.includes(key) || et.rol === key) return true;
+  return (e.etiquetas || []).includes(key);
+}
+
 const SECTION_LABELS = [
-  { key: "fuerza",      label: "Fuerza · Tren Inferior",     icon: Dumbbell, color: "#3B82F6",  match: (e) => e.etiquetas.includes("tren_inferior") && (e.etiquetas.includes("fuerza") || e.etiquetas.includes("fuerza_maxima")) },
-  { key: "tren_sup",    label: "Fuerza · Tren Superior",     icon: Dumbbell, color: "#8B5CF6",  match: (e) => e.etiquetas.includes("tren_superior") },
-  { key: "velocidad",   label: "Velocidad / Aceleración / COD", icon: Zap,  color: "#F59E0B",  match: (e) => e.etiquetas.includes("velocidad") },
-  { key: "pliometria",  label: "Pliometría",                 icon: Flame,    color: "#EF4444",  match: (e) => e.etiquetas.includes("pliometria") },
-  { key: "isometrico",  label: "Isométricos",                icon: Target,   color: "#10B981",  match: (e) => e.etiquetas.includes("isometrico") },
-  { key: "core",        label: "Core / Prevención",          icon: Shield,   color: "#6366F1",  match: (e) => (e.etiquetas.includes("core") || e.etiquetas.includes("prevencion")) && !e.etiquetas.includes("velocidad") && !e.etiquetas.includes("pliometria") && !e.etiquetas.includes("isometrico") },
-  { key: "movilidad",   label: "Movilidad",                  icon: RefreshCw,color: "#059669",  match: (e) => e.etiquetas.includes("movilidad") && !e.etiquetas.includes("core") && !e.etiquetas.includes("prevencion") },
-  { key: "res_aerobica", label: "Resistencia aeróbica",    icon: Activity, color: "#0EA5E9",  match: (e) => e.etiquetas.includes("resistencia_aerobica") },
-  { key: "res_anaerobica", label: "Resistencia anaeróbica", icon: Flame,    color: "#F97316",  match: (e) => e.etiquetas.includes("resistencia_anaerobica") },
-  { key: "res_umbral",  label: "Resistencia umbral",         icon: TrendingUp,color: "#8B5CF6", match: (e) => e.etiquetas.includes("resistencia_umbral") },
-  { key: "lesion",      label: "Lesión / compensatorio",     icon: Shield,   color: "#EC4899",  match: (e) => e.etiquetas.some((t) => t.startsWith("lesion_")) },
-  { key: "core_av",     label: "Core avanzado",              icon: Target,   color: "#6366F1",  match: (e) => e.etiquetas.includes("core_avanzado") },
+  { key: "fuerza", label: "Fuerza · Tren Inferior", icon: Dumbbell, color: "#3B82F6",
+    match: (e) => hasTag(e, "tren_inferior") && (hasTag(e, "fuerza") || hasTag(e, "fuerza_maxima")) && !hasTag(e, "velocidad") && !hasTag(e, "pliometria") },
+  { key: "tren_sup", label: "Fuerza · Tren Superior", icon: Dumbbell, color: "#8B5CF6",
+    match: (e) => hasTag(e, "tren_superior") && !hasTag(e, "movilidad") },
+  { key: "velocidad", label: "Velocidad / Aceleración / COD", icon: Zap, color: "#F59E0B",
+    match: (e) => hasTag(e, "velocidad") },
+  { key: "pliometria", label: "Pliometría", icon: Flame, color: "#EF4444",
+    match: (e) => hasTag(e, "pliometria") && !hasTag(e, "velocidad") },
+  { key: "isometrico", label: "Isométricos", icon: Target, color: "#10B981",
+    match: (e) => hasTag(e, "isometrico") && !hasTag(e, "core") },
+  { key: "prevencion", label: "Prevención", icon: Shield, color: "#EC4899",
+    match: (e) => hasTag(e, "prevencion") && !hasTag(e, "core") },
+  { key: "core", label: "Core / Estabilidad", icon: Shield, color: "#6366F1",
+    match: (e) => hasTag(e, "core") },
+  { key: "movilidad", label: "Movilidad", icon: RefreshCw, color: "#059669",
+    match: (e) => hasTag(e, "movilidad") },
+  { key: "resistencia", label: "Resistencia", icon: Activity, color: "#0EA5E9",
+    match: (e) => hasTag(e, "resistencia") || hasTag(e, "aerobico") || hasTag(e, "anaerobico") || hasTag(e, "umbral") },
+  { key: "res_aerobica", label: "Resistencia aeróbica (legacy)", icon: Activity, color: "#0EA5E9",
+    match: (e) => (e.etiquetas || []).includes("resistencia_aerobica") },
+  { key: "res_anaerobica", label: "Resistencia anaeróbica (legacy)", icon: Flame, color: "#F97316",
+    match: (e) => (e.etiquetas || []).includes("resistencia_anaerobica") },
+  { key: "res_umbral", label: "Resistencia umbral (legacy)", icon: TrendingUp, color: "#8B5CF6",
+    match: (e) => (e.etiquetas || []).includes("resistencia_umbral") },
 ];
 
 function getSection(exercise) {
@@ -95,12 +117,25 @@ function ExerciseEditModal({ exercise, override, onSave, onClose }) {
           <div>
             <div className="font-black text-depro-dark">{exercise.nombre}</div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${MATERIAL_COLORS[exercise.material] || "bg-gray-100 text-gray-600"}`}>
-                {exercise.material}
-              </span>
-              {exercise.etiquetas.slice(0, 3).map((t) => (
-                <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-depro-blue/10 text-depro-blue font-medium">{t}</span>
+              {(exercise.materiales || [exercise.material].filter(Boolean)).map((m) => (
+                <span key={m} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${MATERIAL_COLORS[m] || "bg-gray-100 text-gray-600"}`}>
+                  {m}
+                </span>
               ))}
+              {exercise.etiquetasMulti ? (
+                <>
+                  {(exercise.etiquetasMulti.objetivo || []).map((t) => (
+                    <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-depro-blue/10 text-depro-blue font-medium">{t}</span>
+                  ))}
+                  {exercise.etiquetasMulti.rol && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 font-medium">{exercise.etiquetasMulti.rol}</span>
+                  )}
+                </>
+              ) : (
+                (exercise.etiquetas || []).slice(0, 3).map((t) => (
+                  <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-depro-blue/10 text-depro-blue font-medium">{t}</span>
+                ))
+              )}
             </div>
           </div>
           <button onClick={onClose} className="text-depro-gray hover:text-depro-dark p-1 rounded-lg hover:bg-gray-100 transition-colors">
@@ -242,9 +277,16 @@ export default function AdminCatalogPage({ embedded = false }) {
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return EXERCISES.filter((e) => {
-      if (q && !e.nombre.toLowerCase().includes(q) && !e.etiquetas.join(" ").includes(q)) return false;
-      if (filterMat && e.material !== filterMat) return false;
-      if (filterTag && !e.etiquetas.includes(filterTag)) return false;
+      const mats = e.materiales || [e.material].filter(Boolean);
+      const multiStr = JSON.stringify(e.etiquetasMulti || {}).toLowerCase();
+      if (
+        q
+        && !e.nombre.toLowerCase().includes(q)
+        && !(e.etiquetas || []).join(" ").includes(q)
+        && !multiStr.includes(q)
+      ) return false;
+      if (filterMat && !mats.includes(filterMat) && e.material !== filterMat) return false;
+      if (filterTag && !hasTag(e, filterTag) && !(e.etiquetas || []).includes(filterTag)) return false;
       if (!matchesFolder(e, filterFolder)) return false;
       return true;
     });
@@ -273,7 +315,7 @@ export default function AdminCatalogPage({ embedded = false }) {
         <div>
           <h1 className="text-2xl font-black text-depro-dark">Catálogo de ejercicios</h1>
           <p className="text-sm text-depro-gray mt-0.5">
-            {EXERCISES.length} ejercicios · {totalWithVideo} con vídeo añadido
+            {EXERCISES.length} ejercicios multi-eje · {totalWithVideo} con vídeo añadido
           </p>
         </div>
         <button onClick={handleSyncNow} disabled={syncing}
@@ -287,9 +329,9 @@ export default function AdminCatalogPage({ embedded = false }) {
       <div className="flex items-start gap-3 bg-depro-blue-light/30 border border-depro-blue/20 rounded-2xl px-4 py-3">
         <Info size={16} className="text-depro-blue flex-shrink-0 mt-0.5" />
         <p className="text-xs text-depro-dark/70">
-          Estos ejercicios son los que el sistema usa para generar los planes personalizados de cada jugador individual.
-          Añade el <strong>vídeo explicativo</strong>, una descripción y tips técnicos a cada uno.
-          Los cambios se aplican automáticamente al plan del jugador.
+          Catálogo multi-eje del motor (objetivo · segmento · patrón · grupo muscular · rol · material).
+          Las «carpetas» son vistas filtradas por objetivo; un ejercicio puede aparecer en varias.
+          Añade vídeo, descripción y tips — el motor rellena slots con filtrado AND.
         </p>
       </div>
       </>
@@ -397,14 +439,33 @@ export default function AdminCatalogPage({ embedded = false }) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-depro-dark text-sm truncate">{exercise.nombre}</span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${MATERIAL_COLORS[exercise.material] || "bg-gray-100 text-gray-600"}`}>
-                              {exercise.material}
-                            </span>
+                            {(exercise.materiales || [exercise.material].filter(Boolean)).slice(0, 2).map((m) => (
+                              <span key={m} className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${MATERIAL_COLORS[m] || "bg-gray-100 text-gray-600"}`}>
+                                {m}
+                              </span>
+                            ))}
                           </div>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            {exercise.etiquetas.slice(0, 4).map((t) => (
-                              <span key={t} className="text-[10px] text-depro-gray">{t}</span>
-                            ))}
+                            {exercise.etiquetasMulti ? (
+                              <>
+                                {(exercise.etiquetasMulti.objetivo || []).slice(0, 2).map((t) => (
+                                  <span key={`o-${t}`} className="text-[10px] text-depro-blue font-medium">{t}</span>
+                                ))}
+                                {exercise.etiquetasMulti.segmento && (
+                                  <span className="text-[10px] text-depro-gray">{exercise.etiquetasMulti.segmento}</span>
+                                )}
+                                {(exercise.etiquetasMulti.patron || []).slice(0, 2).map((t) => (
+                                  <span key={`p-${t}`} className="text-[10px] text-depro-gray">{t}</span>
+                                ))}
+                                {exercise.etiquetasMulti.rol && (
+                                  <span className="text-[10px] text-amber-700 font-medium">{exercise.etiquetasMulti.rol}</span>
+                                )}
+                              </>
+                            ) : (
+                              (exercise.etiquetas || []).slice(0, 4).map((t) => (
+                                <span key={t} className="text-[10px] text-depro-gray">{t}</span>
+                              ))
+                            )}
                             {hasVideo && (
                               <span className="text-[10px] text-green-600 font-medium flex items-center gap-0.5">
                                 <PlayCircle size={10} /> Vídeo

@@ -1,119 +1,56 @@
 /**
- * Plantillas fijas del PDF — estructura de sesiones jugador (§2.1)
- * v2.0: slots por pool (sessionTemplatesV2.js)
- * Legacy: tags + slots numéricos (hipertrofia/resistencia detallada)
+ * Plantillas de sesión DEPRO — slots etiquetados v2 + overrides admin.
  */
-import { SESSION_TEMPLATES, WEEKLY_SESSION_CONFIG, isV2Template } from "./sessionTemplatesV2";
-import { resolveMatrixSessionTypes } from "./objectiveSessionMatrix";
+import {
+  SESSION_TEMPLATES,
+  WEEKLY_SESSION_CONFIG,
+  isV2Template,
+  getResistanceVariantKey,
+} from "./sessionTemplatesV2.js";
+import { resolveMatrixSessionTypes } from "./objectiveSessionMatrix.js";
 
-export { isV2Template, WEEKLY_SESSION_CONFIG };
+export { isV2Template, WEEKLY_SESSION_CONFIG, getResistanceVariantKey };
 
 const STORAGE_KEY = "depro_template_overrides";
 
-const BASE_BLOCKS = {
-  warmup8: { type: "calentamiento", label: "Calentamiento", duration: "8 min", slots: 2, tags: ["movilidad", "activacion"] },
-  warmup6: { type: "calentamiento", label: "Calentamiento", duration: "6 min", slots: 2, tags: ["movilidad", "activacion"] },
-  calm:    { type: "vuelta_calma", label: "Vuelta a la calma", duration: "5 min", slots: 2, tags: ["movilidad"] },
-  core:    { type: "complementario", label: "Core", duration: "12 min", slots: 2, tags: ["core", "prevencion"] },
-  coreSoft:{ type: "complementario", label: "Core suave", duration: "8 min", slots: 2, tags: ["core", "prevencion"] },
-};
-
 export const PLAYER_TEMPLATES = {
   ...SESSION_TEMPLATES,
-  // Plantillas legacy (sin slots v2) — resistencia detallada e hipertrofía por split
-  "Resistencia aeróbica": {
-    duration: "30–40 min", intensity: "Baja",
-    blocks: [
-      { type: "calentamiento", label: "Calentamiento progresivo", duration: "8 min", slots: 2, tags: ["movilidad", "resistencia_aerobica"] },
-      { type: "principal", label: "Carrera continua 65–75%", duration: "25 min", slots: 1, tags: ["resistencia", "resistencia_aerobica", "aerobico"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
-  "Resistencia anaeróbica": {
-    duration: "45–55 min", intensity: "Alta",
-    blocks: [
-      BASE_BLOCKS.warmup8,
-      { type: "principal", label: "Intervalos anaeróbicos", duration: "25 min", slots: 4, tags: ["resistencia", "resistencia_anaerobica", "anaerobico", "velocidad"] },
-      { type: "complementario", label: "Recuperación activa", duration: "8 min", slots: 2, tags: ["movilidad", "core"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
-  "Resistencia umbral": {
-    duration: "50–60 min", intensity: "Media",
-    blocks: [
-      BASE_BLOCKS.warmup8,
-      { type: "principal", label: "Bloques en umbral (3×6 / 2×10 min)", duration: "28 min", slots: 3, tags: ["resistencia", "resistencia_umbral", "umbral"] },
-      { type: "complementario", label: "Fuerza resistencia", duration: "10 min", slots: 2, tags: ["fuerza", "resistencia"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
-  Hipertrofia: {
-    duration: "55–70 min", intensity: "Alta",
-    blocks: [
-      { ...BASE_BLOCKS.warmup6, duration: "6–8 min" },
-      { type: "principal", label: "Básico", duration: "12 min", slots: 1, tags: ["fuerza", "estetica", "hip_full"] },
-      { type: "principal", label: "Hipertrofia", duration: "25 min", slots: 4, tags: ["fuerza", "estetica", "tren_inferior", "tren_superior"] },
-      { type: "complementario", label: "Aislamientos", duration: "12 min", slots: 2, tags: ["estetica", "tren_superior", "tren_inferior"] },
-      { type: "complementario", label: "Core", duration: "4 min", slots: 1, tags: ["core"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
-  "Hipertrofia Anterior": {
-    duration: "55–70 min", intensity: "Alta",
-    blocks: [
-      { ...BASE_BLOCKS.warmup6, duration: "6–8 min" },
-      { type: "principal", label: "Cadena anterior", duration: "35 min", slots: 5, tags: ["fuerza", "estetica", "hip_ant", "empuje", "tren_inferior"] },
-      { type: "complementario", label: "Brazos + core", duration: "12 min", slots: 2, tags: ["estetica", "core"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
-  "Hipertrofia Posterior": {
-    duration: "55–70 min", intensity: "Alta",
-    blocks: [
-      { ...BASE_BLOCKS.warmup6, duration: "6–8 min" },
-      { type: "principal", label: "Cadena posterior", duration: "35 min", slots: 5, tags: ["fuerza", "estetica", "hip_post", "traccion", "gluteo"] },
-      { type: "complementario", label: "Brazos + core", duration: "12 min", slots: 2, tags: ["estetica", "core"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
-  "Hipertrofia Push": {
-    duration: "55–70 min", intensity: "Alta",
-    blocks: [
-      { ...BASE_BLOCKS.warmup6, duration: "6–8 min" },
-      { type: "principal", label: "Empuje + hombro", duration: "35 min", slots: 5, tags: ["fuerza", "estetica", "hip_empuje", "empuje", "hombro"] },
-      { type: "complementario", label: "Brazos + core", duration: "12 min", slots: 2, tags: ["estetica", "core"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
-  "Hipertrofia Pull": {
-    duration: "55–70 min", intensity: "Alta",
-    blocks: [
-      { ...BASE_BLOCKS.warmup6, duration: "6–8 min" },
-      { type: "principal", label: "Tracción + hombro", duration: "35 min", slots: 5, tags: ["fuerza", "estetica", "hip_traccion", "traccion", "hombro"] },
-      { type: "complementario", label: "Brazos + core", duration: "12 min", slots: 2, tags: ["estetica", "core"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
-  "Hipertrofia Pierna": {
-    duration: "55–70 min", intensity: "Alta",
-    blocks: [
-      { ...BASE_BLOCKS.warmup6, duration: "6–8 min" },
-      { type: "principal", label: "Pierna + glúteo", duration: "35 min", slots: 5, tags: ["fuerza", "estetica", "hip_piernas", "tren_inferior", "gluteo"] },
-      { type: "complementario", label: "Aislamiento + core", duration: "12 min", slots: 2, tags: ["estetica", "core"] },
-      BASE_BLOCKS.calm,
-    ],
-  },
   "Sesión mínima": {
-    duration: "20–25 min", intensity: "Baja",
+    title: "Sesión mínima",
+    duration: "20–25 min",
+    intensityLevel: "baja",
+    objective: "movilidad",
     blocks: [
-      { type: "calentamiento", label: "Calentamiento suave", duration: "8 min", slots: 2, tags: ["movilidad", "activacion"] },
-      { type: "complementario", label: "Core + estabilidad", duration: "10 min", slots: 2, tags: ["core", "prevencion"] },
-      BASE_BLOCKS.calm,
+      {
+        type: "calentamiento",
+        label: "Calentamiento suave",
+        duration: "8 min",
+        slots: [{ rol: "calentamiento", objetivo: "movilidad", qty: 1, description: "Warm-up" }],
+      },
+      {
+        type: "complementario",
+        label: "Core + estabilidad",
+        duration: "10 min",
+        slots: [
+          { rol: "core", qty: 1, description: "Core" },
+          { rol: "complementario", objetivo: "prevencion", qty: 1, description: "Estabilidad" },
+        ],
+      },
+      {
+        type: "vuelta_calma",
+        label: "Vuelta a la calma",
+        duration: "5 min",
+        slots: [{ rol: "vuelta_calma", qty: 1, description: "Cool-down" }],
+      },
     ],
   },
+  // Aliases hipertrofia legacy
+  Hipertrofia: SESSION_TEMPLATES["Hipertrofia Full"],
+  "Hipertrofia Anterior": SESSION_TEMPLATES["Hipertrofia Pierna"],
+  "Hipertrofia Posterior": SESSION_TEMPLATES["Hipertrofia Pierna"],
 };
 
-/** Secuencia semanal determinista (matriz objetivos 2.0, solo principal). */
+/** Secuencia semanal determinista. */
 export function getWeeklySessionTypes(objetivo, frecuencia) {
   const result = resolveMatrixSessionTypes(objetivo, null, frecuencia);
   return result.sessionTypes || [];
@@ -121,7 +58,7 @@ export function getWeeklySessionTypes(objetivo, frecuencia) {
 
 export function countBlockSlots(block) {
   if (Array.isArray(block.slots)) {
-    return block.slots.reduce((n, s) => n + (s.qty || 1), 0);
+    return block.slots.reduce((n, s) => n + (typeof s === "object" ? (s.qty || 1) : 1), 0);
   }
   return typeof block.slots === "number" ? block.slots : 0;
 }
@@ -140,7 +77,7 @@ export function saveTemplateOverrides(overrides) {
 }
 
 export function getTemplate(sessionType) {
-  const base = PLAYER_TEMPLATES[sessionType] || PLAYER_TEMPLATES["Fuerza A"];
+  const base = PLAYER_TEMPLATES[sessionType] || PLAYER_TEMPLATES["Fuerza Inferior"] || PLAYER_TEMPLATES["Fuerza A"];
   const overrides = loadOverrides()[sessionType];
 
   if (isV2Template(base)) {
@@ -175,7 +112,7 @@ export function getAllTemplates() {
 }
 
 export function updateTemplateBlockSlots(sessionType, blockIndex, slots) {
-  const base = PLAYER_TEMPLATES[sessionType] || PLAYER_TEMPLATES["Fuerza A"];
+  const base = PLAYER_TEMPLATES[sessionType] || PLAYER_TEMPLATES["Fuerza Inferior"];
   const overrides = loadOverrides();
   if (!overrides[sessionType]) overrides[sessionType] = { blocks: [], v2Blocks: [] };
 
@@ -202,9 +139,9 @@ export function updateTemplateBlockSlots(sessionType, blockIndex, slots) {
 export function templateToPromptText(sessionType) {
   const t = getTemplate(sessionType);
   return t.blocks.map((b) => {
-    if (Array.isArray(b.slots)) {
-      const slotDesc = b.slots.map((s) => s.pool || s.poolPattern || s.poolFamily || "?").join(", ");
-      return `${b.label} (${b.duration}): pools [${slotDesc}]`;
+    if (Array.isArray(b.slots) && typeof b.slots[0] === "object") {
+      const slotDesc = b.slots.map((s) => s.rol || s.patron || s.description || "?").join(", ");
+      return `${b.label} (${b.duration}): slots [${slotDesc}]`;
     }
     return `${b.label} (${b.duration}): ${b.slots} ejercicios [${(b.tags || []).join(", ")}]`;
   }).join("\n");

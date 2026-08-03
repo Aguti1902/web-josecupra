@@ -1,11 +1,16 @@
-import { buildSessionPrompt, buildFullPlanPrompt } from "./planAIPrompts";
-import { pickDeterministic } from "./deterministicPick";
-import { filterExercisesEnriched } from "../data/exercises";
-import { getTemplate, isV2Template } from "./planTemplates";
+/**
+ * DEPRO — Motor de planificación (3 fases estrictas).
+ * Fase 1: compatibilidad → Fase 2: construcción sesiones → Fase 3: colocación + adaptación.
+ */
+import { pickDeterministic } from "./deterministicPick.js";
+import { filterExercisesEnriched } from "../data/exercises.js";
+import { getTemplate, isV2Template, getResistanceVariantKey } from "./planTemplates.js";
 import {
   fillBlockSlots,
   refreshExercise as refreshExerciseInPool,
-} from "./exerciseSelector";
+  injectPreventionExercises,
+  normalizeMaterialList,
+} from "./exerciseSelector.js";
 import {
   DAY_ORDER,
   DAY_SHORT,
@@ -14,12 +19,15 @@ import {
   normalizeMatchDay,
   sessionIntensity,
   validatePlanCoherence,
+  checkPlanCompatibility,
+  placeSessionsOnCalendar,
   PLAN_COHERENCE_MESSAGE,
   resolveUserObjectives,
-} from "./planLoadRules";
-import { applySplitAlternationToAssignments } from "./muscleSplitAlternation";
+} from "./planLoadRules.js";
+import { applySplitAlternationToAssignments, validateMuscleCoverage } from "./muscleSplitAlternation.js";
+import { buildSessionPrompt, buildFullPlanPrompt } from "./planAIPrompts.js";
 
-export { DAY_ORDER, DAY_SHORT, PLAN_COHERENCE_MESSAGE };
+export { DAY_ORDER, DAY_SHORT, PLAN_COHERENCE_MESSAGE, checkPlanCompatibility };
 
 export const MIN_SESSION_EXERCISES = 5;
 
@@ -31,31 +39,13 @@ const SUBTIPO_TO_AREA = {
   pubis: "pubalgia", aductor: "pubalgia", pubalgia: "pubalgia",
 };
 
-const LESION_FOLDER_TAGS = {
-  rodilla: "lesion_rodilla",
-  tobillo: "lesion_tobillo",
-  hombro: "lesion_hombro",
-  espalda: "lesion_espalda",
-  pubalgia: "lesion_pubalgia",
-};
-
 function normalizeMaterial(material) {
-  if (Array.isArray(material)) {
-    const first = material.find((m) => m && !/ninguno/i.test(m));
-    return normalizeMaterial(first || "sin_material");
-  }
-  return (material || "sin_material")
-    .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s|\//g, "_")
-    .replace("barra_gimnasio", "barra")
-    .replace("gimnasio_completo", "barra")
-    .replace("sin_material", "sin_material");
+  return normalizeMaterialList(material);
 }
 
 export function normalizeLesions(lesion, lesionSubtipo) {
   const base = (lesion || []).map((l) =>
-    l.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    l.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
   );
   const subAreas = (lesionSubtipo || []).map((s) => SUBTIPO_TO_AREA[s.toLowerCase()] || s.toLowerCase());
   return [...new Set([...base, ...subAreas])].filter((l) => l && l !== "ninguna");
@@ -68,40 +58,6 @@ function experienciaLevel(experiencia) {
   return "avanzado";
 }
 
-function volumeForExperience(expLevel, blockType, blockTags) {
-  const isResistencia = blockTags.some((t) => t.includes("resistencia"));
-  if (expLevel === "novato") {
-    return { sets: blockType === "calentamiento" ? 1 : 2, reps: isResistencia ? "30–45\"" : "10–15", rest: "60\"" };
-  }
-  if (expLevel === "intermedio") {
-    return { sets: blockType === "calentamiento" ? 1 : 3, reps: isResistencia ? "30–45\"" : "8–12", rest: "45–60\"" };
-  }
-  return { sets: blockType === "calentamiento" ? 1 : 4, reps: isResistencia ? "20–30\"" : "6–10", rest: "45\"" };
-}
-
-function pickExercises(pool, count, usedIds, weekOffset = 0) {
-  const available = pool.filter((ex) => !usedIds.has(ex.id));
-  const start = (weekOffset * count) % Math.max(available.length, 1);
-  const picked = [];
-  for (let i = 0; i < count && available.length; i++) {
-    const ex = available[(start + i) % available.length];
-    if (!picked.find((p) => p.id === ex.id)) {
-      picked.push(ex);
-      usedIds.add(ex.id);
-    }
-  }
-  return picked;
-}
-
-function injectLesionExercises(pool, lesiones, count) {
-  const tags = lesiones.map((l) => LESION_FOLDER_TAGS[l]).filter(Boolean);
-  if (!tags.length) return [];
-  return pool.filter((ex) =>
-    tags.some((t) => ex.etiquetas?.includes(t)) &&
-    !lesiones.some((l) => ex.contraindicado?.includes(l))
-  ).slice(0, count);
-}
-
 function parseCatalogId(id) {
   if (typeof id === "number") return id;
   const raw = String(id).split("_")[0].replace(/^v2_/, "");
@@ -112,22 +68,24 @@ function parseCatalogId(id) {
 function buildUserProfile(filterParams) {
   const mat = filterParams.material;
   return {
-    material: Array.isArray(mat) ? mat : [mat || "sin_material"],
+    material: Array.isArray(mat) ? mat : normalizeMaterial(mat),
     lesiones: filterParams.lesiones || [],
     edad: filterParams.edad || 18,
     experiencia: filterParams.experiencia || "intermedio",
+    userId: filterParams.userId || "",
+    week: filterParams.week || 1,
+    sessionObjective: filterParams.sessionObjective,
+    adaptedIntensity: filterParams.adaptedIntensity,
+    dayIntensity: filterParams.dayIntensity,
+    objetivo: filterParams.objetivo,
   };
 }
 
 function makeExerciseFromV2(ex, ei, blockType) {
-  const isIso = ex.pool?.startsWith("ISO-") || ex.pool?.startsWith("CORE-ANTI");
+  const isIso = ex.etiquetas?.patron?.includes("isometrico") || ex.pool?.startsWith("ISO-");
   const tips = Array.isArray(ex.tips)
     ? ex.tips
-    : [
-        "Mantén la postura durante toda la serie",
-        "Controla el movimiento en ambas fases",
-        "Respira con normalidad",
-      ];
+    : ["Mantén la postura durante toda la serie", "Controla el movimiento en ambas fases", "Respira con normalidad"];
   return {
     id: `v2_${ex.id}_${ei}`,
     catalogId: ex.id,
@@ -137,24 +95,33 @@ function makeExerciseFromV2(ex, ei, blockType) {
     sets: ex.sets,
     reps: isIso ? "25–30\"" : ex.reps,
     rest: ex.rest,
-    description: ex.slotDescription || `Ejercicio del pool ${ex.pool}.`,
+    load: ex.load || null,
+    description: ex.slotDescription || `Ejercicio: ${ex.nombre}.`,
     tips,
-    errorsToAvoid: ex.lesionesContra?.length
-      ? `Evita si tienes: ${ex.lesionesContra.join(", ")}`
+    errorsToAvoid: (ex.etiquetas?.contraindicado || ex.lesionesContra)?.length
+      ? `Evita si tienes: ${(ex.etiquetas?.contraindicado || ex.lesionesContra).join(", ")}`
       : "No sacrifiques la técnica por añadir carga.",
     videoUrl: ex.videoUrl || "",
     blockType,
     blockTags: [],
+    slotConstraints: ex.slotConstraints || null,
+    etiquetas: ex.etiquetas || null,
   };
 }
 
-function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessionType, titleOverride = null) {
+function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessionType, titleOverride = null, meta = {}) {
   const template = getTemplate(templateKey);
-  const userProfile = buildUserProfile(filterParams);
+  const userProfile = buildUserProfile({
+    ...filterParams,
+    sessionObjective: template.objective || filterParams.objetivo,
+    adaptedIntensity: meta.adaptedIntensity || null,
+    dayIntensity: meta.dayIntensity || null,
+  });
   const sessionUsedIds = [...usedIds].map(parseCatalogId).filter((n) => n != null);
   const sessionUsedPools = [];
   let globalIdx = 0;
   const blocks = [];
+  let incomplete = false;
 
   for (const blockTemplate of template.blocks) {
     const { exercises: rawExercises, usedIds: newIds, usedPools } = fillBlockSlots(
@@ -165,6 +132,9 @@ function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessio
     );
     sessionUsedIds.splice(0, sessionUsedIds.length, ...newIds);
     sessionUsedPools.splice(0, sessionUsedPools.length, ...usedPools);
+
+    const basicos = (blockTemplate.slots || []).filter((s) => s.rol === "basico");
+    if (basicos.length && rawExercises.length < basicos.length) incomplete = true;
 
     blocks.push({
       type: blockTemplate.type,
@@ -178,16 +148,71 @@ function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessio
     globalIdx += rawExercises.length;
   }
 
+  // Inyección prevención por lesión (sustituye complementarios)
+  let flat = blocks.flatMap((b) => b.exercises);
+  flat = injectPreventionExercises(flat, userProfile, 2);
+  // Reconstruir blocks si hubo inyección por nombre
+  if (flat.length) {
+    let cursor = 0;
+    for (const b of blocks) {
+      const n = b.exercises.length;
+      b.exercises = flat.slice(cursor, cursor + n);
+      cursor += n;
+    }
+  }
+
+  // Bloque accesorio secundario incrustado
+  if (meta.embedSecondary && meta.secondaryObjective) {
+    const accSlot = {
+      type: "complementario",
+      label: `Accesorio · ${meta.secondaryObjective}`,
+      duration: "10 min",
+      slots: [
+        {
+          rol: "complementario",
+          objetivo: String(meta.secondaryObjective).toLowerCase(),
+          description: `Bloque accesorio ${meta.secondaryObjective}`,
+          slotId: "embed_sec",
+        },
+      ],
+    };
+    const { exercises: acc } = fillBlockSlots(accSlot, userProfile, sessionUsedIds, []);
+    if (acc.length) {
+      blocks.splice(blocks.length - 1, 0, {
+        type: "complementario",
+        label: accSlot.label,
+        duration: accSlot.duration,
+        exercises: acc.map((ex, i) => {
+          usedIds.add(ex.id);
+          return makeExerciseFromV2(ex, globalIdx + i, "complementario");
+        }),
+      });
+    }
+  }
+
+  // Variante de resistencia
+  let variantInfo = null;
+  if (template.variants) {
+    const vKey = getResistanceVariantKey(templateKey, filterParams.week || 1);
+    variantInfo = vKey ? { key: vKey, ...template.variants[vKey] } : null;
+  }
+
   const intensity = template.intensityLevel || template.intensity;
   const session = {
     type: sessionType,
     title: titleOverride || template.title || sessionType,
     templateKey,
-    objective: `Sesión ${sessionType} según tu plan personalizado DEPRO.`,
+    templateCode: template.templateCode || null,
+    objective: variantInfo
+      ? `${variantInfo.label}. ${variantInfo.description}`
+      : `Sesión ${sessionType} según tu plan personalizado DEPRO.`,
     duration: template.duration,
     intensity,
-    intensityLevel: intensity || sessionIntensity(sessionType),
+    intensityLevel: meta.adaptedIntensity || intensity || sessionIntensity(sessionType),
+    adaptedIntensity: meta.adaptedIntensity || null,
+    resistanceVariant: variantInfo,
     status: "pending",
+    incomplete: incomplete || undefined,
     blocks,
     exercises: blocks.flatMap((b) => b.exercises),
   };
@@ -199,7 +224,6 @@ function countSessionExercises(session) {
   return (session.blocks || []).reduce((n, b) => n + (b.exercises?.length || 0), 0);
 }
 
-/** Garantiza al menos MIN_SESSION_EXERCISES añadiendo slots complementarios. */
 function ensureMinimumExercises(session, filterParams, usedIds) {
   let total = countSessionExercises(session);
   if (total >= MIN_SESSION_EXERCISES) return session;
@@ -210,21 +234,15 @@ function ensureMinimumExercises(session, filterParams, usedIds) {
     type: "complementario",
     label: "Complementario",
     duration: "8 min",
-    slots: [{ poolFamily: "movilidad", qty: 1, description: "Complemento de sesión" }],
+    slots: [{ rol: "complementario", objetivo: "movilidad", qty: 1, description: "Complemento de sesión" }],
   };
 
   const blocks = [...(session.blocks || [])];
   let globalIdx = total;
 
   while (total < MIN_SESSION_EXERCISES) {
-    const { exercises: raw, usedIds: newIds } = fillBlockSlots(
-      fillerSlot,
-      userProfile,
-      sessionUsedIds,
-      [],
-    );
+    const { exercises: raw, usedIds: newIds } = fillBlockSlots(fillerSlot, userProfile, sessionUsedIds, []);
     if (!raw.length) break;
-
     sessionUsedIds = newIds;
     const newExercises = raw.map((ex, i) => {
       usedIds.add(ex.id);
@@ -232,151 +250,150 @@ function ensureMinimumExercises(session, filterParams, usedIds) {
     });
     globalIdx += newExercises.length;
     total += newExercises.length;
-
     const last = blocks[blocks.length - 1];
     if (last?.type === "complementario" && last.label === fillerSlot.label) {
-      blocks[blocks.length - 1] = {
-        ...last,
-        exercises: [...(last.exercises || []), ...newExercises],
-      };
+      blocks[blocks.length - 1] = { ...last, exercises: [...(last.exercises || []), ...newExercises] };
     } else {
-      blocks.push({
-        type: fillerSlot.type,
-        label: fillerSlot.label,
-        duration: fillerSlot.duration,
-        exercises: newExercises,
-      });
+      blocks.push({ type: fillerSlot.type, label: fillerSlot.label, duration: fillerSlot.duration, exercises: newExercises });
     }
   }
 
-  return {
-    ...session,
-    blocks,
-    exercises: blocks.flatMap((b) => b.exercises),
-  };
+  return { ...session, blocks, exercises: blocks.flatMap((b) => b.exercises) };
 }
 
-function makeExercise(ex, ei, blockType, blockTags, expLevel) {
-  const isIso = ex.etiquetas?.includes("isometrico");
-  const vol = volumeForExperience(expLevel, blockType, blockTags);
-  const tipsRaw = ex.tips;
-  const tips = Array.isArray(tipsRaw)
-    ? tipsRaw
-    : tipsRaw
-      ? String(tipsRaw).split("\n").filter(Boolean)
-      : [
-          "Mantén la postura durante toda la serie",
-          "Controla el movimiento en ambas fases",
-          "Respira con normalidad",
-        ];
-  return {
-    id: `${ex.id}_${ei}`,
-    catalogId: ex.id,
-    name: ex.nombre,
-    duration: ex.duration || (blockType === "calentamiento" ? "8–10 min" : blockType === "vuelta_calma" ? "5 min" : "40\""),
-    sets: vol.sets,
-    reps: isIso ? "25–30\"" : vol.reps,
-    rest: vol.rest,
-    description: ex.description || `Ejercicio de ${(ex.etiquetas || []).slice(0, 2).join(" y ").replace(/_/g, " ")}.`,
-    tips,
-    errorsToAvoid: ex.contraindicado?.length
-      ? `Evita si tienes: ${ex.contraindicado.join(", ")}`
-      : "No sacrifiques la técnica por añadir carga.",
-    videoUrl: ex.videoUrl || "",
-    blockTags,
-    blockType,
-  };
-}
-
-function fillTemplate(sessionType, filterParams, usedIds, weekOffset = 0, templateKey = sessionType, titleOverride = null) {
+function fillTemplate(sessionType, filterParams, usedIds, weekOffset = 0, templateKey = sessionType, titleOverride = null, meta = {}) {
+  void weekOffset;
   const template = getTemplate(templateKey);
   if (isV2Template(template)) {
-    return fillTemplateV2(sessionType, filterParams, usedIds, templateKey, titleOverride);
+    return fillTemplateV2(sessionType, filterParams, usedIds, templateKey, titleOverride, meta);
   }
-  let globalIdx = 0;
-  const lesiones = filterParams.lesiones || [];
-  const expLevel = filterParams.experiencia || "intermedio";
-
-  const blocks = template.blocks.map((slot) => {
-    let pool = filterExercisesEnriched({
-      ...filterParams,
-      etiquetas: slot.tags,
-    }).filter((ex) => !usedIds.has(ex.id));
-
-    const lesionRec = injectLesionExercises(pool, lesiones, Math.min(2, slot.slots));
-    lesionRec.forEach((ex) => usedIds.add(ex.id));
-
-    const remaining = slot.slots - lesionRec.length;
-    const picked = pickExercises(pool, remaining, usedIds, weekOffset);
-    const allPicked = [...lesionRec, ...picked];
-
-    return {
-      type: slot.type,
-      label: slot.label,
-      duration: slot.duration,
-      exercises: allPicked.map((ex, i) => makeExercise(ex, globalIdx + i, slot.type, slot.tags, expLevel)),
-    };
-  });
-
-  globalIdx += blocks.reduce((n, b) => n + b.exercises.length, 0);
-
-  const session = {
-    type: sessionType,
-    title: titleOverride || sessionType,
-    templateKey,
-    objective: `Sesión ${sessionType} según tu plan personalizado DEPRO.`,
-    duration: template.duration,
-    intensity: template.intensity,
-    intensityLevel: sessionIntensity(sessionType),
-    status: "pending",
-    blocks,
-    exercises: blocks.flatMap((b) => b.exercises),
-  };
-  return ensureMinimumExercises(session, filterParams, usedIds);
+  // Legacy fallback mínimo
+  return fillTemplateV2(sessionType, filterParams, usedIds, "Movilidad", titleOverride, meta);
 }
 
-/** @deprecated Usar assignSessionsToDays de planLoadRules */
 export function assignTrainingDays(sessionTypes, availableDays) {
   return assignSessionsToDays(sessionTypes, availableDays, null)
     .map(({ sessionType, day }) => ({ sessionType, day }));
 }
 
+function emptyWeek(planError) {
+  const week = DAY_ORDER.map((nombre, i) => ({
+    day: nombre,
+    shortDay: DAY_SHORT[i],
+    date: nombre,
+    sessions: [],
+  }));
+  week.planError = planError;
+  week.hardBlock = true;
+  return week;
+}
+
+function attachPlanMeta(weekPlan, meta) {
+  weekPlan.userId = meta.userId || null;
+  weekPlan.semana_actual = meta.week || 1;
+  weekPlan.mesociclo_id = meta.mesocicloId || `meso_${meta.userId || "anon"}`;
+  weekPlan.sesiones_semana = meta.sesionesSemana || [];
+  weekPlan.sesiones_pendientes_compensar = meta.pendingCompensate || {
+    fuerza: 0,
+    velocidad: 0,
+    hipertrofia: 0,
+    resistencia_anaerobica: 0,
+  };
+  weekPlan.refrescos_usados_mes = meta.refrescos || 0;
+  weekPlan.ultima_generacion = new Date().toISOString();
+  weekPlan.qualityWarning = meta.qualityWarning || null;
+  weekPlan.embedSecondary = !!meta.embedSecondary;
+  return weekPlan;
+}
+
+/**
+ * Interfaz pública: generatePlan(perfil) → Plan
+ */
+export function generatePlan(perfil, options = {}) {
+  return buildPlayerPlan(perfil, options);
+}
+
 export function buildPlayerPlan(user, options = {}) {
-  const { weekOffset = 0, sessionTypesOverride = null, lastMuscleGroup = null } = options;
-  const frecuencia = user?.frecuencia || "3";
+  const {
+    weekOffset = 0,
+    sessionTypesOverride = null,
+    lastMuscleGroup = null,
+    pendingCompensate: prevPending = null,
+  } = options;
+
+  const week = (weekOffset % 4) + 1;
   const material = normalizeMaterial(user?.material);
   const lesiones = normalizeLesions(user?.lesion, user?.lesionSubtipo);
-  const edad = parseInt(user?.edad) || 20;
+  const edad = parseInt(user?.edad, 10) || 20;
   const deporte = user?.deporte || "";
   const { principal, secondary } = resolveUserObjectives(user);
   const availableDays = user?.disponibles?.length ? user.disponibles : null;
   const expLevel = experienciaLevel(user?.experiencia);
   const matchDay = normalizeMatchDay(user?.diaCompeticion || user?.dia_competicion);
 
-  const coherence = validatePlanCoherence(user);
-  if (!coherence.ok) {
-    const emptyWeek = DAY_ORDER.map((nombre, i) => ({
-      day: nombre,
-      shortDay: DAY_SHORT[i],
-      date: nombre,
-      sessions: [],
-    }));
-    emptyWeek.planError = coherence.message;
-    return emptyWeek;
+  // ── FASE 1 ──
+  const phase1 = checkPlanCompatibility(user);
+  if (!phase1.ok || phase1.hardBlock) {
+    return emptyWeek(phase1.message || PLAN_COHERENCE_MESSAGE);
   }
 
-  const sessionTypes = sessionTypesOverride || coherence.sessionTypes
-    || getSessionTypesForUser(principal, frecuencia, secondary);
-  const assignments = coherence.assignments || assignSessionsToDays(sessionTypes, availableDays, matchDay);
-  const filterParams = { material, lesiones, edad, deporte, experiencia: expLevel };
+  // ── FASE 2 ──
+  let sessionTypes = sessionTypesOverride || phase1.sessionTypes
+    || getSessionTypesForUser(principal, user?.frecuencia, secondary);
 
-  const { assignments: resolvedAssignments, lastMuscleGroup: nextLastGroup } =
-    applySplitAlternationToAssignments(assignments, filterParams, lastMuscleGroup);
+  // Compensar sesiones pendientes de semanas anteriores
+  const pending = { ...(prevPending || {}) };
+  for (const [obj, count] of Object.entries(pending)) {
+    if (count > 0 && sessionTypes.length < 5) {
+      const extra = obj === "fuerza" ? "Fuerza Full"
+        : obj === "velocidad" ? "Velocidad"
+          : obj === "hipertrofia" ? "Hipertrofia Full"
+            : null;
+      if (extra) {
+        sessionTypes = [...sessionTypes, extra].slice(0, parseInt(String(user?.frecuencia).replace(/\D/g, ""), 10) || sessionTypes.length);
+        pending[obj] = count - 1;
+      }
+    }
+  }
+
+  // ── FASE 3 ──
+  const { assignments: placed, pendingCompensate } = placeSessionsOnCalendar(
+    sessionTypes,
+    availableDays || phase1.availableDays,
+    matchDay,
+    { fillSessions: phase1.fillSessions, fillIndexes: phase1.fillIndexes },
+  );
+
+  // Merge pending compensate
+  for (const [k, v] of Object.entries(pendingCompensate || {})) {
+    pending[k] = (pending[k] || 0) + v;
+  }
+
+  const filterParams = {
+    material,
+    lesiones,
+    edad,
+    deporte,
+    experiencia: expLevel,
+    userId: user?.id || "",
+    week,
+    objetivo: principal,
+  };
+
+  const { assignments: resolvedAssignments, lastMuscleGroup: nextLastGroup, warnings } =
+    applySplitAlternationToAssignments(placed, filterParams, lastMuscleGroup);
+
+  validateMuscleCoverage(resolvedAssignments);
 
   const usedIds = new Set();
-
   const dayMap = {};
-  resolvedAssignments.forEach(({ sessionType, day, templateKey, titleOverride }, i) => {
+  const sesionesSemana = [];
+
+  resolvedAssignments.forEach((assignment, i) => {
+    const {
+      sessionType, day, templateKey, titleOverride, adaptedIntensity, distance, allowedIntensities,
+    } = assignment;
+
     const session = fillTemplate(
       sessionType,
       filterParams,
@@ -384,11 +401,24 @@ export function buildPlayerPlan(user, options = {}) {
       weekOffset + i,
       templateKey || sessionType,
       titleOverride,
+      {
+        adaptedIntensity,
+        dayIntensity: allowedIntensities?.includes("alta") ? "alta" : allowedIntensities?.[0],
+        embedSecondary: phase1.embedSecondary && i === 0,
+        secondaryObjective: secondary,
+      },
     );
     session.id = `gen_${day}_w${weekOffset}_${i}`;
     session.sessionNumber = i + 1;
     session.assignedDay = day;
+    session.matchDistance = distance;
     dayMap[day] = session;
+    sesionesSemana.push({
+      day,
+      sessionType,
+      templateKey: templateKey || sessionType,
+      adaptedIntensity: adaptedIntensity || null,
+    });
   });
 
   const todayName = DAY_ORDER[(new Date().getDay() + 6) % 7];
@@ -411,16 +441,34 @@ export function buildPlayerPlan(user, options = {}) {
   });
 
   weekPlan._lastMuscleGroup = nextLastGroup;
-  return weekPlan;
+  weekPlan._warnings = warnings;
+  if (phase1.qualityWarning) {
+    weekPlan.qualityWarning = phase1.qualityWarning;
+  }
+
+  return attachPlanMeta(weekPlan, {
+    userId: user?.id,
+    week,
+    pendingCompensate: {
+      fuerza: pending.fuerza || 0,
+      velocidad: pending.velocidad || 0,
+      hipertrofia: pending.hipertrofia || 0,
+      resistencia_anaerobica: pending.resistencia_anaerobica || pending.resistencia || 0,
+    },
+    sesionesSemana,
+    qualityWarning: phase1.qualityWarning,
+    embedSecondary: phase1.embedSecondary,
+  });
 }
 
-/** Plan completo de 4 semanas (PDF §9.1 paso 5) */
 export function buildFourWeekPlan(user) {
   const weeks = [];
   let lastMuscleGroup = null;
+  let pendingCompensate = null;
   for (let w = 0; w < 4; w++) {
-    const weekPlan = buildPlayerPlan(user, { weekOffset: w, lastMuscleGroup });
+    const weekPlan = buildPlayerPlan(user, { weekOffset: w, lastMuscleGroup, pendingCompensate });
     lastMuscleGroup = weekPlan._lastMuscleGroup ?? lastMuscleGroup;
+    pendingCompensate = weekPlan.sesiones_pendientes_compensar || pendingCompensate;
     const sessions = weekPlan
       .filter((d) => d.sessions.length)
       .map((d) => ({
@@ -428,12 +476,17 @@ export function buildFourWeekPlan(user) {
         dayName: d.day,
         week: w + 1,
       }));
-    weeks.push({ week: w + 1, label: `Semana ${w + 1}`, sessions, days: weekPlan });
+    weeks.push({
+      week: w + 1,
+      label: `Semana ${w + 1}`,
+      sessions,
+      days: weekPlan,
+      sesiones_pendientes_compensar: weekPlan.sesiones_pendientes_compensar,
+    });
   }
   return weeks;
 }
 
-/** Refrescar un ejercicio por otro compatible (v2: mismo pool; legacy: tags) */
 export function refreshExercise(session, exerciseId, filterParams) {
   const target = (session.exercises || []).find((ex) => ex.id === exerciseId);
   if (!target) return session;
@@ -442,39 +495,27 @@ export function refreshExercise(session, exerciseId, filterParams) {
     .map((ex) => ex.catalogId ?? parseCatalogId(ex.id))
     .filter((id) => id != null);
 
-  let newEx;
+  const userProfile = buildUserProfile({
+    ...filterParams,
+    material: normalizeMaterial(filterParams.material),
+  });
+  const excludeIds = usedInSession.filter((id) => id !== target.catalogId);
+  const replacement = refreshExerciseInPool(
+    {
+      id: target.catalogId,
+      pool: target.pool,
+      slotConstraints: target.slotConstraints,
+      etiquetas: target.etiquetas,
+    },
+    userProfile,
+    excludeIds,
+    String(Date.now()),
+  );
+  if (!replacement) return session;
 
-  if (target.pool) {
-    const userProfile = buildUserProfile(filterParams);
-    const excludeIds = usedInSession.filter((id) => id !== target.catalogId);
-    const replacement = refreshExerciseInPool(
-      { id: target.catalogId, pool: target.pool },
-      userProfile,
-      excludeIds,
-    );
-    if (!replacement) return session;
-    newEx = makeExerciseFromV2(replacement, Date.now(), target.blockType);
-    newEx.id = `v2_${replacement.id}_${Date.now()}`;
-  } else {
-    const usedSet = new Set(
-      (session.exercises || []).map((ex) => ex.catalogId || ex.id?.split("_")[0]),
-    );
-    const pool = filterExercisesEnriched({
-      ...filterParams,
-      etiquetas: target.blockTags || [],
-    }).filter((ex) => !usedSet.has(ex.id) && ex.id !== target.catalogId);
-
-    if (!pool.length) return session;
-
-    const replacement = pickDeterministic(pool, `${target.catalogId}|${target.blockType}|${usedSet.size}`);
-    newEx = makeExercise(
-      replacement,
-      Date.now(),
-      target.blockType,
-      target.blockTags || [],
-      filterParams.experiencia || "intermedio",
-    );
-  }
+  const newEx = makeExerciseFromV2(replacement, Date.now(), target.blockType);
+  newEx.id = `v2_${replacement.id}_${Date.now()}`;
+  newEx.slotConstraints = target.slotConstraints || replacement.slotConstraints;
 
   const updateBlocks = (session.blocks || []).map((block) => ({
     ...block,
@@ -493,11 +534,13 @@ export function buildMinimalSession(user) {
   const material = normalizeMaterial(user?.material);
   const lesiones = normalizeLesions(user?.lesion, user?.lesionSubtipo);
   const usedIds = new Set();
-  return fillTemplate("Sesión mínima", {
-    material, lesiones,
-    edad: parseInt(user?.edad) || 20,
+  return fillTemplate("Movilidad", {
+    material,
+    lesiones,
+    edad: parseInt(user?.edad, 10) || 20,
     deporte: user?.deporte || "",
     experiencia: experienciaLevel(user?.experiencia),
+    userId: user?.id || "",
   }, usedIds);
 }
 
@@ -531,7 +574,14 @@ export function buildPlanAIPayload(user) {
   const expLevel = experienciaLevel(user?.experiencia);
   const matchDay = normalizeMatchDay(user?.diaCompeticion || user?.dia_competicion);
   const assignments = assignSessionsToDays(sessionTypes, user?.disponibles, matchDay);
-  const allEx = filterExercisesEnriched({ material, lesiones, edad: parseInt(user?.edad) || 20, deporte: user?.deporte || "", experiencia: expLevel, etiquetas: [] });
+  const allEx = filterExercisesEnriched({
+    material: material[0],
+    lesiones,
+    edad: parseInt(user?.edad, 10) || 20,
+    deporte: user?.deporte || "",
+    experiencia: expLevel,
+    etiquetas: [],
+  });
 
   return {
     sessionPrompts: assignments.map(({ sessionType, day, distance }) =>
@@ -543,7 +593,7 @@ export function buildPlanAIPayload(user) {
         intensidadPermitida: sessionIntensity(sessionType),
         plantilla: getTemplate(sessionType),
         ejercicios: allEx.slice(0, 60),
-      })
+      }),
     ),
     fullPlanPrompt: buildFullPlanPrompt({
       user: { ...user, experiencia: expLevel },

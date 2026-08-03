@@ -3,71 +3,59 @@ import { describe, it } from "node:test";
 import {
   applySplitAlternationToAssignments,
   resolveSessionSplitVariant,
-  isAlternateTemplateAllowed,
+  validateMuscleCoverage,
 } from "./muscleSplitAlternation.js";
 
-describe("muscleSplitAlternation", () => {
-  it("Fuerza B (inferior) lunes → Fuerza A martes usa plantilla superior", () => {
+describe("muscleSplitAlternation (validador)", () => {
+  it("No corrige plantillas: mantiene sessionType de la matriz", () => {
     const { assignments } = applySplitAlternationToAssignments([
-      { sessionType: "Fuerza B", day: "Lunes" },
-      { sessionType: "Fuerza A", day: "Martes" },
+      { sessionType: "Fuerza Inferior", day: "Lunes" },
+      { sessionType: "Fuerza Inferior", day: "Martes" },
     ]);
 
-    assert.equal(assignments[0].templateKey, "Fuerza B");
-    assert.equal(assignments[1].templateKey, "Fuerza Superior A");
-    assert.equal(assignments[1].sessionType, "Fuerza A");
-    assert.equal(assignments[1].titleOverride, "Fuerza A - Tren Superior");
+    assert.equal(assignments[0].templateKey, "Fuerza Inferior");
+    assert.equal(assignments[1].templateKey, "Fuerza Inferior");
+    assert.equal(assignments[1].sessionType, "Fuerza Inferior");
   });
 
-  it("Hipertrofia Pierna consecutiva → segunda sesión alterna a Push", () => {
-    const { assignments } = applySplitAlternationToAssignments([
-      { sessionType: "Hipertrofia Pierna", day: "Lunes" },
-      { sessionType: "Hipertrofia Pierna", day: "Miércoles" },
+  it("Detecta solape muscular sin alterar assignments", () => {
+    const { warnings } = validateMuscleCoverage([
+      { sessionType: "Fuerza Inferior", day: "Lunes" },
+      { sessionType: "Hipertrofia Pierna", day: "Martes" },
     ]);
-
-    assert.equal(assignments[0].templateKey, "Hipertrofia Pierna");
-    assert.equal(assignments[1].templateKey, "Hipertrofia Push");
-    assert.equal(assignments[1].sessionType, "Hipertrofia Pierna");
+    assert.ok(warnings.length >= 1);
+    assert.match(warnings[0], /Solape muscular/i);
   });
 
-  it("Lesión de hombro bloquea alternativa superior y emite advertencia", () => {
-    const filterParams = { lesiones: ["hombro"] };
-    assert.equal(isAlternateTemplateAllowed("Fuerza Superior A", filterParams), false);
-
-    const { assignments, warnings } = applySplitAlternationToAssignments([
-      { sessionType: "Fuerza B", day: "Lunes" },
-      { sessionType: "Fuerza A", day: "Martes" },
-    ], filterParams);
-
-    assert.equal(assignments[1].templateKey, "Fuerza A");
-    assert.match(warnings[0], /variante alternativa bloqueada/i);
-  });
-
-  it("Última sesión de semana N afecta alternancia en semana N+1 (mesociclo)", () => {
-    const week1 = applySplitAlternationToAssignments([
-      { sessionType: "Fuerza B", day: "Viernes" },
+  it("Cobertura fuerza incompleta avisa", () => {
+    const { warnings } = validateMuscleCoverage([
+      { sessionType: "Fuerza Inferior", day: "Lunes" },
+      { sessionType: "Fuerza Inferior", day: "Jueves" },
     ]);
-    const week2 = applySplitAlternationToAssignments([
-      { sessionType: "Fuerza A", day: "Lunes" },
-    ], {}, week1.lastMuscleGroup);
-
-    assert.equal(week2.assignments[0].templateKey, "Fuerza Superior A");
+    assert.ok(warnings.some((w) => /Cobertura fuerza incompleta/i.test(w)));
   });
 
-  it("Velocidad entre dos fuerzas inferiores no resetea el grupo muscular", () => {
-    const { assignments } = applySplitAlternationToAssignments([
-      { sessionType: "Fuerza B", day: "Lunes" },
-      { sessionType: "Velocidad", day: "Martes" },
-      { sessionType: "Fuerza A", day: "Jueves" },
+  it("INF + SUP no avisa cobertura incompleta", () => {
+    const { ok, warnings } = validateMuscleCoverage([
+      { sessionType: "Fuerza Inferior", day: "Lunes" },
+      { sessionType: "Fuerza Superior", day: "Jueves" },
     ]);
-
-    assert.equal(assignments[2].templateKey, "Fuerza Superior A");
+    assert.equal(ok, true);
+    assert.equal(warnings.length, 0);
   });
 
-  it("resolveSessionSplitVariant mantiene sessionType de matriz sin alternancia previa", () => {
-    const r = resolveSessionSplitVariant("Fuerza A", null, {});
-    assert.equal(r.sessionType, "Fuerza A");
-    assert.equal(r.templateKey, "Fuerza A");
+  it("resolveSessionSplitVariant ya no alterna plantilla", () => {
+    const r = resolveSessionSplitVariant("Fuerza Inferior", "lower", {});
+    assert.equal(r.sessionType, "Fuerza Inferior");
+    assert.equal(r.templateKey, "Fuerza Inferior");
     assert.equal(r.muscleGroupUsed, "lower");
+  });
+
+  it("applySplitAlternation adjunta templateKey sin cambiar tipo", () => {
+    const { assignments, lastMuscleGroup } = applySplitAlternationToAssignments([
+      { sessionType: "Fuerza Superior", day: "Viernes" },
+    ]);
+    assert.equal(assignments[0].templateKey, "Fuerza Superior");
+    assert.equal(lastMuscleGroup, "upper");
   });
 });

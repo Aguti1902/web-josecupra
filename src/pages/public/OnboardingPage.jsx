@@ -19,7 +19,7 @@ import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 const SPORTS     = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem", "5 días / sem"];
-const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra / Gimnasio", "Campo"];
+const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra", "Gimnasio completo"];
 const INJURIES   = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda", "Pubalgia"];
 const INJURY_SUBTYPES = {
   Rodilla: ["ACL", "Menisco", "Rotuliana", "Otra"],
@@ -620,7 +620,8 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
 function StepFutbol({ form, setForm, onNext, onBack }) {
   const freqN = parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3;
   const objetivos = form.objetivos?.length ? form.objetivos : [form.objetivo, form.objetivoSecundario].filter(Boolean);
-  const valid = form.edad && objetivos.length >= 1 && form.deporte && form.frecuencia && form.material && form.experiencia
+  const materialOk = Array.isArray(form.material) ? form.material.length > 0 : !!form.material;
+  const valid = form.edad && objetivos.length >= 1 && form.deporte && form.frecuencia && materialOk && form.experiencia
     && form.diaCompeticion
     && (form.disponibles?.length || 0) >= freqN;
 
@@ -773,13 +774,17 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           <p className="text-xs text-depro-gray mt-2">Selecciona al menos tantos días como tu frecuencia ({freqN}).</p>
         </div>
 
-        {/* Material */}
+        {/* Material — multiselección real */}
         <Toggle
           label="Material disponible *"
-          value={form.material}
+          value={Array.isArray(form.material) ? form.material : (form.material ? [form.material] : [])}
           options={MATERIALS}
+          multi
           onChange={(v) => setForm({ ...form, material: v })}
         />
+        <p className="text-xs text-depro-gray -mt-3">
+          Puedes marcar varias opciones. «Gimnasio completo» desbloquea todo el catálogo (barra, máquinas, gomas y mancuernas).
+        </p>
 
         {/* Experiencia entrenando */}
         <Toggle
@@ -884,7 +889,13 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
   };
 
   const formPayload = useMemo(
-    () => ({ ...form, audience: plan.audience, authUserId: authUserId || "", selectedAddons }),
+    () => ({
+      ...form,
+      material: Array.isArray(form.material) ? form.material.join("|") : form.material,
+      audience: plan.audience,
+      authUserId: authUserId || "",
+      selectedAddons,
+    }),
     [form, plan.audience, authUserId, selectedAddons],
   );
 
@@ -902,7 +913,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
     plan.audience === "player" ? ["Frecuencia", form.frecuencia] : null,
     plan.audience === "player" ? ["Competición", form.diaCompeticion] : null,
     plan.audience === "player" ? ["Días", (form.disponibles || []).join(", ")] : null,
-    plan.audience === "player" ? ["Material", form.material] : null,
+    plan.audience === "player" ? ["Material", Array.isArray(form.material) ? form.material.join(", ") : form.material] : null,
     plan.audience === "player" ? ["Experiencia", form.experiencia] : null,
     plan.audience === "player" ? ["Lesiones", (form.lesion?.length > 0 ? form.lesion.join(", ") : "Ninguna")] : null,
     plan.audience !== "player" ? ["Club", form.club] : null,
@@ -1143,7 +1154,7 @@ export default function OnboardingPage() {
     objetivoSecundario: "",
     deporte:   "",
     frecuencia: "",
-    material:  "",
+    material:  [],
     experiencia: "",
     lesion:    [],
     lesionSubtipo: [],

@@ -1,64 +1,40 @@
 /**
- * Adapta ejercicios v2 (pool-based) al formato legacy del admin/catálogo.
+ * Adapta ejercicios multi-eje al formato legacy del admin/catálogo.
  */
-import { POOLS } from "./poolDefinitions.js";
 import { EXERCISES as V2_EXERCISES } from "./exerciseCatalog.js";
 
-const FAMILY_TAGS = {
-  empuje: ["fuerza", "tren_superior", "empuje"],
-  traccion: ["fuerza", "tren_superior", "traccion"],
-  rodilla: ["fuerza", "tren_inferior"],
-  cadera: ["fuerza", "tren_inferior", "gluteo"],
-  gluteo: ["fuerza", "gluteo"],
-  gemelo: ["fuerza", "tren_inferior"],
-  core: ["core"],
-  prevencion: ["prevencion"],
-  movilidad: ["movilidad"],
-  velocidad: ["velocidad", "fuerza_explosiva"],
-  pliometria: ["pliometria", "fuerza_explosiva"],
-  isometrico: ["isometrico", "fuerza"],
-  funcional: ["fuerza", "core"],
-};
-
-function mapLesiones(lesionesContra = []) {
-  return lesionesContra.map((l) => {
-    if (l.includes("rodilla")) return "rodilla";
-    if (l.includes("tobillo")) return "tobillo";
-    if (l.includes("hombro")) return "hombro";
-    if (l.includes("espalda")) return "espalda";
-    if (l.includes("pubalgia")) return "pubalgia";
-    if (l.includes("isquio")) return "isquios";
-    return l.replace("_agudo", "").replace("_inestable", "");
-  });
+function mapLesiones(contraindicado = []) {
+  return contraindicado.map((l) => String(l).replace(/^lesion_/, ""));
 }
 
-function deriveTags(pool) {
-  if (!pool) return ["fuerza"];
-  const tags = new Set(FAMILY_TAGS[pool.familia] || ["fuerza"]);
-  if (pool.funcion === "prevencion") tags.add("prevencion");
-  if (pool.tipo === "movilidad") tags.add("movilidad");
-  if (pool.tipo === "pliometria") tags.add("pliometria");
-  if (pool.patron === "isometrico") tags.add("isometrico");
-  if (pool.familia === "velocidad") tags.add("velocidad");
-  if (pool.material === "barra" || pool.material === "maquina") tags.add("fuerza_maxima");
+function deriveTags(et = {}) {
+  const tags = new Set();
+  (et.objetivo || []).forEach((o) => tags.add(o));
+  if (et.segmento) tags.add(et.segmento);
+  (et.patron || []).forEach((p) => tags.add(p));
+  (et.grupo_muscular || []).forEach((g) => tags.add(g));
+  if (et.rol) tags.add(et.rol);
+  if (!tags.size) tags.add("fuerza");
   return [...tags];
 }
 
 export function v2ToLegacyExercise(ex) {
-  const pool = POOLS[ex.pool];
+  const et = ex.etiquetas || {};
   return {
     id: `v2_${ex.id}`,
     v2Id: ex.id,
     nombre: ex.nombre,
     pool: ex.pool,
-    etiquetas: deriveTags(pool),
-    material: pool?.material || "sin_material",
-    contraindicado: mapLesiones(ex.lesionesContra),
-    lesionesContra: ex.lesionesContra || [],
+    etiquetas: deriveTags(et),
+    etiquetasMulti: et,
+    material: (et.material || ["sin_material"])[0],
+    materiales: et.material || ["sin_material"],
+    contraindicado: mapLesiones(et.contraindicado || ex.lesionesContra || []),
+    lesionesContra: et.contraindicado || ex.lesionesContra || [],
     tips: ex.tips,
     videoUrl: ex.videoUrl,
     edadMinima: ex.edadMinima,
-    description: pool?.nombre ? `Ejercicio de ${pool.nombre}.` : "",
+    description: `Ejercicio: ${ex.nombre}.`,
   };
 }
 
@@ -69,4 +45,10 @@ export function getLegacyCatalogFromV2() {
 export function getV2ExerciseById(id) {
   const num = typeof id === "string" ? parseInt(id.replace(/^v2_/, ""), 10) : id;
   return V2_EXERCISES.find((e) => e.id === num) || null;
+}
+
+/** Vistas filtradas por objetivo (carpetas del panel). */
+export function getExercisesByObjectiveView(objetivo) {
+  const key = String(objetivo || "").toLowerCase();
+  return V2_EXERCISES.filter((ex) => (ex.etiquetas?.objetivo || []).includes(key));
 }
