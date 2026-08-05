@@ -6,7 +6,13 @@ import {
 import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS } from "../../lib/sessionBlocks";
 import { getYouTubeId } from "../../lib/youtube";
 import { saveLoadLog } from "../../lib/loadLogs";
-import { loadFieldsForExercise, exerciseNeedsWeight } from "../../lib/loadAnalytics";
+import {
+  loadFieldsForExercise,
+  exerciseNeedsWeight,
+  blockAllowsLoadLogging,
+  objectiveAllowsLoadLogging,
+  loadLoggingMode,
+} from "../../lib/loadAnalytics";
 import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
 import { hasFeatureAccess } from "../../lib/subscription";
 
@@ -35,10 +41,23 @@ function ConditionPill({ Icon, label, color = "#6B7280" }) {
   );
 }
 
-function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, onSwap, canSwap }) {
+function parseSetCount(exercise) {
+  const n = parseInt(String(exercise?.sets ?? "").replace(/[^\d]/g, ""), 10);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 8) : 3;
+}
+
+function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap }) {
   const ytId = getYouTubeId(exercise.videoUrl);
+  const showLogging = blockAllowsLoadLogging(blockType)
+    && objectiveAllowsLoadLogging(objective)
+    && (blockType === "principal" || blockType === "complementario");
+  const mode = loadLoggingMode(objective);
   const fields = loadFieldsForExercise(exercise, objective);
-  const needsWeight = exerciseNeedsWeight(exercise);
+  const needsWeight = exerciseNeedsWeight(exercise) || mode === "fuerza_series";
+  const setCount = parseSetCount(exercise);
+  const [series, setSeries] = useState(() =>
+    Array.from({ length: setCount }, () => ({ weight: "", reps: "", rpe: "" })),
+  );
   const [loadDraft, setLoadDraft] = useState({});
   const [loadSaved, setLoadSaved] = useState(false);
   const [loadNotice, setLoadNotice] = useState("");
@@ -52,15 +71,27 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
       setLoadNotice("Activa el extra «Registro de cargas» en Suscripción para guardar todos los datos.");
       return;
     }
-    saveLoadLog(user?.id, {
+    const payload = {
       exerciseId: exercise.id,
       exerciseName: exercise.name,
       sessionId: sessionMeta?.sessionId,
       sessionTitle: sessionMeta?.sessionTitle,
       weekLabel: sessionMeta?.weekLabel || new Date().toISOString().slice(0, 10),
       objective,
+      blockType,
       ...loadDraft,
-    });
+    };
+    if (mode === "fuerza_series") {
+      payload.sets = String(setCount);
+      payload.series = series;
+      const filled = series.filter((s) => s.weight || s.reps);
+      if (filled.length) {
+        payload.weight = filled.map((s) => s.weight).filter(Boolean).join(" / ");
+        payload.reps = filled.map((s) => s.reps).filter(Boolean).join(" / ");
+        payload.rpe = filled.map((s) => s.rpe).filter(Boolean).join(" / ");
+      }
+    }
+    saveLoadLog(user?.id, payload);
     setLoadSaved(true);
     setLoadNotice("");
   };
@@ -69,7 +100,7 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
     weight: "Peso (kg)",
     sets: "Series",
     reps: "Repeticiones",
-    rpe: "RPE",
+    rpe: "RPE / RP",
     time: "Tiempo",
     distance: "Distancia",
     heartRate: "FC (ppm)",
@@ -135,46 +166,101 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
           </div>
         )}
 
-        <div className="rounded-xl border border-depro-border p-4 mb-4 space-y-3">
-          <div className="text-sm font-bold text-depro-dark">
-            {needsWeight ? "Registra el peso usado" : "Registro de carga"}
-          </div>
-          {needsWeight && (
+        {showLogging && (
+          <div className="rounded-xl border border-depro-border p-4 mb-4 space-y-3">
+            <div className="text-sm font-bold text-depro-dark">
+              {mode === "fuerza_series" ? "Registro por series" : mode === "velocidad" ? "Registro de velocidad" : "Registro de resistencia"}
+            </div>
             <p className="text-[11px] text-depro-gray -mt-1">
-              Este ejercicio requiere peso. Anótalo para ver tu evolución en el ranking con amigos.
+              {mode === "fuerza_series"
+                ? "Anota peso, repeticiones y RPE/RP de cada serie."
+                : mode === "velocidad"
+                  ? "Anota tiempo y RPE/RP. Sin campo de peso."
+                  : "Anota distancia, tiempo y RPE según el ejercicio."}
             </p>
-          )}
-          <div className="grid grid-cols-2 gap-2">
-            {fields.map((field) => (
-              <div key={field} className={field === "notes" || field === "feelings" ? "col-span-2" : ""}>
-                <label className="text-[10px] font-bold text-depro-gray uppercase">{fieldLabels[field]}</label>
-                {field === "notes" || field === "feelings" ? (
+
+            {mode === "fuerza_series" ? (
+              <div className="space-y-2">
+                {series.map((row, idx) => (
+                  <div key={idx} className="grid grid-cols-4 gap-2 items-end">
+                    <p className="text-[10px] font-bold text-depro-gray uppercase col-span-4 sm:col-span-1 sm:pb-2">Serie {idx + 1}</p>
+                    <div>
+                      <label className="text-[10px] font-bold text-depro-gray uppercase">Peso</label>
+                      <input
+                        className="admin-input w-full text-xs mt-1"
+                        inputMode="decimal"
+                        placeholder="kg"
+                        value={row.weight}
+                        onChange={(e) => setSeries((prev) => prev.map((s, i) => (i === idx ? { ...s, weight: e.target.value } : s)))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-depro-gray uppercase">Reps</label>
+                      <input
+                        className="admin-input w-full text-xs mt-1"
+                        inputMode="numeric"
+                        placeholder="8"
+                        value={row.reps}
+                        onChange={(e) => setSeries((prev) => prev.map((s, i) => (i === idx ? { ...s, reps: e.target.value } : s)))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-depro-gray uppercase">RP/RPE</label>
+                      <input
+                        className="admin-input w-full text-xs mt-1"
+                        inputMode="numeric"
+                        placeholder="6"
+                        value={row.rpe}
+                        onChange={(e) => setSeries((prev) => prev.map((s, i) => (i === idx ? { ...s, rpe: e.target.value } : s)))}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <div>
+                  <label className="text-[10px] font-bold text-depro-gray uppercase">Observaciones</label>
                   <textarea
                     className="admin-input w-full text-xs mt-1"
                     rows={2}
-                    value={loadDraft[field] || ""}
-                    onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })}
+                    value={loadDraft.notes || ""}
+                    onChange={(e) => setLoadDraft({ ...loadDraft, notes: e.target.value })}
                   />
-                ) : (
-                  <input
-                    className="admin-input w-full text-xs mt-1"
-                    value={loadDraft[field] || ""}
-                    onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })}
-                  />
-                )}
+                </div>
               </div>
-            ))}
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {fields.map((field) => (
+                  <div key={field} className={field === "notes" ? "col-span-2" : ""}>
+                    <label className="text-[10px] font-bold text-depro-gray uppercase">{fieldLabels[field]}</label>
+                    {field === "notes" ? (
+                      <textarea
+                        className="admin-input w-full text-xs mt-1"
+                        rows={2}
+                        value={loadDraft[field] || ""}
+                        onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })}
+                      />
+                    ) : (
+                      <input
+                        className="admin-input w-full text-xs mt-1"
+                        value={loadDraft[field] || ""}
+                        onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {loadNotice && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">{loadNotice}</p>}
+            {loadSaved && <p className="text-xs text-green-700">Registro guardado para este entrenamiento.</p>}
+            <button
+              type="button"
+              onClick={handleSaveLoad}
+              className="w-full py-2.5 rounded-xl text-sm font-bold border border-depro-border hover:border-depro-blue hover:text-depro-blue transition-colors"
+            >
+              Guardar registro
+            </button>
           </div>
-          {loadNotice && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">{loadNotice}</p>}
-          {loadSaved && <p className="text-xs text-green-700">Registro guardado para este entrenamiento.</p>}
-          <button
-            type="button"
-            onClick={handleSaveLoad}
-            className="w-full py-2.5 rounded-xl text-sm font-bold border border-depro-border hover:border-depro-blue hover:text-depro-blue transition-colors"
-          >
-            Guardar registro
-          </button>
-        </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-2">
           {onSwap && (
@@ -441,7 +527,7 @@ export function PlayerSessionFullscreen({
                 <BlockExerciseList
                   exercises={block.exercises}
                   accentColor={cfg.color}
-                  onSelect={setSelectedEx}
+                  onSelect={(ex) => setSelectedEx({ ...ex, _blockType: block.type })}
                 />
                 {bi < blocks.length - 1 && <div className="h-px bg-depro-border mt-6" />}
               </section>
@@ -476,6 +562,7 @@ export function PlayerSessionFullscreen({
       {selectedEx && (
         <ExerciseModal
           exercise={selectedEx}
+          blockType={selectedEx._blockType || "principal"}
           onClose={() => setSelectedEx(null)}
           accent={accentColor}
           user={user}

@@ -1,6 +1,6 @@
 /** Análisis de cargas y pesos para ranking y gráficas. */
-import { getLoadLogs } from "./loadLogs";
-import { POOLS } from "./poolDefinitions";
+import { getLoadLogs } from "./loadLogs.js";
+import { POOLS } from "./poolDefinitions.js";
 
 const WEIGHT_POOL_PATTERN = /-(MAN|BAR)(?:$|[-_])/i;
 const WEIGHT_NAME_PATTERN = /mancuerna|barra|peso muerto|hip thrust|farmer|remo con barra|press banca|sentadilla con/i;
@@ -15,17 +15,44 @@ export function exerciseNeedsWeight(exercise) {
   return WEIGHT_NAME_PATTERN.test(name);
 }
 
-export function loadFieldsForExercise(exercise, objective) {
-  if (exerciseNeedsWeight(exercise)) {
-    return ["weight", "sets", "reps", "rpe", "notes"];
-  }
+/** Bloques donde NO debe aparecer registro de carga. */
+export function blockAllowsLoadLogging(blockType) {
+  const t = String(blockType || "").toLowerCase();
+  if (!t) return true;
+  return t !== "calentamiento" && t !== "vuelta_calma" && t !== "vuelta-calma";
+}
+
+/** Objetivos medibles con registro en el ejercicio. */
+export function objectiveAllowsLoadLogging(objective) {
   const obj = String(objective || "").toLowerCase();
-  if (obj.includes("velocidad")) return ["time", "distance", "rpe", "notes"];
-  if (obj.includes("resistencia")) return ["distance", "time", "heartRate", "rpe", "notes"];
-  if (obj.includes("movilidad") || obj.includes("prevención") || obj.includes("prevencion")) {
-    return ["rpe", "feelings", "notes"];
+  return (
+    obj.includes("fuerza")
+    || obj.includes("hipertrofia")
+    || obj.includes("resistencia")
+    || obj.includes("velocidad")
+  );
+}
+
+export function loadFieldsForExercise(exercise, objective) {
+  const obj = String(objective || "").toLowerCase();
+  if (obj.includes("velocidad")) return ["time", "rpe", "notes"];
+  if (obj.includes("resistencia")) return ["distance", "time", "rpe", "notes"];
+  if (exerciseNeedsWeight(exercise) || obj.includes("fuerza") || obj.includes("hipertrofia")) {
+    return ["weight", "reps", "rpe", "notes"];
   }
-  return ["weight", "sets", "reps", "rpe", "notes"];
+  if (obj.includes("movilidad") || obj.includes("prevención") || obj.includes("prevencion")) {
+    return [];
+  }
+  return ["weight", "reps", "rpe", "notes"];
+}
+
+/** Modo de registro por series (fuerza) vs campos simples (velocidad/resistencia). */
+export function loadLoggingMode(objective) {
+  const obj = String(objective || "").toLowerCase();
+  if (obj.includes("velocidad")) return "velocidad";
+  if (obj.includes("resistencia")) return "resistencia";
+  if (obj.includes("fuerza") || obj.includes("hipertrofia")) return "fuerza_series";
+  return "fuerza_series";
 }
 
 function parseWeight(value) {

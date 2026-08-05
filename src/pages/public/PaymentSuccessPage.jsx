@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
@@ -12,6 +12,14 @@ export default function PaymentSuccessPage() {
   const { user, login, refreshUser, loading: authLoading } = useAuth();
   const [visible, setVisible] = useState(false);
   const [status, setStatus] = useState({ loading: !!sessionId, redirecting: false, error: null, done: false });
+  const finalizedRef = useRef(false);
+  const userRef = useRef(user);
+  const loginRef = useRef(login);
+  const refreshUserRef = useRef(refreshUser);
+
+  userRef.current = user;
+  loginRef.current = login;
+  refreshUserRef.current = refreshUser;
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 100);
@@ -22,29 +30,25 @@ export default function PaymentSuccessPage() {
       if (!authLoading) setStatus({ loading: false, redirecting: false, error: null, done: true });
       return;
     }
+    if (authLoading || finalizedRef.current) return;
 
     let cancelled = false;
-
-    async function waitForAuth() {
-      if (!authLoading) return;
-      await new Promise((r) => setTimeout(r, 2500));
-    }
+    finalizedRef.current = true;
 
     async function finalize() {
       setStatus((s) => ({ ...s, loading: true, error: null }));
-      await waitForAuth();
-      if (cancelled) return;
 
       try {
         const res = await fetch("/api/complete-payment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId, authUserId: user?.id || undefined }),
+          body: JSON.stringify({ sessionId, authUserId: userRef.current?.id || undefined }),
         });
         const data = await res.json();
         if (cancelled) return;
 
         if (!data.ok) {
+          finalizedRef.current = false;
           setStatus({ loading: false, redirecting: false, error: data.error || "No se pudo activar tu cuenta", done: true });
           return;
         }
@@ -86,14 +90,14 @@ export default function PaymentSuccessPage() {
 
         setStatus({ loading: false, redirecting: true, error: null, done: false });
 
-        if (user) {
-          await refreshUser();
+        if (userRef.current) {
+          await refreshUserRef.current();
           navigate("/dashboard", { replace: true });
           return;
         }
 
         if (data.password && data.email) {
-          const result = await login(data.email, data.password);
+          const result = await loginRef.current(data.email, data.password);
           if (result.success) {
             navigate("/dashboard", { replace: true });
             return;
@@ -108,6 +112,7 @@ export default function PaymentSuccessPage() {
         });
       } catch (e) {
         if (!cancelled) {
+          finalizedRef.current = false;
           setStatus({ loading: false, redirecting: false, error: e.message, done: true });
         }
       }
@@ -115,7 +120,7 @@ export default function PaymentSuccessPage() {
 
     finalize();
     return () => { cancelled = true; };
-  }, [sessionId, user, authLoading, login, refreshUser, navigate]);
+  }, [sessionId, authLoading, navigate]);
 
   const busy = status.loading || status.redirecting;
 

@@ -537,7 +537,7 @@ const FAQS = [
   {
     icon: Activity,
     q: "¿Qué tests físicos incluye?",
-    a: "Sprint, salto, Yo-Yo, resistencia y más. Batería T1→T2→T3 con ratings automáticos, tendencias y comparativas por jugador y equipo.",
+    a: "Sprint, salto, agilidad, resistencia y más. Batería T1→T2→T3 con ratings automáticos, tendencias y comparativas por jugador y equipo.",
   },
   {
     icon: BarChart3,

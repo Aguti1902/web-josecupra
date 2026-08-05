@@ -14,8 +14,8 @@ export const PRICES = {
   "club-inicial":     { amount: 19900, name: "DEPRO Club Inicial",         description: "Hasta 3 equipos · white-label · referidos" },
   "club-pro":         { amount: 39900, name: "DEPRO Club Profesional",     description: "Hasta 8 equipos · GPS · módulo médico" },
   "club-elite":       { amount: 69900, name: "DEPRO Club Elite",           description: "Equipos ilimitados · API · SLA dedicado" },
-  "player-essential": { amount: 2900,  name: "DEPRO Jugador Básico",       description: "Plan IA · ranking · tests · panel privado" },
-  "player-pro":       { amount: 9900,  name: "DEPRO Jugador Premium",      description: "Seguimiento humano · videollamada · WhatsApp · 30 plazas" },
+  "player-essential": { amount: 2900,  name: "DEPRO Jugador Básico",       description: "IA especializada · metodología DEPRO · ranking · tests" },
+  "player-pro":       { amount: 9900,  name: "DEPRO Jugador Premium",      description: "Seguimiento humano CAFE · videollamada · WhatsApp · 40 plazas" },
 };
 
 function stripePricesMap() {

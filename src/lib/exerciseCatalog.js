@@ -5047,8 +5047,7 @@ export const EXERCISES = [
         "traccion"
       ],
       "grupo_muscular": [
-        "espalda",
-        "biceps"
+        "espalda"
       ],
       "rol": "complementario",
       "intensidad": "media",

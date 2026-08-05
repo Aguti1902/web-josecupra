@@ -59,7 +59,7 @@ export default function ResourcesPage() {
         items={[
           { tag: "Periodización", title: "Mesociclos en categorías base", desc: "Progresión semanal adaptada a edades 8–16 años.", href: "#" },
           { tag: "Prevención", title: "ACWR y prevención de lesiones", desc: "Umbrales B2/B3 y cuándo actuar como entrenador.", href: "#" },
-          { tag: "Tests", title: "Yo-Yo IR1: interpretación por posición", desc: "Referencias por categoría y cómo usar percentiles.", href: "#" },
+          { tag: "Tests", title: "Sprint y CMJ: interpretación por posición", desc: "Referencias por categoría y cómo usar percentiles.", href: "#" },
           { tag: "Club", title: "Estandarizar el departamento físico", desc: "Coherencia metodológica entre 5+ equipos de academia.", href: "#" },
         ]}
       />

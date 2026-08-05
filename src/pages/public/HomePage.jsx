@@ -72,7 +72,7 @@ export default function HomePage() {
           label="Tests físicos"
           title="De la evaluación al seguimiento longitudinal"
           desc="Batería T1→T3 con ratings, tendencias y comparativas por jugador."
-          bullets={["Sprint, salto, Yo-Yo y más", "Seguimiento T1 → T2 → T3", "Ratings automáticos", "Evolución por temporada"]}
+          bullets={["Sprint, salto, agilidad y más", "Seguimiento T1 → T2 → T3", "Ratings automáticos", "Evolución por temporada"]}
           mockup={<TestsMockup />}
           ctaLink="/funcionalidades/tests"
         />

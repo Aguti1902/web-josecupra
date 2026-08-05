@@ -236,6 +236,19 @@ function AppLayoutInner({ children }) {
     return () => document.body.classList.remove("sidebar-open-mobile");
   }, [sidebarOpen]);
 
+  useEffect(() => {
+    const load = () => {
+      if (!user?.id) return;
+      const key = user.role === "club"
+        ? `depro_club_profile_${user.id}`
+        : `depro_player_photo_${user.id}`;
+      setProfilePhoto(localStorage.getItem(key) || null);
+    };
+    load();
+    const iv = setInterval(load, 3000);
+    return () => clearInterval(iv);
+  }, [user?.id, user?.role]);
+
   const activeTeamForNav = viewingTeam || user?.team;
   const activeCategory = activeTeamForNav?.category;
   const isBlock2or3 = ["Sub-13", "Sub-14", "Sub-15", "Sub-16", "Juvenil"].includes(activeCategory);
@@ -314,19 +327,6 @@ function AppLayoutInner({ children }) {
   if (paywallActive && pathname !== "/dashboard/subscription") {
     return <Navigate to="/dashboard/subscription" replace />;
   }
-
-  useEffect(() => {
-    const load = () => {
-      if (!user?.id) return;
-      const key = user.role === "club"
-        ? `depro_club_profile_${user.id}`
-        : `depro_player_photo_${user.id}`;
-      setProfilePhoto(localStorage.getItem(key) || null);
-    };
-    load();
-    const iv = setInterval(load, 3000);
-    return () => clearInterval(iv);
-  }, [user?.id, user?.role]);
 
   const profilePath = user?.role === "club" ? "/dashboard/club-profile" : "/dashboard/profile";
 

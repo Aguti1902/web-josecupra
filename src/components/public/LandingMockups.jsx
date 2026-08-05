@@ -145,7 +145,7 @@ export function TestsMockup() {
   const tests = [
     { name: "Sprint 30m", val: "4.12s", trend: "+3%", good: true },
     { name: "Salto CMJ", val: "38.2 cm", trend: "+5%", good: true },
-    { name: "Yo-Yo IR1", val: "Nivel 18.2", trend: "-2%", good: false },
+    { name: "Agilidad 5-10-5", val: "4.82 s", trend: "-2%", good: false },
   ];
   return (
     <div className="bg-white rounded-2xl border border-depro-border shadow-xl p-5 w-full max-w-sm">

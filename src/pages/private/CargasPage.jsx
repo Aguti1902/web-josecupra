@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Zap, Users, ChevronLeft, ChevronRight, Info,
-  TrendingUp, Minus, User, Moon, BatteryLow, Smile,
+  TrendingUp, Minus, User,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam } from "../../context/ViewContext";
@@ -181,41 +181,6 @@ function TeamSessionEditor({ session, entry, onChange, readOnly }) {
           <LoadBadge load={load} volumen={entry.volumen} rpe={entry.rpe} />
         </div>
       )}
-
-      <WellnessEditor wellness={entry.wellness} onChange={(w) => onChange({ ...entry, wellness: w })} readOnly={readOnly} />
-    </div>
-  );
-}
-
-/* ────────────────────────────────────────────────────────────
-   WELLNESS — sueño, fatiga, estado de ánimo (equipo)
-   ──────────────────────────────────────────────────────────── */
-function WellnessEditor({ wellness, onChange, readOnly }) {
-  const w = wellness || {};
-  const fields = [
-    { key: "sueno",  label: "Sueño",  icon: Moon,      tip: "Calidad de sueño percibida por el equipo (1=muy mala, 5=excelente)." },
-    { key: "fatiga", label: "Fatiga", icon: BatteryLow, tip: "Nivel de fatiga percibida (1=sin fatiga, 5=muy fatigado)." },
-    { key: "animo",  label: "Ánimo",  icon: Smile,     tip: "Estado de ánimo general del equipo (1=bajo, 5=muy positivo)." },
-  ];
-  return (
-    <div className="pt-3 border-t border-depro-border/50">
-      <p className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2">Wellness</p>
-      <div className="grid grid-cols-3 gap-3">
-        {fields.map(({ key, label, icon: FieldIcon, tip }) => (
-          <div key={key}>
-            <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-1 flex items-center gap-1">
-              <FieldIcon size={11} />
-              <Tooltip text={tip}>{label} (1–5)</Tooltip>
-            </label>
-            <input type="number" min="1" max="5"
-              className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-              placeholder="—" value={w[key] || ""}
-              onChange={(e) => onChange({ ...w, [key]: e.target.value })}
-              disabled={readOnly}
-            />
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -285,15 +250,6 @@ function PlayersSessionEditor({ session, entry, players, onChange, readOnly }) {
                 </th>
                 <th className="px-3 py-2.5 text-xs font-bold text-depro-gray uppercase tracking-wide text-center">Carga</th>
                 <th className="px-3 py-2.5 text-xs font-bold text-depro-gray uppercase tracking-wide text-center">Nivel</th>
-                <th className="px-3 py-2.5 text-xs font-bold text-depro-gray uppercase tracking-wide text-center">
-                  <Tooltip text="Calidad de sueño percibida (1–5).">Sueño</Tooltip>
-                </th>
-                <th className="px-3 py-2.5 text-xs font-bold text-depro-gray uppercase tracking-wide text-center">
-                  <Tooltip text="Nivel de fatiga percibida (1–5).">Fatiga</Tooltip>
-                </th>
-                <th className="px-3 py-2.5 text-xs font-bold text-depro-gray uppercase tracking-wide text-center">
-                  <Tooltip text="Estado de ánimo general (1–5).">Ánimo</Tooltip>
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -335,30 +291,6 @@ function PlayersSessionEditor({ session, entry, players, onChange, readOnly }) {
                         <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: tl.color }} title={tl.label} />
                       ) : <span className="w-3 h-3 rounded-full inline-block bg-depro-gray/20" />}
                     </td>
-                    <td className="px-3 py-2">
-                      <input type="number" min="1" max="5"
-                        className="w-12 border border-depro-border rounded-lg px-2 py-1 text-xs text-center mx-auto block focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                        placeholder="—" value={pd.sueno || ""}
-                        onChange={(e) => updatePlayer(player.id, "sueno", e.target.value)}
-                        disabled={readOnly}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input type="number" min="1" max="5"
-                        className="w-12 border border-depro-border rounded-lg px-2 py-1 text-xs text-center mx-auto block focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                        placeholder="—" value={pd.fatiga || ""}
-                        onChange={(e) => updatePlayer(player.id, "fatiga", e.target.value)}
-                        disabled={readOnly}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input type="number" min="1" max="5"
-                        className="w-12 border border-depro-border rounded-lg px-2 py-1 text-xs text-center mx-auto block focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                        placeholder="—" value={pd.animo || ""}
-                        onChange={(e) => updatePlayer(player.id, "animo", e.target.value)}
-                        disabled={readOnly}
-                      />
-                    </td>
                   </tr>
                 );
               })}
@@ -397,15 +329,6 @@ function PlayersSessionEditor({ session, entry, players, onChange, readOnly }) {
                       const avgRpe = withData.reduce((s, p) => s + (parseFloat(getPlayer(p.id).rpe) || 0), 0) / withData.length;
                       const tl = sessionTrafficLight(avgMin, avgRpe);
                       return <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: tl.color }} title={tl.label} />;
-                    })()}
-                  </td>
-                  <td colSpan={3} className="px-3 py-2 text-center text-xs font-black text-depro-dark">
-                    {(() => {
-                      const avg = (field) => {
-                        const vals = players.map((p) => parseFloat(getPlayer(p.id)[field]) || 0).filter(Boolean);
-                        return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : "—";
-                      };
-                      return `${avg("sueno")} · ${avg("fatiga")} · ${avg("animo")}`;
                     })()}
                   </td>
                 </tr>

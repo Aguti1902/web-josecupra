@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
-import { getTutorialSteps, getTutorialKey } from "../../lib/tutorialSteps";
+import { getTutorialSteps, hasCompletedTutorial, markTutorialCompleted } from "../../lib/tutorialSteps";
 
 const TutorialContext = createContext(null);
 
@@ -9,6 +9,9 @@ export function TutorialProvider({ user, children }) {
   const [active, setActive] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const steps = getTutorialSteps(user);
+  const roleReady = user?.role === "admin"
+    || user?.role === "player"
+    || (user?.role === "club" && (user?.club != null || user?.team_role != null));
 
   const start = useCallback(() => {
     setStepIndex(0);
@@ -16,8 +19,7 @@ export function TutorialProvider({ user, children }) {
   }, []);
 
   const finish = useCallback(() => {
-    const key = getTutorialKey(user);
-    if (key) localStorage.setItem(key, "1");
+    markTutorialCompleted(user);
     setActive(false);
     setStepIndex(0);
   }, [user]);
@@ -33,22 +35,30 @@ export function TutorialProvider({ user, children }) {
     setStepIndex((i) => Math.max(0, i - 1));
   }, []);
 
-  // Auto-start first visit
+  // Auto-start solo la primera vez (clave estable + migración legacy)
   useEffect(() => {
-    if (!user?.id || steps.length === 0) return;
-    const key = getTutorialKey(user);
-    if (key && !localStorage.getItem(key)) {
-      const t = setTimeout(() => setActive(true), 800);
-      return () => clearTimeout(t);
+    if (!user?.id || !roleReady || steps.length === 0) return;
+    if (hasCompletedTutorial(user)) return;
+    const t = setTimeout(() => setActive(true), 800);
+    return () => clearTimeout(t);
+  }, [user?.id, roleReady, steps.length]);
+
+  // Si el rol cambia y el índice queda fuera de rango, cerrar con seguridad
+  useEffect(() => {
+    if (!active) return;
+    if (!steps.length || stepIndex >= steps.length || !steps[stepIndex]) {
+      finish();
     }
-  }, [user?.id, steps.length]);
+  }, [active, steps, stepIndex, finish]);
+
+  const currentStep = steps[stepIndex];
 
   return (
     <TutorialContext.Provider value={{ active, start, finish, skip, next, prev, stepIndex, steps }}>
       {children}
-      {active && steps.length > 0 && (
+      {active && currentStep && (
         <TutorialOverlay
-          step={steps[stepIndex]}
+          step={currentStep}
           stepIndex={stepIndex}
           total={steps.length}
           onNext={next}
@@ -156,6 +166,8 @@ function TutorialOverlay({ step, stepIndex, total, onNext, onPrev, onSkip }) {
   const tooltipRef = useRef(null);
 
   useEffect(() => {
+    if (!step) return undefined;
+    let didScroll = false;
     const update = () => {
       if (step.target === "center") {
         setRect(null);
@@ -168,14 +180,15 @@ function TutorialOverlay({ step, stepIndex, total, onNext, onPrev, onSkip }) {
       }
       const r = el.getBoundingClientRect();
       setRect({ top: r.top, left: r.left, width: r.width, height: r.height, bottom: r.bottom, right: r.right });
-      if (!String(step.target || "").includes("ai-assistant")) {
+      if (!didScroll && !String(step.target || "").includes("ai-assistant")) {
+        didScroll = true;
         el.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }
     };
     update();
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
-    const iv = setInterval(update, 300);
+    const iv = setInterval(update, 800);
     return () => {
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);

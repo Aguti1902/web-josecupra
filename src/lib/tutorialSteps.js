@@ -4,16 +4,40 @@
  * placement: top | bottom | left | right | center
  */
 
+/** Clave estable por usuario (no depende del rol hidratado). */
 export function getTutorialKey(user) {
   if (!user?.id) return null;
-  const role = user.role === "admin"
-    ? "admin"
-    : user.club?.isSoloCoach
-    ? "coach"
-    : user.role === "club"
-    ? (user.team_role === "coordinador" ? "coordinador" : "entrenador")
-    : "player";
-  return `depro_tutorial_v1_${user.id}_${role}`;
+  return `depro_tutorial_v1_${user.id}`;
+}
+
+export function getLegacyTutorialKeys(user) {
+  if (!user?.id) return [];
+  const roles = ["admin", "coach", "coordinador", "entrenador", "player"];
+  return roles.map((role) => `depro_tutorial_v1_${user.id}_${role}`);
+}
+
+export function hasCompletedTutorial(user) {
+  const key = getTutorialKey(user);
+  if (!key) return true;
+  if (localStorage.getItem(key)) return true;
+  for (const legacy of getLegacyTutorialKeys(user)) {
+    if (localStorage.getItem(legacy)) {
+      try { localStorage.setItem(key, "1"); } catch { /* ignore */ }
+      return true;
+    }
+  }
+  return false;
+}
+
+export function markTutorialCompleted(user) {
+  const key = getTutorialKey(user);
+  if (!key) return;
+  try {
+    localStorage.setItem(key, "1");
+    getLegacyTutorialKeys(user).forEach((k) => localStorage.setItem(k, "1"));
+  } catch {
+    // ignore quota / private mode
+  }
 }
 
 export function getTutorialSteps(user) {

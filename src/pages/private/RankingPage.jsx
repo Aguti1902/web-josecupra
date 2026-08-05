@@ -205,8 +205,11 @@ function buildFriendsRanking(user, friendProfiles) {
   return { ...base, leaderboard, myEntry, friendProfiles };
 }
 
-const TABS = ["Diario", "Semanal", "Mensual"];
-const TAB_KEY = { Diario: "daily", Semanal: "weekly", Mensual: "monthly" };
+const TAB_IDS = [
+  { id: "daily", labelKey: "ranking.daily" },
+  { id: "weekly", labelKey: "ranking.weekly" },
+  { id: "monthly", labelKey: "ranking.monthly" },
+];
 
 const BADGE_STYLE = {
   Elite:   { bg: "#EEF1FF", color: "#0A36F7", label: "Elite" },
@@ -250,7 +253,7 @@ function PodiumStep({ player, rank, isCurrentUser }) {
       <div className={`relative ${isCurrentUser ? "ring-2 ring-depro-blue ring-offset-2 rounded-2xl" : ""}`}>
         <Avatar
           initials={player.avatar}
-          color={player.club.primaryColor}
+          color={player.club?.primaryColor}
           size={rank === 1 ? "lg" : "md"}
         />
         <span
@@ -288,8 +291,7 @@ export default function RankingPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const TABS_I18N = [t("ranking.daily"), t("ranking.weekly"), t("ranking.monthly")];
-  const [activeTab, setActiveTab] = useState(t("ranking.weekly"));
+  const [activeTab, setActiveTab] = useState("weekly");
   const [rankingMode, setRankingMode] = useState("friends");
   const [friends, setFriends] = useState(() => getFriends(user?.id));
   const [friendProfiles, setFriendProfiles] = useState([]);
@@ -343,13 +345,15 @@ export default function RankingPage() {
   const topExercises = useMemo(() => getTopWeightedExercises(user?.id), [user?.id]);
   const improvement = useMemo(() => getImprovementSummary(user?.id), [user?.id]);
 
-  const key     = TAB_KEY[activeTab] ?? "weekly";
-  const sorted  = [...(rankingData.leaderboard || [])].sort((a, b) => b.points[key] - a.points[key]);
+  const key = TAB_IDS.some((tab) => tab.id === activeTab) ? activeTab : "weekly";
+  const sorted = [...(rankingData.leaderboard || [])].sort(
+    (a, b) => (Number(b.points?.[key]) || 0) - (Number(a.points?.[key]) || 0),
+  );
   const myEntry = sorted.find((p) => p.id === user?.id) ?? null;
   const myRank  = myEntry ? sorted.indexOf(myEntry) + 1 : null;
-  const top3    = sorted.slice(0, 3).map((p) => ({ ...p, points: { ...p.points, _tab: p.points[key] } }));
-  const rest    = sorted.slice(3).map((p) => ({ ...p, points: { ...p.points, _tab: p.points[key] } }));
-  const topScore = sorted[0]?.points[key] || 1;
+  const top3    = sorted.slice(0, 3).map((p) => ({ ...p, points: { ...p.points, _tab: Number(p.points?.[key]) || 0 } }));
+  const rest    = sorted.slice(3).map((p) => ({ ...p, points: { ...p.points, _tab: Number(p.points?.[key]) || 0 } }));
+  const topScore = Number(sorted[0]?.points?.[key]) || 1;
 
   const raw    = user?.club?.primaryColor || "#0A36F7";
   const accent = lum(raw) > 0.75 ? "#0A36F7" : raw;
@@ -453,17 +457,18 @@ export default function RankingPage() {
         <div className="lg:col-span-2 space-y-4">
           {/* Tabs */}
           <div className="flex gap-1 bg-depro-gray-light p-1 rounded-xl w-fit">
-            {TABS_I18N.map((tab) => (
+            {TAB_IDS.map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                  activeTab === tab
+                  activeTab === tab.id
                     ? "bg-white text-depro-dark shadow-card"
                     : "text-depro-gray hover:text-depro-dark"
                 }`}
               >
-                {tab}
+                {t(tab.labelKey)}
               </button>
             ))}
           </div>

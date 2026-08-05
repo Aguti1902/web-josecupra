@@ -1,20 +1,32 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Lock } from "lucide-react";
 import { getStripePromise } from "../../lib/stripePublishable";
 
 /**
  * Stripe Embedded Checkout — formulario de pago embebido en /comprar.
+ * Solo se remonta cuando cambian planId o addons (no en cada re-render del formulario).
  */
 export default function EmbeddedStripeCheckout({ planId, formData, onError, className = "" }) {
   const containerRef = useRef(null);
   const checkoutRef = useRef(null);
   const onErrorRef = useRef(onError);
+  const formDataRef = useRef(formData);
   const [loading, setLoading] = useState(true);
 
   onErrorRef.current = onError;
+  formDataRef.current = formData;
+
+  const checkoutKey = useMemo(() => {
+    const addons = Array.isArray(formData?.selectedAddons)
+      ? [...formData.selectedAddons].sort().join(",")
+      : "";
+    const clubCode = formData?.clubCode || "";
+    return `${planId}|${addons}|${clubCode}|${formData?.email || ""}`;
+  }, [planId, formData?.selectedAddons, formData?.clubCode, formData?.email]);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
 
     async function init() {
       const stripe = await getStripePromise();
@@ -30,7 +42,7 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError, clas
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             planId,
-            formData,
+            formData: formDataRef.current,
             origin: window.location.origin,
             embedded: true,
           }),
@@ -73,7 +85,7 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError, clas
       checkoutRef.current?.destroy?.();
       checkoutRef.current = null;
     };
-  }, [planId, formData]);
+  }, [checkoutKey, planId]);
 
   return (
     <div className={`relative rounded-2xl border border-depro-border bg-white shadow-card overflow-hidden ${className}`}>
