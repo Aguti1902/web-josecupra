@@ -6,6 +6,7 @@ import {
   generateClubAutoWeekForCoach,
   categoryForNivel,
 } from "./clubAutoCoachBridge.js";
+import { CLUB_MAIN_TASKS } from "../../data/clubAutoCatalog.js";
 
 describe("clubAutoCoachBridge", () => {
   it("detecta engine club_auto", () => {
@@ -44,5 +45,17 @@ describe("clubAutoCoachBridge", () => {
   it("categoryForNivel", () => {
     assert.equal(categoryForNivel("A"), "Sub-11");
     assert.equal(categoryForNivel("C"), "Juvenil");
+  });
+
+  it("catálogo tiene 45 tareas únicas por carpeta", () => {
+    assert.equal(CLUB_MAIN_TASKS.length, 45);
+    const names = new Set(CLUB_MAIN_TASKS.map((t) => t.nombre));
+    assert.equal(names.size, 45);
+    for (const nivel of ["A", "B", "C"]) {
+      for (const grupo of ["regenerativo", "carga_alta", "prepartido"]) {
+        const n = CLUB_MAIN_TASKS.filter((t) => t.nivel === nivel && t.grupo_microciclo === grupo).length;
+        assert.equal(n, 5, `${nivel}/${grupo}`);
+      }
+    }
   });
 });

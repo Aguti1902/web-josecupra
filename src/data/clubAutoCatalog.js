@@ -75,49 +75,412 @@ function task({ id, nombre, nivel, grupo, intensidad, gimnasio = false, descripc
   };
 }
 
-const REGEN_BASE = [
-  ["Rondo conservación 4v2 / 5v2", "Conservación con 1-2 defensores. Ritmo conversacional."],
-  ["Rueda de pases con apoyo y tercer hombre", "Circulación + apoyo. Sin oposición o presión blanda."],
-  ["Circuito técnico pase-control-conducción", "Estaciones cortas técnicas, sin duelo."],
-  ["Conservación por calles con comodines exteriores", "Mantener balón por zonas; comodines fijos."],
-  ["Juego de posición suave 6v6 + apoyos", "Ocupación de espacios, pocos contactos, sin transición exigente."],
-];
-
-const CARGA_BASE = [
-  ["Posesión competitiva 4v4 + 4 apoyos con transición", "Tras pérdida: 3\" para recuperar o transición a portería/meta."],
-  ["Juego reducido 5v5 + porterías pequeñas", "Alta intensidad, duelos y cambios de ritmo."],
-  ["Partido condicionado 6v6 / 7v7 con transición rápida", "Gol + transición inmediata al otro lado."],
-  ["Oleadas de finalización 3v2 + repliegue", "Ataque rápido y repliegue obligatorio."],
-  ["Juego de presión tras pérdida en espacio medio", "Presión coordinada 5\" tras pérdida."],
-];
-
-const PRE_BASE = [
-  ["Rondo dinámico con estímulo de salida", "Tras señal: salida en conducción/pase profundo."],
-  ["Circuito técnico con pase y desmarque corto", "Activación específica sin fatiga acumulada."],
-  ["Finalización rápida 2v1 / 3v2", "Acciones cortas de definición."],
-  ["Juego de posesión con pocos contactos", "Máx. 2-3 toques; ritmo alto y limpio."],
-  ["Activación competitiva en superioridad ofensiva", "Ataques en superioridad con recuperación activa corta."],
-];
+/**
+ * 45 tareas únicas: 5 por carpeta /tareas/{A,B,C}/{regenerativo,carga_alta,prepartido}.
+ * Adaptaciones de jugadores/espacio van en el texto (no como filtros del motor).
+ */
+const TASKS_BY_FOLDER = {
+  A: {
+    regenerativo: [
+      {
+        nombre: "Rondo 4v2 blando (nivel A)",
+        descripcion: "Conservación simple, 1–2 toques opcionales. Ritmo conversacional.",
+        adaptaciones: {
+          jugadores: "Pocos → 3v1. Muchos → 5v2 con comodín exterior.",
+          espacio: "Ampliar cuadrado para bajar carga; reducir solo si hay calidad técnica.",
+        },
+      },
+      {
+        nombre: "Rueda de pases con apoyo (nivel A)",
+        descripcion: "Pase-control-pase y tercer hombre sin oposición.",
+        adaptaciones: {
+          jugadores: "Pocos → parejas rotativas. Muchos → dos ruedas en paralelo.",
+          espacio: "Espacio amplio; si se quiere más carga, acortar distancias de pase.",
+        },
+      },
+      {
+        nombre: "Circuito técnico pase-conducción (nivel A)",
+        descripcion: "Estaciones cortas sin duelo: control, conducción y pase.",
+        adaptaciones: {
+          jugadores: "Pocos → menos estaciones. Muchos → doble circuito.",
+          espacio: "Versión amplia regenerativa; no comprimir en día A.",
+        },
+      },
+      {
+        nombre: "Conservación por calles con comodines (nivel A)",
+        descripcion: "Mantener balón por zonas; comodines fijos y poca presión.",
+        adaptaciones: {
+          jugadores: "Pocos → quitar un comodín. Muchos → añadir apoyos laterales.",
+          espacio: "Calles anchas; estrechar solo si el ritmo es demasiado bajo.",
+        },
+      },
+      {
+        nombre: "Juego de posición 5v5 + apoyos (nivel A)",
+        descripcion: "Ocupación de espacios, pocos contactos, sin transición exigente.",
+        adaptaciones: {
+          jugadores: "Pocos → 4v4 + 2. Muchos → 6v6 + apoyos exteriores.",
+          espacio: "Campo amplio regenerativo; media si el grupo está muy activo.",
+        },
+      },
+    ],
+    carga_alta: [
+      {
+        nombre: "Posesión 3v3 + 3 apoyos con transición (nivel A)",
+        descripcion: "Tras pérdida: 3\" para recuperar o salir a meta/portería pequeña.",
+        adaptaciones: {
+          jugadores: "Pocos → 3v3 sin apoyos. Muchos → 4v4 + 4 apoyos.",
+          espacio: "Espacio medio/reducido para subir intensidad.",
+        },
+      },
+      {
+        nombre: "Juego reducido 4v4 + porterías pequeñas (nivel A)",
+        descripcion: "Duelos cortos, cambios de ritmo y finalización simple.",
+        adaptaciones: {
+          jugadores: "Pocos → 3v3. Muchos → 5v5 o dos campos.",
+          espacio: "Reducir para más carga; ampliar si aparece fatiga técnica.",
+        },
+      },
+      {
+        nombre: "Partido condicionado 5v5 con transición (nivel A)",
+        descripcion: "Gol + transición inmediata al otro lado; reglas simples.",
+        adaptaciones: {
+          jugadores: "Pocos → 4v4. Muchos → 6v6.",
+          espacio: "Espacio medio; no usar versión amplia en carga alta.",
+        },
+      },
+      {
+        nombre: "Oleadas de finalización 2v1 + repliegue (nivel A)",
+        descripcion: "Ataque rápido y repliegue obligatorio tras remate.",
+        adaptaciones: {
+          jugadores: "Pocos → líneas cortas. Muchos → varias oleadas en paralelo.",
+          espacio: "Pasillo medio; acortar para aumentar densidad de acciones.",
+        },
+      },
+      {
+        nombre: "Presión tras pérdida en espacio medio (nivel A)",
+        descripcion: "Presión coordinada 4–5\" tras pérdida, sin sobreexigir.",
+        adaptaciones: {
+          jugadores: "Pocos → 4v4. Muchos → 5v5 + comodín.",
+          espacio: "Espacio medio; reducir si no aparece la presión.",
+        },
+      },
+    ],
+    prepartido: [
+      {
+        nombre: "Rondo dinámico con estímulo de salida (nivel A)",
+        descripcion: "Tras señal: salida en conducción o pase profundo corto.",
+        adaptaciones: {
+          jugadores: "Pocos → 4v1. Muchos → dos rondos.",
+          espacio: "Espacio medio; evitar versión muy reducida prepartido.",
+        },
+      },
+      {
+        nombre: "Circuito técnico pase y desmarque corto (nivel A)",
+        descripcion: "Activación específica sin fatiga acumulada.",
+        adaptaciones: {
+          jugadores: "Pocos → circuito único. Muchos → doble circuito.",
+          espacio: "Espacio medio con ritmo alto y poca oposición.",
+        },
+      },
+      {
+        nombre: "Finalización rápida 2v1 (nivel A)",
+        descripcion: "Acciones cortas de definición con recuperación activa breve.",
+        adaptaciones: {
+          jugadores: "Pocos → 2v1 continuo. Muchos → dos porterías.",
+          espacio: "Pasillo corto; no alargar distancias.",
+        },
+      },
+      {
+        nombre: "Posesión con pocos contactos (nivel A)",
+        descripcion: "Máx. 3 toques; ritmo limpio y activación competitiva suave.",
+        adaptaciones: {
+          jugadores: "Pocos → 4v4. Muchos → 5v5 + apoyos.",
+          espacio: "Espacio medio; ampliar si hay demasiados errores.",
+        },
+      },
+      {
+        nombre: "Activación en superioridad ofensiva (nivel A)",
+        descripcion: "Ataques 3v2 / 4v3 con recuperación activa corta.",
+        adaptaciones: {
+          jugadores: "Pocos → 3v2. Muchos → oleadas 4v3.",
+          espacio: "Media superficie; mantener frescura neuromuscular.",
+        },
+      },
+    ],
+  },
+  B: {
+    regenerativo: [
+      {
+        nombre: "Rondo conservación 5v2 (nivel B)",
+        descripcion: "Conservación con presión blanda y orientación corporal.",
+        adaptaciones: {
+          jugadores: "Pocos → 4v2. Muchos → 6v2 + comodín.",
+          espacio: "Ampliar para regenerar; no comprimir.",
+        },
+      },
+      {
+        nombre: "Rueda de pases tercer hombre (nivel B)",
+        descripcion: "Circulación + apoyo; oposición blanda opcional.",
+        adaptaciones: {
+          jugadores: "Pocos → triángulos. Muchos → dos ruedas.",
+          espacio: "Versión amplia regenerativa.",
+        },
+      },
+      {
+        nombre: "Circuito técnico con control orientado (nivel B)",
+        descripcion: "Estaciones de pase-control-conducción sin duelo intenso.",
+        adaptaciones: {
+          jugadores: "Pocos → menos estaciones. Muchos → estaciones dobles.",
+          espacio: "Amplio; reducir solo si el ritmo es demasiado bajo.",
+        },
+      },
+      {
+        nombre: "Conservación por calles (nivel B)",
+        descripcion: "Mantener balón por zonas con comodines exteriores fijos.",
+        adaptaciones: {
+          jugadores: "Pocos → quitar comodín. Muchos → añadir apoyos.",
+          espacio: "Calles anchas en día regenerativo.",
+        },
+      },
+      {
+        nombre: "Juego de posición 6v6 + apoyos (nivel B)",
+        descripcion: "Ocupación de espacios, pocos contactos, sin transición dura.",
+        adaptaciones: {
+          jugadores: "Pocos → 5v5 + 2. Muchos → 7v7 + apoyos.",
+          espacio: "Campo amplio; media si el grupo está muy activo.",
+        },
+      },
+    ],
+    carga_alta: [
+      {
+        nombre: "Posesión 4v4 + 4 apoyos con transición (nivel B)",
+        descripcion: "Tras pérdida: 3\" para recuperar o transición a portería/meta.",
+        adaptaciones: {
+          jugadores: "Pocos → 4v4 + 2. Muchos → 5v5 + 4.",
+          espacio: "Espacio medio/reducido para carga alta.",
+        },
+      },
+      {
+        nombre: "Juego reducido 5v5 + porterías pequeñas (nivel B)",
+        descripcion: "Alta intensidad, duelos y cambios de ritmo.",
+        adaptaciones: {
+          jugadores: "Pocos → 4v4. Muchos → 6v6 o dos campos.",
+          espacio: "Reducido/medio; ampliar solo por fatiga técnica.",
+        },
+      },
+      {
+        nombre: "Partido condicionado 6v6 / 7v7 (nivel B)",
+        descripcion: "Gol + transición inmediata al otro lado.",
+        adaptaciones: {
+          jugadores: "Pocos → 5v5. Muchos → 7v7.",
+          espacio: "Espacio medio; no versión amplia.",
+        },
+      },
+      {
+        nombre: "Oleadas de finalización 3v2 + repliegue (nivel B)",
+        descripcion: "Ataque rápido y repliegue obligatorio.",
+        adaptaciones: {
+          jugadores: "Pocos → 2v1/3v2. Muchos → varias oleadas.",
+          espacio: "Pasillo medio; acortar para densidad.",
+        },
+      },
+      {
+        nombre: "Presión tras pérdida (nivel B)",
+        descripcion: "Presión coordinada 5\" tras pérdida en espacio medio.",
+        adaptaciones: {
+          jugadores: "Pocos → 5v5. Muchos → 6v6 + comodín.",
+          espacio: "Medio; reducir si no aparece la presión.",
+        },
+      },
+    ],
+    prepartido: [
+      {
+        nombre: "Rondo dinámico con salida (nivel B)",
+        descripcion: "Tras señal: salida en conducción/pase profundo.",
+        adaptaciones: {
+          jugadores: "Pocos → 5v2. Muchos → dos rondos.",
+          espacio: "Medio; ritmo alto y limpio.",
+        },
+      },
+      {
+        nombre: "Circuito pase y desmarque corto (nivel B)",
+        descripcion: "Activación específica sin fatiga acumulada.",
+        adaptaciones: {
+          jugadores: "Pocos → un circuito. Muchos → doble.",
+          espacio: "Medio con poca oposición prolongada.",
+        },
+      },
+      {
+        nombre: "Finalización rápida 2v1 / 3v2 (nivel B)",
+        descripcion: "Acciones cortas de definición.",
+        adaptaciones: {
+          jugadores: "Pocos → 2v1. Muchos → dos porterías.",
+          espacio: "Pasillo corto.",
+        },
+      },
+      {
+        nombre: "Posesión con pocos contactos (nivel B)",
+        descripcion: "Máx. 2–3 toques; ritmo alto y limpio.",
+        adaptaciones: {
+          jugadores: "Pocos → 5v5. Muchos → 6v6 + apoyos.",
+          espacio: "Medio; ampliar si hay errores técnicos.",
+        },
+      },
+      {
+        nombre: "Activación competitiva en superioridad (nivel B)",
+        descripcion: "Ataques en superioridad con recuperación activa corta.",
+        adaptaciones: {
+          jugadores: "Pocos → 3v2. Muchos → 4v3 en oleadas.",
+          espacio: "Media superficie; priorizar frescura.",
+        },
+      },
+    ],
+  },
+  C: {
+    regenerativo: [
+      {
+        nombre: "Rondo 5v2 / 6v2 controlado (nivel C)",
+        descripcion: "Conservación con presión blanda y calidad de pase.",
+        adaptaciones: {
+          jugadores: "Pocos → 5v2. Muchos → 6v2 + comodín.",
+          espacio: "Amplio regenerativo.",
+        },
+      },
+      {
+        nombre: "Rueda de pases con tercer hombre (nivel C)",
+        descripcion: "Circulación avanzada + apoyo; oposición blanda puntual.",
+        adaptaciones: {
+          jugadores: "Pocos → una rueda. Muchos → dos ruedas.",
+          espacio: "Amplio; no comprimir.",
+        },
+      },
+      {
+        nombre: "Circuito técnico de activación (nivel C)",
+        descripcion: "Pase-control-conducción y orientación sin duelo intenso.",
+        adaptaciones: {
+          jugadores: "Pocos → circuito corto. Muchos → estaciones dobles.",
+          espacio: "Amplio en día regenerativo.",
+        },
+      },
+      {
+        nombre: "Conservación por calles + comodines (nivel C)",
+        descripcion: "Mantener balón por zonas; comodines fijos y ritmo controlado.",
+        adaptaciones: {
+          jugadores: "Pocos → menos comodines. Muchos → más apoyos exteriores.",
+          espacio: "Calles anchas.",
+        },
+      },
+      {
+        nombre: "Juego de posición 6v6 / 7v7 + apoyos (nivel C)",
+        descripcion: "Ocupación, pocos contactos, sin transición exigente.",
+        adaptaciones: {
+          jugadores: "Pocos → 6v6. Muchos → 8v8 + apoyos.",
+          espacio: "Campo amplio regenerativo.",
+        },
+      },
+    ],
+    carga_alta: [
+      {
+        nombre: "Posesión competitiva 4v4 + 4 con transición (nivel C)",
+        descripcion: "Tras pérdida: 3\" recuperar o transición vertical.",
+        adaptaciones: {
+          jugadores: "Pocos → 4v4 + 2. Muchos → 5v5 + 4.",
+          espacio: "Medio/reducido.",
+        },
+      },
+      {
+        nombre: "Juego reducido 5v5 / 6v6 porterías pequeñas (nivel C)",
+        descripcion: "Alta intensidad, duelos y cambios de ritmo.",
+        adaptaciones: {
+          jugadores: "Pocos → 5v5. Muchos → dos campos 4v4.",
+          espacio: "Reducido para carga.",
+        },
+      },
+      {
+        nombre: "Partido condicionado 7v7 con transición rápida (nivel C)",
+        descripcion: "Gol + transición inmediata al otro lado.",
+        adaptaciones: {
+          jugadores: "Pocos → 6v6. Muchos → 8v8.",
+          espacio: "Medio; no amplia.",
+        },
+      },
+      {
+        nombre: "Oleadas de finalización 3v2 + repliegue (nivel C)",
+        descripcion: "Ataque rápido, definición y repliegue obligatorio.",
+        adaptaciones: {
+          jugadores: "Pocos → 3v2. Muchos → oleadas paralelas.",
+          espacio: "Pasillo medio/corto.",
+        },
+      },
+      {
+        nombre: "Presión tras pérdida en espacio medio (nivel C)",
+        descripcion: "Presión coordinada 5\" tras pérdida; alta exigencia táctica simple.",
+        adaptaciones: {
+          jugadores: "Pocos → 6v6. Muchos → 7v7 + comodín.",
+          espacio: "Medio; reducir si falta presión.",
+        },
+      },
+    ],
+    prepartido: [
+      {
+        nombre: "Rondo dinámico con estímulo de salida (nivel C)",
+        descripcion: "Tras señal: salida en conducción/pase profundo.",
+        adaptaciones: {
+          jugadores: "Pocos → 5v2. Muchos → dos rondos.",
+          espacio: "Medio; ritmo alto limpio.",
+        },
+      },
+      {
+        nombre: "Circuito técnico prepartido (nivel C)",
+        descripcion: "Pase y desmarque corto; activación sin fatiga acumulada.",
+        adaptaciones: {
+          jugadores: "Pocos → un circuito. Muchos → doble.",
+          espacio: "Medio.",
+        },
+      },
+      {
+        nombre: "Finalización rápida 2v1 / 3v2 (nivel C)",
+        descripcion: "Acciones cortas de definición con recuperación activa.",
+        adaptaciones: {
+          jugadores: "Pocos → 2v1. Muchos → dos porterías.",
+          espacio: "Pasillo corto.",
+        },
+      },
+      {
+        nombre: "Posesión con pocos contactos (nivel C)",
+        descripcion: "Máx. 2 toques; ritmo alto y limpio.",
+        adaptaciones: {
+          jugadores: "Pocos → 6v6. Muchos → 7v7 + apoyos.",
+          espacio: "Medio.",
+        },
+      },
+      {
+        nombre: "Activación competitiva en superioridad (nivel C)",
+        descripcion: "Ataques en superioridad ofensiva con recuperación corta.",
+        adaptaciones: {
+          jugadores: "Pocos → 3v2/4v3. Muchos → oleadas.",
+          espacio: "Media superficie; priorizar frescura.",
+        },
+      },
+    ],
+  },
+};
 
 function expandTasks() {
   const out = [];
-  let n = 1;
   for (const nivel of ["A", "B", "C"]) {
-    for (const [grupo, rows, inten] of [
-      ["regenerativo", REGEN_BASE, "baja"],
-      ["carga_alta", CARGA_BASE, "alta"],
-      ["prepartido", PRE_BASE, "media"],
-    ]) {
-      rows.forEach(([nombre, desc], i) => {
+    for (const grupo of ["regenerativo", "carga_alta", "prepartido"]) {
+      const inten = grupo === "regenerativo" ? "baja" : grupo === "carga_alta" ? "alta" : "media";
+      (TASKS_BY_FOLDER[nivel][grupo] || []).forEach((row, i) => {
         out.push(task({
           id: `ct_${nivel}_${grupo}_${i + 1}`,
-          nombre: `${nombre} · ${nivel}`,
+          nombre: row.nombre,
           nivel,
           grupo,
           intensidad: inten,
-          descripcion: `${desc} (nivel ${nivel}).`,
+          descripcion: row.descripcion,
+          adaptaciones: row.adaptaciones,
         }));
-        n += 1;
       });
     }
   }
@@ -125,6 +488,9 @@ function expandTasks() {
 }
 
 export const CLUB_MAIN_TASKS = expandTasks();
+
+/** Sanity: 45 tareas (5 × 3 niveles × 3 grupos). */
+export const CLUB_MAIN_TASKS_COUNT = CLUB_MAIN_TASKS.length;
 
 export const CLUB_AUTO_OBSERVACIONES = {
   A: "Día regenerativo/control: priorizar calidad de ejecución, bajo impacto y recuperación.",
