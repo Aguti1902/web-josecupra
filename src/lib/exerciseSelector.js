@@ -96,7 +96,11 @@ export function matchSlotTags(ex, slot = {}) {
     }
   }
   if (slot.patronOr && !matchesAny(asArray(slot.patronOr), et.patron)) return false;
-  if (slot.grupo_muscular && !matchesAny(asArray(slot.grupo_muscular), et.grupo_muscular)) return false;
+  if (slot.grupo_muscular) {
+    // grupo_principal manda (función dominante); fallback a grupo_muscular
+    const primary = et.grupo_principal ? [et.grupo_principal] : asArray(et.grupo_muscular);
+    if (!matchesAny(asArray(slot.grupo_muscular), primary)) return false;
+  }
   if (slot.rol && !matchesAllScalars(slot.rol, et.rol)) return false;
   if (slot.intensidad && !matchesAllScalars(slot.intensidad, et.intensidad)) return false;
   return true;

@@ -1,0 +1,60 @@
+{
+  "total": 184,
+  "previous": 167,
+  "added": [
+    "Split squat hold",
+    "Puente de glúteo unilateral isométrico",
+    "Wall sit unilateral",
+    "Isometría aductores con balón",
+    "Copenhagen hold básico",
+    "Copenhagen hold medio",
+    "Isometría isquios supino talones en banco",
+    "Press isométrico pared unilateral",
+    "Rotación externa isométrica con banda",
+    "Serrato wall hold",
+    "Dead bug hold",
+    "Bear plank hold",
+    "Pallof hold",
+    "Drop landing + hold",
+    "Skater landing hold",
+    "Plancha con toque de hombro",
+    "Marcha A"
+  ],
+  "renamed": [
+    {
+      "from": "Y-T-W (hombro) en suelo",
+      "to": "Y-T-W escapular en suelo"
+    },
+    {
+      "from": "Antiextensión lumbar (dead bug controlado)",
+      "to": "Dead bug controlado (antiextensión)"
+    },
+    {
+      "from": "Movilidad de hombro Y-T-W con banda",
+      "to": "Y-T-W con banda (movilidad escapular)"
+    },
+    {
+      "from": "Técnica de carrera",
+      "to": "Técnica de carrera (marcha A / drills)"
+    }
+  ],
+  "deleted": [],
+  "byFolder": {
+    "fuerza_tren_inferior": 44,
+    "prevencion": 25,
+    "fuerza_tren_superior": 45,
+    "velocidad": 22,
+    "pliometria": 19,
+    "core": 15,
+    "movilidad": 14
+  },
+  "folders": [
+    "fuerza_tren_inferior",
+    "fuerza_tren_superior",
+    "velocidad",
+    "pliometria",
+    "core",
+    "prevencion",
+    "movilidad"
+  ]
+}

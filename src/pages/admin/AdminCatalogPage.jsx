@@ -67,33 +67,26 @@ function hasTag(e, key) {
 }
 
 const SECTION_LABELS = [
-  { key: "fuerza", label: "Fuerza · Tren Inferior", icon: Dumbbell, color: "#3B82F6",
-    match: (e) => hasTag(e, "tren_inferior") && (hasTag(e, "fuerza") || hasTag(e, "fuerza_maxima")) && !hasTag(e, "velocidad") && !hasTag(e, "pliometria") },
-  { key: "tren_sup", label: "Fuerza · Tren Superior", icon: Dumbbell, color: "#8B5CF6",
-    match: (e) => hasTag(e, "tren_superior") && !hasTag(e, "movilidad") },
-  { key: "velocidad", label: "Velocidad / Aceleración / COD", icon: Zap, color: "#F59E0B",
-    match: (e) => hasTag(e, "velocidad") },
+  { key: "fuerza_tren_inferior", label: "Fuerza · Tren inferior", icon: Dumbbell, color: "#3B82F6",
+    match: (e) => e.carpeta === "fuerza_tren_inferior" || (hasTag(e, "fuerza_tren_inferior")) },
+  { key: "fuerza_tren_superior", label: "Fuerza · Tren superior", icon: Dumbbell, color: "#8B5CF6",
+    match: (e) => e.carpeta === "fuerza_tren_superior" || hasTag(e, "fuerza_tren_superior") },
+  { key: "velocidad", label: "Velocidad", icon: Zap, color: "#F59E0B",
+    match: (e) => e.carpeta === "velocidad" || hasTag(e, "velocidad") },
   { key: "pliometria", label: "Pliometría", icon: Flame, color: "#EF4444",
-    match: (e) => hasTag(e, "pliometria") && !hasTag(e, "velocidad") },
-  { key: "isometrico", label: "Isométricos", icon: Target, color: "#10B981",
-    match: (e) => hasTag(e, "isometrico") && !hasTag(e, "core") },
+    match: (e) => e.carpeta === "pliometria" || hasTag(e, "pliometria") },
+  { key: "core", label: "Core", icon: Shield, color: "#6366F1",
+    match: (e) => e.carpeta === "core" || hasTag(e, "core") },
   { key: "prevencion", label: "Prevención", icon: Shield, color: "#EC4899",
-    match: (e) => hasTag(e, "prevencion") && !hasTag(e, "core") },
-  { key: "core", label: "Core / Estabilidad", icon: Shield, color: "#6366F1",
-    match: (e) => hasTag(e, "core") },
+    match: (e) => e.carpeta === "prevencion" || hasTag(e, "prevencion") },
   { key: "movilidad", label: "Movilidad", icon: RefreshCw, color: "#059669",
-    match: (e) => hasTag(e, "movilidad") },
-  { key: "resistencia", label: "Resistencia", icon: Activity, color: "#0EA5E9",
-    match: (e) => hasTag(e, "resistencia") || hasTag(e, "aerobico") || hasTag(e, "anaerobico") || hasTag(e, "umbral") },
-  { key: "res_aerobica", label: "Resistencia aeróbica (legacy)", icon: Activity, color: "#0EA5E9",
-    match: (e) => (e.etiquetas || []).includes("resistencia_aerobica") },
-  { key: "res_anaerobica", label: "Resistencia anaeróbica (legacy)", icon: Flame, color: "#F97316",
-    match: (e) => (e.etiquetas || []).includes("resistencia_anaerobica") },
-  { key: "res_umbral", label: "Resistencia umbral (legacy)", icon: TrendingUp, color: "#8B5CF6",
-    match: (e) => (e.etiquetas || []).includes("resistencia_umbral") },
+    match: (e) => e.carpeta === "movilidad" || hasTag(e, "movilidad") },
 ];
 
 function getSection(exercise) {
+  if (exercise.carpeta && SECTION_LABELS.some((s) => s.key === exercise.carpeta)) {
+    return exercise.carpeta;
+  }
   for (const s of SECTION_LABELS) {
     if (s.match(exercise)) return s.key;
   }
@@ -267,10 +260,19 @@ export default function AdminCatalogPage({ embedded = false }) {
 
   const matchesFolder = (e, folderId) => {
     if (!folderId) return true;
-    if (folderId === "pliometria_basica") return e.id.startsWith("pb") || (e.etiquetas.includes("pliometria") && !e.id.startsWith("pa"));
-    if (folderId === "pliometria_avanzada") return e.id.startsWith("pa");
-    if (folderId.startsWith("lesion_")) return e.etiquetas.includes(folderId);
-    return e.etiquetas.includes(folderId);
+    // Carpetas funcionales (taxonomía actual)
+    const functional = [
+      "fuerza_tren_inferior", "fuerza_tren_superior", "velocidad",
+      "pliometria", "core", "prevencion", "movilidad",
+    ];
+    if (functional.includes(folderId)) {
+      return e.carpeta === folderId || (e.etiquetas || []).includes(folderId);
+    }
+    if (folderId.startsWith("lesion_")) {
+      return (e.etiquetas || []).includes(folderId)
+        || (e.lesionesContra || []).some((l) => `lesion_${l}` === folderId || l === folderId.replace(/^lesion_/, ""));
+    }
+    return (e.etiquetas || []).includes(folderId);
   };
 
   // Filtrar ejercicios

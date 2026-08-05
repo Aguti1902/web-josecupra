@@ -50,15 +50,18 @@ export const EXTRA_EXERCISES = [
   ),
 ];
 
+/** Carpetas funcionales visibles (taxonomía DEPRO). La clasificación fina va por etiquetas. */
 export const CATALOG_FOLDERS = [
-  { id: "resistencia_aerobica", label: "Resistencia aeróbica" },
-  { id: "resistencia_anaerobica", label: "Resistencia anaeróbica" },
-  { id: "resistencia_umbral", label: "Resistencia umbral" },
-  { id: "pliometria_basica", label: "Pliometría básica" },
-  { id: "pliometria_avanzada", label: "Pliometría avanzada" },
-  { id: "lesion_rodilla", label: "Lesión rodilla" },
-  { id: "lesion_tobillo", label: "Lesión tobillo" },
-  { id: "lesion_hombro", label: "Lesión hombro" },
-  { id: "lesion_espalda", label: "Lesión espalda" },
-  { id: "core_avanzado", label: "Core avanzado" },
+  { id: "fuerza_tren_inferior", label: "Fuerza · Tren inferior" },
+  { id: "fuerza_tren_superior", label: "Fuerza · Tren superior" },
+  { id: "velocidad", label: "Velocidad" },
+  { id: "pliometria", label: "Pliometría" },
+  { id: "core", label: "Core" },
+  { id: "prevencion", label: "Prevención" },
+  { id: "movilidad", label: "Movilidad" },
+  // Vistas legacy por lesión (filtro secundario)
+  { id: "lesion_rodilla", label: "Lesión rodilla (filtro)" },
+  { id: "lesion_tobillo", label: "Lesión tobillo (filtro)" },
+  { id: "lesion_hombro", label: "Lesión hombro (filtro)" },
+  { id: "lesion_espalda", label: "Lesión espalda (filtro)" },
 ];
