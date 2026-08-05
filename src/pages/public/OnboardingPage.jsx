@@ -224,6 +224,7 @@ function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
 ───────────────────────────────────────────── */
 function StepCuenta({ audience, planId, form, setForm, onNext, onBack, saveForOAuth }) {
   const { user, register, loginWithGoogle } = useAuth();
+  const [nombre, setNombre] = useState(form.nombre || "");
   const [email, setEmail] = useState(form.email || "");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -231,14 +232,15 @@ function StepCuenta({ audience, planId, form, setForm, onNext, onBack, saveForOA
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // Rol provisional hasta el pago; coach/club se confirman en metadata Stripe
   const role = audience === "club" ? "club" : audience === "coach" ? "coach" : "player";
 
   const handleContinueLoggedIn = () => {
-    setForm({
-      ...form,
+    setForm((f) => ({
+      ...f,
       email: user.email,
-      nombre: form.nombre || user.name || user.user_metadata?.name || "",
-    });
+      nombre: (f.nombre || user.name || user.user_metadata?.name || "").trim(),
+    }));
     onNext();
   };
 
@@ -255,7 +257,7 @@ function StepCuenta({ audience, planId, form, setForm, onNext, onBack, saveForOA
     }
     setLoading(true);
     try {
-      const displayName = (form.nombre || "").trim() || email.split("@")[0];
+      const displayName = nombre.trim() || email.split("@")[0];
       const result = await register({
         email: email.trim().toLowerCase(),
         password,
@@ -266,11 +268,11 @@ function StepCuenta({ audience, planId, form, setForm, onNext, onBack, saveForOA
         setError(result.error || "No se pudo crear la cuenta");
         return;
       }
-      setForm({
-        ...form,
+      setForm((f) => ({
+        ...f,
         email: email.trim().toLowerCase(),
-        nombre: form.nombre?.trim() || displayName,
-      });
+        nombre: displayName,
+      }));
       onNext();
     } catch (err) {
       setError(err?.message || "No se pudo crear la cuenta. Inténtalo de nuevo.");
@@ -361,6 +363,20 @@ function StepCuenta({ audience, planId, form, setForm, onNext, onBack, saveForOA
         )}
 
         <form onSubmit={handleRegister} className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Nombre *</label>
+            <div className="relative">
+              <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                required
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                className="admin-input w-full pl-10"
+                placeholder="Tu nombre y apellidos"
+              />
+            </div>
+          </div>
           <div>
             <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Email *</label>
             <div className="relative">
@@ -475,25 +491,41 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
   if (!form.nombre?.trim()) missing.push("nombre");
   if (!email?.trim()) missing.push("email");
   if (!isPlayer && !form.club?.trim()) missing.push(audience === "club" ? "nombre del club" : "club / academia");
-  if (form.clubCode?.trim() && !(form.clubId && form.clubTeamId)) missing.push("código de club válido / equipo");
+  // Código de club inválido: aviso, pero no bloquea el avance (se puede quitar)
+  const clubCodeBlocking = !!(form.clubCode?.trim() && !(form.clubId && form.clubTeamId));
   const valid = missing.length === 0;
 
   const handleNext = () => {
-    if (form.clubCode?.trim() && !resolveClubFromCode(form.clubCode)) return;
-    // Sincronizar email de sesión al form (evita payload vacío en Stripe)
-    if (loggedInEmail && form.email !== loggedInEmail) {
-      setForm((f) => ({ ...f, email: loggedInEmail }));
+    if (clubCodeBlocking) {
+      // No bloquear el cuestionario por un código mal escrito
+      setForm((f) => ({ ...f, clubCode: "", clubId: "", clubTeamId: "" }));
+      setClubTeams([]);
+      setClubCodeMsg("Código no válido: continuamos sin descuento de club.");
     }
+    setForm((f) => ({
+      ...f,
+      email: (loggedInEmail || f.email || "").trim(),
+      nombre: (f.nombre || "").trim(),
+      ...(clubCodeBlocking ? { clubCode: "", clubId: "", clubTeamId: "" } : {}),
+    }));
     if (audience === "coach" || audience === "club") {
-      saveCoachBrandingDraft({
-        logo: form.logo || "",
-        primaryColor: form.primaryColor || "#0A36F7",
-        secondaryColor: form.secondaryColor || "#ffffff",
-        clubName: form.club || "",
-        teamHint: form.equipos || "",
-      });
+      try {
+        saveCoachBrandingDraft({
+          logo: form.logo || "",
+          primaryColor: form.primaryColor || "#0A36F7",
+          secondaryColor: form.secondaryColor || "#ffffff",
+          clubName: form.club || "",
+          teamHint: form.equipos || "",
+        });
+      } catch { /* no bloquear el alta */ }
     }
     onNext();
+  };
+
+  const clearClubCode = () => {
+    setForm((f) => ({ ...f, clubCode: "", clubId: "", clubTeamId: "" }));
+    setClubTeams([]);
+    setClubCodeMsg("");
   };
 
   return (
@@ -517,7 +549,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
               <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text" value={form.nombre}
-                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
                 className="admin-input w-full pl-10"
                 placeholder={audience === "club" ? "Nombre del responsable" : "Tu nombre y apellidos"}
               />
@@ -537,7 +569,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
               ) : (
                 <input
                   type="email" value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   className="admin-input w-full pl-10"
                   placeholder="tu@email.com"
                 />
@@ -554,7 +586,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
                 <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text" value={form.club}
-                  onChange={(e) => setForm({ ...form, club: e.target.value })}
+                  onChange={(e) => setForm((f) => ({ ...f, club: e.target.value }))}
                   className="admin-input w-full pl-10"
                   placeholder="Ciudad, club o academia (opcional)"
                 />
@@ -563,12 +595,12 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
 
             <div>
               <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
-                Código de club <span className="text-depro-gray font-normal normal-case">(descuento 15% y escudo del club)</span>
+                Código de club <span className="text-depro-gray font-normal normal-case">(opcional · descuento 15%)</span>
               </label>
               <input
                 type="text" value={form.clubCode}
                 onChange={(e) => {
-                  setForm({ ...form, clubCode: e.target.value.toUpperCase(), clubId: "", clubTeamId: "" });
+                  setForm((f) => ({ ...f, clubCode: e.target.value.toUpperCase(), clubId: "", clubTeamId: "" }));
                   setClubTeams([]);
                   setClubCodeMsg("");
                 }}
@@ -578,9 +610,14 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
                 maxLength={32}
               />
               {clubCodeMsg && (
-                <p className={`text-xs mt-1.5 ${clubCodeMsg.includes("encontrado") ? "text-green-700" : "text-red-600"}`}>
+                <p className={`text-xs mt-1.5 ${clubCodeMsg.includes("encontrado") && !clubCodeMsg.includes("no encontrado") && !clubCodeMsg.includes("no válido") ? "text-green-700" : "text-amber-700"}`}>
                   {clubCodeMsg}
                 </p>
+              )}
+              {form.clubCode?.trim() && (
+                <button type="button" onClick={clearClubCode} className="text-xs font-semibold text-depro-blue mt-1.5 hover:underline">
+                  Quitar código y continuar sin descuento
+                </button>
               )}
             </div>
 
@@ -591,7 +628,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
                 </label>
                 <select
                   value={form.clubTeamId || ""}
-                  onChange={(e) => setForm({ ...form, clubTeamId: e.target.value })}
+                  onChange={(e) => setForm((f) => ({ ...f, clubTeamId: e.target.value }))}
                   className="admin-input w-full"
                 >
                   {clubTeams.map((t) => (
@@ -614,7 +651,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
                 <Building2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text" value={form.club}
-                  onChange={(e) => setForm({ ...form, club: e.target.value })}
+                  onChange={(e) => setForm((f) => ({ ...f, club: e.target.value }))}
                   className="admin-input w-full pl-10"
                   placeholder={audience === "club" ? "Ej. FC Cantera Norte" : "Ej. Academia o club donde entrenas"}
                 />
@@ -628,7 +665,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
                 <Users size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text" value={form.equipos}
-                  onChange={(e) => setForm({ ...form, equipos: e.target.value })}
+                  onChange={(e) => setForm((f) => ({ ...f, equipos: e.target.value }))}
                   className="admin-input w-full pl-10"
                   placeholder={audience === "club" ? "Ej. 5 categorías" : "Ej. Juvenil A, Cadete B"}
                 />
@@ -641,12 +678,12 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
                 primaryColor={form.primaryColor || "#0A36F7"}
                 secondaryColor={form.secondaryColor || "#ffffff"}
                 title={audience === "coach" ? "Escudo y colores del equipo" : "Escudo y colores del club"}
-                onChange={(b) => setForm({
-                  ...form,
+                onChange={(b) => setForm((f) => ({
+                  ...f,
                   logo: b.logo,
                   primaryColor: b.primaryColor,
                   secondaryColor: b.secondaryColor,
-                })}
+                }))}
               />
             )}
           </>
@@ -656,6 +693,12 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
       {!valid && (
         <p className="mt-4 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
           Completa: {missing.join(", ")}.
+        </p>
+      )}
+      {valid && clubCodeBlocking && (
+        <p className="mt-4 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+          El código de club no es válido. Al continuar se ignorará (sin descuento), o{" "}
+          <button type="button" onClick={clearClubCode} className="font-bold underline">quítalo ahora</button>.
         </p>
       )}
 
@@ -683,42 +726,47 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
     && (form.disponibles?.length || 0) >= freqN;
 
   const toggleObjetivo = (obj) => {
-    const cur = form.objetivos?.length
-      ? form.objetivos
-      : [form.objetivo, form.objetivoSecundario].filter(Boolean);
-    if (cur.includes(obj)) {
-      const next = cur.filter((x) => x !== obj);
-      setForm({ ...form, objetivos: next, objetivo: next[0] || "", objetivoSecundario: next[1] || "" });
-    } else if (cur.length < 2 && freqN > 1) {
+    // max 1 objetivo si entrena 1 día/sem; si aún no eligió frecuencia, permitir hasta 2
+    const maxObjs = form.frecuencia && freqN <= 1 ? 1 : 2;
+    setForm((f) => {
+      const cur = f.objetivos?.length
+        ? f.objetivos
+        : [f.objetivo, f.objetivoSecundario].filter(Boolean);
+      if (cur.includes(obj)) {
+        const next = cur.filter((x) => x !== obj);
+        return { ...f, objetivos: next, objetivo: next[0] || "", objetivoSecundario: next[1] || "" };
+      }
+      if (cur.length >= maxObjs) return f;
       const next = [...cur, obj];
-      setForm({ ...form, objetivos: next, objetivo: next[0], objetivoSecundario: next[1] || "" });
-    }
+      return { ...f, objetivos: next, objetivo: next[0], objetivoSecundario: next[1] || "" };
+    });
   };
 
   const handleFrequencyChange = (v) => {
     const newFreqN = parseInt(String(v).replace(/\D/g, "")) || 3;
-    const cur = form.objetivos?.length
-      ? form.objetivos
-      : [form.objetivo, form.objetivoSecundario].filter(Boolean);
-    let nextObjs = cur;
-    if (newFreqN === 1 && cur.length > 1) nextObjs = [cur[0]];
+    setForm((f) => {
+      const cur = f.objetivos?.length
+        ? f.objetivos
+        : [f.objetivo, f.objetivoSecundario].filter(Boolean);
+      const nextObjs = newFreqN === 1 && cur.length > 1 ? [cur[0]] : cur;
 
-    // Asegurar suficientes días seleccionados al subir la frecuencia
-    let days = [...(form.disponibles || [])];
-    if (days.length < newFreqN) {
-      for (const d of WEEK_DAYS) {
-        if (days.length >= newFreqN) break;
-        if (!days.includes(d)) days.push(d);
+      // Asegurar suficientes días seleccionados al subir la frecuencia
+      let days = [...(f.disponibles || [])];
+      if (days.length < newFreqN) {
+        for (const d of WEEK_DAYS) {
+          if (days.length >= newFreqN) break;
+          if (!days.includes(d)) days.push(d);
+        }
       }
-    }
 
-    setForm({
-      ...form,
-      frecuencia: v,
-      objetivos: nextObjs,
-      objetivo: nextObjs[0] || "",
-      objetivoSecundario: nextObjs[1] || "",
-      disponibles: days,
+      return {
+        ...f,
+        frecuencia: v,
+        objetivos: nextObjs,
+        objetivo: nextObjs[0] || "",
+        objetivoSecundario: nextObjs[1] || "",
+        disponibles: days,
+      };
     });
   };
 
@@ -748,7 +796,7 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
             <Calendar size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="number" min="10" max="60" value={form.edad}
-              onChange={(e) => setForm({ ...form, edad: e.target.value })}
+              onChange={(e) => setForm((f) => ({ ...f, edad: e.target.value }))}
               className="admin-input w-full pl-10"
               placeholder="18"
             />
@@ -760,7 +808,15 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           label="Deporte principal *"
           value={form.deporte}
           options={SPORTS}
-          onChange={(v) => setForm({ ...form, deporte: v })}
+          onChange={(v) => setForm((f) => ({ ...f, deporte: v }))}
+        />
+
+        {/* Frecuencia primero: condiciona cuántos objetivos se permiten */}
+        <Toggle
+          label="Días de entrenamiento por semana *"
+          value={form.frecuencia}
+          options={FREQUENCY}
+          onChange={handleFrequencyChange}
         />
 
         {/* Objetivos */}
@@ -779,7 +835,8 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {OBJECTIVES.map((obj) => {
               const sel = objetivos.includes(obj);
-              const full = (objetivos.length >= 2 && !sel) || (freqN === 1 && objetivos.length >= 1 && !sel);
+              const maxObjs = form.frecuencia && freqN <= 1 ? 1 : 2;
+              const full = objetivos.length >= maxObjs && !sel;
               return (
                 <button
                   key={obj} type="button"
@@ -810,20 +867,12 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           </p>
         </div>
 
-        {/* Frecuencia semanal */}
-        <Toggle
-          label="Días de entrenamiento por semana *"
-          value={form.frecuencia}
-          options={FREQUENCY}
-          onChange={handleFrequencyChange}
-        />
-
         {/* Día de competición */}
         <Toggle
           label="Día habitual de competición *"
           value={form.diaCompeticion}
           options={COMPETITION_DAYS}
-          onChange={(v) => setForm({ ...form, diaCompeticion: v })}
+          onChange={(v) => setForm((f) => ({ ...f, diaCompeticion: v }))}
         />
 
         {/* Días disponibles */}
@@ -837,9 +886,11 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
               return (
                 <button key={day} type="button"
                   onClick={() => {
-                    const cur = form.disponibles || [];
-                    const next = sel ? cur.filter((d) => d !== day) : [...cur, day];
-                    setForm({ ...form, disponibles: next });
+                    setForm((f) => {
+                      const cur = f.disponibles || [];
+                      const next = sel ? cur.filter((d) => d !== day) : [...cur, day];
+                      return { ...f, disponibles: next };
+                    });
                   }}
                   className={`text-xs font-bold px-3 py-2 rounded-xl border ${sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray"}`}
                 >
@@ -857,7 +908,7 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           value={Array.isArray(form.material) ? form.material : (form.material ? [form.material] : [])}
           options={MATERIALS}
           multi
-          onChange={(v) => setForm({ ...form, material: v })}
+          onChange={(v) => setForm((f) => ({ ...f, material: v }))}
         />
         <p className="text-xs text-depro-gray -mt-3">
           Puedes marcar varias opciones. «Gimnasio completo» desbloquea todo el catálogo (barra, máquinas, gomas y mancuernas).
@@ -868,7 +919,7 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
           label="Experiencia entrenando *"
           value={form.experiencia}
           options={EXPERIENCE}
-          onChange={(v) => setForm({ ...form, experiencia: v })}
+          onChange={(v) => setForm((f) => ({ ...f, experiencia: v }))}
         />
 
         {/* Lesiones */}
@@ -1236,7 +1287,10 @@ export default function OnboardingPage() {
 
   const [audience, setAudience] = useState(initialAudience);
   const [step, setStep] = useState(initialPlanId ? 2 : 1);
-  const [planId, setPlanId] = useState(initialPlanId);
+  // Si llega ?audience=coach sin plan, preseleccionar el primero para no bloquear el avance
+  const [planId, setPlanId] = useState(
+    initialPlanId || plansForAudience(initialAudience)[0]?.id || "",
+  );
 
   const [form, setForm] = useState({
     nombre: "",
@@ -1320,7 +1374,6 @@ export default function OnboardingPage() {
     }));
   }, [user]);
 
-  const goToPayment = () => setStep(paymentStep);
   const backFromPayment = () => setStep(isPlayerFlow ? futbolStep : datosStep);
 
   return (
@@ -1368,7 +1421,15 @@ export default function OnboardingPage() {
             form={form}
             setForm={setForm}
             loggedInEmail={user?.email}
-            onNext={() => (isPlayerFlow ? setStep(futbolStep) : goToPayment())}
+            onNext={() => {
+              setForm((f) => ({
+                ...f,
+                email: (user?.email || f.email || "").trim(),
+                nombre: (f.nombre || user?.name || "").trim(),
+              }));
+              if (isPlayerFlow) setStep(futbolStep);
+              else setStep(paymentStep);
+            }}
             onBack={() => setStep(2)}
           />
         )}
@@ -1377,12 +1438,18 @@ export default function OnboardingPage() {
           <StepFutbol
             form={form}
             setForm={setForm}
-            onNext={goToPayment}
+            onNext={() => {
+              setForm((f) => ({
+                ...f,
+                email: (user?.email || f.email || "").trim(),
+              }));
+              setStep(paymentStep);
+            }}
             onBack={() => setStep(datosStep)}
           />
         )}
 
-        {step === paymentStep && (
+        {step === paymentStep && plan?.id && (
           <StepPago
             form={form}
             setForm={setForm}
@@ -1390,6 +1457,14 @@ export default function OnboardingPage() {
             authUserId={user?.id}
             onBack={backFromPayment}
           />
+        )}
+        {step === paymentStep && !plan?.id && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+            No hay un plan seleccionado. Vuelve al primer paso y elige un plan.
+            <button type="button" onClick={() => setStep(1)} className="mt-4 btn-primary flex items-center gap-2">
+              Elegir plan
+            </button>
+          </div>
         )}
       </div>
     </div>
