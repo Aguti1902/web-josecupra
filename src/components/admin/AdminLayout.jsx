@@ -35,6 +35,7 @@ const navGroups = [
     items: [
       { to: "/admin/clubs", icon: Building2, label: "Clubs", tour: "nav-clubs" },
       { to: "/admin/planificacion", icon: CalendarDays, label: "Planificación" },
+      { to: "/admin/club-auto", icon: Sparkles, label: "Motor club auto" },
       { to: "/admin/tests", icon: ClipboardList, label: "Tests físicos" },
     ],
   },
