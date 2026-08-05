@@ -100,6 +100,7 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
     weight: "Peso (kg)",
     sets: "Series",
     reps: "Repeticiones",
+    rest: "Descanso",
     rpe: "RPE / RP",
     time: "Tiempo",
     distance: "Distancia",
@@ -107,6 +108,7 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
     feelings: "Sensaciones",
     notes: "Observaciones",
   };
+  const loadPrescription = exercise.load || exercise.weight || exercise.peso || null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -118,8 +120,9 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
         <h3 className="text-xl font-black text-depro-dark mb-1">{exercise.name}</h3>
         <div className="flex flex-wrap items-center gap-2 mb-5">
           <ConditionPill Icon={Clock} label={exercise.duration} color={accent} />
-          <ConditionPill Icon={Gauge} label={`${exercise.sets} series`} />
-          <ConditionPill Icon={Pause} label={exercise.reps} />
+          {exercise.sets && <ConditionPill Icon={Gauge} label={`${exercise.sets} series`} />}
+          {exercise.reps && <ConditionPill Icon={Pause} label={exercise.reps} />}
+          {loadPrescription && <ConditionPill Icon={Dumbbell} label={`Carga: ${loadPrescription}`} color={accent} />}
           {exercise.rest && <ConditionPill Icon={Pause} label={`Descanso: ${exercise.rest}`} />}
         </div>
         {ytId ? (
@@ -216,6 +219,17 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
                     </div>
                   </div>
                 ))}
+                {fields.includes("rest") && (
+                  <div>
+                    <label className="text-[10px] font-bold text-depro-gray uppercase">{fieldLabels.rest}</label>
+                    <input
+                      className="admin-input w-full text-xs mt-1"
+                      placeholder={exercise.rest || "90\""}
+                      value={loadDraft.rest || ""}
+                      onChange={(e) => setLoadDraft({ ...loadDraft, rest: e.target.value })}
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="text-[10px] font-bold text-depro-gray uppercase">Observaciones</label>
                   <textarea
@@ -308,6 +322,10 @@ function BlockExerciseList({ exercises, accentColor, onSelect }) {
                 {ex.duration && <ConditionPill Icon={Clock} label={ex.duration} color={accentColor} />}
                 {ex.sets && <ConditionPill Icon={Gauge} label={`${ex.sets} series`} />}
                 {ex.reps && <ConditionPill Icon={Pause} label={ex.reps} />}
+                {(ex.load || ex.weight || ex.peso) && (
+                  <ConditionPill Icon={Dumbbell} label={`Carga: ${ex.load || ex.weight || ex.peso}`} color={accentColor} />
+                )}
+                {ex.rest && <ConditionPill Icon={Pause} label={`Descanso: ${ex.rest}`} />}
               </div>
             </div>
             <span className="text-[10px] font-bold text-depro-blue shrink-0 flex items-center gap-1">

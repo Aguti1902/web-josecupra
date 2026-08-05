@@ -128,8 +128,8 @@ export const PLANS = {
     features: [
       "Planificación con IA diseñada por un profesional CAFE (UB)",
       "Metodología propia adaptada a tus cuestionarios y datos",
-      "Ranking interno y tests físicos con seguimiento",
-      "Extras opcionales: PDF (+5€), progresión (+5€), biblioteca (+5€)",
+      "Ranking interno y seguimiento de progreso",
+      "Extras opcionales (+5€ c/u): PDF, Registro de cargas, Progresión y test, Ejercicios ilimitados + carpeta",
       "Código de club aplicable",
     ],
     color: "#0A36F7",
@@ -184,8 +184,12 @@ export function formatPrice(price) {
   return `${price.toFixed(2).replace(".", ",")}€`;
 }
 
-export function applyClubDiscount(price) {
-  return Math.round(price * 0.85 * 100) / 100;
+/** Descuento del código club en planificaciones individuales (10%). */
+export const CLUB_DISCOUNT_PCT = 10;
+
+export function applyClubDiscount(price, pct = CLUB_DISCOUNT_PCT) {
+  const rate = 1 - (Number(pct) || CLUB_DISCOUNT_PCT) / 100;
+  return Math.round(price * rate * 100) / 100;
 }
 
 /** Límites del plan. Si el plan no se reconoce, se devuelve ilimitado (fail-open). */

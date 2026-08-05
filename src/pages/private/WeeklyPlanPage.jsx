@@ -22,8 +22,9 @@ import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "..
 import {
   canSwapExercise, recordSwap, swapsRemaining, hasUnlimitedSwaps, MAINTENANCE_MESSAGE, MAX_PLAN_SWAPS,
 } from "../../lib/planSwapLimits";
-import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
-import { hasFeatureAccess } from "../../lib/subscription";
+import { canPersistInTrial } from "../../lib/trialPersistence";
+import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
+import { canDownloadTrialPdf, recordTrialPdfDownload, trialPdfLimitMessage } from "../../lib/trialPdfLimit";
 import { savePlayerPlan } from "../../lib/playerPlanStorage";
 import CoachSessions from "../../components/private/CoachSessions";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
@@ -768,11 +769,16 @@ function PlayerWeeklyPlan({ accent }) {
         onComplete={() => handleSessionComplete(microRef.id, microRef.dayName)}
         onUncomplete={() => handleSessionToggle(microRef.id, microRef.dayName)}
         onDownloadPdf={() => {
-          if (!hasFeatureAccess(user, "pdf_export")) return;
-          if (!canPersistInTrial(user, "pdf_export")) {
-            alert(trialPersistBlockedMessage());
+          if (isInTrial(user)) {
+            if (!canDownloadTrialPdf(user?.id)) {
+              alert(trialPdfLimitMessage());
+              return;
+            }
+            sessionPdf(activeSession);
+            recordTrialPdfDownload(user?.id);
             return;
           }
+          if (!hasFeatureAccess(user, "pdf_export")) return;
           sessionPdf(activeSession);
         }}
         onSwapExercise={(exerciseId) => handleExerciseSwap(activeSession.id, exerciseId)}
