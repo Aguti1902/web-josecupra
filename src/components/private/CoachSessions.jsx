@@ -188,7 +188,7 @@ export default function CoachSessions({ club, team }) {
   const clubId = club?.id;
   const teamId = team?.id;
   const isPersonalizado = club?.mode === "personalizado";
-  const isClubAuto = usesClubAutoEngine(club) || usesClubAutoEngine(config);
+  const isClubAuto = usesClubAutoEngine({ ...club, coachConfig: config });
 
   const [weekOffset, setWeekOffset] = useState(0);
   const weekStart = useMemo(() => mondayOfWeek(weekOffset), [weekOffset]);

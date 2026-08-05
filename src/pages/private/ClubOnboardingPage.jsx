@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, ArrowRight, CheckCircle, Building2, Users, MapPin, Loader2,
@@ -10,10 +10,15 @@ import TeamBrandingFields, {
   loadCoachBrandingDraft,
   clearCoachBrandingDraft,
 } from "../../components/shared/TeamBrandingFields";
+import CoachAutoQuestionnaire, {
+  questionnaireToCoachConfig,
+} from "../../components/shared/CoachAutoQuestionnaire";
+import {
+  categoryForNivel,
+  CLUB_AUTO_MATCH_DAYS,
+  CLUB_AUTO_NIVELES,
+} from "../../lib/clubAuto/clubAutoCoachBridge";
 
-const CATEGORIES = ["Sub-9", "Sub-10", "Sub-11", "Sub-12", "Sub-13", "Sub-14", "Sub-15", "Sub-16", "Juvenil", "Amateur"];
-const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const STEPS = ["Tu club", "Primer equipo", "Confirmar"];
 
 function genId(prefix) {
@@ -59,33 +64,36 @@ export default function ClubOnboardingPage() {
     city: "",
     country: "España",
     teamName: brandingDraft.teamHint || "",
-    category: "Sub-14",
     season: "2025/2026",
-    trainingDays: ["Martes", "Jueves"],
     logo: brandingDraft.logo || "",
     primaryColor: brandingDraft.primaryColor || user?.primaryColor || "#0A36F7",
     secondaryColor: brandingDraft.secondaryColor || user?.secondaryColor || "#ffffff",
   });
+  const [autoQ, setAutoQ] = useState({
+    nivel: "B",
+    dias_entrenamiento_semana: 3,
+    dias_exactos_entrenamiento: ["Martes", "Jueves", "Viernes"],
+    dia_partido: "sabado",
+    acceso_gimnasio: "no",
+  });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const toggleDay = (day) => {
-    setForm((f) => {
-      const has = f.trainingDays.includes(day);
-      const next = has ? f.trainingDays.filter((d) => d !== day) : [...f.trainingDays, day];
-      return { ...f, trainingDays: next };
-    });
-  };
-
+  const packedQ = useMemo(() => questionnaireToCoachConfig(autoQ), [autoQ]);
   const loginCode = generateLoginCode(form.abbreviation);
   const step1Valid = form.clubName.trim().length > 1 && form.abbreviation.trim().length >= 2;
-  const step2Valid = form.teamName.trim().length > 0 && [2, 3, 4].includes(form.trainingDays.length);
+  const step2Valid = form.teamName.trim().length > 0 && packedQ.ok;
 
   const handleConfirm = async () => {
+    if (!packedQ.ok) {
+      setError(packedQ.errors.join(" "));
+      return;
+    }
     setSaving(true);
     setError("");
     try {
       const clubId = genId("club");
       const teamId = genId("team");
+      const category = categoryForNivel(packedQ.config.nivel);
 
       const club = {
         id: clubId,
@@ -100,6 +108,9 @@ export default function ClubOnboardingPage() {
         logo: form.logo || null,
         primaryColor: form.primaryColor || "#0A36F7",
         secondaryColor: form.secondaryColor || "#ffffff",
+        planningMode: "auto",
+        mode: "depro",
+        coachConfig: packedQ.config,
         coordinator: {
           name: user?.name || "",
           email: user?.email || "",
@@ -108,9 +119,9 @@ export default function ClubOnboardingPage() {
           {
             id: teamId,
             name: form.teamName.trim(),
-            category: form.category,
+            category,
             season: form.season,
-            trainingDays: form.trainingDays,
+            trainingDays: packedQ.config.dias_exactos_entrenamiento,
             coach: null,
             squad: [],
           },
@@ -143,6 +154,9 @@ export default function ClubOnboardingPage() {
     }
   };
 
+  const nivelLabel = CLUB_AUTO_NIVELES.find((n) => n.id === autoQ.nivel)?.label || autoQ.nivel;
+  const matchLabel = CLUB_AUTO_MATCH_DAYS.find((m) => m.id === autoQ.dia_partido)?.label || autoQ.dia_partido;
+
   return (
     <div className="min-h-screen bg-depro-gray-light py-10 px-4">
       <div className="max-w-3xl mx-auto">
@@ -156,7 +170,7 @@ export default function ClubOnboardingPage() {
         <div className="bg-white border border-depro-border rounded-2xl p-6 md:p-8 shadow-sm">
           <h1 className="text-2xl font-black text-depro-dark mb-1">Configura tu club</h1>
           <p className="text-sm text-depro-gray mb-6">
-            En unos minutos tendrás tu club operativo: identidad, código de jugadores y primer equipo.
+            Identidad del club y cuestionario corto del motor automático (nivel, días, partido, gimnasio).
           </p>
 
           <StepHeader current={step} />
@@ -237,7 +251,7 @@ export default function ClubOnboardingPage() {
           {step === 2 && (
             <div className="space-y-5">
               <div className="flex items-center gap-2 text-depro-dark font-bold">
-                <Users size={18} className="text-depro-blue" /> Primer equipo
+                <Users size={18} className="text-depro-blue" /> Primer equipo + microciclo
               </div>
               <div>
                 <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1">Nombre del equipo *</label>
@@ -248,46 +262,20 @@ export default function ClubOnboardingPage() {
                   onChange={(e) => set("teamName", e.target.value)}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1">Categoría</label>
-                  <select
-                    className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    value={form.category}
-                    onChange={(e) => set("category", e.target.value)}
-                  >
-                    {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1">Temporada</label>
-                  <input
-                    className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-                    value={form.season}
-                    onChange={(e) => set("season", e.target.value)}
-                  />
-                </div>
-              </div>
               <div>
-                <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-2">
-                  Días de entrenamiento * <span className="font-normal normal-case">(2–4)</span>
-                </label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {DAYS.map((day, i) => (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => toggleDay(day)}
-                      className={`w-10 h-10 rounded-xl text-xs font-bold border transition-colors ${
-                        form.trainingDays.includes(day)
-                          ? "bg-depro-blue border-depro-blue text-white"
-                          : "border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue"
-                      }`}
-                    >
-                      {DAY_SHORT[i]}
-                    </button>
-                  ))}
-                </div>
+                <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1">Temporada</label>
+                <input
+                  className="w-full sm:w-48 border border-depro-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+                  value={form.season}
+                  onChange={(e) => set("season", e.target.value)}
+                />
+              </div>
+              <div className="border-t border-depro-border pt-5">
+                <p className="text-sm font-bold text-depro-dark mb-1">Cuestionario del entrenador</p>
+                <p className="text-xs text-depro-gray mb-4">
+                  Solo nivel, días, partido y gimnasio. La categoría del equipo se deriva del nivel.
+                </p>
+                <CoachAutoQuestionnaire value={autoQ} onChange={setAutoQ} />
               </div>
             </div>
           )}
@@ -313,12 +301,24 @@ export default function ClubOnboardingPage() {
                 <div className="p-4 flex justify-between gap-4">
                   <span className="text-xs font-bold text-depro-gray uppercase">Equipo</span>
                   <span className="text-sm font-bold text-depro-dark text-right">
-                    {form.teamName} · {form.category}
+                    {form.teamName} · {categoryForNivel(autoQ.nivel)}
                   </span>
                 </div>
                 <div className="p-4 flex justify-between gap-4">
+                  <span className="text-xs font-bold text-depro-gray uppercase">Nivel</span>
+                  <span className="text-sm font-medium text-depro-dark text-right">{nivelLabel}</span>
+                </div>
+                <div className="p-4 flex justify-between gap-4">
                   <span className="text-xs font-bold text-depro-gray uppercase">Entrenos</span>
-                  <span className="text-sm font-medium text-depro-dark text-right">{form.trainingDays.join(", ")}</span>
+                  <span className="text-sm font-medium text-depro-dark text-right">
+                    {(autoQ.dias_exactos_entrenamiento || []).join(", ")}
+                  </span>
+                </div>
+                <div className="p-4 flex justify-between gap-4">
+                  <span className="text-xs font-bold text-depro-gray uppercase">Partido / gym</span>
+                  <span className="text-sm font-medium text-depro-dark text-right">
+                    {matchLabel} · gym {autoQ.acceso_gimnasio === "si" ? "sí" : "no"}
+                  </span>
                 </div>
               </div>
               {error && (

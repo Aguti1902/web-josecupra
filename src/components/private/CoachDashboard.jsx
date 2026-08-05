@@ -49,7 +49,7 @@ export default function CoachDashboard({ club, team, user }) {
     } catch { setSquad([]); }
   }, [club?.id, team?.id]);
 
-  const isClubAuto = usesClubAutoEngine(club) || usesClubAutoEngine(config);
+  const isClubAuto = usesClubAutoEngine({ ...club, coachConfig: config });
 
   const microciclo = useMemo(() => {
     if (isClubAuto) {

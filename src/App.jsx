@@ -210,6 +210,8 @@ function AppRoutes() {
       <Route path="/admin/clubs/:id" element={<AdminRoute><AdminLayout><AdminClubDetailPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/planificacion" element={<AdminRoute><AdminLayout><AdminPlanificacionPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/club-auto" element={<AdminRoute><AdminLayout><AdminClubAutoMotorPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/motor_club" element={<Navigate to="/admin/club-auto" replace />} />
+      <Route path="/admin/motor-club" element={<Navigate to="/admin/club-auto" replace />} />
       <Route path="/admin/tests" element={<AdminRoute><AdminLayout><AdminTestsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/catalog" element={<AdminRoute><AdminLayout><AdminExerciseLibraryPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/coach-library" element={<Navigate to="/admin/catalog?tab=coach" replace />} />

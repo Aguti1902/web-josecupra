@@ -122,6 +122,22 @@ function NewClubModal({ onClose, onCreate }) {
       plan: form.planId,
       subscriptionStatus: form.subscriptionStatus,
       planningMode: form.planningMode === "manual" ? "manual" : "auto",
+      mode: form.planningMode === "manual" ? "personalizado" : "depro",
+      coachConfig: form.planningMode === "manual"
+        ? { engine: "manual", mode: "personalizado" }
+        : {
+            engine: "club_auto",
+            mode: "depro",
+            nivel: "B",
+            dias_entrenamiento_semana: 3,
+            dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
+            dia_partido: "sabado",
+            acceso_gimnasio: "no",
+            gymAccess: false,
+            trainingsPerWeek: 3,
+            trainingDays: ["Lunes", "Miércoles", "Viernes"],
+            matchDay: "sabado",
+          },
       createdAt: new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }),
       coordinator: {
         name: form.coordinatorName,

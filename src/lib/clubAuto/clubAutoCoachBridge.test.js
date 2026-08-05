@@ -9,10 +9,31 @@ import {
 import { CLUB_MAIN_TASKS } from "../../data/clubAutoCatalog.js";
 
 describe("clubAutoCoachBridge", () => {
-  it("detecta engine club_auto", () => {
+  it("detecta engine club_auto y respeta modo personalizado/manual", () => {
     assert.equal(usesClubAutoEngine({ coachConfig: { engine: "club_auto", nivel: "B" } }), true);
-    assert.equal(usesClubAutoEngine({ coachConfig: { nivel: "A" } }), true);
+    // Config suelta con nivel A/B/C (sin wrapper club)
+    assert.equal(usesClubAutoEngine({ nivel: "A", engine: "club_auto" }), true);
+    assert.equal(usesClubAutoEngine({ nivel: "A" }), true);
     assert.equal(usesClubAutoEngine({ coachConfig: { trainingsPerWeek: 3 } }), false);
+    // Solo nivel dentro de club sin engine/planningMode → no fuerza motor
+    assert.equal(usesClubAutoEngine({ coachConfig: { nivel: "A" } }), false);
+    assert.equal(usesClubAutoEngine({
+      mode: "personalizado",
+      planningMode: "manual",
+      coachConfig: { engine: "club_auto", nivel: "B" },
+    }), false);
+    assert.equal(usesClubAutoEngine({
+      coachConfig: { engine: "club_auto", nivel: "B", mode: "personalizado" },
+    }), false);
+    assert.equal(usesClubAutoEngine({
+      planningMode: "auto",
+      isSoloCoach: true,
+      coachConfig: { nivel: "B" },
+    }), true);
+    assert.equal(usesClubAutoEngine({
+      planningMode: "auto",
+      coachConfig: { engine: "club_auto", nivel: "C" },
+    }), true);
   });
 
   it("mapea cuestionario corto y genera semana con estructura 5 bloques", () => {

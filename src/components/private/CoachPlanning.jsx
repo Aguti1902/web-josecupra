@@ -36,7 +36,7 @@ export default function CoachPlanning({ club, team }) {
   const config = useMemo(() => club?.coachConfig || {}, [club?.coachConfig]);
   const clubId = club?.id;
   const teamId = team?.id;
-  const isClubAuto = usesClubAutoEngine(club) || usesClubAutoEngine(config);
+  const isClubAuto = usesClubAutoEngine({ ...club, coachConfig: config });
 
   const [libraryReady, setLibraryReady] = useState(false);
   const [mesociclo, setMesociclo] = useState(null);
