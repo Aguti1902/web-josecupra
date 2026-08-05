@@ -6,6 +6,10 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { saveClub, generateLoginCode } from "../../lib/adminStorage";
+import TeamBrandingFields, {
+  loadCoachBrandingDraft,
+  clearCoachBrandingDraft,
+} from "../../components/shared/TeamBrandingFields";
 
 const CATEGORIES = ["Sub-9", "Sub-10", "Sub-11", "Sub-12", "Sub-13", "Sub-14", "Sub-15", "Sub-16", "Juvenil", "Amateur"];
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -48,15 +52,19 @@ export default function ClubOnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const brandingDraft = loadCoachBrandingDraft() || {};
   const [form, setForm] = useState({
-    clubName: user?.clubName || "",
-    abbreviation: (user?.clubName || "CLB").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "CLB",
+    clubName: brandingDraft.clubName || user?.clubName || "",
+    abbreviation: ((brandingDraft.clubName || user?.clubName || "CLB").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase()) || "CLB",
     city: "",
     country: "España",
-    teamName: "",
+    teamName: brandingDraft.teamHint || "",
     category: "Sub-14",
     season: "2025/2026",
     trainingDays: ["Martes", "Jueves"],
+    logo: brandingDraft.logo || "",
+    primaryColor: brandingDraft.primaryColor || user?.primaryColor || "#0A36F7",
+    secondaryColor: brandingDraft.secondaryColor || user?.secondaryColor || "#ffffff",
   });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -89,8 +97,9 @@ export default function ClubOnboardingPage() {
         plan: user?.plan || "club-inicial",
         loginCode,
         login_code: loginCode,
-        primaryColor: "#0A36F7",
-        secondaryColor: "#ffffff",
+        logo: form.logo || null,
+        primaryColor: form.primaryColor || "#0A36F7",
+        secondaryColor: form.secondaryColor || "#ffffff",
         coordinator: {
           name: user?.name || "",
           email: user?.email || "",
@@ -112,6 +121,7 @@ export default function ClubOnboardingPage() {
       };
 
       await saveClub(club);
+      clearCoachBrandingDraft();
 
       const { error: updErr } = await supabase.auth.updateUser({
         data: {
@@ -209,6 +219,18 @@ export default function ClubOnboardingPage() {
                   <p className="mt-2 font-mono text-lg font-black text-depro-blue tracking-wider">{loginCode}</p>
                 </div>
               </div>
+              <TeamBrandingFields
+                logo={form.logo || ""}
+                primaryColor={form.primaryColor || "#0A36F7"}
+                secondaryColor={form.secondaryColor || "#ffffff"}
+                title="Escudo y colores del club"
+                onChange={(b) => setForm((f) => ({
+                  ...f,
+                  logo: b.logo,
+                  primaryColor: b.primaryColor,
+                  secondaryColor: b.secondaryColor,
+                }))}
+              />
             </div>
           )}
 

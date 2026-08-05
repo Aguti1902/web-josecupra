@@ -122,6 +122,8 @@ export async function syncCheckoutSession(supabaseAdmin, session) {
     clubCode: meta.clubCode || "",
     clubId: meta.clubId || "",
     clubName: meta.clubName || meta.club || "",
+    primaryColor: meta.primaryColor || "",
+    secondaryColor: meta.secondaryColor || "",
   };
 
   const { data: list } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });

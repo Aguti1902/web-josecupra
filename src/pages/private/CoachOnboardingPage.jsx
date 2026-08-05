@@ -14,31 +14,25 @@ import {
   CLUB_AUTO_MATCH_DAYS,
   categoryForNivel,
 } from "../../lib/clubAuto/clubAutoCoachBridge";
+import TeamBrandingFields, {
+  loadCoachBrandingDraft,
+  clearCoachBrandingDraft,
+} from "../../components/shared/TeamBrandingFields";
 
 const STEPS = ["Tu equipo", "Microciclo", "Confirmar"];
 
-function TagGroup({ options, value, onChange, multi = false, renderLabel = (o) => o.label ?? o }) {
+function TagGroup({ options, value, onChange, renderLabel = (o) => o.label ?? o }) {
   const getId = (o) => (typeof o === "string" ? o : o.id);
-  const isSelected = (o) => (multi ? (value || []).includes(getId(o)) : value === getId(o));
-  const handle = (o) => {
-    const id = getId(o);
-    if (multi) {
-      const next = (value || []).includes(id) ? value.filter((v) => v !== id) : [...(value || []), id];
-      onChange(next);
-    } else {
-      onChange(id);
-    }
-  };
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((o) => {
         const id = getId(o);
-        const sel = isSelected(o);
+        const sel = value === id;
         return (
           <button
             key={id}
             type="button"
-            onClick={() => handle(o)}
+            onClick={() => onChange(id)}
             className={`text-sm font-bold px-3.5 py-2 rounded-xl border transition-all ${
               sel
                 ? "bg-depro-blue border-depro-blue text-white"
@@ -82,10 +76,25 @@ function genId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function initialForm(user) {
+  const draft = loadCoachBrandingDraft() || {};
+  return {
+    teamName: draft.teamHint || draft.clubName || "",
+    season: "2025/2026",
+    nivel: "B",
+    dias_entrenamiento_semana: 3,
+    dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
+    dia_partido: "sabado",
+    acceso_gimnasio: "no",
+    logo: draft.logo || "",
+    primaryColor: draft.primaryColor || user?.primaryColor || "#0A36F7",
+    secondaryColor: draft.secondaryColor || user?.secondaryColor || "#ffffff",
+  };
+}
+
 /**
- * Cuestionario corto del documento (rama automática clubs/entrenadores):
- * nivel A/B/C · 2/3/4 entrenos · días exactos · día partido · gimnasio.
- * No pregunta metodología, jugadores, táctica ni espacio.
+ * Cuestionario corto del documento + escudo/colores del registro.
+ * nivel A/B/C · 2/3/4 · días exactos · partido · gimnasio · branding opcional.
  */
 export default function CoachOnboardingPage() {
   const { user, refreshUser } = useAuth();
@@ -93,16 +102,7 @@ export default function CoachOnboardingPage() {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  const [form, setForm] = useState({
-    teamName: "",
-    season: "2025/2026",
-    nivel: "B",
-    dias_entrenamiento_semana: 3,
-    dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
-    dia_partido: "sabado",
-    acceso_gimnasio: "no",
-  });
+  const [form, setForm] = useState(() => initialForm(user));
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const questionnaire = useMemo(() => ({
@@ -114,7 +114,6 @@ export default function CoachOnboardingPage() {
   }), [form]);
 
   const validation = useMemo(() => validateCoachQuestionnaire(questionnaire), [questionnaire]);
-
   const step1Valid = form.teamName.trim().length > 0;
   const step2Valid = validation.ok;
 
@@ -123,9 +122,7 @@ export default function CoachOnboardingPage() {
       const cur = f.dias_exactos_entrenamiento || [];
       const has = cur.includes(day);
       let next = has ? cur.filter((d) => d !== day) : [...cur, day];
-      if (next.length > f.dias_entrenamiento_semana) {
-        next = next.slice(-f.dias_entrenamiento_semana);
-      }
+      if (next.length > f.dias_entrenamiento_semana) next = next.slice(-f.dias_entrenamiento_semana);
       return { ...f, dias_exactos_entrenamiento: next };
     });
   };
@@ -180,8 +177,9 @@ export default function CoachOnboardingPage() {
           matchDay: form.dia_partido,
           mode: "depro",
         },
-        primaryColor: "#0A36F7",
-        secondaryColor: "#ffffff",
+        logo: form.logo || null,
+        primaryColor: form.primaryColor || "#0A36F7",
+        secondaryColor: form.secondaryColor || "#ffffff",
         coordinator: null,
         teams: [
           {
@@ -199,14 +197,10 @@ export default function CoachOnboardingPage() {
       };
 
       await saveClub(club);
+      clearCoachBrandingDraft();
 
       const { error: updErr } = await supabase.auth.updateUser({
-        data: {
-          role: "club",
-          clubId,
-          teamId,
-          teamRole: "entrenador",
-        },
+        data: { role: "club", clubId, teamId, teamRole: "entrenador" },
       });
       if (updErr) throw updErr;
 
@@ -257,22 +251,24 @@ export default function CoachOnboardingPage() {
                   <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
                     <Trophy size={12} /> Nivel del equipo *
                   </label>
-                  <TagGroup
-                    options={CLUB_AUTO_NIVELES}
-                    value={form.nivel}
-                    onChange={(v) => set("nivel", v)}
-                    renderLabel={(o) => o.label}
-                  />
+                  <TagGroup options={CLUB_AUTO_NIVELES} value={form.nivel} onChange={(v) => set("nivel", v)} renderLabel={(o) => o.label} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Temporada</label>
-                  <input
-                    type="text"
-                    value={form.season}
-                    onChange={(e) => set("season", e.target.value)}
-                    className="admin-input w-full sm:w-48"
-                  />
+                  <input type="text" value={form.season} onChange={(e) => set("season", e.target.value)} className="admin-input w-full sm:w-48" />
                 </div>
+                <TeamBrandingFields
+                  logo={form.logo || ""}
+                  primaryColor={form.primaryColor || "#0A36F7"}
+                  secondaryColor={form.secondaryColor || "#ffffff"}
+                  title="Escudo y colores del equipo"
+                  onChange={(b) => setForm((f) => ({
+                    ...f,
+                    logo: b.logo,
+                    primaryColor: b.primaryColor,
+                    secondaryColor: b.secondaryColor,
+                  }))}
+                />
               </div>
               <div className="mt-8 flex justify-end">
                 <button onClick={() => setStep(2)} disabled={!step1Valid} className="btn-primary flex items-center gap-2 disabled:opacity-50">
@@ -327,12 +323,7 @@ export default function CoachOnboardingPage() {
                   <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
                     <Trophy size={12} /> Día de partido *
                   </label>
-                  <TagGroup
-                    options={CLUB_AUTO_MATCH_DAYS}
-                    value={form.dia_partido}
-                    onChange={(v) => set("dia_partido", v)}
-                    renderLabel={(o) => o.label}
-                  />
+                  <TagGroup options={CLUB_AUTO_MATCH_DAYS} value={form.dia_partido} onChange={(v) => set("dia_partido", v)} renderLabel={(o) => o.label} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
@@ -370,7 +361,14 @@ export default function CoachOnboardingPage() {
                 Activaremos el motor automático: calentamiento → balón → protocolo → tarea principal.
               </p>
               <div className="bg-depro-gray-light rounded-2xl p-5 space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-depro-gray">Equipo</span><span className="font-bold text-depro-dark">{form.teamName}</span></div>
+                <div className="flex justify-between items-center gap-3">
+                  <span className="text-depro-gray">Equipo</span>
+                  <span className="font-bold text-depro-dark flex items-center gap-2">
+                    {form.logo && <img src={form.logo} alt="" className="w-7 h-7 rounded-lg object-contain bg-white border border-depro-border" />}
+                    <span className="inline-block w-3 h-3 rounded-full border border-depro-border" style={{ backgroundColor: form.primaryColor || "#0A36F7" }} />
+                    {form.teamName}
+                  </span>
+                </div>
                 <div className="flex justify-between"><span className="text-depro-gray">Nivel</span><span className="font-bold text-depro-dark">{nivelLabel}</span></div>
                 <div className="flex justify-between"><span className="text-depro-gray">Entrenamientos/semana</span><span className="font-bold text-depro-dark">{form.dias_entrenamiento_semana}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-depro-gray shrink-0">Días</span><span className="font-bold text-depro-dark text-right">{form.dias_exactos_entrenamiento.join(", ")}</span></div>
