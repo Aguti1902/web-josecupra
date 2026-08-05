@@ -1,5 +1,5 @@
 const REGISTRY_ID = "CLUB_REFERRAL_REGISTRY";
-export const REFERRAL_COMMISSION_RATE = 0.15;
+export const REFERRAL_COMMISSION_RATE = 0.10;
 
 export async function loadReferralRegistry(admin) {
   const { data } = await admin.from("clubs_detail").select("data").eq("club_id", REGISTRY_ID).maybeSingle();

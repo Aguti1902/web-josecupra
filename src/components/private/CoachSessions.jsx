@@ -12,6 +12,7 @@ import {
 import { loadFavorites, toggleFavorite } from "../../lib/coachFavorites";
 import { PROTOCOLOS, CATEGORY_PROTOCOLS } from "../../data/coachExerciseLibrary";
 import { usesClubAutoEngine } from "../../lib/clubAuto/clubAutoCoachBridge";
+import ClubAutoSessionView from "./ClubAutoSessionView";
 
 function lum(hex) {
   try {
@@ -435,46 +436,8 @@ export default function CoachSessions({ club, team }) {
               </div>
 
               <div className="p-5 space-y-3">
-                {isClubAuto && activeSession.structure?.length ? (
-                  <div className="space-y-4">
-                    {activeSession.structure.map((block) => (
-                      <div key={block.label} className="border border-depro-border rounded-xl p-4">
-                        <p className="text-[11px] font-black uppercase tracking-wide text-depro-gray mb-2">{block.label}</p>
-                        {block.type === "protocolo" ? (
-                          <div className="space-y-1.5">
-                            <p className="text-xs text-depro-gray mb-2">{block.template?.format}</p>
-                            {(block.exercises || []).map((ex, i) => (
-                              <div key={`${ex.slot}-${i}`} className="flex items-center justify-between gap-2 text-xs bg-depro-gray-light/50 rounded-lg px-3 py-2">
-                                <span className="font-medium text-depro-dark flex items-center gap-1.5 min-w-0">
-                                  <Dumbbell size={12} className="text-depro-blue shrink-0" />
-                                  <span className="truncate">{i + 1}. {ex.nombre}</span>
-                                </span>
-                                <span className="text-depro-gray shrink-0">{ex.sets} / {ex.rest}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : block.type === "observaciones" ? (
-                          <div className="text-xs text-depro-dark space-y-1 bg-amber-50 border border-amber-100 rounded-lg p-3">
-                            <p>{block.item?.observaciones}</p>
-                            {block.item?.adaptaciones_jugadores && (
-                              <p className="text-depro-gray"><strong>Jugadores:</strong> {block.item.adaptaciones_jugadores}</p>
-                            )}
-                            {block.item?.adaptaciones_espacio && (
-                              <p className="text-depro-gray"><strong>Espacio:</strong> {block.item.adaptaciones_espacio}</p>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-xs bg-depro-gray-light/50 rounded-lg px-3 py-2">
-                            <p className="font-semibold text-depro-dark">{block.item?.nombre}</p>
-                            <p className="text-depro-gray mt-0.5">{block.item?.descripcion || block.item?.duracion}</p>
-                            {block.item?.carpeta && (
-                              <p className="text-[10px] text-depro-gray mt-1 font-mono">{block.item.carpeta}</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                {(isClubAuto || activeSession.engine === "club_auto") && activeSession.structure?.length ? (
+                  <ClubAutoSessionView session={activeSession} accent={accent} />
                 ) : (
                 <div className="space-y-3">
                   {(activeSession.exercises || []).map((ex, idx) => (

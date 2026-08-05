@@ -138,18 +138,26 @@ export function generateClubAutoMesocicloForCoach(config, { startDate, numWeeks 
   const q = coachConfigToQuestionnaire(config);
   const weeksRaw = generateClubAutoFourWeeks(q);
   const nivelLabel = CLUB_AUTO_NIVELES.find((n) => n.id === q.nivel)?.label || q.nivel;
+  const base = startDate ? new Date(`${startDate}T00:00:00`) : new Date();
   return {
     engine: "club_auto",
     startDate,
     numWeeks,
-    objetivoLabel: `Motor automático · Nivel ${nivelLabel}`,
+    objetivoLabel: `Planificación mensual · Nivel ${nivelLabel}`,
     weeks: weeksRaw.map((w, i) => {
-      const adapted = adaptClubAutoWeek(w, startDate);
+      const weekStartDate = new Date(base);
+      weekStartDate.setDate(base.getDate() + i * 7);
+      const weekStart = weekStartDate.toISOString().slice(0, 10);
+      const adapted = adaptClubAutoWeek(w, weekStart);
+      const sessions = adapted.sessions || [];
       return {
         weekNumber: i + 1,
+        weekStart,
         label: w.label || `Semana ${i + 1}`,
         summary: w.summary || adapted.summary,
-        sessions: adapted.sessions,
+        sessions,
+        // Compat con UI manual (CoachPlanning espera microciclo.sessions)
+        microciclo: { sessions, weekStart, engine: "club_auto", summary: adapted.summary },
         focus: adapted.summary,
       };
     }),

@@ -1,59 +1,66 @@
-/** Extras opcionales para jugadores (5€/mes cada uno en plan Básico). */
+/**
+ * Extras individuales — solo 4 productos (correcciones finales §9).
+ * Algunos agrupan servicios que antes estaban separados.
+ */
 export const PLAYER_ADDONS = [
   {
     id: "addon-pdf",
     featureId: "pdf_export",
-    name: "Export PDF",
-    description: "Descarga sesiones y planes en PDF profesional.",
+    featureIds: ["pdf_export"],
+    name: "PDF",
+    description: "Descarga sesiones y tu planificación mensual en PDF profesional.",
     price: 5,
     period: "/ mes",
   },
   {
     id: "addon-cargas",
     featureId: "cargas",
+    featureIds: ["cargas"],
     name: "Registro de cargas",
-    description: "Registra peso, series, RPE e histórico por ejercicio.",
-    price: 5,
-    period: "/ mes",
-  },
-  {
-    id: "addon-physical-tests",
-    featureId: "physical_tests",
-    name: "Tests físicos",
-    description: "Batería de tests físicos con seguimiento.",
-    price: 5,
-    period: "/ mes",
-  },
-  {
-    id: "addon-unlimited-exercises",
-    featureId: "unlimited_exercises",
-    name: "Ejercicios ilimitados",
-    description: "Sustituye ejercicios sin límite manteniendo tu plan base.",
+    description: "Registra pesos, series, reps, tiempos, distancias y FC. Histórico visual en Control de cargas.",
     price: 5,
     period: "/ mes",
   },
   {
     id: "addon-progression",
     featureId: "progression",
-    name: "Progresión avanzada",
-    description: "Gráficos de evolución y histórico de cargas.",
+    featureIds: ["progression", "physical_tests"],
+    name: "Progresión y test",
+    description: "Gráficos de evolución mensual, histórico de tests y comparativas de progreso.",
     price: 5,
     period: "/ mes",
   },
   {
-    id: "addon-library",
-    featureId: "exercise_library",
-    name: "Biblioteca ampliada",
-    description: "Acceso completo a la biblioteca de ejercicios.",
+    id: "addon-unlimited-exercises",
+    featureId: "unlimited_exercises",
+    featureIds: ["unlimited_exercises", "exercise_library"],
+    name: "Ejercicios ilimitados + carpeta",
+    description: "Sustituye ejercicios sin límite y accede a la biblioteca/carpeta de ejercicios incluida.",
     price: 5,
     period: "/ mes",
   },
 ];
 
+/** Alias legacy → producto actual (compras antiguas siguen resolviendo). */
+const LEGACY_ALIAS = {
+  "addon-physical-tests": "addon-progression",
+  "addon-library": "addon-unlimited-exercises",
+};
+
 export function addonById(id) {
-  return PLAYER_ADDONS.find((a) => a.id === id) || null;
+  const resolved = LEGACY_ALIAS[id] || id;
+  return PLAYER_ADDONS.find((a) => a.id === resolved) || null;
 }
 
 export function addonForFeature(featureId) {
-  return PLAYER_ADDONS.find((a) => a.featureId === featureId) || null;
+  return PLAYER_ADDONS.find((a) =>
+    a.featureId === featureId || (a.featureIds || []).includes(featureId)
+  ) || null;
+}
+
+/** Features desbloqueadas por un addon (incluye agrupaciones). */
+export function featuresForAddon(addonId) {
+  const addon = addonById(addonId);
+  if (!addon) return [];
+  return addon.featureIds || [addon.featureId];
 }

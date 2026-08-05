@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { PLANS, getPlanLimits, getNextPlan, resolvePlanForClub } from "./checkoutPlans";
 import { FEATURES, planIncludesFeature, upsellPlanForFeature } from "./planFeatures";
+import { featuresForAddon } from "./playerAddons";
 import { isClubAdmin } from "./clubRoles";
 
 const STORAGE_PREFIX = "depro_subscription_";
@@ -205,6 +206,8 @@ export function hasFeatureAccess(user, featureId) {
   const purchased = user.purchasedAddons || sub?.purchasedAddons || [];
 
   if (feature.addonId && purchased.includes(feature.addonId)) return true;
+  // Addons agrupados (p.ej. progresión+test, ejercicios+biblioteca)
+  if (purchased.some((aid) => featuresForAddon(aid).includes(featureId))) return true;
 
   // Premium incluye todos los extras cuando no está en trial
   if (audience === "player" && isPlayerPro(user) && !isInTrial(user)) return true;

@@ -35,15 +35,15 @@ export function objectiveAllowsLoadLogging(objective) {
 
 export function loadFieldsForExercise(exercise, objective) {
   const obj = String(objective || "").toLowerCase();
-  if (obj.includes("velocidad")) return ["time", "rpe", "notes"];
-  if (obj.includes("resistencia")) return ["distance", "time", "rpe", "notes"];
+  if (obj.includes("velocidad")) return ["time", "distance", "heartRate", "rpe", "notes"];
+  if (obj.includes("resistencia")) return ["distance", "time", "heartRate", "rpe", "notes"];
   if (exerciseNeedsWeight(exercise) || obj.includes("fuerza") || obj.includes("hipertrofia")) {
-    return ["weight", "reps", "rpe", "notes"];
+    return ["weight", "sets", "reps", "rest", "rpe", "notes"];
   }
   if (obj.includes("movilidad") || obj.includes("prevención") || obj.includes("prevencion")) {
     return [];
   }
-  return ["weight", "reps", "rpe", "notes"];
+  return ["weight", "sets", "reps", "rpe", "notes"];
 }
 
 /** Modo de registro por series (fuerza) vs campos simples (velocidad/resistencia). */
