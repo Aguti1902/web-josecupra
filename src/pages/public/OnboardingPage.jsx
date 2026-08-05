@@ -18,6 +18,7 @@ import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatri
 import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
 
 const ONBOARDING_STORAGE_KEY = "depro_onboarding";
+const ONBOARDING_DRAFT_KEY = "depro_onboarding_draft_v1";
 const SPORTS     = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem", "5 días / sem"];
 const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra", "Gimnasio completo"];
@@ -595,7 +596,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
 
             <div>
               <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
-                Código de club <span className="text-depro-gray font-normal normal-case">(opcional · descuento 15%)</span>
+                Código de club <span className="text-depro-gray font-normal normal-case">(opcional · descuento 10%)</span>
               </label>
               <input
                 type="text" value={form.clubCode}
@@ -1049,7 +1050,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
   }
 
   const hasDiscount = !!form.clubCode && plan.audience === "player";
-  const discount    = hasDiscount ? Math.round(plan.price * 0.15 * 100) / 100 : 0;
+  const discount    = hasDiscount ? Math.round((plan.price - applyClubDiscount(plan.price)) * 100) / 100 : 0;
   const total       = (hasDiscount ? applyClubDiscount(plan.price) : plan.price) + addonsTotal;
 
   const profileRows = [
@@ -1081,12 +1082,12 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
       </div>
 
       <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
-        {/* Resumen compacto — sidebar */}
+        {/* Resumen del carrito — sidebar (player y staff: plan, precio, trial) */}
         <aside className="lg:col-span-2 space-y-4 lg:sticky lg:top-4 order-1">
           <div className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden">
             <div className="p-5 border-b border-depro-border">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-depro-green/10 px-2.5 py-1 text-[11px] font-bold text-depro-green mb-3">
-                <BadgeCheck size={12} /> 15 días gratis
+                <BadgeCheck size={12} /> 15 días de prueba gratis
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: plan.bg }}>
@@ -1097,15 +1098,22 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
                   <div className="text-xs text-depro-gray truncate">{plan.tagline}</div>
                 </div>
               </div>
+              {plan.audience !== "player" && (
+                <p className="text-xs text-depro-gray mt-3 leading-relaxed">
+                  Resumen de tu suscripción {plan.audience === "club" ? "de club" : "de entrenador"}:
+                  {" "}{formatPrice(plan.price)}/mes tras {15} días de trial.
+                </p>
+              )}
             </div>
 
             <div className="p-5 space-y-2 text-sm">
               <div className="flex justify-between text-depro-gray">
-                <span>Subtotal</span><span>{formatPrice(plan.price)}</span>
+                <span>Plan {plan.audience === "club" ? "club" : plan.audience === "coach" ? "entrenador" : ""}</span>
+                <span className={hasDiscount ? "line-through text-depro-gray/70" : ""}>{formatPrice(plan.price)}</span>
               </div>
               {hasDiscount && (
                 <div className="flex justify-between text-depro-green">
-                  <span className="flex items-center gap-1"><BadgeCheck size={13} /> Código club</span>
+                  <span className="flex items-center gap-1"><BadgeCheck size={13} /> Código club (−10%)</span>
                   <span>– {formatPrice(discount)}</span>
                 </div>
               )}
@@ -1118,12 +1126,14 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
                 <span className="font-bold text-depro-dark">Total / mes</span>
                 <span className="text-2xl font-black text-depro-dark">{formatPrice(total)}</span>
               </div>
-              <p className="text-[11px] text-depro-gray pt-1">Tras el trial. Cancela cuando quieras.</p>
+              <p className="text-[11px] text-depro-gray pt-1">
+                Primer cargo tras el trial de 15 días. Cancela cuando quieras.
+              </p>
             </div>
 
             <div className="px-5 pb-5">
               <ul className="space-y-2 border-t border-depro-border pt-4">
-                {plan.features.slice(0, 4).map((f) => (
+                {(plan.features || []).slice(0, plan.audience === "player" ? 4 : 6).map((f) => (
                   <li key={f} className="flex items-start gap-2 text-xs text-depro-dark">
                     <CheckCircle size={13} className="text-depro-green shrink-0 mt-0.5" /> {f}
                   </li>
@@ -1278,6 +1288,7 @@ function StepDone({ plan, form }) {
 ───────────────────────────────────────────── */
 export default function OnboardingPage() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const audienceParam = params.get("audience") || "player";
   const initialPlanId = resolvePlanId(audienceParam, params.get("plan"));
@@ -1291,6 +1302,7 @@ export default function OnboardingPage() {
   const [planId, setPlanId] = useState(
     initialPlanId || plansForAudience(initialAudience)[0]?.id || "",
   );
+  const [draftReady, setDraftReady] = useState(false);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -1339,11 +1351,54 @@ export default function OnboardingPage() {
     );
   };
 
+  const clearOnboardingDraft = () => {
+    try { localStorage.removeItem(ONBOARDING_DRAFT_KEY); } catch { /* ignore */ }
+    try { sessionStorage.removeItem(ONBOARDING_STORAGE_KEY); } catch { /* ignore */ }
+  };
+
+  const handleCancelQuestionnaire = () => {
+    clearOnboardingDraft();
+    navigate("/");
+  };
+
   useEffect(() => {
     if (window.location.hash.includes("access_token")) {
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
     }
   }, []);
+
+  // Restaurar borrador completo (form + step) al montar — no solo OAuth
+  useEffect(() => {
+    if (draftReady) return;
+    if (params.get("oauth") === "1") {
+      setDraftReady(true);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(ONBOARDING_DRAFT_KEY);
+      if (raw) {
+        const state = JSON.parse(raw);
+        if (state.audience) setAudience(state.audience);
+        if (state.planId) setPlanId(state.planId);
+        if (state.form && typeof state.form === "object") {
+          setForm((f) => ({ ...f, ...state.form }));
+        }
+        if (state.step) setStep(state.step);
+      }
+    } catch { /* ignore */ }
+    setDraftReady(true);
+  }, [params, draftReady]);
+
+  // Persistir borrador en cada cambio (tras hidratar)
+  useEffect(() => {
+    if (!draftReady) return;
+    try {
+      localStorage.setItem(
+        ONBOARDING_DRAFT_KEY,
+        JSON.stringify({ audience, planId, form, step }),
+      );
+    } catch { /* ignore */ }
+  }, [draftReady, audience, planId, form, step]);
 
   useEffect(() => {
     if (params.get("oauth") !== "1" || authLoading || !user) return;
@@ -1380,14 +1435,23 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-depro-gray-light pt-16 pb-24">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between mb-10 gap-3 flex-wrap">
           <Link to="/" className="flex items-center gap-2 text-depro-gray hover:text-depro-dark transition-colors">
             <ArrowLeft size={16} />
             <span className="text-sm font-bold">Volver al inicio</span>
           </Link>
-          <Link to="/">
-            <img src="/logo.png" alt="DEPRO" className="h-7 w-auto" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleCancelQuestionnaire}
+              className="text-xs font-bold text-depro-gray hover:text-red-600 transition-colors"
+            >
+              Cancelar cuestionario
+            </button>
+            <Link to="/">
+              <img src="/logo.png" alt="DEPRO" className="h-7 w-auto" />
+            </Link>
+          </div>
         </div>
 
         {/* Wizard */}

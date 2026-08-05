@@ -133,7 +133,7 @@ export default async function handler(req, res) {
     clubId = v.clubId || "";
   }
 
-  const finalAmount = hasDiscount ? Math.round(price.amount * 0.85) : price.amount;
+  const finalAmount = hasDiscount ? Math.round(price.amount * 0.90) : price.amount;
   const hasRegisteredUser = Boolean(formData?.authUserId);
   const tempPassword = hasRegisteredUser ? "" : generatePassword();
 

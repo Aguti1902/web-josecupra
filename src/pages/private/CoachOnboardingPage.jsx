@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, ArrowRight, CheckCircle, Building2, Loader2, Trophy,
+  ArrowLeft, ArrowRight, CheckCircle, Building2, Loader2, Trophy, RotateCcw, X,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -18,8 +18,17 @@ import TeamBrandingFields, {
 import CoachAutoQuestionnaire, {
   questionnaireToCoachConfig,
 } from "../../components/shared/CoachAutoQuestionnaire";
+import {
+  Q_STATUS,
+  loadQuestionnaireState,
+  markQuestionnaireInProgress,
+  markQuestionnaireCompleted,
+  cancelQuestionnaire,
+  resetQuestionnaire,
+} from "../../lib/questionnaireState";
 
 const STEPS = ["Tu equipo", "Microciclo", "Confirmar"];
+const AUDIENCE = "coach";
 
 function StepHeader({ current }) {
   return (
@@ -61,6 +70,14 @@ function initialForm(user) {
   };
 }
 
+const DEFAULT_AUTO_Q = {
+  nivel: "B",
+  dias_entrenamiento_semana: 3,
+  dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
+  dia_partido: "sabado",
+  acceso_gimnasio: "no",
+};
+
 /**
  * Cuestionario corto del documento + escudo/colores del registro.
  * nivel A/B/C · 2/3/4 · días exactos · partido · gimnasio · branding opcional.
@@ -68,22 +85,58 @@ function initialForm(user) {
 export default function CoachOnboardingPage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const userKey = user?.id || user?.email;
+
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState(() => initialForm(user));
-  const [autoQ, setAutoQ] = useState({
-    nivel: "B",
-    dias_entrenamiento_semana: 3,
-    dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
-    dia_partido: "sabado",
-    acceso_gimnasio: "no",
-  });
+  const [autoQ, setAutoQ] = useState(DEFAULT_AUTO_Q);
+  const [qReady, setQReady] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    if (!userKey || qReady) return;
+    const st = loadQuestionnaireState(AUDIENCE, userKey);
+    if (st.status === Q_STATUS.IN_PROGRESS) {
+      if (st.form && typeof st.form === "object") {
+        const { autoQ: savedQ, ...rest } = st.form;
+        setForm((f) => ({ ...f, ...rest }));
+        if (savedQ && typeof savedQ === "object") setAutoQ(savedQ);
+      }
+      if (st.step) setStep(st.step);
+    } else if (st.status !== Q_STATUS.CANCELLED && st.status !== Q_STATUS.COMPLETED) {
+      markQuestionnaireInProgress(AUDIENCE, userKey, { step: 1 });
+    }
+    setQReady(true);
+  }, [userKey, qReady]);
+
+  useEffect(() => {
+    if (!userKey || !qReady) return;
+    markQuestionnaireInProgress(AUDIENCE, userKey, {
+      step,
+      form: { ...form, autoQ },
+    });
+  }, [step, form, autoQ, userKey, qReady]);
 
   const packedQ = useMemo(() => questionnaireToCoachConfig(autoQ), [autoQ]);
   const step1Valid = form.teamName.trim().length > 0;
   const step2Valid = packedQ.ok;
+
+  const handleCancel = () => {
+    cancelQuestionnaire(AUDIENCE, userKey);
+    navigate(user ? "/" : "/login", { replace: true });
+  };
+
+  const handleReset = () => {
+    resetQuestionnaire(AUDIENCE, userKey);
+    const fresh = initialForm(user);
+    setForm(fresh);
+    setAutoQ(DEFAULT_AUTO_Q);
+    setStep(1);
+    setError("");
+    markQuestionnaireInProgress(AUDIENCE, userKey, { step: 1, form: { ...fresh, autoQ: DEFAULT_AUTO_Q } });
+  };
 
   const handleConfirm = async () => {
     if (!packedQ.ok) {
@@ -137,6 +190,7 @@ export default function CoachOnboardingPage() {
       });
       if (updErr) throw updErr;
 
+      markQuestionnaireCompleted(AUDIENCE, userKey);
       await refreshUser();
       navigate("/dashboard", { replace: true });
     } catch (e) {
@@ -151,10 +205,26 @@ export default function CoachOnboardingPage() {
   return (
     <div className="min-h-screen bg-depro-gray-light py-10 px-4">
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="DEPRO" className="h-7 w-auto" />
             <span className="text-xs font-black px-2.5 py-1 rounded-full bg-depro-blue text-white">COACH AUTO</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-depro-border text-xs font-bold text-depro-gray hover:text-depro-dark"
+            >
+              <RotateCcw size={13} /> Reiniciar
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-depro-border text-xs font-bold text-depro-gray hover:text-red-600"
+            >
+              <X size={13} /> Cancelar
+            </button>
           </div>
         </div>
 
