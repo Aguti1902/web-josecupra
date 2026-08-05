@@ -1,36 +1,21 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, ArrowRight, CheckCircle, Dumbbell, Calendar, Clock,
-  Target, Trophy, Users, Package, Building2, Loader2,
+  ArrowLeft, ArrowRight, CheckCircle, Calendar, Dumbbell, Trophy,
+  Building2, Loader2, AlertCircle,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { saveClub } from "../../lib/adminStorage";
-import { MATERIALES } from "../../data/coachExerciseLibrary";
-import { WEEK_TEMPLATES } from "../../lib/coachEngine";
+import {
+  validateCoachQuestionnaire,
+  TRAIN_DAYS,
+  CLUB_AUTO_NIVELES,
+  CLUB_AUTO_MATCH_DAYS,
+  categoryForNivel,
+} from "../../lib/clubAuto/clubAutoCoachBridge";
 
-const CATEGORIES = ["Sub-9", "Sub-10", "Sub-11", "Sub-12", "Sub-13", "Sub-14", "Sub-15", "Sub-16", "Juvenil", "Amateur"];
-const PHASE_OBJECTIVES = [
-  { id: "pretemporada", label: "Pretemporada", desc: "Base física general" },
-  { id: "fuerza", label: "Fuerza", desc: "Desarrollo de fuerza" },
-  { id: "velocidad", label: "Velocidad", desc: "Velocidad y potencia" },
-  { id: "mantenimiento", label: "Mantenimiento", desc: "Reparto equilibrado" },
-  { id: "recuperacion", label: "Recuperación", desc: "Prevención de lesiones" },
-];
-const COMPETITIVE_LEVELS = [
-  { id: "iniciacion", label: "Iniciación" },
-  { id: "amateur", label: "Amateur" },
-  { id: "alto_rendimiento", label: "Alto rendimiento" },
-];
-const MATERIAL_LABELS = {
-  sin_material: "Sin material", conos: "Conos", picas: "Picas", aros: "Aros",
-  vallas: "Vallas", gomas: "Gomas", mancuernas: "Mancuernas", balon_medicinal: "Balón medicinal",
-  cajon: "Cajón pliométrico", escalera_coordinacion: "Escalera de coordinación",
-  banda_resistencia: "Banda de resistencia / arnés", gimnasio: "Acceso a gimnasio",
-};
-const PLAYER_COUNTS = ["< 15", "15–20", "20–25", "> 25"];
-const STEPS = ["Tu equipo", "Entrenamientos", "Contexto", "Confirmar"];
+const STEPS = ["Tu equipo", "Microciclo", "Confirmar"];
 
 function TagGroup({ options, value, onChange, multi = false, renderLabel = (o) => o.label ?? o }) {
   const getId = (o) => (typeof o === "string" ? o : o.id);
@@ -97,6 +82,11 @@ function genId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * Cuestionario corto del documento (rama automática clubs/entrenadores):
+ * nivel A/B/C · 2/3/4 entrenos · días exactos · día partido · gimnasio.
+ * No pregunta metodología, jugadores, táctica ni espacio.
+ */
 export default function CoachOnboardingPage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -105,44 +95,89 @@ export default function CoachOnboardingPage() {
   const [error, setError] = useState("");
 
   const [form, setForm] = useState({
-    teamName: "", category: "Sub-14", season: "2025/2026",
-    trainingsPerWeek: 3, sessionDuration: "75",
-    phaseObjective: "mantenimiento", competitiveLevel: "amateur",
-    numPlayers: "15–20", gymAccess: false, material: ["sin_material", "conos"],
+    teamName: "",
+    season: "2025/2026",
+    nivel: "B",
+    dias_entrenamiento_semana: 3,
+    dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
+    dia_partido: "sabado",
+    acceso_gimnasio: "no",
   });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const step1Valid = form.teamName.trim().length > 0 && !!form.category;
-  const step2Valid = !!form.trainingsPerWeek && !!form.sessionDuration;
-  const step3Valid = !!form.phaseObjective && !!form.competitiveLevel && !!form.numPlayers;
+  const questionnaire = useMemo(() => ({
+    nivel: form.nivel,
+    dias_entrenamiento_semana: form.dias_entrenamiento_semana,
+    dias_exactos_entrenamiento: form.dias_exactos_entrenamiento,
+    dia_partido: form.dia_partido,
+    acceso_gimnasio: form.acceso_gimnasio,
+  }), [form]);
+
+  const validation = useMemo(() => validateCoachQuestionnaire(questionnaire), [questionnaire]);
+
+  const step1Valid = form.teamName.trim().length > 0;
+  const step2Valid = validation.ok;
+
+  const toggleDay = (day) => {
+    setForm((f) => {
+      const cur = f.dias_exactos_entrenamiento || [];
+      const has = cur.includes(day);
+      let next = has ? cur.filter((d) => d !== day) : [...cur, day];
+      if (next.length > f.dias_entrenamiento_semana) {
+        next = next.slice(-f.dias_entrenamiento_semana);
+      }
+      return { ...f, dias_exactos_entrenamiento: next };
+    });
+  };
+
+  const setFrequency = (n) => {
+    setForm((f) => {
+      let days = [...(f.dias_exactos_entrenamiento || [])];
+      if (days.length > n) days = days.slice(0, n);
+      if (days.length < n) {
+        for (const d of TRAIN_DAYS) {
+          if (days.length >= n) break;
+          if (!days.includes(d)) days.push(d);
+        }
+      }
+      return { ...f, dias_entrenamiento_semana: n, dias_exactos_entrenamiento: days };
+    });
+  };
 
   const handleConfirm = async () => {
+    if (!validation.ok) {
+      setError(validation.errors.join(" "));
+      return;
+    }
     setSaving(true);
     setError("");
     try {
+      const q = validation.normalized;
       const clubId = genId("coach_club");
       const teamId = genId("coach_team");
-      const trainingDays = (WEEK_TEMPLATES[form.trainingsPerWeek] || WEEK_TEMPLATES[3]).map((t) => t.day);
+      const category = categoryForNivel(q.nivel);
 
       const club = {
         id: clubId,
         name: `${user?.name || "Entrenador"} · DEPRO Coach`,
         abbreviation: (user?.name || "EC").trim().slice(0, 2).toUpperCase(),
-        city: "", country: "",
+        city: "",
+        country: "",
         status: "activo",
         plan: user?.plan || "coach-starter",
         isSoloCoach: true,
+        planningMode: "auto",
         coachConfig: {
-          ageBlock: form.category.startsWith("Sub-1") && ["Sub-9","Sub-10","Sub-11","Sub-12"].includes(form.category)
-            ? "Bloque 1"
-            : ["Sub-13","Sub-14","Sub-15"].includes(form.category) ? "Bloque 2" : "Bloque 3",
-          trainingsPerWeek: Number(form.trainingsPerWeek),
-          sessionDuration: Number(form.sessionDuration),
-          phaseObjective: form.phaseObjective,
-          competitiveLevel: form.competitiveLevel,
-          numPlayers: form.numPlayers,
-          gymAccess: form.gymAccess,
-          material: form.material,
+          engine: "club_auto",
+          nivel: q.nivel,
+          dias_entrenamiento_semana: q.dias_entrenamiento_semana,
+          dias_exactos_entrenamiento: q.dias_exactos_entrenamiento,
+          dia_partido: form.dia_partido,
+          acceso_gimnasio: q.acceso_gimnasio ? "si" : "no",
+          gymAccess: q.acceso_gimnasio,
+          trainingsPerWeek: q.dias_entrenamiento_semana,
+          trainingDays: q.dias_exactos_entrenamiento,
+          matchDay: form.dia_partido,
           mode: "depro",
         },
         primaryColor: "#0A36F7",
@@ -152,9 +187,9 @@ export default function CoachOnboardingPage() {
           {
             id: teamId,
             name: form.teamName.trim(),
-            category: form.category,
+            category,
             season: form.season,
-            trainingDays,
+            trainingDays: q.dias_exactos_entrenamiento,
             coach: { name: user?.name || "", email: user?.email || "" },
             squad: [],
           },
@@ -183,13 +218,16 @@ export default function CoachOnboardingPage() {
     }
   };
 
+  const matchLabel = CLUB_AUTO_MATCH_DAYS.find((m) => m.id === form.dia_partido)?.label || form.dia_partido;
+  const nivelLabel = CLUB_AUTO_NIVELES.find((n) => n.id === form.nivel)?.label || form.nivel;
+
   return (
     <div className="min-h-screen bg-depro-gray-light py-10 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="DEPRO" className="h-7 w-auto" />
-            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-depro-blue text-white">COACH</span>
+            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-depro-blue text-white">COACH AUTO</span>
           </div>
         </div>
 
@@ -198,9 +236,9 @@ export default function CoachOnboardingPage() {
 
           {step === 1 && (
             <div>
-              <h2 className="text-2xl font-black text-depro-dark mb-2">Configura tu equipo</h2>
+              <h2 className="text-2xl font-black text-depro-dark mb-2">Tu equipo</h2>
               <p className="text-depro-gray text-sm mb-6">
-                DEPRO Coach genera tus sesiones automáticamente a partir de estos datos. Podrás cambiarlos más adelante.
+                Solo lo esencial. El motor automático genera el microciclo A/B/C según tu calendario.
               </p>
               <div className="space-y-5">
                 <div>
@@ -208,22 +246,29 @@ export default function CoachOnboardingPage() {
                     <Building2 size={12} /> Nombre de tu equipo *
                   </label>
                   <input
-                    type="text" value={form.teamName}
+                    type="text"
+                    value={form.teamName}
                     onChange={(e) => set("teamName", e.target.value)}
                     className="admin-input w-full"
-                    placeholder="Ej. CD Preparación Individual"
+                    placeholder="Ej. Juvenil A"
                   />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Users size={12} /> Categoría *
+                    <Trophy size={12} /> Nivel del equipo *
                   </label>
-                  <TagGroup options={CATEGORIES} value={form.category} onChange={(v) => set("category", v)} />
+                  <TagGroup
+                    options={CLUB_AUTO_NIVELES}
+                    value={form.nivel}
+                    onChange={(v) => set("nivel", v)}
+                    renderLabel={(o) => o.label}
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Temporada</label>
                   <input
-                    type="text" value={form.season}
+                    type="text"
+                    value={form.season}
                     onChange={(e) => set("season", e.target.value)}
                     className="admin-input w-full sm:w-48"
                   />
@@ -239,29 +284,75 @@ export default function CoachOnboardingPage() {
 
           {step === 2 && (
             <div>
-              <h2 className="text-2xl font-black text-depro-dark mb-2">Frecuencia de entrenamiento</h2>
-              <p className="text-depro-gray text-sm mb-6">Con esto generamos tu microciclo semanal (protocolos A/B/C).</p>
+              <h2 className="text-2xl font-black text-depro-dark mb-2">Tu microciclo</h2>
+              <p className="text-depro-gray text-sm mb-6">
+                El número de días seleccionados debe coincidir con los entrenamientos por semana.
+              </p>
               <div className="space-y-5">
                 <div>
                   <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
                     <Calendar size={12} /> Entrenamientos por semana *
                   </label>
                   <TagGroup
-                    options={[1, 2, 3, 4, 5].map((n) => ({ id: n, label: `${n} día${n > 1 ? "s" : ""}` }))}
-                    value={form.trainingsPerWeek}
-                    onChange={(v) => set("trainingsPerWeek", v)}
+                    options={[2, 3, 4].map((n) => ({ id: n, label: `${n} días` }))}
+                    value={form.dias_entrenamiento_semana}
+                    onChange={setFrequency}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 block">
+                    Días exactos de entrenamiento * ({form.dias_exactos_entrenamiento.length}/{form.dias_entrenamiento_semana})
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {TRAIN_DAYS.map((day) => {
+                      const sel = form.dias_exactos_entrenamiento.includes(day);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleDay(day)}
+                          className={`text-sm font-bold px-3.5 py-2 rounded-xl border transition-all ${
+                            sel
+                              ? "bg-depro-blue border-depro-blue text-white"
+                              : "bg-white border-depro-border text-depro-gray hover:border-depro-blue/40"
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <Trophy size={12} /> Día de partido *
+                  </label>
+                  <TagGroup
+                    options={CLUB_AUTO_MATCH_DAYS}
+                    value={form.dia_partido}
+                    onChange={(v) => set("dia_partido", v)}
+                    renderLabel={(o) => o.label}
                   />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Clock size={12} /> Duración de sesión *
+                    <Dumbbell size={12} /> Acceso a gimnasio *
                   </label>
                   <TagGroup
-                    options={["45", "60", "75", "90"].map((n) => ({ id: n, label: `${n} min` }))}
-                    value={form.sessionDuration}
-                    onChange={(v) => set("sessionDuration", v)}
+                    options={[{ id: "si", label: "Sí" }, { id: "no", label: "No" }]}
+                    value={form.acceso_gimnasio}
+                    onChange={(v) => set("acceso_gimnasio", v)}
+                    renderLabel={(o) => o.label}
                   />
                 </div>
+                {!validation.ok && (
+                  <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                    <ul className="space-y-0.5">
+                      {validation.errors.map((err) => <li key={err}>{err}</li>)}
+                    </ul>
+                  </div>
+                )}
               </div>
               <div className="mt-8 flex justify-between">
                 <button onClick={() => setStep(1)} className="btn-ghost flex items-center gap-2"><ArrowLeft size={16} /> Atrás</button>
@@ -274,85 +365,25 @@ export default function CoachOnboardingPage() {
 
           {step === 3 && (
             <div>
-              <h2 className="text-2xl font-black text-depro-dark mb-2">Contexto de trabajo</h2>
-              <p className="text-depro-gray text-sm mb-6">El motor de reglas usará esto para filtrar la biblioteca de ejercicios.</p>
-              <div className="space-y-5">
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Target size={12} /> Objetivo de la fase actual *
-                  </label>
-                  <TagGroup
-                    options={PHASE_OBJECTIVES}
-                    value={form.phaseObjective}
-                    onChange={(v) => set("phaseObjective", v)}
-                    renderLabel={(o) => o.label}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Trophy size={12} /> Nivel competitivo *
-                  </label>
-                  <TagGroup options={COMPETITIVE_LEVELS} value={form.competitiveLevel} onChange={(v) => set("competitiveLevel", v)} renderLabel={(o) => o.label} />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Users size={12} /> Número de jugadores *
-                  </label>
-                  <TagGroup options={PLAYER_COUNTS} value={form.numPlayers} onChange={(v) => set("numPlayers", v)} />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Dumbbell size={12} /> ¿Tienes acceso a gimnasio?
-                  </label>
-                  <TagGroup
-                    options={[{ id: true, label: "Sí" }, { id: false, label: "No" }]}
-                    value={form.gymAccess}
-                    onChange={(v) => set("gymAccess", v)}
-                    renderLabel={(o) => o.label}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Package size={12} /> Material disponible
-                  </label>
-                  <TagGroup
-                    options={Object.keys(MATERIAL_LABELS).filter((m) => m !== "gimnasio").map((id) => ({ id, label: MATERIAL_LABELS[id] }))}
-                    value={form.material}
-                    onChange={(v) => set("material", v)}
-                    multi
-                    renderLabel={(o) => o.label}
-                  />
-                </div>
-              </div>
-              <div className="mt-8 flex justify-between">
-                <button onClick={() => setStep(2)} className="btn-ghost flex items-center gap-2"><ArrowLeft size={16} /> Atrás</button>
-                <button onClick={() => setStep(4)} disabled={!step3Valid} className="btn-primary flex items-center gap-2 disabled:opacity-50">
-                  Continuar <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div>
               <h2 className="text-2xl font-black text-depro-dark mb-2">Confirma tu configuración</h2>
-              <p className="text-depro-gray text-sm mb-6">Crearemos tu panel de DEPRO Coach con estos datos.</p>
+              <p className="text-depro-gray text-sm mb-6">
+                Activaremos el motor automático: calentamiento → balón → protocolo → tarea principal.
+              </p>
               <div className="bg-depro-gray-light rounded-2xl p-5 space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-depro-gray">Equipo</span><span className="font-bold text-depro-dark">{form.teamName}</span></div>
-                <div className="flex justify-between"><span className="text-depro-gray">Categoría</span><span className="font-bold text-depro-dark">{form.category}</span></div>
-                <div className="flex justify-between"><span className="text-depro-gray">Entrenamientos/semana</span><span className="font-bold text-depro-dark">{form.trainingsPerWeek}</span></div>
-                <div className="flex justify-between"><span className="text-depro-gray">Duración sesión</span><span className="font-bold text-depro-dark">{form.sessionDuration} min</span></div>
-                <div className="flex justify-between"><span className="text-depro-gray">Objetivo de fase</span><span className="font-bold text-depro-dark">{PHASE_OBJECTIVES.find((o) => o.id === form.phaseObjective)?.label}</span></div>
-                <div className="flex justify-between"><span className="text-depro-gray">Nivel</span><span className="font-bold text-depro-dark">{COMPETITIVE_LEVELS.find((o) => o.id === form.competitiveLevel)?.label}</span></div>
-                <div className="flex justify-between"><span className="text-depro-gray">Jugadores</span><span className="font-bold text-depro-dark">{form.numPlayers}</span></div>
-                <div className="flex justify-between"><span className="text-depro-gray">Gimnasio</span><span className="font-bold text-depro-dark">{form.gymAccess ? "Sí" : "No"}</span></div>
+                <div className="flex justify-between"><span className="text-depro-gray">Nivel</span><span className="font-bold text-depro-dark">{nivelLabel}</span></div>
+                <div className="flex justify-between"><span className="text-depro-gray">Entrenamientos/semana</span><span className="font-bold text-depro-dark">{form.dias_entrenamiento_semana}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-depro-gray shrink-0">Días</span><span className="font-bold text-depro-dark text-right">{form.dias_exactos_entrenamiento.join(", ")}</span></div>
+                <div className="flex justify-between"><span className="text-depro-gray">Partido</span><span className="font-bold text-depro-dark">{matchLabel}</span></div>
+                <div className="flex justify-between"><span className="text-depro-gray">Gimnasio</span><span className="font-bold text-depro-dark">{form.acceso_gimnasio === "si" ? "Sí" : "No"}</span></div>
+                <div className="flex justify-between"><span className="text-depro-gray">Modo</span><span className="font-bold text-depro-blue">Automático</span></div>
               </div>
               {error && (
                 <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div>
               )}
               <div className="mt-8 flex justify-between">
-                <button onClick={() => setStep(3)} disabled={saving} className="btn-ghost flex items-center gap-2 disabled:opacity-50"><ArrowLeft size={16} /> Atrás</button>
-                <button onClick={handleConfirm} disabled={saving} className="btn-primary flex items-center gap-2 disabled:opacity-50">
+                <button onClick={() => setStep(2)} disabled={saving} className="btn-ghost flex items-center gap-2 disabled:opacity-50"><ArrowLeft size={16} /> Atrás</button>
+                <button onClick={handleConfirm} disabled={saving || !validation.ok} className="btn-primary flex items-center gap-2 disabled:opacity-50">
                   {saving ? <><Loader2 size={16} className="animate-spin" /> Creando panel...</> : <>Crear mi panel <CheckCircle size={16} /></>}
                 </button>
               </div>

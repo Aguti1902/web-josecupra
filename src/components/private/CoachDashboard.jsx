@@ -6,6 +6,10 @@ import {
 } from "lucide-react";
 import { generateMicrociclo } from "../../lib/coachEngine";
 import { loadCoachLibrary, getCachedCoachLibrary } from "../../lib/coachLibraryStorage";
+import {
+  usesClubAutoEngine,
+  generateClubAutoWeekForCoach,
+} from "../../lib/clubAuto/clubAutoCoachBridge";
 import PlanUsageCard from "./PlanUsageCard";
 
 function lum(hex) {
@@ -45,13 +49,18 @@ export default function CoachDashboard({ club, team, user }) {
     } catch { setSquad([]); }
   }, [club?.id, team?.id]);
 
+  const isClubAuto = usesClubAutoEngine(club) || usesClubAutoEngine(config);
+
   const microciclo = useMemo(() => {
+    if (isClubAuto) {
+      return generateClubAutoWeekForCoach(config, { weekStart: currentWeekStart() });
+    }
     return generateMicrociclo({
       config: { ...config, material: config.material },
       weekStart: currentWeekStart(),
       library: getCachedCoachLibrary(),
     });
-  }, [config, team?.id]);
+  }, [config, team?.id, isClubAuto]);
 
   const todayName = getTodayName();
   const todaySession = microciclo.sessions.find((s) => s.assignedDay === todayName);
@@ -81,6 +90,7 @@ export default function CoachDashboard({ club, team, user }) {
           </h2>
           <p className="text-sm mt-0.5 opacity-90" style={{ color: contrastText(accent) }}>
             {team?.name || "Tu equipo"} · {team?.category || ""}
+            {isClubAuto ? " · Motor automático" : ""}
           </p>
         </div>
         <Link
@@ -125,9 +135,20 @@ export default function CoachDashboard({ club, team, user }) {
                 </div>
               </div>
               <div className="space-y-1.5 mb-3">
-                {nextSession.exercises.slice(0, 3).map((ex, i) => (
+                {(nextSession.structure?.length
+                  ? nextSession.structure.slice(0, 4).map((block, i) => ({
+                      id: block.type,
+                      name: block.label?.replace(/^\d+\.\s*/, "") || block.type,
+                      i,
+                    }))
+                  : (nextSession.exercises || []).slice(0, 3).map((ex, i) => ({
+                      id: ex.id || i,
+                      name: ex.name || ex.nombre,
+                      i,
+                    }))
+                ).map((row) => (
                   <div
-                    key={ex.id || i}
+                    key={row.id}
                     className="flex items-center gap-3 py-2 px-3 rounded-xl"
                     style={{ backgroundColor: todaySession ? "rgba(255,255,255,0.15)" : "#F9FAFB" }}
                   >
@@ -135,9 +156,9 @@ export default function CoachDashboard({ club, team, user }) {
                       className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
                       style={todaySession ? { backgroundColor: "rgba(255,255,255,0.25)", color: contrastText(accent) } : { backgroundColor: accent + "15", color: accent }}
                     >
-                      {i + 1}
+                      {row.i + 1}
                     </div>
-                    <span className="text-sm font-medium flex-1 truncate" style={{ color: todaySession ? contrastText(accent) : "#1F2937" }}>{ex.name}</span>
+                    <span className="text-sm font-medium flex-1 truncate" style={{ color: todaySession ? contrastText(accent) : "#1F2937" }}>{row.name}</span>
                   </div>
                 ))}
               </div>
@@ -188,7 +209,9 @@ export default function CoachDashboard({ club, team, user }) {
             </div>
             <div className="dash-stat-premium bg-white border border-depro-border/60">
               <Target size={16} style={{ color: accent }} className="mb-2" />
-              <div className="text-2xl font-black text-depro-dark">{config.trainingsPerWeek || "—"}</div>
+              <div className="text-2xl font-black text-depro-dark">
+                {config.dias_entrenamiento_semana || config.trainingsPerWeek || "—"}
+              </div>
               <div className="text-xs text-depro-gray font-medium">Sesiones/semana</div>
             </div>
           </div>

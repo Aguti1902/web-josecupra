@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { loadCoachLibrary, getCachedCoachLibrary } from "../../lib/coachLibraryStorage";
 import { loadOrGenerateMesociclo, saveMesociclo } from "../../lib/coachSessionsStorage";
+import { usesClubAutoEngine } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 function lum(hex) {
   try {
@@ -35,6 +36,7 @@ export default function CoachPlanning({ club, team }) {
   const config = useMemo(() => club?.coachConfig || {}, [club?.coachConfig]);
   const clubId = club?.id;
   const teamId = team?.id;
+  const isClubAuto = usesClubAutoEngine(club) || usesClubAutoEngine(config);
 
   const [libraryReady, setLibraryReady] = useState(false);
   const [mesociclo, setMesociclo] = useState(null);
@@ -65,7 +67,11 @@ export default function CoachPlanning({ club, team }) {
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-black text-depro-dark">Planificación</h2>
-        <p className="text-sm text-depro-gray">Macrociclo generado por el motor DEPRO a partir de tu objetivo de fase.</p>
+        <p className="text-sm text-depro-gray">
+          {isClubAuto
+            ? "Mesociclo del motor automático clubs (A/B/C según día de partido y días reales)."
+            : "Macrociclo generado por el motor DEPRO a partir de tu objetivo de fase."}
+        </p>
       </div>
 
       {!mesociclo ? null : (

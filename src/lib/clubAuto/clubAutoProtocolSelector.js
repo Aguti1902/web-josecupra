@@ -1,11 +1,12 @@
 /**
  * Selección de ejercicios para slots de protocolo club automático.
- * Usa capa paralela de nombres (clubAutoCatalog) + exerciseCatalog base.
+ * Prioriza etiquetas club_* (capa paralela) y cae a nombres del catálogo club.
  * No muta etiquetas del motor individual.
  */
 import { EXERCISES } from "../exerciseCatalog.js";
 import { CLUB_SLOT_EXERCISE_NAMES } from "../../data/clubAutoCatalog.js";
 import { getProtocolTemplate } from "./clubAutoTemplates.js";
+import { getClubTagsForExercise } from "./clubExerciseTags.js";
 
 function stableIndex(seed, length) {
   if (length <= 0) return 0;
@@ -24,7 +25,29 @@ function normalizeName(s) {
     .trim();
 }
 
-function findExercisesForSlot(slotKey) {
+function clubSlotTag(slotKey) {
+  return `club_slot_${slotKey}`;
+}
+
+function findExercisesForSlot(slotKey, { gymAccess, protocolo } = {}) {
+  const tag = clubSlotTag(slotKey);
+  const byTag = [];
+  for (const ex of EXERCISES) {
+    const clubTags = getClubTagsForExercise(ex.id);
+    if (!clubTags?.club_slot?.includes(tag)) continue;
+    if (protocolo) {
+      const want = `club_protocolo_${protocolo}`;
+      if (clubTags.club_protocolo?.length && !clubTags.club_protocolo.includes(want)) {
+        // permitir si el slot es genérico; no excluir agresivamente
+      }
+    }
+    if (gymAccess === false && clubTags.club_entorno?.length === 1 && clubTags.club_entorno[0] === "club_gym") {
+      continue;
+    }
+    byTag.push(ex);
+  }
+  if (byTag.length) return byTag;
+
   const names = CLUB_SLOT_EXERCISE_NAMES[slotKey] || [];
   const found = [];
   for (const name of names) {
@@ -68,11 +91,13 @@ export function selectProtocolExercises({ protocolo, gymAccess, seed = "", usedI
     const keys = [slotDef.slot, ...(slotDef.alt || [])];
     let candidates = [];
     for (const key of keys) {
-      candidates = findExercisesForSlot(key).filter((ex) => materialOk(ex, gymAccess) && !used.has(ex.id));
+      candidates = findExercisesForSlot(key, { gymAccess, protocolo }).filter(
+        (ex) => materialOk(ex, gymAccess) && !used.has(ex.id),
+      );
       if (candidates.length) break;
     }
     if (!candidates.length) {
-      candidates = findExercisesForSlot(slotDef.slot).filter((ex) => !used.has(ex.id));
+      candidates = findExercisesForSlot(slotDef.slot, { gymAccess, protocolo }).filter((ex) => !used.has(ex.id));
     }
     if (!candidates.length) {
       exercises.push({

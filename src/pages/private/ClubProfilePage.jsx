@@ -238,10 +238,10 @@ export default function ClubProfilePage() {
             >
               <div className="flex items-center gap-2 mb-1.5">
                 <Sparkles size={15} className="text-depro-blue" />
-                <span className="font-bold text-sm text-depro-dark">Modo DEPRO</span>
+                <span className="font-bold text-sm text-depro-dark">Automático</span>
                 {mode === "depro" && <CheckCircle size={14} className="text-depro-blue ml-auto" />}
               </div>
-              <p className="text-xs text-depro-gray">Sesiones y microciclos generados automáticamente por el motor de reglas. Puedes sustituir ejercicios puntuales.</p>
+              <p className="text-xs text-depro-gray">Motor automático clubs: microciclo A/B/C según días de entrenamiento y partido. Calentamiento → balón → protocolo → tarea.</p>
             </button>
             <button
               onClick={() => handleChangeMode("personalizado")}
@@ -252,10 +252,10 @@ export default function ClubProfilePage() {
             >
               <div className="flex items-center gap-2 mb-1.5">
                 <SlidersHorizontal size={15} className="text-depro-blue" />
-                <span className="font-bold text-sm text-depro-dark">Modo Personalizado</span>
+                <span className="font-bold text-sm text-depro-dark">Llevado por mí</span>
                 {mode === "personalizado" && <CheckCircle size={14} className="text-depro-blue ml-auto" />}
               </div>
-              <p className="text-xs text-depro-gray">Crea tus propias sesiones, duplica sesiones existentes, guarda favoritos y añade ejercicios propios.</p>
+              <p className="text-xs text-depro-gray">Planificación manual: crea tus propias sesiones, duplica, favoritos y ejercicios propios (línea premium gestionada a mano).</p>
             </button>
           </div>
         </div>

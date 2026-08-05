@@ -3,24 +3,35 @@
  * Capa separada: no modifica exerciseCatalog ni etiquetas del motor individual.
  */
 
+/** Carpeta lógica: /calentamientos_generales */
 export const CLUB_GENERAL_WARMUPS = [
-  { id: "cgw_1", nombre: "Calentamiento general móvil 1", duracion: "8-10 min", descripcion: "Movilidad articular global + activación suave en círculo." },
-  { id: "cgw_2", nombre: "Calentamiento general móvil 2", duracion: "8-10 min", descripcion: "Skipping suave, talones, apertura/cierre de cadera y movilidad de tobillo." },
-  { id: "cgw_3", nombre: "Calentamiento general dinámico", duracion: "8-10 min", descripcion: "Desplazamientos + movilidad dinámica de cadera y hombro." },
-  { id: "cgw_4", nombre: "Calentamiento general con balón integrado suave", duracion: "8-10 min", descripcion: "Activación sin oposición: conducción suave + movilidad." },
-  { id: "cgw_5", nombre: "Calentamiento general pre-protocolo", duracion: "8-10 min", descripcion: "Secuencia estable: articulación → activación → elevación de pulso." },
+  { id: "cgw_1", carpeta: "/calentamientos_generales", nombre: "Calentamiento general móvil 1", duracion: "8-10 min", descripcion: "Movilidad articular global + activación suave en círculo." },
+  { id: "cgw_2", carpeta: "/calentamientos_generales", nombre: "Calentamiento general móvil 2", duracion: "8-10 min", descripcion: "Skipping suave, talones, apertura/cierre de cadera y movilidad de tobillo." },
+  { id: "cgw_3", carpeta: "/calentamientos_generales", nombre: "Calentamiento general dinámico", duracion: "8-10 min", descripcion: "Desplazamientos + movilidad dinámica de cadera y hombro." },
+  { id: "cgw_4", carpeta: "/calentamientos_generales", nombre: "Calentamiento general con balón integrado suave", duracion: "8-10 min", descripcion: "Activación sin oposición: conducción suave + movilidad." },
+  { id: "cgw_5", carpeta: "/calentamientos_generales", nombre: "Calentamiento general pre-protocolo", duracion: "8-10 min", descripcion: "Secuencia estable: articulación → activación → elevación de pulso." },
 ];
 
+const BALL_FOLDER = {
+  rondo: "/calentamiento_balon/rondos",
+  rueda_pases: "/calentamiento_balon/ruedas_pases",
+  circuito: "/calentamiento_balon/circuitos",
+  posiciones: "/calentamiento_balon/trabajo_posiciones",
+  pases: "/calentamiento_balon/ejercicios_pases",
+};
+
+/** Carpetas lógicas: /calentamiento_balon/{rondos,ruedas_pases,circuitos,trabajo_posiciones,ejercicios_pases} */
 export const CLUB_BALL_WARMUPS = [
-  { id: "cbw_rondo_a", nombre: "Rondo 4v1 suave", tipo: "rondo", nivel: ["A", "B", "C"], intensidad: "baja", descripcion: "Conservación simple, 1 toque opcional según nivel." },
-  { id: "cbw_rondo_b", nombre: "Rondo 5v2 activación", tipo: "rondo", nivel: ["B", "C"], intensidad: "media", descripcion: "Salida tras 5 pases; ritmo controlado." },
-  { id: "cbw_rueda_a", nombre: "Rueda de pases con apoyo", tipo: "rueda_pases", nivel: ["A", "B", "C"], intensidad: "baja", descripcion: "Pase-control-pase con tercer hombre." },
-  { id: "cbw_rueda_b", nombre: "Rueda de pases en triángulos", tipo: "rueda_pases", nivel: ["B", "C"], intensidad: "media", descripcion: "Orientación corporal y pase al espacio cercano." },
-  { id: "cbw_circ_a", nombre: "Circuito técnico pase-conducción", tipo: "circuito", nivel: ["A", "B"], intensidad: "baja", descripcion: "Estaciones cortas sin oposición." },
-  { id: "cbw_circ_b", nombre: "Circuito técnico con desmarque", tipo: "circuito", nivel: ["B", "C"], intensidad: "media", descripcion: "Pase + desmarque corto + recepción." },
-  { id: "cbw_pos_a", nombre: "Trabajo de posiciones suave", tipo: "posiciones", nivel: ["A", "B", "C"], intensidad: "baja", descripcion: "Ocupación de espacios y orientación." },
-  { id: "cbw_pases_a", nombre: "Ejercicios de pases en parejas", tipo: "pases", nivel: ["A", "B", "C"], intensidad: "baja", descripcion: "Pases cortos/medios con control orientado." },
-  { id: "cbw_pases_b", nombre: "Pases en progresión 3 jugadores", tipo: "pases", nivel: ["B", "C"], intensidad: "media", descripcion: "Secuencia A→B→C con movilidad." },
+  { id: "cbw_rondo_a", carpeta: BALL_FOLDER.rondo, nombre: "Rondo 4v1 suave", tipo: "rondo", nivel: ["A", "B", "C"], intensidad: "baja", descripcion: "Conservación simple, 1 toque opcional según nivel." },
+  { id: "cbw_rondo_b", carpeta: BALL_FOLDER.rondo, nombre: "Rondo 5v2 activación", tipo: "rondo", nivel: ["B", "C"], intensidad: "media", descripcion: "Salida tras 5 pases; ritmo controlado." },
+  { id: "cbw_rueda_a", carpeta: BALL_FOLDER.rueda_pases, nombre: "Rueda de pases con apoyo", tipo: "rueda_pases", nivel: ["A", "B", "C"], intensidad: "baja", descripcion: "Pase-control-pase con tercer hombre." },
+  { id: "cbw_rueda_b", carpeta: BALL_FOLDER.rueda_pases, nombre: "Rueda de pases en triángulos", tipo: "rueda_pases", nivel: ["B", "C"], intensidad: "media", descripcion: "Orientación corporal y pase al espacio cercano." },
+  { id: "cbw_circ_a", carpeta: BALL_FOLDER.circuito, nombre: "Circuito técnico pase-conducción", tipo: "circuito", nivel: ["A", "B"], intensidad: "baja", descripcion: "Estaciones cortas sin oposición." },
+  { id: "cbw_circ_b", carpeta: BALL_FOLDER.circuito, nombre: "Circuito técnico con desmarque", tipo: "circuito", nivel: ["B", "C"], intensidad: "media", descripcion: "Pase + desmarque corto + recepción." },
+  { id: "cbw_pos_a", carpeta: BALL_FOLDER.posiciones, nombre: "Trabajo de posiciones suave", tipo: "posiciones", nivel: ["A", "B", "C"], intensidad: "baja", descripcion: "Ocupación de espacios y orientación." },
+  { id: "cbw_pos_b", carpeta: BALL_FOLDER.posiciones, nombre: "Posiciones con orientación corporal", tipo: "posiciones", nivel: ["B", "C"], intensidad: "media", descripcion: "Ocupación + orientación hacia el juego." },
+  { id: "cbw_pases_a", carpeta: BALL_FOLDER.pases, nombre: "Ejercicios de pases en parejas", tipo: "pases", nivel: ["A", "B", "C"], intensidad: "baja", descripcion: "Pases cortos/medios con control orientado." },
+  { id: "cbw_pases_b", carpeta: BALL_FOLDER.pases, nombre: "Pases en progresión 3 jugadores", tipo: "pases", nivel: ["B", "C"], intensidad: "media", descripcion: "Secuencia A→B→C con movilidad." },
 ];
 
 /** Mapeo paralelo club_* → nombres del catálogo individual (sin mutar etiquetas base). */
@@ -50,6 +61,7 @@ export const CLUB_SLOT_EXERCISE_NAMES = {
 function task({ id, nombre, nivel, grupo, intensidad, gimnasio = false, descripcion, adaptaciones }) {
   return {
     id,
+    carpeta: `/tareas/${nivel}/${grupo}`,
     nombre,
     nivel, // A | B | C
     grupo_microciclo: grupo, // regenerativo | carga_alta | prepartido

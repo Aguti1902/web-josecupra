@@ -9,6 +9,11 @@
  */
 import { saveClubDetail, loadClubDetail } from "./adminStorage";
 import { generateMicrociclo, generateMesociclo } from "./coachEngine";
+import {
+  usesClubAutoEngine,
+  generateClubAutoWeekForCoach,
+  generateClubAutoMesocicloForCoach,
+} from "./clubAuto/clubAutoCoachBridge";
 
 function weekKeyFor(clubId, teamId, weekStart) {
   return `depro_coach_week_${clubId}_${teamId}_${weekStart}`;
@@ -25,16 +30,27 @@ function lsSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 
+function weekMatchesEngine(week, config) {
+  if (!week) return false;
+  if (usesClubAutoEngine(config)) return week.engine === "club_auto";
+  return week.engine !== "club_auto";
+}
+
 export function loadOrGenerateWeek({ clubId, teamId, weekStart, config, library }) {
   const key = weekKeyFor(clubId, teamId, weekStart);
   const cached = lsGet(key, null);
-  if (cached) return cached;
+  if (weekMatchesEngine(cached, config)) return cached;
 
   const detail = loadClubDetail(clubId);
   const remote = detail?.coachWeeks?.[`${teamId}_${weekStart}`];
-  if (remote) { lsSet(key, remote); return remote; }
+  if (weekMatchesEngine(remote, config)) {
+    lsSet(key, remote);
+    return remote;
+  }
 
-  const generated = generateMicrociclo({ config, weekStart, library });
+  const generated = usesClubAutoEngine(config)
+    ? generateClubAutoWeekForCoach(config, { weekStart, weekOffset: 0 })
+    : generateMicrociclo({ config, weekStart, library });
   saveWeek({ clubId, teamId, weekStart, data: generated });
   return generated;
 }
@@ -72,13 +88,22 @@ export function removeSessionFromWeek({ clubId, teamId, weekStart, sessionId }) 
 export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, numWeeks = 4, library }) {
   const key = mesoKeyFor(clubId, teamId);
   const cached = lsGet(key, null);
-  if (cached && cached.startDate === startDate) return cached;
+  if (cached && cached.startDate === startDate) {
+    if (!(usesClubAutoEngine(config) && cached.engine !== "club_auto")) return cached;
+  }
 
   const detail = loadClubDetail(clubId);
   const remote = detail?.coachMesociclo?.[teamId];
-  if (remote && remote.startDate === startDate) { lsSet(key, remote); return remote; }
+  if (remote && remote.startDate === startDate) {
+    if (!(usesClubAutoEngine(config) && remote.engine !== "club_auto")) {
+      lsSet(key, remote);
+      return remote;
+    }
+  }
 
-  const generated = generateMesociclo({ config, startDate, numWeeks, library });
+  const generated = usesClubAutoEngine(config)
+    ? generateClubAutoMesocicloForCoach(config, { startDate, numWeeks })
+    : generateMesociclo({ config, startDate, numWeeks, library });
   saveMesociclo({ clubId, teamId, data: generated });
   return generated;
 }
