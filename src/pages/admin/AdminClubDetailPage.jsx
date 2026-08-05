@@ -2203,6 +2203,13 @@ export default function AdminClubDetailPage() {
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-depro-blue/10 text-depro-blue">
                   {planLabel}
                 </span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                  (club.planningMode || "auto") === "manual"
+                    ? "bg-amber-50 text-amber-800 border-amber-200"
+                    : "bg-sky-50 text-sky-700 border-sky-200"
+                }`}>
+                  {(club.planningMode || "auto") === "manual" ? "Llevado por mí" : "Automático"}
+                </span>
               </div>
 
               <div className="flex flex-wrap gap-4 text-sm text-depro-gray">
@@ -2328,6 +2335,35 @@ export default function AdminClubDetailPage() {
         <>
         <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
           <h3 className="font-semibold text-depro-dark">Plan personalizado</h3>
+          <div>
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Modo de planificación</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[
+                { id: "auto", label: "Automático", hint: "Usa el motor club auto" },
+                { id: "manual", label: "Llevado por mí", hint: "Planificación manual / premium" },
+              ].map((opt) => {
+                const active = (club.planningMode || "auto") === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={async () => {
+                      const updated = { ...club, planningMode: opt.id };
+                      setClub(updated);
+                      await persistClub(updated, plans);
+                      await saveClub(updated);
+                    }}
+                    className={`text-left p-3 rounded-xl border transition-colors ${
+                      active ? "border-depro-blue bg-depro-blue/5" : "border-depro-border hover:border-depro-blue/40"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-depro-dark">{opt.label}</p>
+                    <p className="text-[11px] text-depro-gray mt-0.5">{opt.hint}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PlanSelectField audience="club" value={planId} onChange={setPlanId} />
             <SubscriptionStatusSelect value={subscriptionStatus} onChange={setSubscriptionStatus} />

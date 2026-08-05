@@ -61,6 +61,7 @@ import AdminPlanificacionPage from "./pages/admin/AdminPlanificacionPage";
 import AdminTestsPage from "./pages/admin/AdminTestsPage";
 import AdminExerciseLibraryPage from "./pages/admin/AdminExerciseLibraryPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminClubAutoMotorPage from "./pages/admin/AdminClubAutoMotorPage";
 
 /* ── Guards ───────────────────────────────────────────────────────── */
 function ScrollToTopOnNavigate() {
@@ -208,6 +209,7 @@ function AppRoutes() {
       <Route path="/admin/clubs" element={<AdminRoute><AdminLayout><AdminClubsManagerPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/clubs/:id" element={<AdminRoute><AdminLayout><AdminClubDetailPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/planificacion" element={<AdminRoute><AdminLayout><AdminPlanificacionPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/club-auto" element={<AdminRoute><AdminLayout><AdminClubAutoMotorPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/tests" element={<AdminRoute><AdminLayout><AdminTestsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/catalog" element={<AdminRoute><AdminLayout><AdminExerciseLibraryPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/coach-library" element={<Navigate to="/admin/catalog?tab=coach" replace />} />

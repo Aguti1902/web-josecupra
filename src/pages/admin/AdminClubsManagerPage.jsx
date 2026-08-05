@@ -16,6 +16,8 @@ import {
   Star,
   Trash2,
   RefreshCw,
+  Sparkles,
+  Hand,
 } from "lucide-react";
 import { loadClubs, saveClub, deleteClub, createClubUser } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect } from "../../components/admin/PlanSelectField";
@@ -50,6 +52,24 @@ function PlanBadge({ plan }) {
   );
 }
 
+function PlanningModeBadge({ mode }) {
+  const auto = (mode || "auto") === "auto";
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${
+      auto
+        ? "bg-sky-50 text-sky-700 border-sky-200"
+        : "bg-amber-50 text-amber-800 border-amber-200"
+    }`}>
+      {auto ? <Sparkles size={10} /> : <Hand size={10} />}
+      {auto ? "Automático" : "Llevado por mí"}
+    </span>
+  );
+}
+
+function clubPlanningMode(club) {
+  return club?.planningMode === "manual" ? "manual" : "auto";
+}
+
 function NewClubModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
     name: "", abbreviation: "", city: "", country: "España",
@@ -57,6 +77,7 @@ function NewClubModal({ onClose, onCreate }) {
     coordinatorPassword: generatePassword(),
     planId: "club-inicial",
     subscriptionStatus: "active",
+    planningMode: "auto",
   });
   const [loading, setLoading] = useState(false);
   const [createdCreds, setCreatedCreds] = useState(null);
@@ -100,6 +121,7 @@ function NewClubModal({ onClose, onCreate }) {
       status: "activo",
       plan: form.planId,
       subscriptionStatus: form.subscriptionStatus,
+      planningMode: form.planningMode === "manual" ? "manual" : "auto",
       createdAt: new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }),
       coordinator: {
         name: form.coordinatorName,
@@ -286,6 +308,29 @@ function NewClubModal({ onClose, onCreate }) {
           </div>
 
           <div className="pt-2 border-t border-depro-border space-y-4">
+            <p className="text-sm font-semibold text-depro-dark">Modo de planificación</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: "auto", label: "Automático", hint: "Motor club auto", Icon: Sparkles },
+                { id: "manual", label: "Llevado por mí", hint: "Sesiones manuales", Icon: Hand },
+              ].map(({ id, label, hint, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, planningMode: id }))}
+                  className={`text-left p-3 rounded-xl border transition-colors ${
+                    form.planningMode === id
+                      ? "border-depro-blue bg-depro-blue/5"
+                      : "border-depro-border hover:border-depro-blue/40"
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-depro-dark flex items-center gap-1.5">
+                    <Icon size={14} className="text-depro-blue" /> {label}
+                  </p>
+                  <p className="text-[11px] text-depro-gray mt-0.5">{hint}</p>
+                </button>
+              ))}
+            </div>
             <p className="text-sm font-semibold text-depro-dark">Plan personalizado</p>
             <PlanSelectField
               audience="club"
@@ -338,6 +383,93 @@ function NewClubModal({ onClose, onCreate }) {
   );
 }
 
+function ClubSection({ title, subtitle, icon: Icon, accent, clubs, emptyText, onOpen, onDelete }) {
+  const accentCls = accent === "amber"
+    ? "border-amber-200 bg-amber-50/40"
+    : "border-sky-200 bg-sky-50/40";
+  const iconCls = accent === "amber" ? "text-amber-700" : "text-sky-700";
+
+  return (
+    <section className={`rounded-2xl border ${accentCls} p-4 sm:p-5 space-y-3`}>
+      <div className="flex items-start gap-3">
+        <div className={`mt-0.5 ${iconCls}`}>
+          <Icon size={18} />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-depro-dark">{title}</h2>
+          <p className="text-xs text-depro-gray">{subtitle}</p>
+        </div>
+        <span className="ml-auto text-xs font-bold text-depro-gray bg-white border border-depro-border rounded-lg px-2 py-1">
+          {clubs.length}
+        </span>
+      </div>
+
+      {clubs.length === 0 ? (
+        <p className="text-sm text-depro-gray py-6 text-center">{emptyText}</p>
+      ) : (
+        <div className="space-y-3">
+          {clubs.map((club) => (
+            <div
+              key={club.id}
+              className="bg-white border border-depro-border rounded-xl p-5 hover:shadow-card transition-shadow"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <div className="w-12 h-12 rounded-xl bg-depro-gray-light flex items-center justify-center font-bold text-depro-dark text-sm shrink-0 overflow-hidden border border-depro-border">
+                  {club.logo
+                    ? <img src={club.logo} alt={club.name} className="w-full h-full object-contain p-0.5" />
+                    : club.abbreviation
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold text-depro-dark">{club.name}</h3>
+                    <StatusBadge status={club.status} />
+                    <PlanBadge plan={club.plan} />
+                    <PlanningModeBadge mode={clubPlanningMode(club)} />
+                  </div>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-depro-gray flex-wrap">
+                    {club.city && (
+                      <span className="flex items-center gap-1">
+                        <MapPin size={10} />
+                        {club.city}, {club.country}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Users size={10} />
+                      {(club.teams || []).length} equipo{(club.teams || []).length !== 1 ? "s" : ""}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Shield size={10} />
+                      {club._userCount ?? club.users?.length ?? 0} usuario{(club._userCount ?? club.users?.length ?? 0) !== 1 ? "s" : ""}
+                    </span>
+                    <span>Alta: {club.createdAt}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                  <button
+                    onClick={() => onOpen(club.id)}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors text-sm font-medium"
+                  >
+                    Ver detalle
+                    <ChevronRight size={15} />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(club.id); }}
+                    className="p-2 rounded-xl border border-depro-border text-depro-gray hover:border-red-400 hover:text-red-500 transition-colors"
+                    title="Eliminar club"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function AdminClubsManagerPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -345,6 +477,7 @@ export default function AdminClubsManagerPage() {
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
+  const [filterPlanning, setFilterPlanning] = useState("todos");
   const [copied, setCopied]         = useState(null);
   const [showNewClub, setShowNewClub] = useState(false);
 
@@ -416,8 +549,13 @@ export default function AdminClubsManagerPage() {
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
       c.city?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "todos" || c.status === filterStatus;
-    return matchSearch && matchStatus;
+    const mode = clubPlanningMode(c);
+    const matchPlanning = filterPlanning === "todos" || mode === filterPlanning;
+    return matchSearch && matchStatus && matchPlanning;
   });
+
+  const autoClubs = filtered.filter((c) => clubPlanningMode(c) === "auto");
+  const manualClubs = filtered.filter((c) => clubPlanningMode(c) === "manual");
 
   const copyCode = (code, id) => {
     navigator.clipboard.writeText(code);
@@ -459,11 +597,12 @@ export default function AdminClubsManagerPage() {
       <AdminProvisionHelp current="club" />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { label: "Total clubs", value: clubs.length, color: "text-depro-dark" },
+          { label: "Automáticos", value: clubs.filter((c) => clubPlanningMode(c) === "auto").length, color: "text-sky-700" },
+          { label: "Llevados por mí", value: clubs.filter((c) => clubPlanningMode(c) === "manual").length, color: "text-amber-700" },
           { label: "Activos", value: clubs.filter((c) => c.status === "activo").length, color: "text-green-600" },
-          { label: "Pendientes", value: clubs.filter((c) => c.status === "pendiente").length, color: "text-yellow-600" },
           { label: "Equipos totales", value: clubs.reduce((a, c) => a + (c.teams || []).length, 0), color: "text-depro-blue" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white border border-depro-border rounded-xl p-4">
@@ -474,101 +613,89 @@ export default function AdminClubsManagerPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-depro-gray" />
-          <input
-            className="w-full pl-9 pr-4 py-2.5 border border-depro-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
-            placeholder="Buscar club o ciudad…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-depro-gray" />
+            <input
+              className="w-full pl-9 pr-4 py-2.5 border border-depro-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+              placeholder="Buscar club o ciudad…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            {["todos", "activo", "pendiente"].map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilterStatus(s)}
+                className={`px-4 py-2.5 rounded-xl text-sm font-medium capitalize transition-colors border ${
+                  filterStatus === s
+                    ? "bg-depro-blue border-depro-blue text-white"
+                    : "border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue"
+                }`}
+              >
+                {s === "todos" ? "Todos" : s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-2">
-          {["todos", "activo", "pendiente"].map((s) => (
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: "todos", label: "Todos los modos" },
+            { id: "auto", label: "Automáticos" },
+            { id: "manual", label: "Llevados por mí" },
+          ].map(({ id, label }) => (
             <button
-              key={s}
-              onClick={() => setFilterStatus(s)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-medium capitalize transition-colors border ${
-                filterStatus === s
-                  ? "bg-depro-blue border-depro-blue text-white"
-                  : "border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue"
+              key={id}
+              type="button"
+              onClick={() => setFilterPlanning(id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                filterPlanning === id
+                  ? "bg-depro-dark border-depro-dark text-white"
+                  : "border-depro-border text-depro-gray hover:border-depro-dark"
               }`}
             >
-              {s === "todos" ? "Todos" : s.charAt(0).toUpperCase() + s.slice(1)}
+              {label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Clubs list */}
-      <div className="space-y-3">
+      {/* Clubs list — separación Automáticos / Llevados por mí */}
+      <div className="space-y-8">
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-depro-gray">
             <Building2 size={40} className="mx-auto mb-3 opacity-30" />
             <p className="font-medium">No se encontraron clubs</p>
           </div>
         ) : (
-          filtered.map((club) => (
-            <div
-              key={club.id}
-              className="bg-white border border-depro-border rounded-xl p-5 hover:shadow-card transition-shadow"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                {/* Logo */}
-                <div className="w-12 h-12 rounded-xl bg-depro-gray-light flex items-center justify-center font-bold text-depro-dark text-sm shrink-0 overflow-hidden border border-depro-border">
-                  {club.logo
-                    ? <img src={club.logo} alt={club.name} className="w-full h-full object-contain p-0.5" />
-                    : club.abbreviation
-                  }
-                </div>
-
-                {/* Main info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-depro-dark">{club.name}</h3>
-                    <StatusBadge status={club.status} />
-                    <PlanBadge plan={club.plan} />
-                  </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-depro-gray flex-wrap">
-                    {club.city && (
-                      <span className="flex items-center gap-1">
-                        <MapPin size={10} />
-                        {club.city}, {club.country}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Users size={10} />
-                      {(club.teams || []).length} equipo{(club.teams || []).length !== 1 ? "s" : ""}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Shield size={10} />
-                      {club._userCount ?? club.users?.length ?? 0} usuario{(club._userCount ?? club.users?.length ?? 0) !== 1 ? "s" : ""}
-                    </span>
-                    <span>Alta: {club.createdAt}</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-                  <button
-                    onClick={() => navigate(`/admin/clubs/${club.id}`)}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue transition-colors text-sm font-medium"
-                  >
-                    Ver detalle
-                    <ChevronRight size={15} />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(club.id); }}
-                    className="p-2 rounded-xl border border-depro-border text-depro-gray hover:border-red-400 hover:text-red-500 transition-colors"
-                    title="Eliminar club"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
+          <>
+            {(filterPlanning === "todos" || filterPlanning === "auto") && (
+              <ClubSection
+                title="Automáticos"
+                subtitle="Equipos que usan el motor automático de clubs"
+                icon={Sparkles}
+                accent="sky"
+                clubs={autoClubs}
+                emptyText="Ningún club en modo automático"
+                onOpen={(id) => navigate(`/admin/clubs/${id}`)}
+                onDelete={handleDelete}
+              />
+            )}
+            {(filterPlanning === "todos" || filterPlanning === "manual") && (
+              <ClubSection
+                title="Llevados por mí"
+                subtitle="Equipos premium o gestionados manualmente por José"
+                icon={Hand}
+                accent="amber"
+                clubs={manualClubs}
+                emptyText="Ningún club llevado manualmente"
+                onOpen={(id) => navigate(`/admin/clubs/${id}`)}
+                onDelete={handleDelete}
+              />
+            )}
+          </>
         )}
       </div>
 
