@@ -9,6 +9,10 @@ import { supabase } from "../../lib/supabase";
 import { saveClub } from "../../lib/adminStorage";
 import { MATERIALES } from "../../data/coachExerciseLibrary";
 import { WEEK_TEMPLATES } from "../../lib/coachEngine";
+import TeamBrandingFields, {
+  loadCoachBrandingDraft,
+  clearCoachBrandingDraft,
+} from "../../components/shared/TeamBrandingFields";
 
 const CATEGORIES = ["Sub-9", "Sub-10", "Sub-11", "Sub-12", "Sub-13", "Sub-14", "Sub-15", "Sub-16", "Juvenil", "Amateur"];
 const PHASE_OBJECTIVES = [
@@ -97,6 +101,27 @@ function genId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function initialCoachForm(user) {
+  const draft = loadCoachBrandingDraft() || {};
+  const metaPrimary = user?.primaryColor || user?.user_metadata?.primaryColor || "";
+  const metaSecondary = user?.secondaryColor || user?.user_metadata?.secondaryColor || "";
+  return {
+    teamName: draft.teamHint || "",
+    category: "Sub-14",
+    season: "2025/2026",
+    trainingsPerWeek: 3,
+    sessionDuration: "75",
+    phaseObjective: "mantenimiento",
+    competitiveLevel: "amateur",
+    numPlayers: "15–20",
+    gymAccess: false,
+    material: ["sin_material", "conos"],
+    logo: draft.logo || "",
+    primaryColor: draft.primaryColor || metaPrimary || "#0A36F7",
+    secondaryColor: draft.secondaryColor || metaSecondary || "#ffffff",
+  };
+}
+
 export default function CoachOnboardingPage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -104,12 +129,7 @@ export default function CoachOnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const [form, setForm] = useState({
-    teamName: "", category: "Sub-14", season: "2025/2026",
-    trainingsPerWeek: 3, sessionDuration: "75",
-    phaseObjective: "mantenimiento", competitiveLevel: "amateur",
-    numPlayers: "15–20", gymAccess: false, material: ["sin_material", "conos"],
-  });
+  const [form, setForm] = useState(() => initialCoachForm(user));
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const step1Valid = form.teamName.trim().length > 0 && !!form.category;
@@ -145,8 +165,9 @@ export default function CoachOnboardingPage() {
           material: form.material,
           mode: "depro",
         },
-        primaryColor: "#0A36F7",
-        secondaryColor: "#ffffff",
+        logo: form.logo || null,
+        primaryColor: form.primaryColor || "#0A36F7",
+        secondaryColor: form.secondaryColor || "#ffffff",
         coordinator: null,
         teams: [
           {
@@ -164,6 +185,7 @@ export default function CoachOnboardingPage() {
       };
 
       await saveClub(club);
+      clearCoachBrandingDraft();
 
       const { error: updErr } = await supabase.auth.updateUser({
         data: {
@@ -228,6 +250,18 @@ export default function CoachOnboardingPage() {
                     className="admin-input w-full sm:w-48"
                   />
                 </div>
+                <TeamBrandingFields
+                  logo={form.logo || ""}
+                  primaryColor={form.primaryColor || "#0A36F7"}
+                  secondaryColor={form.secondaryColor || "#ffffff"}
+                  title="Escudo y colores del equipo"
+                  onChange={(b) => setForm((f) => ({
+                    ...f,
+                    logo: b.logo,
+                    primaryColor: b.primaryColor,
+                    secondaryColor: b.secondaryColor,
+                  }))}
+                />
               </div>
               <div className="mt-8 flex justify-end">
                 <button onClick={() => setStep(2)} disabled={!step1Valid} className="btn-primary flex items-center gap-2 disabled:opacity-50">
@@ -338,7 +372,20 @@ export default function CoachOnboardingPage() {
               <h2 className="text-2xl font-black text-depro-dark mb-2">Confirma tu configuración</h2>
               <p className="text-depro-gray text-sm mb-6">Crearemos tu panel de DEPRO Coach con estos datos.</p>
               <div className="bg-depro-gray-light rounded-2xl p-5 space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-depro-gray">Equipo</span><span className="font-bold text-depro-dark">{form.teamName}</span></div>
+                <div className="flex justify-between items-center gap-3">
+                  <span className="text-depro-gray">Equipo</span>
+                  <span className="font-bold text-depro-dark flex items-center gap-2">
+                    {form.logo && (
+                      <img src={form.logo} alt="" className="w-7 h-7 rounded-lg object-contain bg-white border border-depro-border" />
+                    )}
+                    <span
+                      className="inline-block w-3 h-3 rounded-full border border-depro-border"
+                      style={{ backgroundColor: form.primaryColor || "#0A36F7" }}
+                      title="Color principal"
+                    />
+                    {form.teamName}
+                  </span>
+                </div>
                 <div className="flex justify-between"><span className="text-depro-gray">Categoría</span><span className="font-bold text-depro-dark">{form.category}</span></div>
                 <div className="flex justify-between"><span className="text-depro-gray">Entrenamientos/semana</span><span className="font-bold text-depro-dark">{form.trainingsPerWeek}</span></div>
                 <div className="flex justify-between"><span className="text-depro-gray">Duración sesión</span><span className="font-bold text-depro-dark">{form.sessionDuration} min</span></div>

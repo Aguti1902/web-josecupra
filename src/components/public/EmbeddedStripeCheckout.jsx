@@ -4,7 +4,7 @@ import { getStripePromise } from "../../lib/stripePublishable";
 
 /**
  * Stripe Embedded Checkout — formulario de pago embebido en /comprar.
- * Solo se remonta cuando cambian planId o addons (no en cada re-render del formulario).
+ * Se remonta solo si cambian plan/addons/código club (no el resto del formulario).
  */
 export default function EmbeddedStripeCheckout({ planId, formData, onError, className = "" }) {
   const containerRef = useRef(null);
@@ -12,26 +12,48 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError, clas
   const onErrorRef = useRef(onError);
   const formDataRef = useRef(formData);
   const [loading, setLoading] = useState(true);
+  const [localError, setLocalError] = useState("");
 
   onErrorRef.current = onError;
   formDataRef.current = formData;
 
+  // Clave estable: no incluir campos que cambian por efectos (nombre, etc.)
   const checkoutKey = useMemo(() => {
     const addons = Array.isArray(formData?.selectedAddons)
       ? [...formData.selectedAddons].sort().join(",")
       : "";
     const clubCode = formData?.clubCode || "";
-    return `${planId}|${addons}|${clubCode}|${formData?.email || ""}`;
-  }, [planId, formData?.selectedAddons, formData?.clubCode, formData?.email]);
+    return `${planId || ""}|${addons}|${clubCode}`;
+  }, [planId, formData?.selectedAddons, formData?.clubCode]);
 
   useEffect(() => {
     let cancelled = false;
+    let retryTimer = null;
     setLoading(true);
+    setLocalError("");
 
-    async function init() {
+    async function init(attempt = 0) {
+      if (cancelled) return;
+
+      // Esperar a que el contenedor exista (StrictMode / primer paint)
+      if (!containerRef.current) {
+        if (attempt < 20) {
+          retryTimer = setTimeout(() => init(attempt + 1), 50);
+          return;
+        }
+        const msg = "No se pudo preparar el formulario de pago. Recarga la página.";
+        setLocalError(msg);
+        onErrorRef.current?.(msg);
+        setLoading(false);
+        return;
+      }
+
       const stripe = await getStripePromise();
-      if (!stripe || cancelled || !containerRef.current) {
-        if (!stripe) onErrorRef.current?.("No se pudo inicializar Stripe. Recarga la página.");
+      if (cancelled) return;
+      if (!stripe) {
+        const msg = "No se pudo inicializar Stripe. Recarga la página.";
+        setLocalError(msg);
+        onErrorRef.current?.(msg);
         setLoading(false);
         return;
       }
@@ -47,19 +69,25 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError, clas
             embedded: true,
           }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Error al crear sesión de pago");
+        if (!data.clientSecret) throw new Error("Stripe no devolvió clientSecret");
         return data.clientSecret;
       };
 
       try {
+        // Limpiar instancia previa
+        checkoutRef.current?.destroy?.();
+        checkoutRef.current = null;
+        if (containerRef.current) containerRef.current.innerHTML = "";
+
         let checkout;
         if (typeof stripe.createEmbeddedCheckoutPage === "function") {
           checkout = await stripe.createEmbeddedCheckoutPage({ fetchClientSecret });
         } else if (typeof stripe.initEmbeddedCheckout === "function") {
           checkout = await stripe.initEmbeddedCheckout({ fetchClientSecret });
         } else {
-          throw new Error("Tu navegador no soporta Embedded Checkout. Actualiza @stripe/stripe-js.");
+          throw new Error("Tu navegador no soporta Embedded Checkout. Actualiza el navegador.");
         }
 
         if (cancelled) {
@@ -72,7 +100,9 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError, clas
         setLoading(false);
       } catch (err) {
         if (!cancelled) {
-          onErrorRef.current?.(err.message || "No se pudo cargar el pago");
+          const msg = err.message || "No se pudo cargar el pago";
+          setLocalError(msg);
+          onErrorRef.current?.(msg);
           setLoading(false);
         }
       }
@@ -82,6 +112,7 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError, clas
 
     return () => {
       cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
       checkoutRef.current?.destroy?.();
       checkoutRef.current = null;
     };
@@ -99,6 +130,18 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError, clas
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white">
             <div className="spinner border-depro-border border-t-depro-blue" />
             <p className="text-sm text-depro-gray">Preparando formulario de pago…</p>
+          </div>
+        )}
+        {localError && !loading && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white p-6 text-center">
+            <p className="text-sm text-red-600 font-semibold">{localError}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="text-sm font-bold text-depro-blue hover:underline"
+            >
+              Recargar página
+            </button>
           </div>
         )}
         <div ref={containerRef} className="embedded-checkout-container min-h-[520px]" />

@@ -70,6 +70,8 @@ export default async function handler(req, res) {
         clubId: meta.clubId || "",
         teamId: meta.teamId || "",
         clubName: meta.clubName || meta.club || "",
+        primaryColor: meta.primaryColor || "",
+        secondaryColor: meta.secondaryColor || "",
         subscriptionStatus,
         stripeSubscriptionId,
         stripeCustomerId,

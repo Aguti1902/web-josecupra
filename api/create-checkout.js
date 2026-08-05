@@ -75,6 +75,9 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
       authUserId: formData?.authUserId || "",
       tempPassword,
       billingSource: "stripe",
+      // Colores (hex cortos; el escudo va en localStorage, no cabe en metadata)
+      primaryColor: formData?.primaryColor || "",
+      secondaryColor: formData?.secondaryColor || "",
     },
     locale: "es",
   };

@@ -12,11 +12,12 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
 import StripeTestBanner from "../../components/public/StripeTestBanner";
-
-const ONBOARDING_STORAGE_KEY = "depro_onboarding";
-
+import TeamBrandingFields, { saveCoachBrandingDraft } from "../../components/shared/TeamBrandingFields";
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
+import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
+
+const ONBOARDING_STORAGE_KEY = "depro_onboarding";
 const SPORTS     = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const FREQUENCY  = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem", "5 días / sem"];
 const MATERIALS  = ["Sin material", "Gomas", "Mancuernas", "Barra", "Gimnasio completo"];
@@ -253,19 +254,29 @@ function StepCuenta({ audience, planId, form, setForm, onNext, onBack, saveForOA
       return;
     }
     setLoading(true);
-    const result = await register({
-      email: email.trim().toLowerCase(),
-      password,
-      name: form.nombre || email.split("@")[0],
-      role,
-    });
-    setLoading(false);
-    if (!result.success) {
-      setError(result.error || "No se pudo crear la cuenta");
-      return;
+    try {
+      const displayName = (form.nombre || "").trim() || email.split("@")[0];
+      const result = await register({
+        email: email.trim().toLowerCase(),
+        password,
+        name: displayName,
+        role,
+      });
+      if (!result.success) {
+        setError(result.error || "No se pudo crear la cuenta");
+        return;
+      }
+      setForm({
+        ...form,
+        email: email.trim().toLowerCase(),
+        nombre: form.nombre?.trim() || displayName,
+      });
+      onNext();
+    } catch (err) {
+      setError(err?.message || "No se pudo crear la cuenta. Inténtalo de nuevo.");
+    } finally {
+      setLoading(false);
     }
-    setForm({ ...form, email: email.trim().toLowerCase() });
-    onNext();
   };
 
   const handleGoogle = async () => {
@@ -274,10 +285,17 @@ function StepCuenta({ audience, planId, form, setForm, onNext, onBack, saveForOA
     saveForOAuth();
     const qs = new URLSearchParams({ audience, plan: planId, oauth: "1" });
     const redirectTo = `${window.location.origin}/comprar?${qs.toString()}`;
-    const result = await loginWithGoogle(redirectTo);
-    if (!result.success) {
+    try {
+      const result = await loginWithGoogle(redirectTo);
+      if (!result.success) {
+        setError(result.error || "Error al conectar con Google");
+        setGoogleLoading(false);
+        return;
+      }
+      setTimeout(() => setGoogleLoading(false), 8000);
+    } catch (err) {
       setGoogleLoading(false);
-      setError(result.error || "Error al conectar con Google");
+      setError(err?.message || "Error al conectar con Google");
     }
   };
 
@@ -453,10 +471,28 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
     }
   };
 
-  const valid = form.nombre && email && (!form.clubCode?.trim() || (form.clubId && form.clubTeamId));
+  const missing = [];
+  if (!form.nombre?.trim()) missing.push("nombre");
+  if (!email?.trim()) missing.push("email");
+  if (!isPlayer && !form.club?.trim()) missing.push(audience === "club" ? "nombre del club" : "club / academia");
+  if (form.clubCode?.trim() && !(form.clubId && form.clubTeamId)) missing.push("código de club válido / equipo");
+  const valid = missing.length === 0;
 
   const handleNext = () => {
     if (form.clubCode?.trim() && !resolveClubFromCode(form.clubCode)) return;
+    // Sincronizar email de sesión al form (evita payload vacío en Stripe)
+    if (loggedInEmail && form.email !== loggedInEmail) {
+      setForm((f) => ({ ...f, email: loggedInEmail }));
+    }
+    if (audience === "coach" || audience === "club") {
+      saveCoachBrandingDraft({
+        logo: form.logo || "",
+        primaryColor: form.primaryColor || "#0A36F7",
+        secondaryColor: form.secondaryColor || "#ffffff",
+        clubName: form.club || "",
+        teamHint: form.equipos || "",
+      });
+    }
     onNext();
   };
 
@@ -598,16 +634,37 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
                 />
               </div>
             </div>
+
+            {(audience === "coach" || audience === "club") && (
+              <TeamBrandingFields
+                logo={form.logo || ""}
+                primaryColor={form.primaryColor || "#0A36F7"}
+                secondaryColor={form.secondaryColor || "#ffffff"}
+                title={audience === "coach" ? "Escudo y colores del equipo" : "Escudo y colores del club"}
+                onChange={(b) => setForm({
+                  ...form,
+                  logo: b.logo,
+                  primaryColor: b.primaryColor,
+                  secondaryColor: b.secondaryColor,
+                })}
+              />
+            )}
           </>
         )}
       </div>
+
+      {!valid && (
+        <p className="mt-4 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+          Completa: {missing.join(", ")}.
+        </p>
+      )}
 
       <div className="mt-8 flex justify-between">
         <button onClick={onBack} className="btn-ghost flex items-center gap-2">
           <ArrowLeft size={16} /> Atrás
         </button>
         <button onClick={handleNext} disabled={!valid} className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-          Continuar <ArrowRight size={16} />
+          {isPlayer ? "Continuar" : "Ir al pago"} <ArrowRight size={16} />
         </button>
       </div>
     </div>
@@ -643,19 +700,39 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
     const cur = form.objetivos?.length
       ? form.objetivos
       : [form.objetivo, form.objetivoSecundario].filter(Boolean);
-    if (newFreqN === 1 && cur.length > 1) {
-      const next = [cur[0]];
-      setForm({
-        ...form,
-        frecuencia: v,
-        objetivos: next,
-        objetivo: next[0],
-        objetivoSecundario: "",
-      });
-      return;
+    let nextObjs = cur;
+    if (newFreqN === 1 && cur.length > 1) nextObjs = [cur[0]];
+
+    // Asegurar suficientes días seleccionados al subir la frecuencia
+    let days = [...(form.disponibles || [])];
+    if (days.length < newFreqN) {
+      for (const d of WEEK_DAYS) {
+        if (days.length >= newFreqN) break;
+        if (!days.includes(d)) days.push(d);
+      }
     }
-    setForm({ ...form, frecuencia: v });
+
+    setForm({
+      ...form,
+      frecuencia: v,
+      objetivos: nextObjs,
+      objetivo: nextObjs[0] || "",
+      objetivoSecundario: nextObjs[1] || "",
+      disponibles: days,
+    });
   };
+
+  const validationHints = [];
+  if (!form.edad) validationHints.push("edad");
+  if (!objetivos.length) validationHints.push("al menos 1 objetivo");
+  if (!form.deporte) validationHints.push("deporte");
+  if (!form.frecuencia) validationHints.push("frecuencia");
+  if (!materialOk) validationHints.push("material disponible");
+  if (!form.experiencia) validationHints.push("experiencia");
+  if (!form.diaCompeticion) validationHints.push("día de competición");
+  if ((form.disponibles?.length || 0) < freqN) {
+    validationHints.push(`al menos ${freqN} días disponibles (ahora ${form.disponibles?.length || 0})`);
+  }
 
   return (
     <div>
@@ -848,6 +925,12 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
         </div>
       </div>
 
+      {!valid && validationHints.length > 0 && (
+        <p className="mt-4 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+          Para ir al pago completa: {validationHints.join(", ")}.
+        </p>
+      )}
+
       <div className="mt-8 flex justify-between">
         <button onClick={onBack} className="btn-ghost flex items-center gap-2">
           <ArrowLeft size={16} /> Atrás
@@ -891,13 +974,28 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
   const formPayload = useMemo(
     () => ({
       ...form,
+      // No enviar data URLs enormes a Stripe metadata
+      logo: undefined,
       material: Array.isArray(form.material) ? form.material.join("|") : form.material,
-      audience: plan.audience,
+      audience: plan?.audience,
       authUserId: authUserId || "",
       selectedAddons,
+      primaryColor: form.primaryColor || "#0A36F7",
+      secondaryColor: form.secondaryColor || "#ffffff",
     }),
-    [form, plan.audience, authUserId, selectedAddons],
+    [form, plan?.audience, authUserId, selectedAddons],
   );
+
+  if (!plan?.id) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
+        No se ha seleccionado un plan válido. Vuelve atrás y elige un plan.
+        <button type="button" onClick={onBack} className="mt-4 btn-ghost flex items-center gap-2">
+          <ArrowLeft size={16} /> Volver
+        </button>
+      </div>
+    );
+  }
 
   const hasDiscount = !!form.clubCode && plan.audience === "player";
   const discount    = hasDiscount ? Math.round(plan.price * 0.15 * 100) / 100 : 0;
@@ -1149,6 +1247,9 @@ export default function OnboardingPage() {
     clubCode: "",
     clubId: "",
     clubTeamId: "",
+    logo: "",
+    primaryColor: "#0A36F7",
+    secondaryColor: "#ffffff",
     objetivos: [],
     objetivo:  "",
     objetivoSecundario: "",

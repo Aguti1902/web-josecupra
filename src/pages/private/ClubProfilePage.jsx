@@ -10,6 +10,7 @@ import { supabase } from "../../lib/supabase";
 import { loadClubDetail, saveClubDetail } from "../../lib/adminStorage";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import { canManageClubBilling, clubRoleLabel } from "../../lib/clubRoles";
+import TeamBrandingFields from "../../components/shared/TeamBrandingFields";
 
 // Comprime imagen de perfil a 200×200
 function compressAvatar(file) {
@@ -56,6 +57,12 @@ export default function ClubProfilePage() {
   const [saving, setSaving]     = useState(false);
   const [mode, setMode]         = useState(user?.club?.mode || "depro");
   const [savingMode, setSavingMode] = useState(false);
+  const [branding, setBranding] = useState({
+    logo: user?.club?.logo || "",
+    primaryColor: user?.club?.primaryColor || "#0A36F7",
+    secondaryColor: user?.club?.secondaryColor || "#ffffff",
+  });
+  const [savingBranding, setSavingBranding] = useState(false);
   const photoRef = useRef();
   const isSoloCoach = !!user?.club?.isSoloCoach;
   const showBilling = canManageClubBilling(user);
@@ -69,6 +76,21 @@ export default function ClubProfilePage() {
     await refreshUser();
     setSavingMode(false);
     showMsg("ok", nextMode === "personalizado" ? "Modo Personalizado activado." : "Modo DEPRO activado.");
+  };
+
+  const handleSaveBranding = async () => {
+    if (!user?.club?.id) return;
+    setSavingBranding(true);
+    const detail = loadClubDetail(user.club.id) || user.club;
+    await saveClubDetail(user.club.id, {
+      ...detail,
+      logo: branding.logo || null,
+      primaryColor: branding.primaryColor || "#0A36F7",
+      secondaryColor: branding.secondaryColor || "#ffffff",
+    });
+    await refreshUser();
+    setSavingBranding(false);
+    showMsg("ok", "Escudo y colores guardados.");
   };
 
   // Cargar foto guardada en localStorage
@@ -220,6 +242,28 @@ export default function ClubProfilePage() {
           </p>
         </div>
       </div>
+
+      {/* Identidad del equipo — solo entrenador individual (no tiene ClubSettings) */}
+      {isSoloCoach && (
+        <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
+          <h3 className="font-bold text-depro-dark mb-1">Identidad del equipo</h3>
+          <p className="text-xs text-depro-gray">Escudo y colores que se muestran en tu panel.</p>
+          <TeamBrandingFields
+            logo={branding.logo}
+            primaryColor={branding.primaryColor}
+            secondaryColor={branding.secondaryColor}
+            onChange={setBranding}
+          />
+          <button
+            type="button"
+            onClick={handleSaveBranding}
+            disabled={savingBranding}
+            className="btn-primary flex items-center gap-2 disabled:opacity-50"
+          >
+            <Save size={15} /> {savingBranding ? "Guardando…" : "Guardar identidad"}
+          </button>
+        </div>
+      )}
 
       {/* Modo de trabajo — solo entrenador individual */}
       {isSoloCoach && (
