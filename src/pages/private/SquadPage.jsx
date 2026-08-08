@@ -10,6 +10,7 @@ import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 import { getEvalValues, getRatingForEval } from "../../lib/teamTestRatings";
 import { resolveCurrentPlan, getPlanLimits } from "../../lib/subscription";
+import { canSeeClubPricing } from "../../lib/clubRoles";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import ChangePlanModal from "../../components/private/ChangePlanModal";
 
@@ -797,8 +798,10 @@ export default function SquadPage() {
         )}
       </div>
 
-      {/* Uso del plan — equipos/jugadores y upsell si se alcanza el límite */}
-      {clubId && <PlanUsageCard club={club} user={user} audience="club" highlight="players" />}
+      {/* Uso del plan — oculto para staff no-admin en clubs manuales */}
+      {clubId && canSeeClubPricing(user) && (
+        <PlanUsageCard club={club} user={user} audience="club" highlight="players" />
+      )}
 
       <ChangePlanModal
         open={showUpgradeModal}

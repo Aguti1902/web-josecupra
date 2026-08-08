@@ -2,12 +2,13 @@
  * coachLibraryStorage — persistencia de la biblioteca de ejercicios DEPRO Coach.
  *
  * Estrategia (igual que adminStorage.js): localStorage como caché offline-first,
- * `api/coach-library.js` (Supabase) como fuente de verdad, y la biblioteca seed
- * (`coachExerciseLibrary.js`) como contenido inicial la primera vez que se usa.
+ * `api/coach-library.js` (Supabase) como fuente de verdad, y el catálogo completo
+ * (`exerciseCatalog` → coachLibraryFromCatalog) como seed la primera vez.
  */
-import { COACH_EXERCISE_LIBRARY } from "../data/coachExerciseLibrary";
+import { getCoachLibraryFromCatalog } from "./coachLibraryFromCatalog";
 
 const LS_KEY = "depro_coach_library";
+const MIGRATE_FLAG = "depro_coach_lib_v2";
 
 function lsGet(key, fallback) {
   try {
@@ -17,6 +18,12 @@ function lsGet(key, fallback) {
 }
 function lsSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+function lsFlag(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function lsSetFlag(key, value = "1") {
+  try { localStorage.setItem(key, value); } catch {}
 }
 
 async function apiLibrary(method, body) {
@@ -31,22 +38,62 @@ async function apiLibrary(method, body) {
 
 let _cache = null;
 
-/** Carga la biblioteca completa (seed + ediciones del CMS + ejercicios propios pendientes) */
+function catalogSeed() {
+  return getCoachLibraryFromCatalog();
+}
+
+/**
+ * Si el caché es el seed antiguo (~91 ítems), remigra una vez al catálogo completo
+ * fusionando por id (CMS custom / ediciones se conservan).
+ */
+function maybeRemigrateOldSeed(list) {
+  if (!Array.isArray(list) || list.length === 0) return catalogSeed();
+  if (lsFlag(MIGRATE_FLAG) === "1") return list;
+  if (list.length >= 120) {
+    lsSetFlag(MIGRATE_FLAG);
+    return list;
+  }
+  const base = catalogSeed();
+  const byId = new Map(base.map((e) => [e.id, e]));
+  for (const ex of list) {
+    if (!ex?.id) continue;
+    // Conservar ediciones CMS / custom encima del catálogo base
+    byId.set(ex.id, { ...(byId.get(ex.id) || {}), ...ex });
+  }
+  const merged = [...byId.values()];
+  lsSet(LS_KEY, merged);
+  lsSetFlag(MIGRATE_FLAG);
+  return merged;
+}
+
+function resolveLocalSeed() {
+  const local = lsGet(LS_KEY, null);
+  if (local && local.length > 0) return maybeRemigrateOldSeed(local);
+  const seed = catalogSeed();
+  lsSet(LS_KEY, seed);
+  lsSetFlag(MIGRATE_FLAG);
+  return seed;
+}
+
+/** Carga la biblioteca completa (seed catálogo + ediciones del CMS + ejercicios propios) */
 export async function loadCoachLibrary() {
   if (_cache) return _cache;
 
   try {
     const { ok, data } = await apiLibrary("GET");
     if (ok && data?.exercises?.length > 0) {
-      lsSet(LS_KEY, data.exercises);
-      _cache = data.exercises;
+      const migrated = maybeRemigrateOldSeed(data.exercises);
+      lsSet(LS_KEY, migrated);
+      // Si remigramos desde el seed corto, subir el merge a la API
+      if (migrated !== data.exercises && migrated.length > data.exercises.length) {
+        apiLibrary("POST", { exercises: migrated }).catch(() => {});
+      }
+      _cache = migrated;
       return _cache;
     }
     if (ok && data && data.exercises && data.exercises.length === 0) {
-      // Primera vez: sembrar la API con la biblioteca base para que el CMS tenga algo editable
-      const local = lsGet(LS_KEY, null);
-      const seed = local && local.length > 0 ? local : COACH_EXERCISE_LIBRARY;
-      lsSet(LS_KEY, seed);
+      // API vacía: sembrar con catálogo completo
+      const seed = resolveLocalSeed();
       apiLibrary("POST", { exercises: seed }).catch(() => {});
       _cache = seed;
       return _cache;
@@ -55,21 +102,20 @@ export async function loadCoachLibrary() {
     console.warn("[coachLibraryStorage] loadCoachLibrary API error:", e.message);
   }
 
-  const local = lsGet(LS_KEY, null);
-  _cache = local && local.length > 0 ? local : COACH_EXERCISE_LIBRARY;
+  _cache = resolveLocalSeed();
   return _cache;
 }
 
 export function getCachedCoachLibrary() {
   if (_cache) return _cache;
-  const local = lsGet(LS_KEY, null);
-  _cache = local && local.length > 0 ? local : COACH_EXERCISE_LIBRARY;
+  _cache = resolveLocalSeed();
   return _cache;
 }
 
 export async function saveCoachLibrary(exercises) {
   _cache = exercises;
   lsSet(LS_KEY, exercises);
+  lsSetFlag(MIGRATE_FLAG);
   const { ok, data } = await apiLibrary("POST", { exercises });
   if (!ok) console.warn("[coachLibraryStorage] saveCoachLibrary falló en Supabase:", data?.error);
   return { ok };

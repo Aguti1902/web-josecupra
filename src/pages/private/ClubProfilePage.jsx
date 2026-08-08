@@ -10,7 +10,7 @@ import { supabase } from "../../lib/supabase";
 import { loadClubDetail, saveClubDetail } from "../../lib/adminStorage";
 import { clearCoachGeneratedPlans } from "../../lib/coachSessionsStorage";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
-import { canManageClubBilling, clubRoleLabel } from "../../lib/clubRoles";
+import { canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
 import TeamBrandingFields from "../../components/shared/TeamBrandingFields";
 import CoachAutoQuestionnaire, {
   questionnaireToCoachConfig,
@@ -75,7 +75,7 @@ export default function ClubProfilePage() {
   const [savingAutoQ, setSavingAutoQ] = useState(false);
   const photoRef = useRef();
   const isSoloCoach = !!user?.club?.isSoloCoach;
-  const showBilling = canManageClubBilling(user);
+  const showBilling = canManageClubBilling(user) && canSeeClubPricing(user);
 
   const showMsg = (type, text) => {
     setMsg({ type, text });

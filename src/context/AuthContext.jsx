@@ -190,6 +190,7 @@ function buildUser(authUser, profile) {
       stripeSubscriptionId: meta.stripeSubscriptionId ?? cached?.stripeSubscriptionId ?? null,
       stripeCustomerId: meta.stripeCustomerId ?? null,
       purchasedAddons: meta.purchasedAddons ?? cached?.purchasedAddons ?? [],
+      pendingPayment: meta.pendingPayment === true,
     };
   }
 
@@ -241,6 +242,7 @@ function buildUser(authUser, profile) {
     stripeSubscriptionId: meta.stripeSubscriptionId ?? cached?.stripeSubscriptionId ?? null,
     stripeCustomerId: meta.stripeCustomerId ?? null,
     purchasedAddons: meta.purchasedAddons ?? cached?.purchasedAddons ?? [],
+    pendingPayment: meta.pendingPayment === true,
   };
 }
 

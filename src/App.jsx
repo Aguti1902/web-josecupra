@@ -102,6 +102,10 @@ function ClientRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+  // Usuarios Google/legacy marcados como pendingPayment no deben entrar al panel sin pagar
+  if (user.pendingPayment === true) {
+    return <Navigate to="/comprar" replace />;
+  }
   const viewAs = typeof sessionStorage !== "undefined" && sessionStorage.getItem("depro_view_as");
   if (user.role === "admin" && !viewAs) return <Navigate to="/admin" replace />;
   const qKey = user?.id || user?.email;

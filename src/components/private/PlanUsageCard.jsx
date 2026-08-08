@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowUpCircle, CreditCard, Shield, Users } from "lucide-
 import { useTranslation } from "react-i18next";
 import { resolveCurrentPlan, getPlanLimits, getNextPlan } from "../../lib/subscription";
 import { formatPrice } from "../../lib/checkoutPlans";
+import { canSeeClubPricing } from "../../lib/clubRoles";
 import ChangePlanModal from "./ChangePlanModal";
 
 function countClubPlayers(club) {
@@ -45,6 +46,7 @@ function UsageBar({ label, used, limit, icon: Icon }) {
 export default function PlanUsageCard({ club, user, audience = "club", highlight = null, className = "" }) {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
+  const canSeePricing = canSeeClubPricing(user);
 
   const plan = useMemo(() => resolveCurrentPlan(user, club), [user, club]);
   const limits = plan ? getPlanLimits(plan.id) : { maxTeams: null, maxPlayers: null };
@@ -56,6 +58,8 @@ export default function PlanUsageCard({ club, user, audience = "club", highlight
   const teamsFull = limits.maxTeams != null && teamsUsed >= limits.maxTeams;
   const playersFull = limits.maxPlayers != null && playersUsed >= limits.maxPlayers;
   const showAlert = (highlight === "teams" && teamsFull) || (highlight === "players" && playersFull) || teamsFull || playersFull;
+
+  if (!canSeePricing) return null;
 
   return (
     <>

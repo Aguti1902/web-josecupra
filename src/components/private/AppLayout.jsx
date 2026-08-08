@@ -14,7 +14,7 @@ import { TutorialProvider, useTutorial } from "./DashboardTutorial";
 import AiAssistantWidget from "./AiAssistantWidget";
 import PanelSearch from "../shared/PanelSearch";
 import { getPlanLabel, isInTrial, mustPayToContinue, getTrialDaysLeft } from "../../lib/subscription";
-import { isClubAdmin, isClubGlobalView, canManageClubBilling, clubRoleLabel } from "../../lib/clubRoles";
+import { isClubAdmin, isClubGlobalView, canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
 
 function luminance(hex) {
   try {
@@ -312,16 +312,20 @@ function AppLayoutInner({ children }) {
   const isGlobalClubView = isClubGlobalView(user, viewingTeam);
   const isClubOverviewRole = user?.team_role === "coordinador" || user?.team_role === "administrador";
   const isCoordViewingTeam = isClubOverviewRole && !!viewingTeam;
-  const navItems = user?.role === "club"
+  const rawNavItems = user?.role === "club"
     ? (isSoloCoach
       ? coachNav
       : (isClubAdmin(user) && isGlobalClubView
         ? administradorNav
         : (user?.team_role === "coordinador" && isGlobalClubView ? coordinadorNav : entrenadorNav)))
     : playerNav;
+  // Staff no-admin en clubs manuales no ve precios / suscripción
+  const navItems = canSeeClubPricing(user)
+    ? rawNavItems
+    : rawNavItems.filter((item) => item.to !== "/dashboard/subscription");
   const isPlayer = user?.role === "player";
   const playerPlanLabel = user?.plan ? getPlanLabel(user.plan) : "Jugador";
-  const paywallActive = mustPayToContinue(user) && canManageClubBilling(user);
+  const paywallActive = mustPayToContinue(user) && canManageClubBilling(user) && canSeeClubPricing(user);
   const displayNavItems = paywallActive ? [subscriptionNav] : navItems;
 
   if (paywallActive && pathname !== "/dashboard/subscription") {
