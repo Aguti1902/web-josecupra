@@ -1646,6 +1646,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
+        "analitico",
         "empuje"
       ],
       "rol": "complementario",
@@ -2186,6 +2187,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
+        "analitico",
         "empuje"
       ],
       "rol": "complementario",
@@ -2438,7 +2440,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "empuje"
+        "analitico"
       ],
       "rol": "complementario",
       "grupo_principal": "triceps",
@@ -3183,7 +3185,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "empuje"
+        "analitico"
       ],
       "rol": "complementario",
       "grupo_principal": "triceps",
@@ -3225,7 +3227,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "empuje"
+        "analitico"
       ],
       "rol": "complementario",
       "grupo_principal": "triceps",

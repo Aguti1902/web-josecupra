@@ -150,7 +150,15 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
 
 function relaxSlot(slot, step) {
   const next = { ...slot };
+  const patronHasAnalitico = asArray(next.patron).includes("analitico");
+  // Nunca soltar grupo_muscular en slots analíticos (aislamiento); tampoco si patron+grupo van juntos.
+  const keepGrupo = patronHasAnalitico || (next.patron != null && next.patron !== "" && next.grupo_muscular);
+
   if (step === 1 && next.grupo_muscular) {
+    if (keepGrupo) {
+      // Skip: devolver copia intacta para que el bucle avance a otros pasos.
+      return { ...slot };
+    }
     delete next.grupo_muscular;
     return next;
   }
