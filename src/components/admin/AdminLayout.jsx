@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, LogOut, Menu, X, ChevronRight,
   Settings, Brain, Building2, Globe, Shield, CalendarDays, ClipboardList, BookOpen,
-  Dumbbell, HelpCircle, Bell, Sparkles, Plus, User, Layers,
+  Dumbbell, HelpCircle, Bell, Sparkles, Plus, User, Layers, Flame,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { TutorialProvider, useTutorial } from "../private/DashboardTutorial";
@@ -35,6 +35,8 @@ const navGroups = [
     items: [
       { to: "/admin/clubs", icon: Building2, label: "Clubs (auto / manual)", tour: "nav-clubs", hint: "Filtro Automáticos / Llevados por mí" },
       { to: "/admin/club-auto", icon: Sparkles, label: "Motor club auto", hint: "Protocolos y preview" },
+      { to: "/admin/club-plantillas", icon: Layers, label: "Plantillas", hint: "Campo/Gym A·B·C" },
+      { to: "/admin/club-calentamientos", icon: Flame, label: "Calentamientos", hint: "Movilidad + balón" },
       { to: "/admin/planificacion", icon: CalendarDays, label: "Planificación" },
       { to: "/admin/tests", icon: ClipboardList, label: "Tests físicos" },
     ],

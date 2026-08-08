@@ -67,6 +67,8 @@ function PlanningModeBadge({ mode }) {
 }
 
 function clubPlanningMode(club) {
+  if (club?.origen === "manual") return "manual";
+  if (club?.origen === "automatico") return "auto";
   return club?.planningMode === "manual" ? "manual" : "auto";
 }
 
@@ -121,6 +123,7 @@ function NewClubModal({ onClose, onCreate }) {
       status: "activo",
       plan: form.planId,
       subscriptionStatus: form.subscriptionStatus,
+      origen: form.planningMode === "manual" ? "manual" : "automatico",
       planningMode: form.planningMode === "manual" ? "manual" : "auto",
       mode: form.planningMode === "manual" ? "personalizado" : "depro",
       coachConfig: form.planningMode === "manual"

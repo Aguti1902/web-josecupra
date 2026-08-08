@@ -9,6 +9,7 @@ import {
   TRAIN_DAYS,
 } from "../../lib/clubAuto/clubAutoEngine";
 import { CLUB_TAG_VALUES } from "../../lib/clubAuto/clubExerciseTags";
+import AssignPlanModal from "../../components/admin/AssignPlanModal";
 
 const NIVELES = [
   { id: "A", label: "A · 9–12 años" },
@@ -98,6 +99,7 @@ export default function AdminClubAutoMotorPage() {
   const [result, setResult] = useState(null);
   const [weeks, setWeeks] = useState(null);
   const [viewWeek, setViewWeek] = useState(1);
+  const [assignOpen, setAssignOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const validation = useMemo(() => validateCoachQuestionnaire(form), [form]);
@@ -263,6 +265,17 @@ export default function AdminClubAutoMotorPage() {
                 </div>
               </div>
 
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAssignOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-depro-blue text-white text-xs font-bold hover:bg-depro-blue-dark"
+                >
+                  Asignar
+                </button>
+                <span className="text-[11px] text-depro-gray">Asignar a club / equipo / entrenador</span>
+              </div>
+
               {weeks && (
                 <div className="flex gap-1 p-1 bg-white rounded-xl border border-depro-border">
                   {weeks.map((w) => (
@@ -305,6 +318,14 @@ export default function AdminClubAutoMotorPage() {
           ))}
         </div>
       </div>
+
+      <AssignPlanModal
+        open={assignOpen}
+        onClose={() => setAssignOpen(false)}
+        mode="club"
+        questionnaire={form}
+        defaultCycles={1}
+      />
     </div>
   );
 }
