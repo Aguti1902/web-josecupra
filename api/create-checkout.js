@@ -37,6 +37,8 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
     // está verificado en el Dashboard (Payment method domains). No requiere integración extra.
     automatic_payment_methods: { enabled: true },
     mode: "subscription",
+    // Siempre pedir tarjeta aunque el trial sea 0 € hoy (no permitir checkout sin PM).
+    payment_method_collection: "always",
     subscription_data: {
       trial_period_days: TRIAL_PERIOD_DAYS,
       metadata: {

@@ -10,7 +10,7 @@ export const WEBSITE_QUICK_QUESTIONS = [
 export const WEBSITE_FAQ = [
   {
     keywords: ["prueba", "gratis", "15 días", "tarjeta"],
-    answer: "Puedes probar DEPRO **15 días gratis** sin tarjeta. Regístrate en «Prueba gratis» o con Google y tendrás acceso a planificación IA, cargas y tests.",
+    answer: "Puedes probar DEPRO **15 días gratis**. En el registro se pide tarjeta con cargo de **0 € hoy**; el primer cobro llega al terminar el trial. Cancela cuando quieras.",
   },
   {
     keywords: ["precio", "precios", "cuesta", "plan", "€", "euro"],

@@ -16,7 +16,6 @@ import TeamBrandingFields, { saveCoachBrandingDraft } from "../../components/sha
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
-import { buildTrialMetadata, persistLocalTrial } from "../../lib/startFreeTrial";
 
 const ONBOARDING_STORAGE_KEY = "depro_onboarding";
 const ONBOARDING_DRAFT_KEY = "depro_onboarding_draft_v1";
@@ -937,11 +936,8 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
    STEP 4 — Pago
 ───────────────────────────────────────────── */
 function StepPago({ form, setForm, plan, onBack, authUserId }) {
-  const { register, login } = useAuth();
-  const navigate = useNavigate();
   const [error, setError] = useState("");
   const [showDetails, setShowDetails] = useState(false);
-  const [trialLoading, setTrialLoading] = useState(false);
   const selectedAddons = form.selectedAddons || [];
 
   useEffect(() => {
@@ -982,57 +978,6 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
     [form, plan?.audience, authUserId, selectedAddons],
   );
 
-  /** Prueba gratis sin tarjeta (PDF §8) — cuenta trialing; al vencer pide pago. */
-  const startTrialWithoutCard = async () => {
-    setError("");
-    setTrialLoading(true);
-    try {
-      const email = (form.email || "").trim().toLowerCase();
-      const password = form.password || form.pendingPassword || "";
-      if (!email || password.length < 8) {
-        setError("Necesitas email y contraseña (mín. 8 caracteres) para empezar la prueba.");
-        setTrialLoading(false);
-        return;
-      }
-      const meta = buildTrialMetadata({ ...form, audience: plan?.audience }, plan.id);
-      const res = await register({
-        email,
-        password,
-        name: meta.name || email.split("@")[0],
-        role: meta.role,
-        metadata: meta,
-      });
-      if (!res.success) {
-        // Si ya existe, intentar login y actualizar vía sesión
-        const loginRes = await login(email, password);
-        if (!loginRes?.success) {
-          setError(res.error || "No se pudo crear la cuenta de prueba.");
-          setTrialLoading(false);
-          return;
-        }
-      } else {
-        await login(email, password);
-      }
-      const uid = res.user?.id || authUserId;
-      if (uid) persistLocalTrial(uid, plan.id, meta.trialEndsAt);
-      if (form.clubId && form.clubTeamId && uid) {
-        registerPendingClubPlayer({
-          userId: uid,
-          clubId: form.clubId,
-          teamId: form.clubTeamId,
-          name: form.nombre,
-          email,
-          plan: plan.id,
-        });
-      }
-      navigate("/dashboard", { replace: true });
-    } catch (err) {
-      setError(err?.message || "Error al iniciar la prueba gratuita.");
-    } finally {
-      setTrialLoading(false);
-    }
-  };
-
   if (!plan?.id) {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
@@ -1072,8 +1017,8 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
       <div className="mb-8">
         <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu suscripción</h2>
         <p className="text-depro-gray text-sm">
-          Introduce tu método de pago. Tienes <strong className="text-depro-dark">15 días de prueba gratis</strong> antes del primer cargo.
-          También puedes empezar la prueba sin tarjeta (opción más abajo).
+          Introduce tu método de pago para activar <strong className="text-depro-dark">15 días de prueba gratis</strong>.
+          Hoy se autoriza la tarjeta con <strong className="text-depro-dark">0 €</strong>; el primer cargo llega al terminar el trial.
         </p>
       </div>
 
@@ -1083,7 +1028,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
           <div className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden">
             <div className="p-5 border-b border-depro-border">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-depro-green/10 px-2.5 py-1 text-[11px] font-bold text-depro-green mb-3">
-                <BadgeCheck size={12} /> 15 días de prueba gratis
+                <BadgeCheck size={12} /> 15 días gratis · 0 € hoy
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: plan.bg }}>
@@ -1123,7 +1068,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
                 <span className="text-2xl font-black text-depro-dark">{formatPrice(total)}</span>
               </div>
               <p className="text-[11px] text-depro-gray pt-1">
-                Primer cargo tras el trial de 15 días. Cancela cuando quieras.
+                Se pide tarjeta ahora (cargo 0 €). Primer cobro tras 15 días. Cancela cuando quieras.
               </p>
             </div>
 
@@ -1190,7 +1135,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
           </div>
         </aside>
 
-        {/* Checkout embebido Stripe — protagonista del último paso */}
+        {/* Checkout embebido Stripe — único camino (trial con tarjeta, 0 € hoy) */}
         <div className="lg:col-span-3 order-2 space-y-4">
           {error && (
             <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl p-4">
@@ -1204,40 +1149,14 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
             </div>
             <h3 className="font-black text-depro-dark text-lg">Método de pago</h3>
             <p className="text-sm text-depro-gray">
-              Completa el checkout para activar tu plan con <strong className="text-depro-dark">15 días de prueba</strong>.
-              El primer cargo se hace al terminar el trial.
+              Añade tu tarjeta para empezar la prueba de <strong className="text-depro-dark">15 días</strong>.
+              Hoy el cargo es <strong className="text-depro-dark">0 €</strong>; el cobro del plan comienza al terminar el trial.
             </p>
             <EmbeddedStripeCheckout
               planId={plan.id}
               formData={formPayload}
               onError={setError}
             />
-          </div>
-
-          <div className="relative flex items-center gap-3 py-1">
-            <div className="flex-1 h-px bg-depro-border" />
-            <span className="text-[11px] font-bold uppercase tracking-wide text-depro-gray">o empieza sin tarjeta</span>
-            <div className="flex-1 h-px bg-depro-border" />
-          </div>
-
-          <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card space-y-3">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-depro-green/10 px-2.5 py-1 text-[11px] font-bold text-depro-green">
-              <BadgeCheck size={12} /> Sin tarjeta necesaria
-            </div>
-            <h3 className="font-black text-depro-dark text-base">Prueba gratuita 15 días</h3>
-            <p className="text-sm text-depro-gray">
-              Crea tu cuenta y explora DEPRO sin introducir tarjeta. Máx. 3 PDFs; las cargas no se guardan de forma permanente.
-              Al vencer, el acceso se bloquea hasta completar el pago.
-            </p>
-            <button
-              type="button"
-              disabled={trialLoading}
-              onClick={startTrialWithoutCard}
-              className="w-full btn-ghost border border-depro-border flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {trialLoading ? "Activando prueba…" : "Empezar prueba gratis sin tarjeta"}
-              {!trialLoading && <ArrowRight size={16} />}
-            </button>
           </div>
 
           <p className="lg:hidden flex items-center gap-2 text-[11px] text-depro-gray justify-center">

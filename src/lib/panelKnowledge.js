@@ -11,7 +11,7 @@ DEPRO es una plataforma de preparación física para fútbol con tres perfiles:
 - DEPRO Coach: entrenador individual con planificación IA, sesiones automáticas y biblioteca de ejercicios.
 
 Navegación principal en el sidebar izquierdo. El header muestra la sección activa.
-Prueba gratuita: 15 días sin tarjeta. Configuración del club en "Mi Club" (coordinadores).
+Prueba gratuita: 15 días con tarjeta (0 € hoy). Configuración del club en "Mi Club" (coordinadores).
 `,
 
   routes: {
@@ -86,7 +86,7 @@ Prueba gratuita: 15 días sin tarjeta. Configuración del club en "Mi Club" (coo
     {
       keywords: ["prueba", "gratis", "15 días", "plan", "suscripción", "pago"],
       roles: ["club", "coach", "player"],
-      answer: "Tienes **15 días de prueba gratis** sin tarjeta. Al finalizar, elige plan en la página de compra. Los límites de tu plan (jugadores, equipos, IA) aparecen en la tarjeta de uso del dashboard.",
+      answer: "Tienes **15 días de prueba gratis** con tarjeta (cargo 0 € al empezar). Al finalizar el trial se cobra el plan. Los límites (jugadores, equipos, IA) aparecen en la tarjeta de uso del dashboard.",
     },
     {
       keywords: ["perfil", "foto", "contraseña", "cuenta"],
