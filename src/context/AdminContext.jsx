@@ -24,6 +24,15 @@ export function mapPlayerToClient(user) {
     role: "player",
     plan: user.plan || "player-essential",
     billingSource: user.billingSource || null,
+    phone: user.phone || user.telefono || null,
+    telefono: user.telefono || user.phone || null,
+    age: user.edad || user.age || null,
+    objective: user.objetivo || (Array.isArray(user.objetivos) ? user.objetivos.join(" + ") : null),
+    trainingDays: user.frecuencia || null,
+    disponibles: user.disponibles || null,
+    diaCompeticion: user.diaCompeticion || null,
+    material: user.material || null,
+    planPendingManual: !!user.planPendingManual,
     club: {
       name: user.clubName || "Plan individual",
       logo: clientInitials(user.name),
@@ -154,6 +163,23 @@ export function AdminProvider({ children }) {
         .filter((u) => u.type === "player")
         .map(mapPlayerToClient);
       setClients(players);
+      try {
+        localStorage.setItem("depro_admin_clients", JSON.stringify(
+          (json.users || []).map((u) => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: u.role || (u.type === "player" ? "player" : u.role),
+            teamRole: u.teamRole,
+            tipo: u.type,
+            type: u.type,
+            clubId: u.clubId,
+            plan: u.plan,
+            subscriptionStatus: u.subscriptionStatus,
+            billingSource: u.billingSource,
+          }))
+        ));
+      } catch { /* ignore */ }
       ensureClientAssets(players.map((p) => p.id));
     } catch {
       /* sin conexión: mantener lista actual */

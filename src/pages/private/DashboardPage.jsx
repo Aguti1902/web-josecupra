@@ -975,7 +975,17 @@ function JugadorDashboard({ user, club }) {
 
   return (
     <div className="space-y-6">
-      {playerPlan?.planError && (
+      {(playerPlan?.premiumPending || playerPlan?.planPendingManual) && (
+        <div className="rounded-2xl border-2 border-depro-yellow bg-[#FEFAE7] p-5 text-sm text-depro-dark">
+          <p className="font-black mb-2">Plan Premium en preparación</p>
+          <p className="text-depro-gray">
+            {playerPlan.message
+              || "Tu preparador diseñará la rutina manualmente tras contactarte. No es un proceso automático."}
+          </p>
+          <p className="text-xs text-depro-gray mt-2">Compromiso: videollamada + rutina en menos de 48h.</p>
+        </div>
+      )}
+      {playerPlan?.planError && !playerPlan?.premiumPending && (
         <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
           <p className="font-black text-amber-950 mb-2">Planificación pendiente de ajuste</p>
           <p className="whitespace-pre-line line-clamp-4">{playerPlan.planError}</p>
@@ -1057,10 +1067,15 @@ function JugadorDashboard({ user, club }) {
         <div className="rounded-2xl bg-depro-blue p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0"><Phone size={20} className="text-white" /></div>
           <div className="flex-1">
-            <div className="text-white font-bold text-sm">Contacto directo con tu preparador</div>
-            <div className="text-blue-200 text-xs mt-0.5">Plan Premium · Acceso a contacto directo</div>
+            <div className="text-white font-bold text-sm">Tu preparador te contactará</div>
+            <div className="text-blue-200 text-xs mt-0.5">
+              Premium · intervención humana · videollamada + rutina &lt; 48h
+              {user?.phone || user?.telefono ? ` · Tel. ${user.phone || user.telefono}` : " · Añade tu teléfono en el perfil"}
+            </div>
           </div>
-          <a href="tel:+34600000000" className="flex-shrink-0 bg-white text-depro-blue text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-blue-50 transition-colors w-full sm:w-auto text-center">Llamar</a>
+          {(user?.phone || user?.telefono) && (
+            <a href={`tel:${user.phone || user.telefono}`} className="flex-shrink-0 bg-white text-depro-blue text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-blue-50 transition-colors w-full sm:w-auto text-center">WhatsApp / Llamar</a>
+          )}
         </div>
       )}
 

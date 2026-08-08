@@ -625,6 +625,12 @@ export function buildMinimalSession(user) {
   }, usedIds);
 }
 
+/** Premium = intervención humana: no generar rutina automática. */
+function isPremiumManualUser(user) {
+  const plan = String(user?.plan || user?.subscription?.plan || "").toLowerCase();
+  return plan === "player-pro" || plan === "premium" || plan === "pro";
+}
+
 export function ensurePlayerPlan(user) {
   if (!user?.id) return null;
   const planKey = `depro_plan_${user.id}`;
@@ -634,11 +640,28 @@ export function ensurePlayerPlan(user) {
       const parsed = JSON.parse(existing);
       if (parsed?.planError) {
         localStorage.removeItem(planKey);
+      } else if (parsed?.premiumPending && !isPremiumManualUser(user)) {
+        localStorage.removeItem(planKey);
       } else {
         return parsed;
       }
     }
   } catch { /* ignore */ }
+
+  // Premium: guardar marcador de pendiente hasta asignación manual desde el motor
+  if (isPremiumManualUser(user)) {
+    const pending = {
+      premiumPending: true,
+      planPendingManual: true,
+      message:
+        "Tu plan Premium se diseña manualmente tras la videollamada. Compromiso: contacto + rutina en menos de 48h. Mientras tanto la rutina no está disponible.",
+      sessions: [],
+      createdAt: new Date().toISOString(),
+    };
+    localStorage.setItem(planKey, JSON.stringify(pending));
+    return pending;
+  }
+
   const plan = buildPlayerPlan(user);
   if (!plan.planError) {
     localStorage.setItem(planKey, JSON.stringify(plan));

@@ -56,8 +56,31 @@ export async function createClubUser({
       body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
-    if (data.ok) return { ok: true, userId: data.userId };
-    if (isExistingUserError(data.error)) return { ok: true, alreadyExists: true };
+    if (data.ok) {
+      return {
+        ok: true,
+        userId: data.userId,
+        created: !!data.created,
+        updated: !!data.updated,
+      };
+    }
+    // Si el email ya existe, re-provisionar con update-user (password + metadatos)
+    if (isExistingUserError(data.error)) {
+      const upd = await updateUserByEmail({
+        email,
+        password,
+        name,
+        teamRole,
+        clubId,
+        teamId,
+        managedTeamIds,
+        plan,
+        subscriptionStatus,
+        billingSource,
+      });
+      if (upd.ok) return { ok: true, userId: upd.userId, updated: true };
+      return { ok: false, error: upd.error || data.error, alreadyExists: true };
+    }
     if (data.error) return { ok: false, error: data.error };
   } catch {
     // API no disponible (p. ej. entorno local sin serverless) → fallback
@@ -68,13 +91,35 @@ export async function createClubUser({
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name, role, clubId, teamId, teamRole, managedTeamIds } },
+      options: {
+        data: {
+          name,
+          role,
+          clubId,
+          teamId,
+          teamRole,
+          managedTeamIds,
+          plan,
+          subscriptionStatus,
+          billingSource,
+          posicion,
+          deporte,
+          objetivo,
+        },
+        emailRedirectTo: undefined,
+      },
     });
     if (error) {
-      if (isExistingUserError(error.message)) return { ok: true, alreadyExists: true };
+      if (isExistingUserError(error.message)) {
+        return {
+          ok: false,
+          alreadyExists: true,
+          error: "Este email ya existe. Usa el panel con API admin para actualizar la cuenta.",
+        };
+      }
       return { ok: false, error: error.message };
     }
-    return { ok: true, userId: data.user?.id, via: "signUp" };
+    return { ok: true, userId: data.user?.id, via: "signUp", created: true };
   } catch (e) {
     return { ok: false, error: e.message };
   }

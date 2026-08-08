@@ -103,9 +103,38 @@ export default async function handler(req, res) {
     email_confirm: true,
   });
 
-  if (error) {
+  if (!error) {
+    return res.status(200).json({ ok: true, userId: data.user?.id, created: true });
+  }
+
+  // Alta manual: si el email ya existe, actualizar metadatos + password + confirmar email
+  // (no forzar login inmediato; el admin elige el estado final).
+  const msg = String(error.message || "").toLowerCase();
+  const alreadyExists =
+    msg.includes("already registered")
+    || msg.includes("already been registered")
+    || msg.includes("user already registered")
+    || msg.includes("already exists");
+
+  if (!alreadyExists || !caller.isAdmin) {
     return res.status(400).json({ ok: false, error: error.message });
   }
 
-  return res.status(200).json({ ok: true, userId: data.user?.id });
+  try {
+    const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
+    if (!existing) {
+      return res.status(400).json({ ok: false, error: error.message });
+    }
+    const mergedMeta = { ...(existing.user_metadata || {}), ...userMeta };
+    const { error: updErr } = await admin.auth.admin.updateUserById(existing.id, {
+      password,
+      email_confirm: true,
+      user_metadata: mergedMeta,
+    });
+    if (updErr) return res.status(400).json({ ok: false, error: updErr.message });
+    return res.status(200).json({ ok: true, userId: existing.id, updated: true });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message || error.message });
+  }
 }

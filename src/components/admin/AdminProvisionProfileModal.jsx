@@ -29,6 +29,26 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
   const [loading, setLoading] = useState(false);
   const [creds, setCreds] = useState(null);
 
+  const mirrorPlayerLocal = (userId) => {
+    if (!userId || audience !== "player") return;
+    try {
+      const raw = localStorage.getItem("depro_admin_clients");
+      const list = raw ? JSON.parse(raw) : [];
+      const entry = {
+        id: userId,
+        name: form.name,
+        email: form.email,
+        role: "player",
+        plan: form.planId,
+        subscriptionStatus: form.subscriptionStatus,
+        billingSource: "manual",
+        posicion: form.posicion,
+      };
+      const next = [entry, ...(list || []).filter((c) => c.id !== userId && c.email !== form.email)];
+      localStorage.setItem("depro_admin_clients", JSON.stringify(next.slice(0, 500)));
+    } catch { /* ignore */ }
+  };
+
   const handleSubmit = async () => {
     if (!form.email || form.password.length < 6) return;
     setLoading(true);
@@ -82,6 +102,8 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           name: form.name,
           error: res.error,
           label: "DEPRO Coach",
+          updated: !!res.updated,
+          status: form.subscriptionStatus,
         });
         if (res.ok) onCreated?.();
       } else {
@@ -98,6 +120,8 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           objetivo: "Rendimiento",
         });
 
+        if (res.ok) mirrorPlayerLocal(res.userId);
+
         setCreds({
           ok: res.ok,
           email: form.email,
@@ -105,6 +129,8 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           name: form.name,
           error: res.error,
           label: "Jugador",
+          updated: !!res.updated,
+          status: form.subscriptionStatus,
         });
         if (res.ok) onCreated?.();
       }
@@ -120,15 +146,22 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${creds.ok ? "bg-green-50" : "bg-yellow-50"}`}>
             {creds.ok ? <CheckCircle size={28} className="text-green-500" /> : <ClockIcon />}
           </div>
-          <h2 className="font-bold text-depro-dark text-lg mb-1">{creds.label} provisionado</h2>
+          <h2 className="font-bold text-depro-dark text-lg mb-1">
+            {creds.ok ? `${creds.label} ${creds.updated ? "actualizado" : "creado"}` : "No se pudo guardar el perfil"}
+          </h2>
           {creds.ok ? (
-            <p className="text-sm text-depro-gray mb-4">Guarda las credenciales — no volverás a ver la contraseña.</p>
+            <p className="text-sm text-depro-gray mb-4">
+              Perfil guardado en estado <strong>{creds.status || "active"}</strong>.
+              No se inicia sesión automáticamente: puedes asignar rutina y seguir trabajando desde admin.
+            </p>
           ) : (
             <p className="text-sm text-red-600 mb-4">{creds.error || "No se pudo crear la cuenta"}</p>
           )}
           <div className="bg-depro-gray-light rounded-xl p-4 text-left space-y-2 mb-4 text-sm">
             <div><span className="text-depro-gray">Email</span><p className="font-mono font-bold">{creds.email}</p></div>
-            <div><span className="text-depro-gray">Contraseña</span><p className="font-mono font-bold">{creds.password}</p></div>
+            {creds.ok && (
+              <div><span className="text-depro-gray">Contraseña (opcional, para acceso posterior)</span><p className="font-mono font-bold">{creds.password}</p></div>
+            )}
           </div>
           <button
             type="button"

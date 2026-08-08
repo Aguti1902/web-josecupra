@@ -386,7 +386,7 @@ function PlayerWeeklyPlan({ accent }) {
     } catch { /* ignore */ }
     const generated = ensurePlayerPlan(user);
     if (generated) setPlan(generated);
-  }, [planKey, user?.id]);
+  }, [planKey, user?.id, user?.plan]);
 
   useEffect(() => {
     if (wantMinimal && user) {
@@ -561,6 +561,21 @@ function PlayerWeeklyPlan({ accent }) {
   }
 
   // ── Plan incoherente (objetivo + días + competición) ─────
+  if (plan?.premiumPending || plan?.planPendingManual) {
+    return (
+      <div className="max-w-2xl mx-auto py-10 px-4">
+        <div className="rounded-2xl border-2 border-depro-yellow bg-[#FEFAE7] p-6 space-y-3">
+          <h2 className="text-xl font-black text-depro-dark">Rutina Premium pendiente</h2>
+          <p className="text-sm text-depro-gray">
+            {plan.message
+              || "Tu preparador está diseñando tu plan a mano. No verás una rutina automática mientras tanto."}
+          </p>
+          <p className="text-xs text-depro-gray">Compromiso: videollamada + rutina en menos de 48h.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (plan?.planError) {
     return (
       <div className="dash-page">

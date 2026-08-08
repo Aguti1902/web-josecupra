@@ -387,7 +387,8 @@ function StepCuenta({ form, setForm, onNext, onBack }) {
 /* ─────────────────────────────────────────────
    STEP 3 — Datos personales
 ───────────────────────────────────────────── */
-function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
+function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, planId }) {
+  const isPremiumPlayer = audience === "player" && (planId === "player-pro" || planId === "premium");
   const isPlayer = audience === "player";
   const email = loggedInEmail || form.email;
   const [clubTeams, setClubTeams] = useState([]);
@@ -429,6 +430,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
   if (!form.nombre?.trim()) missing.push("nombre");
   if (!email?.trim()) missing.push("email");
   if (!isPlayer && !form.club?.trim()) missing.push(audience === "club" ? "nombre del club" : "club / academia");
+  if (isPremiumPlayer && !String(form.phone || "").trim()) missing.push("teléfono de contacto");
   // Código de club inválido: aviso, pero no bloquea el avance (se puede quitar)
   const clubCodeBlocking = !!(form.clubCode?.trim() && !(form.clubId && form.clubTeamId));
   const valid = missing.length === 0;
@@ -518,6 +520,23 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
 
         {isPlayer ? (
           <>
+            {isPremiumPlayer && (
+              <div>
+                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
+                  Teléfono de contacto *
+                </label>
+                <p className="text-xs text-depro-gray mb-2">
+                  Premium: tu preparador te contactará para agendar la videollamada (rutina manual &lt; 48h).
+                </p>
+                <input
+                  type="tel"
+                  value={form.phone || ""}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  className="admin-input w-full"
+                  placeholder="+34 600 000 000"
+                />
+              </div>
+            )}
             <div>
               <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Ubicación</label>
               <div className="relative">
@@ -655,7 +674,8 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail }) {
 /* ─────────────────────────────────────────────
    STEP 4 — Datos de fútbol
 ───────────────────────────────────────────── */
-function StepFutbol({ form, setForm, onNext, onBack }) {
+function StepFutbol({ form, setForm, onNext, onBack, planId }) {
+  const isPremium = planId === "player-pro" || planId === "premium";
   const freqN = parseInt(String(form.frecuencia).replace(/\D/g, "")) || 3;
   const objetivos = form.objetivos?.length ? form.objetivos : [form.objetivo, form.objetivoSecundario].filter(Boolean);
   const materialOk = Array.isArray(form.material) ? form.material.length > 0 : !!form.material;
@@ -723,7 +743,11 @@ function StepFutbol({ form, setForm, onNext, onBack }) {
   return (
     <div>
       <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Tu entrenamiento</h2>
-      <p className="text-depro-gray text-sm mb-8">Con estos datos el sistema genera automáticamente tu plan personalizado.</p>
+      <p className="text-depro-gray text-sm mb-8">
+        {isPremium
+          ? "Guardamos tu cuestionario para que tu preparador diseñe la rutina manualmente. No se genera un plan automático."
+          : "Con estos datos el sistema genera automáticamente tu plan personalizado."}
+      </p>
 
       <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card space-y-6">
 
@@ -997,6 +1021,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
     ["Nombre", form.nombre],
     ["Email", form.email],
     plan.audience === "player" ? ["Edad", form.edad] : null,
+    plan.audience === "player" ? ["Teléfono", form.phone] : null,
     plan.audience === "player" ? ["Ubicación", form.club] : null,
     plan.audience === "player" ? ["Objetivos", (form.objetivos?.length ? form.objetivos : [form.objetivo, form.objetivoSecundario].filter(Boolean)).join(" + ")] : null,
     plan.audience === "player" ? ["Deporte", form.deporte] : null,
@@ -1279,6 +1304,7 @@ export default function OnboardingPage() {
     diaCompeticion: "Fin de semana",
     disponibles: ["Lunes", "Miércoles", "Viernes"],
     selectedAddons: [],
+    phone: "",
   });
 
   const plan = PLANS[planId] || plansForAudience(audience)[0];
@@ -1343,6 +1369,7 @@ export default function OnboardingPage() {
       diaCompeticion: "Fin de semana",
       disponibles: ["Lunes", "Miércoles", "Viernes"],
       selectedAddons: [],
+      phone: "",
     });
   };
 
@@ -1473,6 +1500,7 @@ export default function OnboardingPage() {
             audience={plan?.audience || audience}
             form={form}
             setForm={setForm}
+            planId={plan?.id || planId}
             loggedInEmail={user?.email}
             onNext={() => {
               setForm((f) => ({
@@ -1491,6 +1519,7 @@ export default function OnboardingPage() {
           <StepFutbol
             form={form}
             setForm={setForm}
+            planId={plan?.id || planId}
             onNext={() => {
               setForm((f) => ({
                 ...f,

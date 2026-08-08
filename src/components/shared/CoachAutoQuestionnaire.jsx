@@ -1,14 +1,17 @@
 /**
- * Cuestionario corto del entrenador (punto 4 del documento).
- * Solo: nivel A/B/C · 2/3/4 · días exactos · partido · gimnasio.
+ * Cuestionario clave entrenador/club (tras «Tus datos»).
+ * Campos: nivel (indispensable) · días · partido · duración · jugadores · material · gimnasio (protocolos).
  */
 import { useMemo } from "react";
-import { AlertCircle, Calendar, Dumbbell, Trophy } from "lucide-react";
+import { AlertCircle, Calendar, Clock, Dumbbell, Package, Trophy, Users } from "lucide-react";
 import {
   validateCoachQuestionnaire,
   TRAIN_DAYS,
   CLUB_AUTO_NIVELES,
   CLUB_AUTO_MATCH_DAYS,
+  CLUB_AUTO_DURATIONS,
+  CLUB_AUTO_PLAYER_COUNTS,
+  CLUB_AUTO_MATERIALS,
 } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 function Chip({ active, onClick, children, disabled }) {
@@ -30,13 +33,7 @@ function Chip({ active, onClick, children, disabled }) {
 
 /**
  * @param {{
- *   value: {
- *     nivel: string,
- *     dias_entrenamiento_semana: number,
- *     dias_exactos_entrenamiento: string[],
- *     dia_partido: string,
- *     acceso_gimnasio: string|boolean,
- *   },
+ *   value: object,
  *   onChange: (next: object) => void,
  *   showErrors?: boolean,
  * }} props
@@ -44,36 +41,40 @@ function Chip({ active, onClick, children, disabled }) {
 export default function CoachAutoQuestionnaire({ value, onChange, showErrors = true }) {
   const form = {
     nivel: value?.nivel || "B",
-    dias_entrenamiento_semana: Number(value?.dias_entrenamiento_semana || 3),
     dias_exactos_entrenamiento: value?.dias_exactos_entrenamiento || [],
+    dias_entrenamiento_semana: Number(
+      value?.dias_entrenamiento_semana
+      || (value?.dias_exactos_entrenamiento || []).length
+      || 3
+    ),
     dia_partido: value?.dia_partido || "sabado",
+    duracion_sesion: value?.duracion_sesion || "75",
+    num_jugadores: value?.num_jugadores || "14-18",
+    material: Array.isArray(value?.material) ? value.material : [],
     acceso_gimnasio: value?.acceso_gimnasio === true || value?.acceso_gimnasio === "si" ? "si" : "no",
   };
 
   const validation = useMemo(() => validateCoachQuestionnaire(form), [form]);
 
-  const patch = (partial) => onChange({ ...form, ...partial });
-
-  const setFrequency = (n) => {
-    let days = [...form.dias_exactos_entrenamiento];
-    if (days.length > n) days = days.slice(0, n);
-    if (days.length < n) {
-      for (const d of TRAIN_DAYS) {
-        if (days.length >= n) break;
-        if (!days.includes(d)) days.push(d);
-      }
+  const patch = (partial) => {
+    const next = { ...form, ...partial };
+    if (partial.dias_exactos_entrenamiento) {
+      next.dias_entrenamiento_semana = partial.dias_exactos_entrenamiento.length;
     }
-    patch({ dias_entrenamiento_semana: n, dias_exactos_entrenamiento: days });
+    onChange(next);
   };
 
   const toggleDay = (day) => {
     const cur = form.dias_exactos_entrenamiento;
     const has = cur.includes(day);
-    let next = has ? cur.filter((d) => d !== day) : [...cur, day];
-    if (next.length > form.dias_entrenamiento_semana) {
-      next = next.slice(-form.dias_entrenamiento_semana);
-    }
-    patch({ dias_exactos_entrenamiento: next });
+    const next = has ? cur.filter((d) => d !== day) : [...cur, day];
+    patch({ dias_exactos_entrenamiento: next, dias_entrenamiento_semana: next.length });
+  };
+
+  const toggleMaterial = (item) => {
+    const cur = form.material;
+    const next = cur.includes(item) ? cur.filter((m) => m !== item) : [...cur, item];
+    patch({ material: next });
   };
 
   return (
@@ -82,6 +83,7 @@ export default function CoachAutoQuestionnaire({ value, onChange, showErrors = t
         <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
           <Trophy size={12} /> Nivel del equipo *
         </label>
+        <p className="text-xs text-depro-gray mb-2">Necesario para elegir tareas A/B/C del motor.</p>
         <div className="flex flex-wrap gap-2">
           {CLUB_AUTO_NIVELES.map((n) => (
             <Chip key={n.id} active={form.nivel === n.id} onClick={() => patch({ nivel: n.id })}>
@@ -93,20 +95,7 @@ export default function CoachAutoQuestionnaire({ value, onChange, showErrors = t
 
       <div>
         <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-          <Calendar size={12} /> Entrenamientos por semana *
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {[2, 3, 4].map((n) => (
-            <Chip key={n} active={form.dias_entrenamiento_semana === n} onClick={() => setFrequency(n)}>
-              {n} días
-            </Chip>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 block">
-          Días exactos de entrenamiento * ({form.dias_exactos_entrenamiento.length}/{form.dias_entrenamiento_semana})
+          <Calendar size={12} /> ¿Qué días entrenáis habitualmente? *
         </label>
         <div className="flex flex-wrap gap-2">
           {TRAIN_DAYS.map((day) => (
@@ -119,11 +108,14 @@ export default function CoachAutoQuestionnaire({ value, onChange, showErrors = t
             </Chip>
           ))}
         </div>
+        <p className="text-xs text-depro-gray mt-1.5">
+          {form.dias_exactos_entrenamiento.length} día{form.dias_exactos_entrenamiento.length === 1 ? "" : "s"} seleccionado{form.dias_exactos_entrenamiento.length === 1 ? "" : "s"}
+        </p>
       </div>
 
       <div>
         <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-          <Trophy size={12} /> Día de partido *
+          <Trophy size={12} /> ¿Cuál es el día habitual de partido? *
         </label>
         <div className="flex flex-wrap gap-2">
           {CLUB_AUTO_MATCH_DAYS.map((m) => (
@@ -136,8 +128,48 @@ export default function CoachAutoQuestionnaire({ value, onChange, showErrors = t
 
       <div>
         <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <Clock size={12} /> ¿Cuánto dura normalmente cada sesión? *
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {CLUB_AUTO_DURATIONS.map((d) => (
+            <Chip key={d.id} active={form.duracion_sesion === d.id} onClick={() => patch({ duracion_sesion: d.id })}>
+              {d.label}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <Users size={12} /> ¿Cuántos jugadores/as suelen participar por sesión? *
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {CLUB_AUTO_PLAYER_COUNTS.map((p) => (
+            <Chip key={p.id} active={form.num_jugadores === p.id} onClick={() => patch({ num_jugadores: p.id })}>
+              {p.label}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <Package size={12} /> ¿Qué material tenéis disponible? *
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {CLUB_AUTO_MATERIALS.map((m) => (
+            <Chip key={m} active={form.material.includes(m)} onClick={() => toggleMaterial(m)}>
+              {m}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
           <Dumbbell size={12} /> Acceso a gimnasio *
         </label>
+        <p className="text-xs text-depro-gray mb-2">Indispensable para elegir protocolos de campo o gym.</p>
         <div className="flex flex-wrap gap-2">
           {[{ id: "si", label: "Sí" }, { id: "no", label: "No" }].map((o) => (
             <Chip key={o.id} active={form.acceso_gimnasio === o.id} onClick={() => patch({ acceso_gimnasio: o.id })}>
@@ -172,6 +204,9 @@ export function questionnaireToCoachConfig(q) {
       dias_entrenamiento_semana: n.dias_entrenamiento_semana,
       dias_exactos_entrenamiento: n.dias_exactos_entrenamiento,
       dia_partido: q.dia_partido || "sabado",
+      duracion_sesion: n.duracion_sesion,
+      num_jugadores: n.num_jugadores,
+      material: n.material,
       acceso_gimnasio: n.acceso_gimnasio ? "si" : "no",
       gymAccess: n.acceso_gimnasio,
       trainingsPerWeek: n.dias_entrenamiento_semana,

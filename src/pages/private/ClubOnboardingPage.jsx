@@ -60,6 +60,9 @@ const DEFAULT_AUTO_Q = {
   dias_entrenamiento_semana: 3,
   dias_exactos_entrenamiento: ["Martes", "Jueves", "Viernes"],
   dia_partido: "sabado",
+  duracion_sesion: "75",
+  num_jugadores: "14-18",
+  material: ["Conos", "Balones", "Picas"],
   acceso_gimnasio: "no",
 };
 

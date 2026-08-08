@@ -37,6 +37,7 @@ const navGroups = [
       { to: "/admin/club-auto", icon: Sparkles, label: "Motor club auto", hint: "Protocolos y preview" },
       { to: "/admin/club-plantillas", icon: Layers, label: "Plantillas", hint: "Campo/Gym A·B·C" },
       { to: "/admin/club-calentamientos", icon: Flame, label: "Calentamientos", hint: "Movilidad + balón" },
+      { to: "/admin/club-tareas", icon: Layers, label: "Tareas (45)", hint: "A/B/C · solo explicación" },
       { to: "/admin/planificacion", icon: CalendarDays, label: "Planificación" },
       { to: "/admin/tests", icon: ClipboardList, label: "Tests físicos" },
     ],
