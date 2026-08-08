@@ -22,6 +22,25 @@ export function canManageClubBilling(user) {
   return isClubAdmin(user);
 }
 
+/**
+ * Visibilidad de precios / plan / suscripción en clubs.
+ * En clubs «Llevado por mí» (planningMode manual), el staff no-admin
+ * (coordinador / entrenador / ayudante) no ve precios ni upsells.
+ * Administrador, solo coach, player y admin sí.
+ */
+export function canSeeClubPricing(user) {
+  if (!user) return false;
+  if (user.role === "admin" || user.role === "player" || user.role === "coach") return true;
+  if (user.role !== "club") return true;
+  if (user.club?.isSoloCoach) return true;
+  if (isClubAdmin(user) || user.team_role === CLUB_ADMIN_ROLE) return true;
+  if (user.club?.planningMode === "manual") {
+    const staffHidden = [CLUB_COORD_ROLE, ...CLUB_COACH_ROLES];
+    if (staffHidden.includes(user.team_role)) return false;
+  }
+  return true;
+}
+
 export function canEditClubBranding(user) {
   return isClubAdmin(user);
 }

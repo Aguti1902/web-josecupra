@@ -8,9 +8,17 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { loadClubDetail, saveClubDetail } from "../../lib/adminStorage";
+import { clearCoachGeneratedPlans } from "../../lib/coachSessionsStorage";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
-import { canManageClubBilling, clubRoleLabel } from "../../lib/clubRoles";
+import { canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
 import TeamBrandingFields from "../../components/shared/TeamBrandingFields";
+import CoachAutoQuestionnaire, {
+  questionnaireToCoachConfig,
+} from "../../components/shared/CoachAutoQuestionnaire";
+import {
+  coachConfigToQuestionnaire,
+  categoryForNivel,
+} from "../../lib/clubAuto/clubAutoCoachBridge";
 
 // Comprime imagen de perfil a 200×200
 function compressAvatar(file) {
@@ -63,16 +71,38 @@ export default function ClubProfilePage() {
     secondaryColor: user?.club?.secondaryColor || "#ffffff",
   });
   const [savingBranding, setSavingBranding] = useState(false);
+  const [autoQ, setAutoQ] = useState(() => coachConfigToQuestionnaire(user?.club?.coachConfig || {}));
+  const [savingAutoQ, setSavingAutoQ] = useState(false);
   const photoRef = useRef();
   const isSoloCoach = !!user?.club?.isSoloCoach;
-  const showBilling = canManageClubBilling(user);
+  const showBilling = canManageClubBilling(user) && canSeeClubPricing(user);
+
+  const showMsg = (type, text) => {
+    setMsg({ type, text });
+    setTimeout(() => setMsg(null), 4000);
+  };
+
+  useEffect(() => {
+    setAutoQ(coachConfigToQuestionnaire(user?.club?.coachConfig || {}));
+    setMode(user?.club?.mode || "depro");
+  }, [user?.club?.coachConfig, user?.club?.mode]);
 
   const handleChangeMode = async (nextMode) => {
     if (nextMode === mode || !user?.club?.id) return;
     setSavingMode(true);
     setMode(nextMode);
     const detail = loadClubDetail(user.club.id) || user.club;
-    await saveClubDetail(user.club.id, { ...detail, mode: nextMode });
+    const prevCfg = detail.coachConfig || {};
+    const nextCfg = nextMode === "personalizado"
+      ? { ...prevCfg, mode: "personalizado", engine: "manual" }
+      : { ...prevCfg, mode: "depro", engine: "club_auto" };
+    await saveClubDetail(user.club.id, {
+      ...detail,
+      mode: nextMode,
+      planningMode: nextMode === "personalizado" ? "manual" : "auto",
+      coachConfig: nextCfg,
+    });
+    clearCoachGeneratedPlans(user.club.id, user.teamId);
     await refreshUser();
     setSavingMode(false);
     showMsg("ok", nextMode === "personalizado" ? "Modo «Llevado por mí» activado." : "Modo automático activado.");
@@ -93,6 +123,37 @@ export default function ClubProfilePage() {
     showMsg("ok", "Escudo y colores guardados.");
   };
 
+  const handleSaveAutoQuestionnaire = async () => {
+    if (!user?.club?.id) return;
+    const packed = questionnaireToCoachConfig(autoQ);
+    if (!packed.ok) {
+      showMsg("error", packed.errors.join(" "));
+      return;
+    }
+    setSavingAutoQ(true);
+    const detail = loadClubDetail(user.club.id) || user.club;
+    const teams = Array.isArray(detail.teams) ? detail.teams.map((t) => (
+      t.id === user.teamId
+        ? {
+            ...t,
+            trainingDays: packed.config.dias_exactos_entrenamiento,
+            category: categoryForNivel(packed.config.nivel),
+          }
+        : t
+    )) : detail.teams;
+    await saveClubDetail(user.club.id, {
+      ...detail,
+      mode: "depro",
+      planningMode: "auto",
+      coachConfig: { ...(detail.coachConfig || {}), ...packed.config, mode: "depro", engine: "club_auto" },
+      teams,
+    });
+    clearCoachGeneratedPlans(user.club.id, user.teamId);
+    await refreshUser();
+    setSavingAutoQ(false);
+    showMsg("ok", "Cuestionario guardado. Se regenerará el microciclo automático.");
+  };
+
   // Cargar foto guardada en localStorage
   useEffect(() => {
     const saved = localStorage.getItem(`depro_club_profile_${user?.id}`);
@@ -110,11 +171,6 @@ export default function ClubProfilePage() {
     } catch {
       showMsg("error", "No se pudo procesar la imagen. Prueba con otra.");
     }
-  };
-
-  const showMsg = (type, text) => {
-    setMsg({ type, text });
-    setTimeout(() => setMsg(null), 4000);
   };
 
   // ── Guardar nombre ────────────────────────────────────────
@@ -261,6 +317,27 @@ export default function ClubProfilePage() {
             className="btn-primary flex items-center gap-2 disabled:opacity-50"
           >
             <Save size={15} /> {savingBranding ? "Guardando…" : "Guardar identidad"}
+          </button>
+        </div>
+      )}
+
+      {/* Cuestionario corto del motor automático (punto 4 del documento) */}
+      {isSoloCoach && mode !== "personalizado" && (
+        <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
+          <div>
+            <h3 className="font-bold text-depro-dark mb-1">Cuestionario del entrenador</h3>
+            <p className="text-xs text-depro-gray">
+              Nivel, días de entreno, día de partido y gimnasio. Sin metodología ni número de jugadores.
+            </p>
+          </div>
+          <CoachAutoQuestionnaire value={autoQ} onChange={setAutoQ} />
+          <button
+            type="button"
+            onClick={handleSaveAutoQuestionnaire}
+            disabled={savingAutoQ}
+            className="btn-primary flex items-center gap-2 disabled:opacity-50"
+          >
+            <Save size={15} /> {savingAutoQ ? "Guardando…" : "Guardar y regenerar microciclo"}
           </button>
         </div>
       )}

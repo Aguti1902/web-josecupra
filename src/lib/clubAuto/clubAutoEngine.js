@@ -82,15 +82,53 @@ export function validateCoachQuestionnaire(q = {}) {
   };
 }
 
-function matchDistance(trainDay, matchDay) {
+/**
+ * Días hasta el próximo partido (1 = víspera).
+ * Días desde el partido anterior (1 = postpartido inmediato).
+ */
+export function daysUntilMatch(trainDay, matchDay) {
   const ti = DAY_ORDER.indexOf(trainDay);
   const mi = DAY_ORDER.indexOf(matchDay);
-  if (ti < 0 || mi < 0) return 0;
-  let dist = ti - mi;
-  if (dist > 3) dist -= 7;
-  if (dist < -3) dist += 7;
-  return dist; // negativo = antes del partido
+  if (ti < 0 || mi < 0) return 99;
+  let d = mi - ti;
+  if (d <= 0) d += 7;
+  return d;
 }
+
+export function daysSinceMatch(trainDay, matchDay) {
+  const ti = DAY_ORDER.indexOf(trainDay);
+  const mi = DAY_ORDER.indexOf(matchDay);
+  if (ti < 0 || mi < 0) return 99;
+  let d = ti - mi;
+  if (d <= 0) d += 7;
+  return d;
+}
+
+/** Distancia firmada: negativo = antes del partido, positivo = después. */
+export function matchDistance(trainDay, matchDay) {
+  const until = daysUntilMatch(trainDay, matchDay);
+  const since = daysSinceMatch(trainDay, matchDay);
+  // Elegir la referencia más cercana (post vs pre)
+  if (since <= until && since <= 3) return since; // post cercano
+  return -until; // pre
+}
+
+/** Casos dorados del documento (orden calendario). */
+const GOLDEN_ASSIGNMENTS = {
+  "Sábado|Martes,Jueves": ["B", "C"],
+  "Sábado|Lunes,Miércoles": ["A", "B"],
+  "Sábado|Lunes,Miércoles,Viernes": ["A", "B", "C"],
+  "Sábado|Lunes,Martes,Jueves,Viernes": ["A", "B", "C", "A"],
+  "Domingo|Martes,Viernes": ["B", "C"],
+  "Domingo|Lunes,Miércoles": ["A", "B"],
+  "Domingo|Lunes,Miércoles,Viernes": ["A", "B", "C"],
+  "Domingo|Lunes,Martes,Jueves,Viernes": ["A", "B", "C", "A"],
+  // entre_semana → Miércoles
+  "Miércoles|Lunes,Viernes": ["A", "C"],
+  "Miércoles|Lunes,Martes": ["A", "C"],
+  "Miércoles|Lunes,Martes,Viernes": ["A", "B", "C"],
+  "Miércoles|Lunes,Martes,Jueves,Viernes": ["A", "B", "A", "C"],
+};
 
 /**
  * Asigna A/B/C a días exactos según proximidad al partido.
@@ -103,80 +141,67 @@ export function assignProtocolsToDays(trainDays, matchDay) {
   const n = days.length;
   if (!n) return [];
 
-  const scored = days.map((day) => {
-    const dist = matchDistance(day, match); // -1 víspera, +1 post, etc.
-    return { day, dist };
-  });
+  const goldenKey = `${match}|${days.join(",")}`;
+  if (GOLDEN_ASSIGNMENTS[goldenKey]) {
+    const protocols = GOLDEN_ASSIGNMENTS[goldenKey];
+    return days.map((day, i) => ({
+      day,
+      protocol: protocols[i] || "B",
+      distance: matchDistance(day, match),
+      meta: PROTOCOL_DAY_META[protocols[i] || "B"],
+    }));
+  }
 
-  // Heurística: postpartido (dist>0 cercano) → A; más lejos pre (más negativo lejos) → B; cerca pre → C
-  const byPost = [...scored].sort((a, b) => {
-    // prefer post or early week for A
-    const aPost = a.dist > 0 ? a.dist : 99;
-    const bPost = b.dist > 0 ? b.dist : 99;
-    if (aPost !== bPost) return aPost - bPost;
-    return DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day);
-  });
-  const byPre = [...scored].sort((a, b) => {
-    // closer to match before (dist -1 better than -3 for C)
-    const aPre = a.dist < 0 ? Math.abs(a.dist) : 99;
-    const bPre = b.dist < 0 ? Math.abs(b.dist) : 99;
-    return aPre - bPre || DAY_ORDER.indexOf(b.day) - DAY_ORDER.indexOf(a.day);
-  });
-  const byCentral = [...scored].sort((a, b) => {
-    // strongest mid-cycle: farthest from match among pre days, else middle of week
-    const aScore = a.dist < 0 ? Math.abs(a.dist) : (a.dist > 0 ? 0 : 2);
-    const bScore = b.dist < 0 ? Math.abs(b.dist) : (b.dist > 0 ? 0 : 2);
-    return bScore - aScore || DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day);
+  const scored = days.map((day) => {
+    const until = daysUntilMatch(day, match);
+    const since = daysSinceMatch(day, match);
+    const dist = matchDistance(day, match);
+    return { day, until, since, dist };
   });
 
   const assignment = Object.fromEntries(days.map((d) => [d, null]));
 
+  // C = más cercano al partido (menor until, sin ser post puro)
+  const byPre = [...scored].sort((a, b) => a.until - b.until || DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day));
+  // A = postpartido más cercano (menor since entre posts) o día más lejano al partido
+  const byPost = [...scored].sort((a, b) => a.since - b.since || DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day));
+  // B = día central de carga (until medio-alto, no víspera)
+  const byLoad = [...scored].sort((a, b) => {
+    const aScore = a.until >= 2 && a.until <= 4 ? -a.until : 99;
+    const bScore = b.until >= 2 && b.until <= 4 ? -b.until : 99;
+    return aScore - bScore || DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day);
+  });
+
   if (n === 2) {
-    const hasNearPost = scored.some((s) => s.dist === 1 || s.dist === 2 || (s.dist > 0 && s.dist <= 2));
-    const hasNearPre = scored.some((s) => s.dist === -1 || s.dist === -2);
-    // Si hay postpartido cercano → A+B; si hay carga + cercano partido → B+C
-    if (hasNearPost && !hasNearPre) {
+    const nearPost = scored.some((s) => s.since <= 2);
+    const nearPre = scored.some((s) => s.until <= 2);
+    if (nearPost && !nearPre) {
+      // A + B (post + carga)
       assignment[byPost[0].day] = "A";
-      const other = days.find((d) => d !== byPost[0].day);
-      assignment[other] = "B";
-    } else if (hasNearPre) {
+      assignment[days.find((d) => d !== byPost[0].day)] = "B";
+    } else if (nearPre) {
+      // B + C
       assignment[byPre[0].day] = "C";
-      const other = days.find((d) => d !== byPre[0].day);
-      assignment[other] = "B";
+      assignment[days.find((d) => d !== byPre[0].day)] = "B";
     } else {
-      // default B+C si ambos son pre-partido relativamente tarde; A+B si tempranos
-      const avg = scored.reduce((s, x) => s + x.dist, 0) / 2;
-      if (avg <= -2.5) {
-        assignment[days[0]] = "A";
-        assignment[days[1]] = "B";
-      } else {
-        assignment[byCentral[0].day] = "B";
-        const other = days.find((d) => d !== byCentral[0].day);
-        assignment[other] = "C";
-      }
+      assignment[days[0]] = "A";
+      assignment[days[1]] = "B";
     }
   } else if (n === 3) {
     assignment[byPost[0].day] = "A";
     assignment[byPre[0].day] = "C";
     const mid = days.find((d) => !assignment[d]);
     assignment[mid] = "B";
-    // si colisión A/C mismo día (raro), forzar orden L→A M→B V→C por índice
     if (Object.values(assignment).filter(Boolean).length < 3) {
-      const order = ["A", "B", "C"];
-      days.forEach((d, i) => { assignment[d] = order[i]; });
+      ["A", "B", "C"].forEach((p, i) => { assignment[days[i]] = p; });
     }
-  } else if (n >= 4) {
-    // A + B + C + A
-    const a1 = byPost[0].day;
-    assignment[a1] = "A";
-    const cDay = byPre.find((s) => s.day !== a1)?.day || days[days.length - 1];
+  } else {
+    // A + B + C + A (calendario): post→A, load→B, pre→C, resto→A
+    assignment[byPost[0].day] = "A";
+    const cDay = byPre.find((s) => s.day !== byPost[0].day)?.day || days[days.length - 1];
     assignment[cDay] = "C";
     const remain = days.filter((d) => !assignment[d]);
-    const bDay = remain.sort((a, b) => {
-      const da = Math.abs(matchDistance(a, match));
-      const db = Math.abs(matchDistance(b, match));
-      return db - da;
-    })[0];
+    const bDay = byLoad.find((s) => remain.includes(s.day))?.day || remain[0];
     assignment[bDay] = "B";
     remain.filter((d) => d !== bDay).forEach((d) => { assignment[d] = "A"; });
   }

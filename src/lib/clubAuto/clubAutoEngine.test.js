@@ -6,6 +6,10 @@ import {
   generateClubAutoMicrociclo,
 } from "./clubAutoEngine.js";
 
+function protoMap(plan) {
+  return Object.fromEntries(plan.map((p) => [p.day, p.protocol]));
+}
+
 describe("clubAutoEngine — cuestionario", () => {
   it("valida coincidencia días exactos = nº entrenos", () => {
     const bad = validateCoachQuestionnaire({
@@ -29,44 +33,53 @@ describe("clubAutoEngine — cuestionario", () => {
   });
 });
 
-describe("clubAutoEngine — asignación A/B/C", () => {
+describe("clubAutoEngine — asignación A/B/C (ejemplos documento)", () => {
   it("sábado · martes+jueves → B+C", () => {
-    const plan = assignProtocolsToDays(["Martes", "Jueves"], "Sábado");
-    const map = Object.fromEntries(plan.map((p) => [p.day, p.protocol]));
+    const map = protoMap(assignProtocolsToDays(["Martes", "Jueves"], "Sábado"));
     assert.equal(map.Martes, "B");
     assert.equal(map.Jueves, "C");
   });
 
   it("sábado · lunes+miércoles → A+B", () => {
-    const plan = assignProtocolsToDays(["Lunes", "Miércoles"], "Sábado");
-    const map = Object.fromEntries(plan.map((p) => [p.day, p.protocol]));
+    const map = protoMap(assignProtocolsToDays(["Lunes", "Miércoles"], "Sábado"));
     assert.equal(map.Lunes, "A");
     assert.equal(map.Miércoles, "B");
   });
 
   it("sábado · lunes+miércoles+viernes → A+B+C", () => {
-    const plan = assignProtocolsToDays(["Lunes", "Miércoles", "Viernes"], "Sábado");
-    const protocols = plan.map((p) => p.protocol).sort().join("");
-    assert.equal(protocols, "ABC");
-    const map = Object.fromEntries(plan.map((p) => [p.day, p.protocol]));
+    const map = protoMap(assignProtocolsToDays(["Lunes", "Miércoles", "Viernes"], "Sábado"));
+    assert.equal(map.Lunes, "A");
+    assert.equal(map.Miércoles, "B");
     assert.equal(map.Viernes, "C");
+  });
+
+  it("sábado · lunes+martes+jueves+viernes → A+B+C+A (orden calendario)", () => {
+    const plan = assignProtocolsToDays(["Lunes", "Martes", "Jueves", "Viernes"], "Sábado");
+    assert.deepEqual(plan.map((p) => p.protocol), ["A", "B", "C", "A"]);
+  });
+
+  it("domingo · martes+viernes → B+C", () => {
+    const map = protoMap(assignProtocolsToDays(["Martes", "Viernes"], "Domingo"));
+    assert.equal(map.Martes, "B");
+    assert.equal(map.Viernes, "C");
+  });
+
+  it("domingo · lunes+miércoles → A+B", () => {
+    const map = protoMap(assignProtocolsToDays(["Lunes", "Miércoles"], "Domingo"));
     assert.equal(map.Lunes, "A");
     assert.equal(map.Miércoles, "B");
   });
 
-  it("sábado · 4 días → A+B+C+A", () => {
-    const plan = assignProtocolsToDays(["Lunes", "Martes", "Jueves", "Viernes"], "Sábado");
-    const counts = { A: 0, B: 0, C: 0 };
-    plan.forEach((p) => { counts[p.protocol] += 1; });
-    assert.equal(counts.A, 2);
-    assert.equal(counts.B, 1);
-    assert.equal(counts.C, 1);
+  it("entre_semana · lunes+martes+viernes → A+B+C", () => {
+    const map = protoMap(assignProtocolsToDays(["Lunes", "Martes", "Viernes"], "entre_semana"));
+    assert.equal(map.Lunes, "A");
+    assert.equal(map.Martes, "B");
+    assert.equal(map.Viernes, "C");
   });
 
-  it("domingo · martes+viernes → B+C", () => {
-    const plan = assignProtocolsToDays(["Martes", "Viernes"], "Domingo");
-    const map = Object.fromEntries(plan.map((p) => [p.day, p.protocol]));
-    assert.equal(map.Martes, "B");
+  it("entre_semana · lunes+viernes → post A + cercano C", () => {
+    const map = protoMap(assignProtocolsToDays(["Lunes", "Viernes"], "entre_semana"));
+    assert.equal(map.Lunes, "A");
     assert.equal(map.Viernes, "C");
   });
 });

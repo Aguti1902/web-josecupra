@@ -21,7 +21,7 @@ export const CLUB_AUTO_PROTOCOL_TEMPLATES = {
     slots: [
       { slot: "movilidad_cadera", label: "Movilidad de cadera" },
       { slot: "movilidad_tobillo", label: "Movilidad de tobillo o bisagra" },
-      { slot: "cadena_posterior", label: "Activación cadena posterior" },
+      { slot: "activacion_gluteo", label: "Activación cadena posterior / glúteo", alt: ["cadena_posterior"] },
       { slot: "core_control", label: "Core control" },
       { slot: "equilibrio", label: "Equilibrio / propiocepción" },
       { slot: "desplazamiento_controlado", label: "Desplazamiento controlado" },

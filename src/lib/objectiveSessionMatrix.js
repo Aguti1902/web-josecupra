@@ -106,7 +106,7 @@ export function buildWeekSessionList(objetivoPrincipal, objetivoSecundario, frec
       else if (n === 2) sessionTypes = ["Prevención", "Movilidad"];
       else if (n === 3) sessionTypes = ["Prevención", "Fuerza Full", "Movilidad"];
       else if (n === 4) sessionTypes = ["Prevención", "Fuerza Full", "Movilidad", "Prevención"];
-      else sessionTypes = ["Prevención", "Fuerza Full", "Movilidad", "Técnica Media", "Prevención"];
+      else sessionTypes = ["Prevención", "Fuerza Full", "Movilidad", "Prevención", "Prevención"];
       // Fuerza Full de prevención cuenta como relleno
       fillSessions = sessionTypes.filter((s) => s.startsWith("Fuerza"));
     } else if (pri === "movilidad") {
@@ -123,7 +123,7 @@ export function buildWeekSessionList(objetivoPrincipal, objetivoSecundario, frec
     } else if (n === 4) {
       sessionTypes = [...abOf(pri), pT.FULL, "Prevención"];
     } else {
-      sessionTypes = [...abOf(pri), pT.FULL, "Técnica Media", "Prevención"];
+      sessionTypes = [...abOf(pri), pT.FULL, "Velocidad", "Prevención"];
     }
   } else {
     const sT = templatesFor(sec);
@@ -184,7 +184,7 @@ function objectiveOfSession(sessionType) {
   const s = String(sessionType);
   if (s.startsWith("Fuerza")) return "fuerza";
   if (s.startsWith("Hipertrofia")) return "hipertrofia";
-  if (s === "Velocidad" || s === "Técnica Media") return "velocidad";
+  if (s === "Velocidad") return "velocidad";
   if (s.startsWith("Resistencia")) return "resistencia";
   if (s === "Prevención") return "prevencion";
   if (s === "Movilidad") return "movilidad";
@@ -221,8 +221,8 @@ export function resolveMatrixSessionTypes(objetivoPrincipal, objetivoSecundario,
 
 /** Secuencias de compatibilidad para tests/callers antiguos. */
 export const PRIMARY_ONLY_MATRIX = {
-  fuerza: ["Fuerza Inferior", "Fuerza Superior", "Fuerza Full", "Prevención", "Técnica Media"],
-  velocidad: ["Velocidad", "Fuerza Full", "Prevención", "Movilidad", "Técnica Media"],
+  fuerza: ["Fuerza Inferior", "Fuerza Superior", "Fuerza Full", "Prevención", "Velocidad"],
+  velocidad: ["Velocidad", "Fuerza Full", "Prevención", "Movilidad", "Velocidad"],
   resistencia: ["Resistencia aeróbica", "Resistencia umbral", "Resistencia anaeróbica", "Fuerza Full", "Movilidad"],
   hipertrofia: ["Hipertrofia Pierna", "Hipertrofia Torso", "Hipertrofia Full", "Prevención", "Movilidad"],
   movilidad: ["Movilidad", "Prevención", "Fuerza Full", "Movilidad", "Prevención"],

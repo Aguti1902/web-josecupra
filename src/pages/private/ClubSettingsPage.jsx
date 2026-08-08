@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import {
   Building2, Users, UserPlus, Plus, Trash2, Pencil, Copy, CheckCircle,
-  ImagePlus, Palette, Save, X, RefreshCw, Loader2, KeyRound, Gift,
+  ImagePlus, Palette, Save, X, RefreshCw, Loader2, KeyRound, Gift, Sparkles,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -10,6 +10,14 @@ import {
 } from "../../lib/adminStorage";
 import ClubReferralPanel from "../../components/private/ClubReferralPanel";
 import { canAccessClubSettings } from "../../lib/clubRoles";
+import CoachAutoQuestionnaire, {
+  questionnaireToCoachConfig,
+} from "../../components/shared/CoachAutoQuestionnaire";
+import {
+  coachConfigToQuestionnaire,
+  categoryForNivel,
+} from "../../lib/clubAuto/clubAutoCoachBridge";
+import { clearCoachGeneratedPlans } from "../../lib/coachSessionsStorage";
 
 const AGE_BLOCKS = [
   { label: "Bloque 1", ages: ["Sub-9", "Sub-10", "Sub-11", "Sub-12"] },
@@ -321,6 +329,8 @@ export default function ClubSettingsPage() {
   const [showTeamModal, setShowTeamModal] = useState(null); // null | 'new' | team
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [autoQ, setAutoQ] = useState(() => coachConfigToQuestionnaire(user?.club?.coachConfig || {}));
+  const [savingAutoQ, setSavingAutoQ] = useState(false);
   const logoRef = useRef();
   const bannerRef = useRef();
 
@@ -333,6 +343,7 @@ export default function ClubSettingsPage() {
         teams: Array.isArray(detail.teams) ? detail.teams : [],
         users: Array.isArray(detail.users) ? detail.users : [],
       });
+      setAutoQ(coachConfigToQuestionnaire(detail.coachConfig || {}));
     }
   }, [clubId, user?.club]);
 
@@ -366,6 +377,34 @@ export default function ClubSettingsPage() {
 
   const handleIdentitySave = async () => {
     await persist({ ...club });
+  };
+
+  const handleSaveAutoQuestionnaire = async () => {
+    const packed = questionnaireToCoachConfig(autoQ);
+    if (!packed.ok) {
+      setMsg({ ok: false, text: packed.errors.join(" ") });
+      setTimeout(() => setMsg(null), 3000);
+      return;
+    }
+    setSavingAutoQ(true);
+    const teams = (club.teams || []).map((t, i) => (
+      i === 0 || t.id === user?.teamId
+        ? {
+            ...t,
+            trainingDays: packed.config.dias_exactos_entrenamiento,
+            category: categoryForNivel(packed.config.nivel),
+          }
+        : t
+    ));
+    await persist({
+      ...club,
+      planningMode: "auto",
+      mode: "depro",
+      coachConfig: { ...(club.coachConfig || {}), ...packed.config },
+      teams,
+    });
+    clearCoachGeneratedPlans(clubId, user?.teamId);
+    setSavingAutoQ(false);
   };
 
   const handleAddOrUpdateTeam = async (team) => {
@@ -513,6 +552,29 @@ export default function ClubSettingsPage() {
               </button>
             </div>
           </div>
+
+          {(club.planningMode || "auto") !== "manual" && (
+            <div className="bg-white border border-depro-border rounded-2xl p-5 space-y-4">
+              <div>
+                <h3 className="font-bold text-depro-dark flex items-center gap-2">
+                  <Sparkles size={16} className="text-depro-blue" /> Cuestionario del motor automático
+                </h3>
+                <p className="text-xs text-depro-gray mt-1">
+                  Nivel A/B/C, días de entrenamiento, partido y gimnasio. Sin metodología ni nº de jugadores.
+                </p>
+              </div>
+              <CoachAutoQuestionnaire value={autoQ} onChange={setAutoQ} />
+              <button
+                type="button"
+                onClick={handleSaveAutoQuestionnaire}
+                disabled={savingAutoQ}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold disabled:opacity-60"
+              >
+                {savingAutoQ ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Guardar y regenerar microciclo
+              </button>
+            </div>
+          )}
         </div>
       )}
 

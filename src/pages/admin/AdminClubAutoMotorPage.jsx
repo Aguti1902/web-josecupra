@@ -8,6 +8,7 @@ import {
   generateClubAutoFourWeeks,
   TRAIN_DAYS,
 } from "../../lib/clubAuto/clubAutoEngine";
+import { CLUB_TAG_VALUES } from "../../lib/clubAuto/clubExerciseTags";
 
 const NIVELES = [
   { id: "A", label: "A · 9–12 años" },
@@ -284,6 +285,24 @@ export default function AdminClubAutoMotorPage() {
               </div>
             </>
           )}
+        </div>
+      </div>
+
+      {/* Referencia etiquetas club_* (capa paralela §10–11) */}
+      <div className="bg-white border border-depro-border rounded-2xl p-5 space-y-3">
+        <h2 className="font-bold text-depro-dark">Etiquetas club_* (capa paralela)</h2>
+        <p className="text-xs text-depro-gray">
+          No las lee el motor individual. Valores runtime usados por el selector de protocolos.
+        </p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Object.entries(CLUB_TAG_VALUES).map(([key, values]) => (
+            <div key={key} className="rounded-xl border border-depro-border p-3">
+              <p className="text-[11px] font-black uppercase tracking-wide text-depro-blue mb-1.5">{key}</p>
+              <ul className="text-[11px] text-depro-dark space-y-0.5 max-h-28 overflow-y-auto">
+                {values.map((v) => <li key={v} className="font-mono">{v}</li>)}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
     </div>

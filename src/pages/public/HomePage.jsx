@@ -38,7 +38,7 @@ export default function HomePage() {
           label="Planificación"
           title="DEPRO elimina el estrés de la planificación semanal"
           desc="Genera microciclos completos con sesiones A/B/C adaptadas a categoría, fase y material. Edita, sustituye y duplica en segundos."
-          bullets={["Microciclos y mesociclos automáticos", "Sesiones A/B/C validadas", "Modo DEPRO o Personalizado", "90+ ejercicios en biblioteca"]}
+          bullets={["Microciclos y mesociclos automáticos", "Sesiones A/B/C validadas", "Modo DEPRO o Personalizado", "180+ ejercicios en biblioteca compartida"]}
           mockup={<SessionsMockup />}
           ctaLink="/funcionalidades/planificacion"
           ctaText="Explorar planificación"

@@ -209,7 +209,7 @@ describe("DEPRO motor — 13 casos", () => {
     const last = ordered[ordered.length - 1];
     assert.ok(["media", "baja"].includes(String(last.intensityLevel || last.intensity).toLowerCase())
       || last.adaptedIntensity === "media"
-      || ["Prevención", "Movilidad", "Técnica Media"].includes(last.type));
+      || ["Prevención", "Movilidad", "Velocidad"].includes(last.type));
   });
 
   it("12. Velocidad + 3 días (L, M, V) → solo martes ALTA", () => {

@@ -43,6 +43,14 @@ import PlanSelectField, { SubscriptionStatusSelect } from "../../components/admi
 import { PLANS as CHECKOUT_PLANS } from "../../lib/checkoutPlans";
 import { normalizeBlock, adminDefaultBlocks, adminSessionBlocks, flattenBlocksToExercises, ADMIN_BLOCK_TYPES } from "../../lib/sessionBlocks";
 import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
+import CoachAutoQuestionnaire, {
+  questionnaireToCoachConfig,
+} from "../../components/shared/CoachAutoQuestionnaire";
+import {
+  coachConfigToQuestionnaire,
+  categoryForNivel,
+} from "../../lib/clubAuto/clubAutoCoachBridge";
+import { clearCoachGeneratedPlans } from "../../lib/coachSessionsStorage";
 
 
 const Youtube = PlayCircle;
@@ -75,6 +83,66 @@ function RoleBadge({ role }) {
       <Icon size={10} />
       {label}
     </span>
+  );
+}
+
+/** Cuestionario corto del motor club auto (§4) en ficha admin. */
+function AdminClubAutoQuestionnaireEditor({ club, onSave }) {
+  const [autoQ, setAutoQ] = useState(() => coachConfigToQuestionnaire(club?.coachConfig || {}));
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    setAutoQ(coachConfigToQuestionnaire(club?.coachConfig || {}));
+  }, [club?.id, club?.coachConfig]);
+
+  const handleSave = async () => {
+    const packed = questionnaireToCoachConfig(autoQ);
+    if (!packed.ok) {
+      setMsg(packed.errors.join(" "));
+      return;
+    }
+    setSaving(true);
+    setMsg("");
+    const teams = Array.isArray(club.teams)
+      ? club.teams.map((t, i) => (
+        i === 0
+          ? {
+              ...t,
+              trainingDays: packed.config.dias_exactos_entrenamiento,
+              category: categoryForNivel(packed.config.nivel),
+            }
+          : t
+      ))
+      : club.teams;
+    await onSave({
+      ...club,
+      planningMode: "auto",
+      mode: "depro",
+      coachConfig: { ...(club.coachConfig || {}), ...packed.config },
+      teams,
+    });
+    setSaving(false);
+    setMsg("Cuestionario guardado. Microciclos regenerados.");
+  };
+
+  return (
+    <div className="rounded-xl border border-depro-border bg-depro-gray-light/40 p-4 space-y-3">
+      <div>
+        <p className="text-sm font-semibold text-depro-dark">Cuestionario motor automático</p>
+        <p className="text-[11px] text-depro-gray">Nivel, días, partido y gimnasio (punto 4 del documento).</p>
+      </div>
+      <CoachAutoQuestionnaire value={autoQ} onChange={setAutoQ} />
+      {msg && <p className="text-xs text-depro-blue font-medium">{msg}</p>}
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-depro-blue text-white text-xs font-bold disabled:opacity-50"
+      >
+        <Save size={12} /> {saving ? "Guardando…" : "Guardar cuestionario"}
+      </button>
+    </div>
   );
 }
 
@@ -2348,10 +2416,29 @@ export default function AdminClubDetailPage() {
                     key={opt.id}
                     type="button"
                     onClick={async () => {
-                      const updated = { ...club, planningMode: opt.id };
+                      const prevCfg = club.coachConfig || {};
+                      const nextCfg = opt.id === "manual"
+                        ? { ...prevCfg, mode: "personalizado", engine: "manual" }
+                        : {
+                            ...prevCfg,
+                            mode: "depro",
+                            engine: "club_auto",
+                            nivel: prevCfg.nivel || "B",
+                            dias_entrenamiento_semana: prevCfg.dias_entrenamiento_semana || prevCfg.trainingsPerWeek || 3,
+                            dias_exactos_entrenamiento: prevCfg.dias_exactos_entrenamiento || prevCfg.trainingDays || ["Lunes", "Miércoles", "Viernes"],
+                            dia_partido: prevCfg.dia_partido || prevCfg.matchDay || "sabado",
+                            acceso_gimnasio: prevCfg.acceso_gimnasio || (prevCfg.gymAccess ? "si" : "no"),
+                          };
+                      const updated = {
+                        ...club,
+                        planningMode: opt.id,
+                        mode: opt.id === "manual" ? "personalizado" : "depro",
+                        coachConfig: nextCfg,
+                      };
                       setClub(updated);
                       await persistClub(updated, plans);
                       await saveClub(updated);
+                      clearCoachGeneratedPlans(club.id);
                     }}
                     className={`text-left p-3 rounded-xl border transition-colors ${
                       active ? "border-depro-blue bg-depro-blue/5" : "border-depro-border hover:border-depro-blue/40"
@@ -2364,6 +2451,17 @@ export default function AdminClubDetailPage() {
               })}
             </div>
           </div>
+          {(club.planningMode || "auto") !== "manual" && (
+            <AdminClubAutoQuestionnaireEditor
+              club={club}
+              onSave={async (nextClub) => {
+                setClub(nextClub);
+                await persistClub(nextClub, plans);
+                await saveClub(nextClub);
+                clearCoachGeneratedPlans(club.id);
+              }}
+            />
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PlanSelectField audience="club" value={planId} onChange={setPlanId} />
             <SubscriptionStatusSelect value={subscriptionStatus} onChange={setSubscriptionStatus} />

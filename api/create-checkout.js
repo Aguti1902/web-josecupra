@@ -33,6 +33,8 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
   const dispArr = formData?.disponibles || [];
 
   return {
+    // Apple Pay / Google Pay / wallets: Stripe los ofrece automáticamente cuando el dominio
+    // está verificado en el Dashboard (Payment method domains). No requiere integración extra.
     automatic_payment_methods: { enabled: true },
     mode: "subscription",
     subscription_data: {
@@ -133,9 +135,15 @@ export default async function handler(req, res) {
     clubId = v.clubId || "";
   }
 
-  const finalAmount = hasDiscount ? Math.round(price.amount * 0.85) : price.amount;
+  const finalAmount = hasDiscount ? Math.round(price.amount * 0.90) : price.amount;
   const hasRegisteredUser = Boolean(formData?.authUserId);
-  const tempPassword = hasRegisteredUser ? "" : generatePassword();
+  // Usuario se crea solo en complete-payment; aquí guardamos la contraseña elegida (o una temporal).
+  const chosenPassword = formData?.password || formData?.pendingPassword || "";
+  const tempPassword = hasRegisteredUser
+    ? ""
+    : (typeof chosenPassword === "string" && chosenPassword.length >= 8
+      ? chosenPassword
+      : generatePassword());
 
   try {
     const stripe = await getStripe();

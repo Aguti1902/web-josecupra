@@ -11,16 +11,40 @@ function block(type, label, duration, slots, extra = {}) {
   return { type, label, duration, slots, ...extra };
 }
 
-const CALENTAMIENTO_FUERZA = block("calentamiento", "Calentamiento", "8 min", [
-  slot({ rol: "calentamiento", objetivo: "fuerza", description: "Calentamiento fuerza", slotId: "warm_f" }),
+/** Calentamiento corto fuerza superior: torso / hombro / escapular. */
+const CALENTAMIENTO_SUP = block("calentamiento", "Calentamiento", "5-6 min", [
+  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_superior", grupo_muscular: "espalda", description: "Movilidad torso", slotId: "warm_sup_torso" }),
+  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_superior", grupo_muscular: "hombros", description: "Movilidad hombro", slotId: "warm_sup_hombro" }),
+  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_superior", grupo_muscular: ["hombros", "escapular"], description: "Movilidad escapular", slotId: "warm_sup_esc" }),
+]);
+
+/** Calentamiento corto fuerza inferior: cadera / tobillo / activación. */
+const CALENTAMIENTO_INF = block("calentamiento", "Calentamiento", "5-6 min", [
+  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_inferior", grupo_muscular: ["gluteos", "aductores"], description: "Movilidad cadera", slotId: "warm_inf_cadera" }),
+  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_inferior", grupo_muscular: "tobillo", description: "Movilidad tobillo", slotId: "warm_inf_tobillo" }),
+  slot({ rol: "calentamiento", segmento: "tren_inferior", grupo_muscular: ["cuadriceps", "gluteos"], description: "Activación", slotId: "warm_inf_act" }),
+]);
+
+/** Calentamiento corto fuerza full: torso + cadera/tobillo + activación. */
+const CALENTAMIENTO_FULL = block("calentamiento", "Calentamiento", "5-6 min", [
+  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_superior", grupo_muscular: ["espalda", "hombros"], description: "Movilidad torso/hombro", slotId: "warm_full_torso" }),
+  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_inferior", grupo_muscular: ["tobillo", "gluteos"], description: "Movilidad cadera/tobillo", slotId: "warm_full_inf" }),
+  slot({ rol: "calentamiento", segmento: "tren_inferior", grupo_muscular: ["cuadriceps", "gluteos"], description: "Activación", slotId: "warm_full_act" }),
+]);
+
+/** Calentamiento genérico corto (2 ejercicios) para el resto de plantillas. */
+const CALENTAMIENTO_CORTO = block("calentamiento", "Calentamiento", "5-6 min", [
+  slot({ rol: "calentamiento", objetivo: "movilidad", description: "Movilidad", slotId: "warm_c1" }),
+  slot({ rol: "calentamiento", objetivo: "movilidad", description: "Activación / movilidad 2", slotId: "warm_c2" }),
 ]);
 
 const CORE = block("core", "Core", "6 min", [
-  slot({ rol: "core", description: "Core", slotId: "core" }),
-]);
-
-const VUELTA = block("vuelta_calma", "Vuelta a la calma", "5 min", [
-  slot({ rol: "vuelta_calma", description: "Vuelta a la calma", slotId: "cool" }),
+  slot({
+    rol: "core",
+    patronOr: ["isometrico", "anti_rotacion", "anti_extension", "anti_flexion"],
+    description: "Core / control",
+    slotId: "core",
+  }),
 ]);
 
 export const SESSION_TEMPLATES = {
@@ -32,7 +56,7 @@ export const SESSION_TEMPLATES = {
     objective: "fuerza",
     muscleGroup: "lower",
     blocks: [
-      CALENTAMIENTO_FUERZA,
+      CALENTAMIENTO_INF,
       block("principal", "Básicos", "25 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Básico cadena anterior", slotId: "fi_b1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Básico cadena posterior", slotId: "fi_b2" }),
@@ -42,7 +66,6 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "complementario", objetivo: ["fuerza", "pliometria"], patron: "pliometria", description: "Pliometría 2", slotId: "fi_c2" }),
       ]),
       CORE,
-      VUELTA,
     ],
   },
 
@@ -54,7 +77,7 @@ export const SESSION_TEMPLATES = {
     objective: "fuerza",
     muscleGroup: "upper",
     blocks: [
-      CALENTAMIENTO_FUERZA,
+      CALENTAMIENTO_SUP,
       block("principal", "Básicos", "25 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "empuje", description: "Básico empuje", slotId: "fs_b1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion", description: "Básico tracción", slotId: "fs_b2" }),
@@ -64,7 +87,6 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "triceps", description: "Tríceps", slotId: "fs_c2" }),
       ]),
       CORE,
-      VUELTA,
     ],
   },
 
@@ -76,7 +98,7 @@ export const SESSION_TEMPLATES = {
     objective: "fuerza",
     muscleGroup: "full",
     blocks: [
-      CALENTAMIENTO_FUERZA,
+      CALENTAMIENTO_FULL,
       block("principal", "Básicos", "35 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "empuje", description: "Empuje", slotId: "ff_b1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion", description: "Tracción", slotId: "ff_b2" }),
@@ -88,7 +110,6 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "triceps", description: "Tríceps", slotId: "ff_c2" }),
       ]),
       CORE,
-      VUELTA,
     ],
   },
 
@@ -100,8 +121,9 @@ export const SESSION_TEMPLATES = {
     objective: "velocidad",
     muscleGroup: null,
     blocks: [
-      block("calentamiento", "Warm-up", "10 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", description: "Warm-up", slotId: "vel_w" }),
+      block("calentamiento", "Warm-up", "5-6 min", [
+        slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_inferior", grupo_muscular: ["tobillo", "gluteos"], description: "Movilidad", slotId: "vel_w1" }),
+        slot({ rol: "calentamiento", segmento: "tren_inferior", grupo_muscular: "cuadriceps", description: "Activación", slotId: "vel_w2" }),
       ]),
       block("principal", "Fuerza máxima", "12 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Fuerza máx. anterior", slotId: "vel_fm1" }),
@@ -116,7 +138,6 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "basico", objetivo: "velocidad", patron: "velocidad_pura", description: "Velocidad pura", slotId: "vel_v2" }),
         slot({ rol: "complementario", objetivo: "velocidad", patronOr: ["reaccion", "COD"], description: "Reacción / COD", slotId: "vel_v3" }),
       ]),
-      VUELTA,
     ],
   },
 
@@ -128,9 +149,7 @@ export const SESSION_TEMPLATES = {
     objective: "hipertrofia",
     muscleGroup: "full",
     blocks: [
-      block("calentamiento", "Calentamiento", "8 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", description: "Calentamiento", slotId: "hf_w" }),
-      ]),
+      CALENTAMIENTO_FULL,
       block("principal", "Básicos", "35 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "empuje", description: "Empuje", slotId: "hf_b1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion", description: "Tracción", slotId: "hf_b2" }),
@@ -142,7 +161,6 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "triceps", description: "Tríceps", slotId: "hf_c2" }),
       ]),
       CORE,
-      VUELTA,
     ],
   },
 
@@ -154,9 +172,7 @@ export const SESSION_TEMPLATES = {
     objective: "hipertrofia",
     muscleGroup: "lower",
     blocks: [
-      block("calentamiento", "Calentamiento", "8 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", description: "Calentamiento", slotId: "hp_w" }),
-      ]),
+      CALENTAMIENTO_INF,
       block("principal", "Básicos", "25 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Cadena anterior", slotId: "hp_b1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Cadena posterior", slotId: "hp_b2" }),
@@ -167,7 +183,6 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "gemelo", description: "Gemelo", slotId: "hp_c3" }),
       ]),
       CORE,
-      VUELTA,
     ],
   },
 
@@ -179,9 +194,7 @@ export const SESSION_TEMPLATES = {
     objective: "hipertrofia",
     muscleGroup: "upper",
     blocks: [
-      block("calentamiento", "Calentamiento", "8 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", description: "Calentamiento", slotId: "ht_w" }),
-      ]),
+      CALENTAMIENTO_SUP,
       block("principal", "Básicos", "25 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "empuje", description: "Empuje", slotId: "ht_b1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion", description: "Tracción", slotId: "ht_b2" }),
@@ -191,7 +204,6 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: ["triceps"], description: "Tríceps analítico", slotId: "ht_c2" }),
       ]),
       CORE,
-      VUELTA,
     ],
   },
 
@@ -203,9 +215,7 @@ export const SESSION_TEMPLATES = {
     objective: "prevencion",
     muscleGroup: null,
     blocks: [
-      block("calentamiento", "Movilidad específica", "8 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", description: "Movilidad zona", slotId: "pr_m" }),
-      ]),
+      CALENTAMIENTO_CORTO,
       block("complementario", "Estabilidad", "12 min", [
         slot({ rol: "complementario", objetivo: "prevencion", patron: "isometrico", description: "Estabilidad", slotId: "pr_e" }),
       ]),
@@ -213,7 +223,6 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "complementario", objetivo: "prevencion", description: "Compensatorio deporte", slotId: "pr_c" }),
       ]),
       CORE,
-      VUELTA,
     ],
   },
 
@@ -225,17 +234,12 @@ export const SESSION_TEMPLATES = {
     objective: "movilidad",
     muscleGroup: null,
     blocks: [
-      block("calentamiento", "Movilidad dinámica", "8 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", description: "Movilidad dinámica", slotId: "mo_d" }),
-      ]),
+      CALENTAMIENTO_CORTO,
       block("principal", "Movilidad articular", "12 min", [
         slot({ rol: "calentamiento", objetivo: "movilidad", grupo_muscular: ["tobillo", "cadera", "hombro_completo"], description: "Articular", slotId: "mo_a" }),
       ]),
       block("complementario", "Control motor", "8 min", [
         slot({ rol: "complementario", objetivo: "prevencion", patron: "isometrico", description: "Control motor", slotId: "mo_c" }),
-      ]),
-      block("vuelta_calma", "Estiramientos", "8 min", [
-        slot({ rol: "vuelta_calma", objetivo: "movilidad", description: "Estiramientos", slotId: "mo_e" }),
       ]),
     ],
   },
@@ -253,13 +257,10 @@ export const SESSION_TEMPLATES = {
       AER_3: { label: "30 min continuos al 70% BAM", description: "Ritmo cómodo constante." },
     },
     blocks: [
-      block("calentamiento", "Calentamiento progresivo", "8 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", description: "Calentamiento", slotId: "ra_w" }),
-      ]),
+      CALENTAMIENTO_CORTO,
       block("principal", "Trabajo aeróbico", "25 min", [
         slot({ rol: "basico", objetivo: "resistencia", patron: "aerobico", description: "Aeróbico", slotId: "ra_p" }),
       ]),
-      VUELTA,
     ],
   },
 
@@ -276,13 +277,10 @@ export const SESSION_TEMPLATES = {
       UMB_3: { label: "4×4 min umbral", description: "Pausa 90s. Bloques cortos." },
     },
     blocks: [
-      block("calentamiento", "Calentamiento", "8 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", description: "Calentamiento", slotId: "ru_w" }),
-      ]),
+      CALENTAMIENTO_CORTO,
       block("principal", "Umbral", "28 min", [
         slot({ rol: "basico", objetivo: "resistencia", patron: "umbral", description: "Umbral", slotId: "ru_p" }),
       ]),
-      VUELTA,
     ],
   },
 
@@ -299,34 +297,10 @@ export const SESSION_TEMPLATES = {
       ANA_3: { label: "Series 200 m", description: "6-8 reps máx, descanso 1:3." },
     },
     blocks: [
-      block("calentamiento", "Calentamiento", "8 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", description: "Calentamiento", slotId: "rn_w" }),
-      ]),
+      CALENTAMIENTO_CORTO,
       block("principal", "Anaeróbico", "25 min", [
         slot({ rol: "basico", objetivo: "resistencia", patron: "anaerobico", description: "Anaeróbico", slotId: "rn_p" }),
       ]),
-      VUELTA,
-    ],
-  },
-
-  "Técnica Media": {
-    templateCode: "F_TECNICA_MEDIA",
-    title: "Técnica (media)",
-    duration: "35-45 min",
-    intensityLevel: "media",
-    objective: "velocidad",
-    muscleGroup: null,
-    blocks: [
-      block("calentamiento", "Calentamiento", "8 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", description: "Calentamiento", slotId: "tm_w" }),
-      ]),
-      block("principal", "Técnica de carrera", "15 min", [
-        slot({ rol: "basico", objetivo: "velocidad", patron: "analitico", description: "Técnica", slotId: "tm_t" }),
-      ]),
-      block("complementario", "Pliometría suave", "10 min", [
-        slot({ rol: "complementario", patron: "pliometria", intensidad: "media", description: "Pliometría suave", slotId: "tm_p", optional: true }),
-      ]),
-      VUELTA,
     ],
   },
 
@@ -356,15 +330,12 @@ SESSION_TEMPLATES.Pliometría = {
   intensityLevel: "alta",
   templateCode: "F_PLIO",
   blocks: [
-    block("calentamiento", "Calentamiento", "8 min", [
-      slot({ rol: "calentamiento", objetivo: "movilidad", description: "Warm-up", slotId: "pl_w" }),
-    ]),
+    CALENTAMIENTO_CORTO,
     block("complementario", "Pliometría", "20 min", [
       slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 1", slotId: "pl_1" }),
       slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 2", slotId: "pl_2" }),
       slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 3", slotId: "pl_3" }),
     ]),
-    VUELTA,
   ],
 };
 SESSION_TEMPLATES.Isométricos = {
@@ -374,16 +345,13 @@ SESSION_TEMPLATES.Isométricos = {
   objective: "fuerza",
   templateCode: "F_ISO",
   blocks: [
-    block("calentamiento", "Calentamiento", "6 min", [
-      slot({ rol: "calentamiento", objetivo: "movilidad", description: "Warm-up", slotId: "iso_w" }),
-    ]),
+    CALENTAMIENTO_CORTO,
     block("complementario", "Isométricos", "20 min", [
       slot({ rol: "complementario", patron: "isometrico", description: "Iso 1", slotId: "iso_1" }),
       slot({ rol: "complementario", patron: "isometrico", description: "Iso 2", slotId: "iso_2" }),
       slot({ rol: "complementario", patron: "isometrico", description: "Iso 3", slotId: "iso_3" }),
     ]),
     CORE,
-    VUELTA,
   ],
 };
 

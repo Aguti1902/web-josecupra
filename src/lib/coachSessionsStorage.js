@@ -13,6 +13,7 @@ import {
   usesClubAutoEngine,
   generateClubAutoWeekForCoach,
   generateClubAutoMesocicloForCoach,
+  coachConfigFingerprint,
 } from "./clubAuto/clubAutoCoachBridge";
 
 function weekKeyFor(clubId, teamId, weekStart) {
@@ -32,8 +33,14 @@ function lsSet(key, value) {
 
 function weekMatchesEngine(week, config) {
   if (!week) return false;
+  const fp = coachConfigFingerprint(config);
+  if (week.configFingerprint && week.configFingerprint !== fp) return false;
   if (usesClubAutoEngine(config)) return week.engine === "club_auto";
   return week.engine !== "club_auto";
+}
+
+function withFingerprint(data, config) {
+  return { ...data, configFingerprint: coachConfigFingerprint(config) };
 }
 
 export function loadOrGenerateWeek({ clubId, teamId, weekStart, config, library }) {
@@ -48,9 +55,12 @@ export function loadOrGenerateWeek({ clubId, teamId, weekStart, config, library 
     return remote;
   }
 
-  const generated = usesClubAutoEngine(config)
-    ? generateClubAutoWeekForCoach(config, { weekStart, weekOffset: 0 })
-    : generateMicrociclo({ config, weekStart, library });
+  const generated = withFingerprint(
+    usesClubAutoEngine(config)
+      ? generateClubAutoWeekForCoach(config, { weekStart, weekOffset: 0 })
+      : generateMicrociclo({ config, weekStart, library }),
+    config,
+  );
   saveWeek({ clubId, teamId, weekStart, data: generated });
   return generated;
 }
@@ -87,23 +97,32 @@ export function removeSessionFromWeek({ clubId, teamId, weekStart, sessionId }) 
 
 export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, numWeeks = 4, library }) {
   const key = mesoKeyFor(clubId, teamId);
+  const fp = coachConfigFingerprint(config);
   const cached = lsGet(key, null);
   if (cached && cached.startDate === startDate) {
-    if (!(usesClubAutoEngine(config) && cached.engine !== "club_auto")) return cached;
+    if (cached.configFingerprint && cached.configFingerprint !== fp) {
+      // invalid — regenerate below
+    } else if (!(usesClubAutoEngine(config) && cached.engine !== "club_auto")) {
+      return cached;
+    }
   }
 
   const detail = loadClubDetail(clubId);
   const remote = detail?.coachMesociclo?.[teamId];
   if (remote && remote.startDate === startDate) {
-    if (!(usesClubAutoEngine(config) && remote.engine !== "club_auto")) {
+    if ((!remote.configFingerprint || remote.configFingerprint === fp)
+      && !(usesClubAutoEngine(config) && remote.engine !== "club_auto")) {
       lsSet(key, remote);
       return remote;
     }
   }
 
-  const generated = usesClubAutoEngine(config)
-    ? generateClubAutoMesocicloForCoach(config, { startDate, numWeeks })
-    : generateMesociclo({ config, startDate, numWeeks, library });
+  const generated = withFingerprint(
+    usesClubAutoEngine(config)
+      ? generateClubAutoMesocicloForCoach(config, { startDate, numWeeks })
+      : generateMesociclo({ config, startDate, numWeeks, library }),
+    config,
+  );
   saveMesociclo({ clubId, teamId, data: generated });
   return generated;
 }
@@ -113,4 +132,38 @@ export function saveMesociclo({ clubId, teamId, data }) {
   const detail = loadClubDetail(clubId) || { id: clubId };
   const coachMesociclo = { ...(detail.coachMesociclo || {}), [teamId]: data };
   saveClubDetail(clubId, { ...detail, coachMesociclo }).catch(() => {});
+}
+
+/** Invalida microciclos/mesociclos congelados tras cambiar el cuestionario. */
+export function clearCoachGeneratedPlans(clubId, teamId) {
+  if (!clubId) return;
+  try {
+    const prefixWeek = `depro_coach_week_${clubId}_${teamId || ""}`;
+    const prefixMeso = `depro_coach_meso_${clubId}_${teamId || ""}`;
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith(prefixWeek) || key.startsWith(`depro_coach_week_${clubId}_`)) {
+        if (!teamId || key.includes(`_${teamId}_`) || key.endsWith(`_${teamId}`)) {
+          localStorage.removeItem(key);
+        }
+      }
+      if (key === prefixMeso || key.startsWith(`${prefixMeso}`)) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch { /* ignore */ }
+
+  const detail = loadClubDetail(clubId);
+  if (!detail) return;
+  const coachWeeks = { ...(detail.coachWeeks || {}) };
+  const coachMesociclo = { ...(detail.coachMesociclo || {}) };
+  if (teamId) {
+    Object.keys(coachWeeks).forEach((k) => {
+      if (k.startsWith(`${teamId}_`)) delete coachWeeks[k];
+    });
+    delete coachMesociclo[teamId];
+  } else {
+    Object.keys(coachWeeks).forEach((k) => delete coachWeeks[k]);
+    Object.keys(coachMesociclo).forEach((k) => delete coachMesociclo[k]);
+  }
+  saveClubDetail(clubId, { ...detail, coachWeeks, coachMesociclo }).catch(() => {});
 }

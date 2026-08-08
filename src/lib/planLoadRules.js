@@ -58,7 +58,6 @@ export const SESSION_INTENSITY = {
   "Resistencia aeróbica": "baja",
   Prevención: "baja",
   Movilidad: "baja",
-  "Técnica Media": "media",
   "Sesión mínima": "baja",
 };
 

@@ -60,6 +60,35 @@ describe("etiquetado — casos críticos", () => {
     assert.ok(hits.every((e) => /b[ií]ceps|curl/i.test(e.nombre)));
   });
 
+  it("slots tríceps analítico solo aislamiento de tríceps", () => {
+    const tricepsSlot = { rol: "complementario", patron: "analitico", grupo_muscular: "triceps" };
+    const hits = EXERCISES.filter((e) => matchSlotTags(e, tricepsSlot));
+    assert.ok(hits.length >= 1);
+    assert.ok(hits.every((e) => e.etiquetas.grupo_principal === "triceps"));
+    assert.ok(hits.every((e) => e.etiquetas.patron.includes("analitico")));
+    assert.ok(hits.every((e) => /tr[ií]ceps|franc[eé]s|fondos?/i.test(e.nombre)));
+  });
+
+  it("prevención/rotadores/movilidad no entran como analítico de brazo", () => {
+    const armSlots = [
+      { rol: "complementario", patron: "analitico", grupo_muscular: "biceps" },
+      { rol: "complementario", patron: "analitico", grupo_muscular: "triceps" },
+    ];
+    for (const slot of armSlots) {
+      const hits = EXERCISES.filter((e) => matchSlotTags(e, slot));
+      assert.ok(hits.every((e) => e.carpeta !== "prevencion" && e.carpeta !== "movilidad"));
+      assert.ok(hits.every((e) => !/rotador|escapular|Y-?T-?W|monster|lateral walk/i.test(e.nombre)));
+    }
+  });
+
+  it("tracción básica no incluye prevención escapular mal etiquetada", () => {
+    const slot = { rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion" };
+    const hits = EXERCISES.filter((e) => matchSlotTags(e, slot));
+    assert.ok(hits.length >= 1);
+    assert.ok(hits.every((e) => e.carpeta !== "prevencion"));
+    assert.ok(hits.every((e) => !/superman|Y-?T-?W|trap.?3|elevaci[oó]n escapular/i.test(e.nombre)));
+  });
+
   it("plantillas Fuerza Superior/Full exigen patrón analítico en bíceps", () => {
     for (const key of ["Fuerza Superior", "Fuerza Full", "Hipertrofia Full"]) {
       const tpl = SESSION_TEMPLATES[key];
@@ -68,6 +97,19 @@ describe("etiquetado — casos críticos", () => {
         .find((s) => s.grupo_muscular === "biceps" || (Array.isArray(s.grupo_muscular) && s.grupo_muscular.includes("biceps")));
       assert.ok(biceps, `${key} tiene slot bíceps`);
       assert.equal(biceps.patron, "analitico");
+    }
+  });
+
+  it("plantillas no incluyen vuelta_calma ni Técnica Media", () => {
+    assert.equal(SESSION_TEMPLATES["Técnica Media"], undefined);
+    for (const [key, tpl] of Object.entries(SESSION_TEMPLATES)) {
+      if (!tpl?.blocks) continue;
+      for (const b of tpl.blocks) {
+        assert.notEqual(b.type, "vuelta_calma", `${key} no debe tener bloque vuelta_calma`);
+        for (const s of b.slots || []) {
+          assert.notEqual(s.rol, "vuelta_calma", `${key} no debe tener slot vuelta_calma`);
+        }
+      }
     }
   });
 });

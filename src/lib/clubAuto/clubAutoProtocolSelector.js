@@ -37,11 +37,11 @@ function findExercisesForSlot(slotKey, { gymAccess, protocolo } = {}) {
     if (!clubTags?.club_slot?.includes(tag)) continue;
     if (protocolo) {
       const want = `club_protocolo_${protocolo}`;
-      if (clubTags.club_protocolo?.length && !clubTags.club_protocolo.includes(want)) {
-        // permitir si el slot es genérico; no excluir agresivamente
-      }
+      const protos = clubTags.club_protocolo || [];
+      // Soft filter: prefer matching protocol; keep if untagged or multi-tagged including want
+      if (protos.length === 1 && !protos.includes(want)) continue;
     }
-    if (gymAccess === false && clubTags.club_entorno?.length === 1 && clubTags.club_entorno[0] === "club_gym") {
+    if (gymAccess === false && clubTags.club_entorno?.length && !clubTags.club_entorno.includes("club_campo")) {
       continue;
     }
     byTag.push(ex);

@@ -10,6 +10,7 @@ import {
   usesClubAutoEngine,
   generateClubAutoWeekForCoach,
 } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { loadOrGenerateWeek } from "../../lib/coachSessionsStorage";
 import PlanUsageCard from "./PlanUsageCard";
 
 function lum(hex) {
@@ -49,18 +50,28 @@ export default function CoachDashboard({ club, team, user }) {
     } catch { setSquad([]); }
   }, [club?.id, team?.id]);
 
-  const isClubAuto = usesClubAutoEngine(club) || usesClubAutoEngine(config);
+  const isClubAuto = usesClubAutoEngine({ ...club, coachConfig: config });
 
   const microciclo = useMemo(() => {
+    const weekStart = currentWeekStart();
+    if (club?.id && team?.id) {
+      return loadOrGenerateWeek({
+        clubId: club.id,
+        teamId: team.id,
+        weekStart,
+        config,
+        library: getCachedCoachLibrary(),
+      });
+    }
     if (isClubAuto) {
-      return generateClubAutoWeekForCoach(config, { weekStart: currentWeekStart() });
+      return generateClubAutoWeekForCoach(config, { weekStart });
     }
     return generateMicrociclo({
       config: { ...config, material: config.material },
-      weekStart: currentWeekStart(),
+      weekStart,
       library: getCachedCoachLibrary(),
     });
-  }, [config, team?.id, isClubAuto]);
+  }, [config, team?.id, club?.id, isClubAuto]);
 
   const todayName = getTodayName();
   const todaySession = microciclo.sessions.find((s) => s.assignedDay === todayName);

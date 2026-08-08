@@ -150,7 +150,15 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
 
 function relaxSlot(slot, step) {
   const next = { ...slot };
+  const patronHasAnalitico = asArray(next.patron).includes("analitico");
+  // Nunca soltar grupo_muscular en slots analíticos (aislamiento); tampoco si patron+grupo van juntos.
+  const keepGrupo = patronHasAnalitico || (next.patron != null && next.patron !== "" && next.grupo_muscular);
+
   if (step === 1 && next.grupo_muscular) {
+    if (keepGrupo) {
+      // Skip: devolver copia intacta para que el bucle avance a otros pasos.
+      return { ...slot };
+    }
     delete next.grupo_muscular;
     return next;
   }
@@ -182,16 +190,19 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
     candidates = candidates.filter((ex) => !usedExerciseIds.includes(ex.id));
   }
 
-  // Último recurso: mismo rol sin demás filtros (excepto material/lesión)
-  if (!candidates.length && slot.rol) {
+  const isAnaliticoSlot = asArray(slot.patron).includes("analitico") && !!slot.grupo_muscular;
+  const isTraccionSlot = asArray(slot.patron).includes("traccion");
+
+  // Último recurso: mismo rol — NUNCA para slots analíticos/tracción (evita rotadores/prevención)
+  if (!candidates.length && slot.rol && !isAnaliticoSlot && !isTraccionSlot) {
     candidates = filterExercisesForUser(
       EXERCISES.filter((ex) => tagsOf(ex).rol === slot.rol),
       userProfile,
     ).filter((ex) => !usedExerciseIds.includes(ex.id));
   }
 
-  // Calentamiento / vuelta a la calma: permitir repetir en la semana si el pool es pequeño
-  if (!candidates.length && (slot.rol === "vuelta_calma" || slot.rol === "calentamiento" || slot.rol === "core")) {
+  // Calentamiento / core: permitir repetir en la semana si el pool es pequeño
+  if (!candidates.length && (slot.rol === "calentamiento" || slot.rol === "core") && !isAnaliticoSlot) {
     candidates = filterExercisesForUser(
       EXERCISES.filter((ex) => matchSlotTags(ex, { rol: slot.rol }) || tagsOf(ex).rol === slot.rol),
       userProfile,

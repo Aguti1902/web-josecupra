@@ -85,6 +85,7 @@ export default async function handler(req, res) {
         clubName: meta.clubId ? (clubNames[meta.clubId] || meta.clubName || meta.clubId) : (meta.clubName || null),
         plan: meta.plan || null,
         subscriptionStatus: meta.subscriptionStatus || null,
+        billingSource: meta.billingSource || null,
         trialEndsAt: meta.trialEndsAt || null,
         stripeCustomerId: meta.stripeCustomerId || null,
         stripeSubscriptionId: meta.stripeSubscriptionId || null,

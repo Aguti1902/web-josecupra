@@ -23,14 +23,42 @@ export const CLUB_AUTO_MATCH_DAYS = [
   { id: "entre_semana", label: "Entre semana" },
 ];
 
-/** True si este club/entrenador usa el motor automático del documento. */
+/**
+ * True si este club/entrenador usa el motor automático del documento.
+ * Respeta modo «Llevado por mí» / planningMode manual para no mezclar motores.
+ */
 export function usesClubAutoEngine(clubOrConfig) {
-  const cfg = clubOrConfig?.coachConfig || clubOrConfig || {};
+  if (!clubOrConfig) return false;
+  const looksLikeClub =
+    clubOrConfig.coachConfig != null
+    || clubOrConfig.planningMode != null
+    || clubOrConfig.mode != null
+    || clubOrConfig.isSoloCoach != null;
+  const club = looksLikeClub ? clubOrConfig : null;
+  const cfg = (club?.coachConfig || (!looksLikeClub ? clubOrConfig : {}) || {});
+
+  if (club?.mode === "personalizado" || club?.planningMode === "manual") return false;
+  if (cfg.mode === "personalizado" || cfg.engine === "manual") return false;
+
   if (cfg.engine === "club_auto") return true;
-  if (clubOrConfig?.planningMode === "auto" && clubOrConfig?.isSoloCoach) return true;
-  // Config nueva con nivel A/B/C del cuestionario corto
-  if (cfg.nivel && ["A", "B", "C"].includes(String(cfg.nivel).toUpperCase())) return true;
+  if (club?.planningMode === "auto" && (club.isSoloCoach || cfg.nivel)) return true;
+  // Config suelta (tests / llamadas con solo coachConfig)
+  if (!club && cfg.nivel && ["A", "B", "C"].includes(String(cfg.nivel).toUpperCase())) return true;
   return false;
+}
+
+/** Huella del cuestionario para invalidar microciclos congelados. */
+export function coachConfigFingerprint(config = {}) {
+  const q = coachConfigToQuestionnaire(config);
+  const auto = usesClubAutoEngine(config) || usesClubAutoEngine({ coachConfig: config });
+  return JSON.stringify({
+    engine: auto ? "club_auto" : "legacy",
+    nivel: q.nivel,
+    dias: q.dias_entrenamiento_semana,
+    days: [...(q.dias_exactos_entrenamiento || [])].sort(),
+    match: q.dia_partido,
+    gym: q.acceso_gimnasio === true || q.acceso_gimnasio === "si" ? "si" : "no",
+  });
 }
 
 /** coachConfig → cuestionario del motor */
@@ -110,18 +138,26 @@ export function generateClubAutoMesocicloForCoach(config, { startDate, numWeeks 
   const q = coachConfigToQuestionnaire(config);
   const weeksRaw = generateClubAutoFourWeeks(q);
   const nivelLabel = CLUB_AUTO_NIVELES.find((n) => n.id === q.nivel)?.label || q.nivel;
+  const base = startDate ? new Date(`${startDate}T00:00:00`) : new Date();
   return {
     engine: "club_auto",
     startDate,
     numWeeks,
-    objetivoLabel: `Motor automático · Nivel ${nivelLabel}`,
+    objetivoLabel: `Planificación mensual · Nivel ${nivelLabel}`,
     weeks: weeksRaw.map((w, i) => {
-      const adapted = adaptClubAutoWeek(w, startDate);
+      const weekStartDate = new Date(base);
+      weekStartDate.setDate(base.getDate() + i * 7);
+      const weekStart = weekStartDate.toISOString().slice(0, 10);
+      const adapted = adaptClubAutoWeek(w, weekStart);
+      const sessions = adapted.sessions || [];
       return {
         weekNumber: i + 1,
+        weekStart,
         label: w.label || `Semana ${i + 1}`,
         summary: w.summary || adapted.summary,
-        sessions: adapted.sessions,
+        sessions,
+        // Compat con UI manual (CoachPlanning espera microciclo.sessions)
+        microciclo: { sessions, weekStart, engine: "club_auto", summary: adapted.summary },
         focus: adapted.summary,
       };
     }),

@@ -9,6 +9,7 @@ const SLOT_RULES = [
   { slot: "club_slot_movilidad_cadera", match: (e) => e.carpeta === "movilidad" && ["cadera"].includes(e.etiquetas?.grupo_principal) },
   { slot: "club_slot_movilidad_tobillo", match: (e) => e.carpeta === "movilidad" && e.etiquetas?.grupo_principal === "tobillo" },
   { slot: "club_slot_movilidad_toracica", match: (e) => e.carpeta === "movilidad" && /torac|escapular|hombro/i.test(e.nombre) },
+  { slot: "club_slot_activacion_gluteo", match: (e) => /glute|puente|hip thrust|bridge/i.test(e.nombre) },
   { slot: "club_slot_activacion_cadena_posterior", match: (e) => (e.etiquetas?.patron || []).includes("cadena_posterior") && e.etiquetas?.grupo_principal !== "biceps" },
   { slot: "club_slot_core_control", match: (e) => e.carpeta === "core" && (e.etiquetas?.patron || []).includes("isometrico") },
   { slot: "club_slot_equilibrio", match: (e) => (e.etiquetas?.accion_secundaria || []).includes("equilibrio") || /equilibrio|unipodal/i.test(e.nombre) },

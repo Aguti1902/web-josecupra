@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminProvider } from "./context/AdminContext";
 import { ViewProvider } from "./context/ViewContext";
+import { shouldForceSetup } from "./lib/questionnaireState";
 import PWAInstallBanner from "./components/PWAInstallBanner";
 
 // Public — web marketing Holded-style
@@ -101,12 +102,24 @@ function ClientRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+  // Usuarios Google/legacy marcados como pendingPayment no deben entrar al panel sin pagar
+  if (user.pendingPayment === true) {
+    return <Navigate to="/comprar" replace />;
+  }
   const viewAs = typeof sessionStorage !== "undefined" && sessionStorage.getItem("depro_view_as");
   if (user.role === "admin" && !viewAs) return <Navigate to="/admin" replace />;
-  // Entrenador individual sin alta completada → wizard de configuración
-  if (user.role === "coach") return <Navigate to="/dashboard/coach-setup" replace />;
-  // Club comprado sin clubId → wizard de alta self-service
-  if (user.role === "club" && !user.clubId && !user?.club?.isSoloCoach) {
+  const qKey = user?.id || user?.email;
+  // Entrenador individual sin alta: forzar setup salvo cancelado/completado
+  if (user.role === "coach" && shouldForceSetup("coach", qKey)) {
+    return <Navigate to="/dashboard/coach-setup" replace />;
+  }
+  // Club comprado sin clubId → wizard self-service (no secuestrar si canceló el cuestionario)
+  if (
+    user.role === "club"
+    && !user.clubId
+    && !user?.club?.isSoloCoach
+    && shouldForceSetup("club", qKey, { hasClubId: !!user.clubId })
+  ) {
     return <Navigate to="/dashboard/club-setup" replace />;
   }
   return children;
@@ -116,6 +129,7 @@ function CoachSetupRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+  // Si canceló el cuestionario, no secuestrar: permitir salir al dashboard/home
   if (user.role !== "coach") return <Navigate to="/dashboard" replace />;
   return children;
 }
@@ -210,6 +224,8 @@ function AppRoutes() {
       <Route path="/admin/clubs/:id" element={<AdminRoute><AdminLayout><AdminClubDetailPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/planificacion" element={<AdminRoute><AdminLayout><AdminPlanificacionPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/club-auto" element={<AdminRoute><AdminLayout><AdminClubAutoMotorPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/motor_club" element={<Navigate to="/admin/club-auto" replace />} />
+      <Route path="/admin/motor-club" element={<Navigate to="/admin/club-auto" replace />} />
       <Route path="/admin/tests" element={<AdminRoute><AdminLayout><AdminTestsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/catalog" element={<AdminRoute><AdminLayout><AdminExerciseLibraryPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/coach-library" element={<Navigate to="/admin/catalog?tab=coach" replace />} />

@@ -42,7 +42,7 @@ const CANONICAL_IDS = new Set([
   "Velocidad", "Hipertrofia Full", "Hipertrofia Pierna", "Hipertrofia Torso",
   "Prevención", "Movilidad",
   "Resistencia aeróbica", "Resistencia umbral", "Resistencia anaeróbica",
-  "Técnica Media", "Sesión mínima", "Pliometría", "Isométricos",
+  "Sesión mínima", "Pliometría", "Isométricos",
 ]);
 
 function TemplateCard({ template, onUpdate }) {
@@ -171,7 +171,7 @@ export default function AdminTemplatesPage() {
       <div className="bg-depro-blue/5 border border-depro-blue/20 rounded-xl px-4 py-3 text-sm text-depro-dark">
         <strong>{canonical.length} plantillas canónicas</strong>
         {" — "}
-        Fuerza Inferior/Superior/Full · Velocidad · Hipertrofia Full/Pierna/Torso · Prevención · Movilidad · Resistencia (aeróbica/umbral/anaeróbica con 3 variantes) · Técnica Media.
+        Fuerza Inferior/Superior/Full · Velocidad · Hipertrofia Full/Pierna/Torso · Prevención · Movilidad · Resistencia (aeróbica/umbral/anaeróbica con 3 variantes).
         {aliases.length > 0 && (
           <span className="text-depro-gray"> · {aliases.length} aliases legacy (Fuerza A/B, Push/Pull…)</span>
         )}

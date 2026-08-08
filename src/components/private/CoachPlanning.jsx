@@ -36,7 +36,7 @@ export default function CoachPlanning({ club, team }) {
   const config = useMemo(() => club?.coachConfig || {}, [club?.coachConfig]);
   const clubId = club?.id;
   const teamId = team?.id;
-  const isClubAuto = usesClubAutoEngine(club) || usesClubAutoEngine(config);
+  const isClubAuto = usesClubAutoEngine({ ...club, coachConfig: config });
 
   const [libraryReady, setLibraryReady] = useState(false);
   const [mesociclo, setMesociclo] = useState(null);
@@ -66,11 +66,11 @@ export default function CoachPlanning({ club, team }) {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-black text-depro-dark">Planificación</h2>
+        <h2 className="text-xl font-black text-depro-dark">Planificación mensual</h2>
         <p className="text-sm text-depro-gray">
           {isClubAuto
-            ? "Mesociclo del motor automático clubs (A/B/C según día de partido y días reales)."
-            : "Macrociclo generado por el motor DEPRO a partir de tu objetivo de fase."}
+            ? "Mesociclo mensual del motor automático (A/B/C según día de partido y días reales). Pulsa cada semana o sesión para abrirla."
+            : "Mesociclo mensual generado por DEPRO. Dentro del mes hay progresión; el marco principal es mensual."}
         </p>
       </div>
 
@@ -102,7 +102,9 @@ export default function CoachPlanning({ club, team }) {
                       </div>
                       <div>
                         <div className="font-bold text-depro-dark text-sm">Semana {w.weekNumber}</div>
-                        <div className="text-xs text-depro-gray">{formatRange(w.weekStart)} · {w.microciclo.sessions.length} sesiones</div>
+                        <div className="text-xs text-depro-gray">
+                          {formatRange(w.weekStart)} · {(w.microciclo?.sessions || w.sessions || []).length} sesiones
+                        </div>
                       </div>
                     </div>
                     {isOpen ? <ChevronUp size={16} className="text-depro-gray" /> : <ChevronDown size={16} className="text-depro-gray" />}
@@ -110,11 +112,17 @@ export default function CoachPlanning({ club, team }) {
 
                   {isOpen && (
                     <div className="px-4 pb-4 space-y-3 border-t border-depro-border">
-                      <div className="flex flex-wrap gap-2 pt-3">
-                        {w.microciclo.sessions.map((s) => (
-                          <span key={s.id} className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ backgroundColor: accent + "12", color: accent }}>
-                            {s.assignedDay} · Protocolo {s.protocol} · {s.duracionEstimada}
-                          </span>
+                      <div className="grid sm:grid-cols-2 gap-2 pt-3">
+                        {(w.microciclo?.sessions || w.sessions || []).map((s) => (
+                          <Link
+                            key={s.id}
+                            to="/dashboard/plan"
+                            className="text-left text-xs font-bold px-3 py-2.5 rounded-xl border border-depro-border hover:border-depro-blue/40 transition-colors"
+                            style={{ backgroundColor: accent + "08", color: accent }}
+                          >
+                            <span className="block text-depro-dark">{s.assignedDay || "Sesión"}</span>
+                            <span className="font-semibold opacity-90">Protocolo {s.protocol} · {s.duracionEstimada || "75–90 min"}</span>
+                          </Link>
                         ))}
                       </div>
                       <div>
@@ -128,15 +136,13 @@ export default function CoachPlanning({ club, team }) {
                           className="w-full text-sm border border-depro-border rounded-xl px-3 py-2 outline-none focus:border-depro-blue resize-none"
                         />
                       </div>
-                      {w.weekNumber === 1 && (
-                        <Link
-                          to="/dashboard/plan"
-                          className="inline-flex items-center gap-1.5 text-sm font-semibold"
-                          style={{ color: accent }}
-                        >
-                          Ver sesiones de esta semana <ArrowRight size={13} />
-                        </Link>
-                      )}
+                      <Link
+                        to="/dashboard/plan"
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold"
+                        style={{ color: accent }}
+                      >
+                        Abrir microciclo / sesiones <ArrowRight size={13} />
+                      </Link>
                     </div>
                   )}
                 </div>

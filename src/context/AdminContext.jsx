@@ -23,6 +23,7 @@ export function mapPlayerToClient(user) {
     email: user.email,
     role: "player",
     plan: user.plan || "player-essential",
+    billingSource: user.billingSource || null,
     club: {
       name: user.clubName || "Plan individual",
       logo: clientInitials(user.name),

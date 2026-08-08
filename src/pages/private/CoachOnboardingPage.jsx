@@ -1,15 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, ArrowRight, CheckCircle, Calendar, Dumbbell, Trophy,
-  Building2, Loader2, AlertCircle,
+  ArrowLeft, ArrowRight, CheckCircle, Building2, Loader2, Trophy, RotateCcw, X,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { saveClub } from "../../lib/adminStorage";
 import {
-  validateCoachQuestionnaire,
-  TRAIN_DAYS,
   CLUB_AUTO_NIVELES,
   CLUB_AUTO_MATCH_DAYS,
   categoryForNivel,
@@ -18,34 +15,20 @@ import TeamBrandingFields, {
   loadCoachBrandingDraft,
   clearCoachBrandingDraft,
 } from "../../components/shared/TeamBrandingFields";
+import CoachAutoQuestionnaire, {
+  questionnaireToCoachConfig,
+} from "../../components/shared/CoachAutoQuestionnaire";
+import {
+  Q_STATUS,
+  loadQuestionnaireState,
+  markQuestionnaireInProgress,
+  markQuestionnaireCompleted,
+  cancelQuestionnaire,
+  resetQuestionnaire,
+} from "../../lib/questionnaireState";
 
 const STEPS = ["Tu equipo", "Microciclo", "Confirmar"];
-
-function TagGroup({ options, value, onChange, renderLabel = (o) => o.label ?? o }) {
-  const getId = (o) => (typeof o === "string" ? o : o.id);
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((o) => {
-        const id = getId(o);
-        const sel = value === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onChange(id)}
-            className={`text-sm font-bold px-3.5 py-2 rounded-xl border transition-all ${
-              sel
-                ? "bg-depro-blue border-depro-blue text-white"
-                : "bg-white border-depro-border text-depro-gray hover:text-depro-dark hover:border-depro-blue/40"
-            }`}
-          >
-            {renderLabel(o)}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+const AUDIENCE = "coach";
 
 function StepHeader({ current }) {
   return (
@@ -81,16 +64,19 @@ function initialForm(user) {
   return {
     teamName: draft.teamHint || draft.clubName || "",
     season: "2025/2026",
-    nivel: "B",
-    dias_entrenamiento_semana: 3,
-    dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
-    dia_partido: "sabado",
-    acceso_gimnasio: "no",
     logo: draft.logo || "",
     primaryColor: draft.primaryColor || user?.primaryColor || "#0A36F7",
     secondaryColor: draft.secondaryColor || user?.secondaryColor || "#ffffff",
   };
 }
+
+const DEFAULT_AUTO_Q = {
+  nivel: "B",
+  dias_entrenamiento_semana: 3,
+  dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
+  dia_partido: "sabado",
+  acceso_gimnasio: "no",
+};
 
 /**
  * Cuestionario corto del documento + escudo/colores del registro.
@@ -99,60 +85,71 @@ function initialForm(user) {
 export default function CoachOnboardingPage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const userKey = user?.id || user?.email;
+
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState(() => initialForm(user));
+  const [autoQ, setAutoQ] = useState(DEFAULT_AUTO_Q);
+  const [qReady, setQReady] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const questionnaire = useMemo(() => ({
-    nivel: form.nivel,
-    dias_entrenamiento_semana: form.dias_entrenamiento_semana,
-    dias_exactos_entrenamiento: form.dias_exactos_entrenamiento,
-    dia_partido: form.dia_partido,
-    acceso_gimnasio: form.acceso_gimnasio,
-  }), [form]);
+  useEffect(() => {
+    if (!userKey || qReady) return;
+    const st = loadQuestionnaireState(AUDIENCE, userKey);
+    if (st.status === Q_STATUS.IN_PROGRESS) {
+      if (st.form && typeof st.form === "object") {
+        const { autoQ: savedQ, ...rest } = st.form;
+        setForm((f) => ({ ...f, ...rest }));
+        if (savedQ && typeof savedQ === "object") setAutoQ(savedQ);
+      }
+      if (st.step) setStep(st.step);
+    } else if (st.status !== Q_STATUS.CANCELLED && st.status !== Q_STATUS.COMPLETED) {
+      markQuestionnaireInProgress(AUDIENCE, userKey, { step: 1 });
+    }
+    setQReady(true);
+  }, [userKey, qReady]);
 
-  const validation = useMemo(() => validateCoachQuestionnaire(questionnaire), [questionnaire]);
-  const step1Valid = form.teamName.trim().length > 0;
-  const step2Valid = validation.ok;
-
-  const toggleDay = (day) => {
-    setForm((f) => {
-      const cur = f.dias_exactos_entrenamiento || [];
-      const has = cur.includes(day);
-      let next = has ? cur.filter((d) => d !== day) : [...cur, day];
-      if (next.length > f.dias_entrenamiento_semana) next = next.slice(-f.dias_entrenamiento_semana);
-      return { ...f, dias_exactos_entrenamiento: next };
+  useEffect(() => {
+    if (!userKey || !qReady) return;
+    markQuestionnaireInProgress(AUDIENCE, userKey, {
+      step,
+      form: { ...form, autoQ },
     });
+  }, [step, form, autoQ, userKey, qReady]);
+
+  const packedQ = useMemo(() => questionnaireToCoachConfig(autoQ), [autoQ]);
+  const step1Valid = form.teamName.trim().length > 0;
+  const step2Valid = packedQ.ok;
+
+  const handleCancel = () => {
+    cancelQuestionnaire(AUDIENCE, userKey);
+    navigate(user ? "/" : "/login", { replace: true });
   };
 
-  const setFrequency = (n) => {
-    setForm((f) => {
-      let days = [...(f.dias_exactos_entrenamiento || [])];
-      if (days.length > n) days = days.slice(0, n);
-      if (days.length < n) {
-        for (const d of TRAIN_DAYS) {
-          if (days.length >= n) break;
-          if (!days.includes(d)) days.push(d);
-        }
-      }
-      return { ...f, dias_entrenamiento_semana: n, dias_exactos_entrenamiento: days };
-    });
+  const handleReset = () => {
+    resetQuestionnaire(AUDIENCE, userKey);
+    const fresh = initialForm(user);
+    setForm(fresh);
+    setAutoQ(DEFAULT_AUTO_Q);
+    setStep(1);
+    setError("");
+    markQuestionnaireInProgress(AUDIENCE, userKey, { step: 1, form: { ...fresh, autoQ: DEFAULT_AUTO_Q } });
   };
 
   const handleConfirm = async () => {
-    if (!validation.ok) {
-      setError(validation.errors.join(" "));
+    if (!packedQ.ok) {
+      setError(packedQ.errors.join(" "));
       return;
     }
     setSaving(true);
     setError("");
     try {
-      const q = validation.normalized;
+      const cfg = packedQ.config;
       const clubId = genId("coach_club");
       const teamId = genId("coach_team");
-      const category = categoryForNivel(q.nivel);
+      const category = categoryForNivel(cfg.nivel);
 
       const club = {
         id: clubId,
@@ -164,19 +161,8 @@ export default function CoachOnboardingPage() {
         plan: user?.plan || "coach-starter",
         isSoloCoach: true,
         planningMode: "auto",
-        coachConfig: {
-          engine: "club_auto",
-          nivel: q.nivel,
-          dias_entrenamiento_semana: q.dias_entrenamiento_semana,
-          dias_exactos_entrenamiento: q.dias_exactos_entrenamiento,
-          dia_partido: form.dia_partido,
-          acceso_gimnasio: q.acceso_gimnasio ? "si" : "no",
-          gymAccess: q.acceso_gimnasio,
-          trainingsPerWeek: q.dias_entrenamiento_semana,
-          trainingDays: q.dias_exactos_entrenamiento,
-          matchDay: form.dia_partido,
-          mode: "depro",
-        },
+        mode: "depro",
+        coachConfig: cfg,
         logo: form.logo || null,
         primaryColor: form.primaryColor || "#0A36F7",
         secondaryColor: form.secondaryColor || "#ffffff",
@@ -187,7 +173,7 @@ export default function CoachOnboardingPage() {
             name: form.teamName.trim(),
             category,
             season: form.season,
-            trainingDays: q.dias_exactos_entrenamiento,
+            trainingDays: cfg.dias_exactos_entrenamiento,
             coach: { name: user?.name || "", email: user?.email || "" },
             squad: [],
           },
@@ -204,6 +190,7 @@ export default function CoachOnboardingPage() {
       });
       if (updErr) throw updErr;
 
+      markQuestionnaireCompleted(AUDIENCE, userKey);
       await refreshUser();
       navigate("/dashboard", { replace: true });
     } catch (e) {
@@ -212,16 +199,32 @@ export default function CoachOnboardingPage() {
     }
   };
 
-  const matchLabel = CLUB_AUTO_MATCH_DAYS.find((m) => m.id === form.dia_partido)?.label || form.dia_partido;
-  const nivelLabel = CLUB_AUTO_NIVELES.find((n) => n.id === form.nivel)?.label || form.nivel;
+  const matchLabel = CLUB_AUTO_MATCH_DAYS.find((m) => m.id === autoQ.dia_partido)?.label || autoQ.dia_partido;
+  const nivelLabel = CLUB_AUTO_NIVELES.find((n) => n.id === autoQ.nivel)?.label || autoQ.nivel;
 
   return (
     <div className="min-h-screen bg-depro-gray-light py-10 px-4">
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="DEPRO" className="h-7 w-auto" />
             <span className="text-xs font-black px-2.5 py-1 rounded-full bg-depro-blue text-white">COACH AUTO</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-depro-border text-xs font-bold text-depro-gray hover:text-depro-dark"
+            >
+              <RotateCcw size={13} /> Reiniciar
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-depro-border text-xs font-bold text-depro-gray hover:text-red-600"
+            >
+              <X size={13} /> Cancelar
+            </button>
           </div>
         </div>
 
@@ -246,12 +249,6 @@ export default function CoachOnboardingPage() {
                     className="admin-input w-full"
                     placeholder="Ej. Juvenil A"
                   />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Trophy size={12} /> Nivel del equipo *
-                  </label>
-                  <TagGroup options={CLUB_AUTO_NIVELES} value={form.nivel} onChange={(v) => set("nivel", v)} renderLabel={(o) => o.label} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Temporada</label>
@@ -280,71 +277,13 @@ export default function CoachOnboardingPage() {
 
           {step === 2 && (
             <div>
-              <h2 className="text-2xl font-black text-depro-dark mb-2">Tu microciclo</h2>
+              <h2 className="text-2xl font-black text-depro-dark mb-2 flex items-center gap-2">
+                <Trophy size={22} className="text-depro-blue" /> Tu microciclo
+              </h2>
               <p className="text-depro-gray text-sm mb-6">
-                El número de días seleccionados debe coincidir con los entrenamientos por semana.
+                Cuestionario corto del documento: nivel, días, partido y gimnasio.
               </p>
-              <div className="space-y-5">
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Calendar size={12} /> Entrenamientos por semana *
-                  </label>
-                  <TagGroup
-                    options={[2, 3, 4].map((n) => ({ id: n, label: `${n} días` }))}
-                    value={form.dias_entrenamiento_semana}
-                    onChange={setFrequency}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 block">
-                    Días exactos de entrenamiento * ({form.dias_exactos_entrenamiento.length}/{form.dias_entrenamiento_semana})
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {TRAIN_DAYS.map((day) => {
-                      const sel = form.dias_exactos_entrenamiento.includes(day);
-                      return (
-                        <button
-                          key={day}
-                          type="button"
-                          onClick={() => toggleDay(day)}
-                          className={`text-sm font-bold px-3.5 py-2 rounded-xl border transition-all ${
-                            sel
-                              ? "bg-depro-blue border-depro-blue text-white"
-                              : "bg-white border-depro-border text-depro-gray hover:border-depro-blue/40"
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Trophy size={12} /> Día de partido *
-                  </label>
-                  <TagGroup options={CLUB_AUTO_MATCH_DAYS} value={form.dia_partido} onChange={(v) => set("dia_partido", v)} renderLabel={(o) => o.label} />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <Dumbbell size={12} /> Acceso a gimnasio *
-                  </label>
-                  <TagGroup
-                    options={[{ id: "si", label: "Sí" }, { id: "no", label: "No" }]}
-                    value={form.acceso_gimnasio}
-                    onChange={(v) => set("acceso_gimnasio", v)}
-                    renderLabel={(o) => o.label}
-                  />
-                </div>
-                {!validation.ok && (
-                  <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                    <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                    <ul className="space-y-0.5">
-                      {validation.errors.map((err) => <li key={err}>{err}</li>)}
-                    </ul>
-                  </div>
-                )}
-              </div>
+              <CoachAutoQuestionnaire value={autoQ} onChange={setAutoQ} />
               <div className="mt-8 flex justify-between">
                 <button onClick={() => setStep(1)} className="btn-ghost flex items-center gap-2"><ArrowLeft size={16} /> Atrás</button>
                 <button onClick={() => setStep(3)} disabled={!step2Valid} className="btn-primary flex items-center gap-2 disabled:opacity-50">
@@ -370,10 +309,10 @@ export default function CoachOnboardingPage() {
                   </span>
                 </div>
                 <div className="flex justify-between"><span className="text-depro-gray">Nivel</span><span className="font-bold text-depro-dark">{nivelLabel}</span></div>
-                <div className="flex justify-between"><span className="text-depro-gray">Entrenamientos/semana</span><span className="font-bold text-depro-dark">{form.dias_entrenamiento_semana}</span></div>
-                <div className="flex justify-between gap-4"><span className="text-depro-gray shrink-0">Días</span><span className="font-bold text-depro-dark text-right">{form.dias_exactos_entrenamiento.join(", ")}</span></div>
+                <div className="flex justify-between"><span className="text-depro-gray">Entrenamientos/semana</span><span className="font-bold text-depro-dark">{autoQ.dias_entrenamiento_semana}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-depro-gray shrink-0">Días</span><span className="font-bold text-depro-dark text-right">{(autoQ.dias_exactos_entrenamiento || []).join(", ")}</span></div>
                 <div className="flex justify-between"><span className="text-depro-gray">Partido</span><span className="font-bold text-depro-dark">{matchLabel}</span></div>
-                <div className="flex justify-between"><span className="text-depro-gray">Gimnasio</span><span className="font-bold text-depro-dark">{form.acceso_gimnasio === "si" ? "Sí" : "No"}</span></div>
+                <div className="flex justify-between"><span className="text-depro-gray">Gimnasio</span><span className="font-bold text-depro-dark">{autoQ.acceso_gimnasio === "si" ? "Sí" : "No"}</span></div>
                 <div className="flex justify-between"><span className="text-depro-gray">Modo</span><span className="font-bold text-depro-blue">Automático</span></div>
               </div>
               {error && (
@@ -381,7 +320,7 @@ export default function CoachOnboardingPage() {
               )}
               <div className="mt-8 flex justify-between">
                 <button onClick={() => setStep(2)} disabled={saving} className="btn-ghost flex items-center gap-2 disabled:opacity-50"><ArrowLeft size={16} /> Atrás</button>
-                <button onClick={handleConfirm} disabled={saving || !validation.ok} className="btn-primary flex items-center gap-2 disabled:opacity-50">
+                <button onClick={handleConfirm} disabled={saving || !packedQ.ok} className="btn-primary flex items-center gap-2 disabled:opacity-50">
                   {saving ? <><Loader2 size={16} className="animate-spin" /> Creando panel...</> : <>Crear mi panel <CheckCircle size={16} /></>}
                 </button>
               </div>

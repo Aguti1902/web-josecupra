@@ -26,14 +26,15 @@ export function getStripePriceId(planId) {
   return stripePricesMap()[planId] || null;
 }
 
-/** Line item para Checkout: usa Price ID fijo si existe, si no price_data dinámico. */
+/** Line item para Checkout: Price ID fijo solo si el importe coincide; si hay descuento → price_data. */
 export function buildCheckoutLineItem(planId, finalAmountCents) {
-  const priceId = getStripePriceId(planId);
-  if (priceId) {
-    return { price: priceId, quantity: 1 };
-  }
   const price = PRICES[planId];
   if (!price) return null;
+  const priceId = getStripePriceId(planId);
+  // Si el importe final difiere del catálogo (p. ej. −10% club), ignorar Price ID fijo
+  if (priceId && Number(finalAmountCents) === Number(price.amount)) {
+    return { price: priceId, quantity: 1 };
+  }
   return {
     price_data: {
       currency: "eur",
