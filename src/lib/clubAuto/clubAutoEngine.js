@@ -16,6 +16,7 @@ const MATCH_DAY_MAP = {
   domingo: "Domingo",
   entre_semana: "Miércoles",
   "entre semana": "Miércoles",
+  no_compite: "Sábado", // sin partido: ancla semanal neutra
 };
 
 export function normalizeNivel(nivel) {
@@ -29,6 +30,7 @@ export function normalizeNivel(nivel) {
 
 export function normalizeMatchDay(diaPartido) {
   const raw = String(diaPartido || "sabado").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (raw.includes("no_compite") || raw.includes("no compite") || raw === "none") return "Sábado";
   if (raw.includes("domingo")) return "Domingo";
   if (raw.includes("entre")) return "Miércoles";
   return MATCH_DAY_MAP[raw] || "Sábado";

@@ -1,8 +1,33 @@
 import { useState, useEffect } from "react";
-import { Lock, Save, Trash2, TrendingUp, TrendingDown, Minus, ChevronRight, Activity } from "lucide-react";
+import {
+  Lock, Save, Trash2, TrendingUp, TrendingDown, Minus, ChevronRight, Activity,
+  BookOpen, PlayCircle, ChevronDown, ChevronUp,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import FeatureGate from "../../components/private/FeatureGate";
+import { getYouTubeId } from "../../lib/youtube";
+
+/** Misma fuente que clubs (TeamTestsPage) — no duplicar. */
+function loadAdminTestProtocols() {
+  try {
+    const stored = localStorage.getItem("depro_global_tests");
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+async function fetchAdminTestProtocols() {
+  try {
+    const r = await fetch("/api/admin-clubs");
+    if (!r.ok) return null;
+    const data = await r.json();
+    const entry = (data.clubs || []).find((c) => c.id === "GLOBAL_TESTS");
+    return entry?.tests ?? null;
+  } catch {
+    return null;
+  }
+}
 
 // ── 4 tests oficiales ─────────────────────────────────────────
 const TESTS = [
@@ -308,12 +333,102 @@ function DetailPanel({ test, userId }) {
   );
 }
 
+function EvaluationProtocols({ adminTests }) {
+  const [open, setOpen] = useState(true);
+  const withContent = (adminTests || []).filter((t) => t.videoUrl || t.description);
+  if (!withContent.length) return null;
+
+  return (
+    <div className="mb-6 bg-white border border-depro-border rounded-2xl overflow-hidden">
+      <button
+        type="button"
+        className="w-full flex items-center gap-3 px-5 py-4 hover:bg-[#F8F9FB] transition-colors text-left"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="w-9 h-9 rounded-xl bg-depro-blue/10 border border-depro-blue/20 flex items-center justify-center flex-shrink-0">
+          <BookOpen size={16} className="text-depro-blue" />
+        </div>
+        <div className="flex-1">
+          <div className="font-black text-depro-dark">Protocolos de evaluación</div>
+          <div className="text-xs text-depro-gray">Cómo se realiza cada test · Vídeos explicativos</div>
+        </div>
+        {open ? <ChevronUp size={16} className="text-depro-gray" /> : <ChevronDown size={16} className="text-depro-gray" />}
+      </button>
+      {open && (
+        <div className="border-t border-depro-border">
+          {withContent.map((adminTest, i) => {
+            const testDef = TESTS.find((t) => t.id === adminTest.id) || {};
+            const ytId = getYouTubeId(adminTest.videoUrl);
+            return (
+              <div key={adminTest.id || i} className={i < withContent.length - 1 ? "border-b border-depro-border/60" : ""}>
+                <div className="flex items-center gap-3 px-5 py-3.5 bg-[#F8F9FB]/60">
+                  <div
+                    className="w-7 h-7 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0"
+                    style={{ backgroundColor: (testDef.color || "#3B82F6") + "20", color: testDef.color || "#3B82F6" }}
+                  >
+                    {i + 1}
+                  </div>
+                  <div>
+                    <div className="font-black text-depro-dark text-sm">{adminTest.label || testDef.name}</div>
+                    <div className="text-[10px] text-depro-gray">Unidad: {adminTest.unit || testDef.unit}</div>
+                  </div>
+                </div>
+                <div className="px-5 pb-5 pt-3 grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {ytId && (
+                    <div>
+                      <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1">
+                        <PlayCircle size={10} className="text-depro-blue" /> Vídeo explicativo
+                      </div>
+                      <div className="relative w-full rounded-xl overflow-hidden bg-black" style={{ paddingBottom: "56.25%" }}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${ytId}`}
+                          className="absolute inset-0 w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          title={adminTest.label || testDef.name}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {adminTest.description && (
+                    <div>
+                      <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2">
+                        Protocolo de ejecución
+                      </div>
+                      <div className="bg-[#F8F9FB] border border-depro-border rounded-xl px-4 py-3 text-sm text-depro-dark/80 whitespace-pre-line leading-relaxed">
+                        {adminTest.description}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Página principal ──────────────────────────────────────────
 export default function PhysicalPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [selected, setSelected] = useState(TESTS[0].id);
+  const [adminTests, setAdminTests] = useState(() => loadAdminTestProtocols());
   const activeTest = TESTS.find((t) => t.id === selected);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const cloud = await fetchAdminTestProtocols();
+      if (!cancelled && Array.isArray(cloud) && cloud.length) {
+        setAdminTests(cloud);
+        try { localStorage.setItem("depro_global_tests", JSON.stringify(cloud)); } catch { /* ignore */ }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Carga rápida de último valor para la card
   function lastValue(testId) {
@@ -332,6 +447,8 @@ export default function PhysicalPage() {
         <h1 className="text-2xl md:text-3xl font-black text-depro-dark">{t("physical.title")}</h1>
         <p className="text-depro-gray text-sm mt-1">{t("physical.select_test")}</p>
       </div>
+
+      <EvaluationProtocols adminTests={adminTests} />
 
       {/* Layout 2 columnas */}
       <div className="flex flex-col lg:flex-row gap-5">

@@ -8,7 +8,9 @@
 import { getCoachLibraryFromCatalog } from "./coachLibraryFromCatalog";
 
 const LS_KEY = "depro_coach_library";
-const MIGRATE_FLAG = "depro_coach_lib_v2";
+/** v3: excluye respiración / estiramientos con rebote (PDF §11). */
+const MIGRATE_FLAG = "depro_coach_lib_v3";
+const PREV_MIGRATE_FLAGS = ["depro_coach_lib_v2"];
 
 function lsGet(key, fallback) {
   try {
@@ -48,15 +50,21 @@ function catalogSeed() {
  */
 function maybeRemigrateOldSeed(list) {
   if (!Array.isArray(list) || list.length === 0) return catalogSeed();
-  // Seed antiguo (~91) o incompleto: siempre ampliar al catálogo completo
-  if (list.length >= 120) {
-    lsSetFlag(MIGRATE_FLAG);
+  const alreadyV3 = lsFlag(MIGRATE_FLAG);
+  // Seed antiguo (~91) o migración a v3 (filtro respiración): re-merge desde catálogo
+  if (list.length >= 120 && alreadyV3) {
     return list;
   }
+  PREV_MIGRATE_FLAGS.forEach((f) => {
+    try { localStorage.removeItem(f); } catch { /* ignore */ }
+  });
   const base = catalogSeed();
   const byId = new Map(base.map((e) => [e.id, e]));
   for (const ex of list) {
     if (!ex?.id) continue;
+    // No reintroducir bloqueados (respiración, etc.)
+    const name = String(ex.nombre || ex.name || "");
+    if (/respiraci[oó]n/i.test(name) || /breathing/i.test(name)) continue;
     // Conservar ediciones CMS / custom encima del catálogo base
     byId.set(ex.id, { ...(byId.get(ex.id) || {}), ...ex });
   }

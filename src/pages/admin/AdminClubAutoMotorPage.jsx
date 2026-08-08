@@ -21,6 +21,7 @@ const MATCH = [
   { id: "sabado", label: "Sábado" },
   { id: "domingo", label: "Domingo" },
   { id: "entre_semana", label: "Entre semana" },
+  { id: "no_compite", label: "No compite" },
 ];
 
 function Chip({ active, onClick, children, disabled }) {

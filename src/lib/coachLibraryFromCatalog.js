@@ -126,7 +126,26 @@ export function mapCatalogExerciseToCoach(ex) {
   };
 }
 
-/** Biblioteca coach sembrada desde el catálogo completo */
+/** Nombres / patrones excluidos de la biblioteca coach (PDF §11). */
+const COACH_LIBRARY_BLOCKLIST = [
+  /respiraci[oó]n/i,
+  /breathing/i,
+  /estiramiento.*rebote/i,
+  /rebote.*estiramiento/i,
+  /ballistic\s*stretch/i,
+];
+
+export function isAllowedInCoachLibrary(ex) {
+  if (!ex) return false;
+  const name = String(ex.nombre || ex.name || "");
+  if (COACH_LIBRARY_BLOCKLIST.some((re) => re.test(name))) return false;
+  const carpeta = String(ex.carpeta || "").toLowerCase();
+  // Sin carpeta inventada de recuperación/respiración
+  if (carpeta === "respiracion" || carpeta === "recuperacion") return false;
+  return true;
+}
+
+/** Biblioteca coach: catálogo individuales (filtrado) — PDF §11. */
 export function getCoachLibraryFromCatalog() {
-  return EXERCISES.map(mapCatalogExerciseToCoach);
+  return EXERCISES.filter(isAllowedInCoachLibrary).map(mapCatalogExerciseToCoach);
 }

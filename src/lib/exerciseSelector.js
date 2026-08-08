@@ -148,69 +148,45 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
   });
 }
 
+/**
+ * Relaja filtros menos críticos primero (grupo_muscular antes que patron).
+ * El slot NUNCA debe quedar vacío: al final solo queda rol/patron mínimo.
+ */
 function relaxSlot(slot, step) {
   const next = { ...slot };
-  const patronHasAnalitico = asArray(next.patron).includes("analitico");
-  // Nunca soltar grupo_muscular en slots analíticos (aislamiento); tampoco si patron+grupo van juntos.
-  const keepGrupo = patronHasAnalitico || (next.patron != null && next.patron !== "" && next.grupo_muscular);
 
-  if (step === 1 && next.grupo_muscular) {
-    if (keepGrupo) {
-      // Skip: devolver copia intacta para que el bucle avance a otros pasos.
-      return { ...slot };
-    }
-    delete next.grupo_muscular;
-    return next;
-  }
-  if (step === 2 && next.intensidad) {
+  // 1) Intensidad (menos crítica)
+  if (step === 1 && next.intensidad) {
     delete next.intensidad;
     return next;
   }
-  if (step === 3 && next.objetivo) {
+  // 2) Objetivo
+  if (step === 2 && next.objetivo) {
     delete next.objetivo;
     return next;
   }
-  if (step === 4 && next.segmento) {
+  // 3) Segmento
+  if (step === 3 && next.segmento) {
     delete next.segmento;
+    return next;
+  }
+  // 4) Grupo muscular (antes que patrón — PDF §5.3)
+  if (step === 4 && next.grupo_muscular) {
+    delete next.grupo_muscular;
+    return next;
+  }
+  // 5) Patrón (último filtro de etiqueta)
+  if (step === 5 && (next.patron || next.patronOr)) {
+    delete next.patron;
+    delete next.patronOr;
+    delete next.patronMode;
     return next;
   }
   return null;
 }
 
-export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], seedExtra = "") {
-  let candidates = EXERCISES.filter((ex) => matchSlotTags(ex, slot));
-  candidates = filterExercisesForUser(candidates, userProfile);
-  candidates = candidates.filter((ex) => !usedExerciseIds.includes(ex.id));
-
-  for (let step = 1; candidates.length === 0 && step <= 4; step++) {
-    const relaxed = relaxSlot(slot, step);
-    if (!relaxed) break;
-    candidates = EXERCISES.filter((ex) => matchSlotTags(ex, relaxed));
-    candidates = filterExercisesForUser(candidates, userProfile);
-    candidates = candidates.filter((ex) => !usedExerciseIds.includes(ex.id));
-  }
-
-  const isAnaliticoSlot = asArray(slot.patron).includes("analitico") && !!slot.grupo_muscular;
-  const isTraccionSlot = asArray(slot.patron).includes("traccion");
-
-  // Último recurso: mismo rol — NUNCA para slots analíticos/tracción (evita rotadores/prevención)
-  if (!candidates.length && slot.rol && !isAnaliticoSlot && !isTraccionSlot) {
-    candidates = filterExercisesForUser(
-      EXERCISES.filter((ex) => tagsOf(ex).rol === slot.rol),
-      userProfile,
-    ).filter((ex) => !usedExerciseIds.includes(ex.id));
-  }
-
-  // Calentamiento / core: permitir repetir en la semana si el pool es pequeño
-  if (!candidates.length && (slot.rol === "calentamiento" || slot.rol === "core") && !isAnaliticoSlot) {
-    candidates = filterExercisesForUser(
-      EXERCISES.filter((ex) => matchSlotTags(ex, { rol: slot.rol }) || tagsOf(ex).rol === slot.rol),
-      userProfile,
-    );
-  }
-
+function pickFrom(candidates, userProfile, slot, usedExerciseIds, seedExtra) {
   if (!candidates.length) return null;
-
   const seed = [
     userProfile?.userId || "",
     userProfile?.week || "",
@@ -222,8 +198,69 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
     usedExerciseIds.join(","),
     seedExtra,
   ].join("|");
-
   return pickDeterministic(candidates, seed);
+}
+
+export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], seedExtra = "") {
+  const filterPool = (pool, allowReuse = false) => {
+    let candidates = filterExercisesForUser(pool, userProfile);
+    if (!allowReuse) candidates = candidates.filter((ex) => !usedExerciseIds.includes(ex.id));
+    return candidates;
+  };
+
+  let candidates = filterPool(EXERCISES.filter((ex) => matchSlotTags(ex, slot)));
+
+  for (let step = 1; candidates.length === 0 && step <= 5; step++) {
+    const relaxed = relaxSlot(slot, step);
+    if (!relaxed) break;
+    // Evitar bucles sin progreso (misma restricción)
+    const same =
+      JSON.stringify({
+        g: slot.grupo_muscular,
+        i: slot.intensidad,
+        o: slot.objetivo,
+        s: slot.segmento,
+        p: slot.patron,
+      }) ===
+      JSON.stringify({
+        g: relaxed.grupo_muscular,
+        i: relaxed.intensidad,
+        o: relaxed.objetivo,
+        s: relaxed.segmento,
+        p: relaxed.patron,
+      });
+    if (same) continue;
+    candidates = filterPool(EXERCISES.filter((ex) => matchSlotTags(ex, relaxed)));
+  }
+
+  // Reutilizar ejercicio ya usado en la sesión si el pool se agotó (antes que dejar el slot vacío)
+  if (!candidates.length) {
+    candidates = filterPool(EXERCISES.filter((ex) => matchSlotTags(ex, slot)), true);
+    for (let step = 1; candidates.length === 0 && step <= 5; step++) {
+      const relaxed = relaxSlot(slot, step);
+      if (!relaxed) break;
+      candidates = filterPool(EXERCISES.filter((ex) => matchSlotTags(ex, relaxed)), true);
+    }
+  }
+
+  // Último recurso: mismo rol (mantiene estructura de plantilla)
+  if (!candidates.length && slot.rol) {
+    candidates = filterPool(
+      EXERCISES.filter((ex) => tagsOf(ex).rol === slot.rol),
+      true,
+    );
+  }
+
+  // Calentamiento / core: pool amplio
+  if (!candidates.length && (slot.rol === "calentamiento" || slot.rol === "core")) {
+    candidates = filterPool(
+      EXERCISES.filter((ex) => matchSlotTags(ex, { rol: slot.rol }) || tagsOf(ex).rol === slot.rol),
+      true,
+    );
+  }
+
+  if (!candidates.length) return null;
+  return pickFrom(candidates, userProfile, slot, usedExerciseIds, seedExtra);
 }
 
 function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensity = null) {
@@ -264,12 +301,21 @@ function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensit
   return obj[experiencia] || obj.intermedio;
 }
 
+export function expectedSlotCount(block) {
+  return (block.slots || []).reduce((n, s) => {
+    if (s?.optional) return n;
+    return n + (s.qty || 1);
+  }, 0);
+}
+
 export function fillBlockSlots(block, userProfile, sessionUsedIds = [], sessionUsedPools = []) {
   const exercises = [];
   const blockUsedIds = [...sessionUsedIds];
   const blockUsedPools = [...sessionUsedPools];
   const objective = userProfile.sessionObjective || userProfile.objetivo || "fuerza";
   const adapted = userProfile.adaptedIntensity || null;
+  let missing = 0;
+  const expected = expectedSlotCount(block);
 
   for (const slot of block.slots || []) {
     const qty = slot.qty || 1;
@@ -301,12 +347,20 @@ export function fillBlockSlots(block, userProfile, sessionUsedIds = [], sessionU
         blockUsedIds.push(exercise.id);
         if (exercise.pool) blockUsedPools.push(exercise.pool);
       } else if (!slot.optional) {
+        missing += 1;
         console.warn(`[DEPRO] Sin ejercicio para slot: ${slot.description || slot.rol || slot.patron}`);
       }
     }
   }
 
-  return { exercises, usedIds: blockUsedIds, usedPools: blockUsedPools, incomplete: false };
+  return {
+    exercises,
+    usedIds: blockUsedIds,
+    usedPools: blockUsedPools,
+    incomplete: missing > 0 || exercises.length < expected,
+    expectedSlots: expected,
+    filledSlots: exercises.length,
+  };
 }
 
 /** Refresco: mismo slot (mismas restricciones de etiqueta). */

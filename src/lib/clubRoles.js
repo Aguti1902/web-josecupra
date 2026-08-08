@@ -34,7 +34,11 @@ export function canSeeClubPricing(user) {
   if (user.role !== "club") return true;
   if (user.club?.isSoloCoach) return true;
   if (isClubAdmin(user) || user.team_role === CLUB_ADMIN_ROLE) return true;
-  if (user.club?.planningMode === "manual") {
+  const isManual =
+    user.club?.origen === "manual"
+    || user.club?.planningMode === "manual"
+    || user.club?.mode === "personalizado";
+  if (isManual) {
     const staffHidden = [CLUB_COORD_ROLE, ...CLUB_COACH_ROLES];
     if (staffHidden.includes(user.team_role)) return false;
   }

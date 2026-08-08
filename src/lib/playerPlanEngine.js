@@ -7,6 +7,7 @@ import { filterExercisesEnriched } from "../data/exercises.js";
 import { getTemplate, isV2Template, getResistanceVariantKey } from "./planTemplates.js";
 import {
   fillBlockSlots,
+  expectedSlotCount,
   refreshExercise as refreshExerciseInPool,
   injectPreventionExercises,
   normalizeMaterialList,
@@ -26,10 +27,47 @@ import {
 } from "./planLoadRules.js";
 import { applySplitAlternationToAssignments, validateMuscleCoverage } from "./muscleSplitAlternation.js";
 import { buildSessionPrompt, buildFullPlanPrompt } from "./planAIPrompts.js";
+import { countBlockSlots } from "./planTemplates.js";
 
 export { DAY_ORDER, DAY_SHORT, PLAN_COHERENCE_MESSAGE, checkPlanCompatibility };
 
 export const MIN_SESSION_EXERCISES = 5;
+
+function countSessionExercises(session) {
+  if (session?.exercises?.length) return session.exercises.length;
+  return (session?.blocks || []).reduce((n, b) => n + (b.exercises?.length || 0), 0);
+}
+
+/** Cuenta slots esperados de una plantilla (qty por slot, sin opcional). */
+export function countTemplateSlots(template) {
+  if (!template?.blocks) return 0;
+  return template.blocks.reduce((n, b) => n + countBlockSlots(b), 0);
+}
+
+/** Valida sesión generada vs plantilla (PDF §5.3). Ignora bloques accesorio extra. */
+export function validateSessionAgainstTemplate(session, template) {
+  const expected = countTemplateSlots(template);
+  const coreBlocks = (session?.blocks || []).filter(
+    (b) => !String(b.label || "").startsWith("Accesorio"),
+  );
+  const actual = coreBlocks.reduce((n, b) => n + (b.exercises?.length || 0), 0);
+  let bi = 0;
+  const blockMismatch = (template.blocks || []).some((tb) => {
+    const sb = coreBlocks[bi++];
+    if (!sb) return true;
+    if (tb.type && sb.type && tb.type !== sb.type) return true;
+    return (sb.exercises?.length || 0) < expectedSlotCount(tb);
+  });
+  return {
+    ok: actual >= expected && !blockMismatch,
+    expected,
+    actual,
+    blockMismatch,
+    warning: actual < expected
+      ? `Sesión incompleta: ${actual}/${expected} slots respecto a la plantilla`
+      : null,
+  };
+}
 
 const SUBTIPO_TO_AREA = {
   acl: "rodilla", menisco: "rodilla", rotuliana: "rodilla", condromalacia: "rodilla",
@@ -109,7 +147,7 @@ function makeExerciseFromV2(ex, ei, blockType) {
   };
 }
 
-function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessionType, titleOverride = null, meta = {}) {
+function fillTemplateV2Once(sessionType, filterParams, usedIds, templateKey, titleOverride, meta, { allowReuseWeek = false } = {}) {
   const template = getTemplate(templateKey);
   const userProfile = buildUserProfile({
     ...filterParams,
@@ -117,14 +155,23 @@ function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessio
     adaptedIntensity: meta.adaptedIntensity || null,
     dayIntensity: meta.dayIntensity || null,
   });
-  const sessionUsedIds = [...usedIds].map(parseCatalogId).filter((n) => n != null);
+  // En reintento: no bloquear por ids de la semana para poder completar slots
+  const sessionUsedIds = allowReuseWeek
+    ? []
+    : [...usedIds].map(parseCatalogId).filter((n) => n != null);
   const sessionUsedPools = [];
   let globalIdx = 0;
   const blocks = [];
   let incomplete = false;
+  const filledIds = [];
 
   for (const blockTemplate of template.blocks) {
-    const { exercises: rawExercises, usedIds: newIds, usedPools } = fillBlockSlots(
+    const {
+      exercises: rawExercises,
+      usedIds: newIds,
+      usedPools,
+      incomplete: blockIncomplete,
+    } = fillBlockSlots(
       blockTemplate,
       userProfile,
       sessionUsedIds,
@@ -133,25 +180,24 @@ function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessio
     sessionUsedIds.splice(0, sessionUsedIds.length, ...newIds);
     sessionUsedPools.splice(0, sessionUsedPools.length, ...usedPools);
 
-    const basicos = (blockTemplate.slots || []).filter((s) => s.rol === "basico");
-    if (basicos.length && rawExercises.length < basicos.length) incomplete = true;
+    const expected = expectedSlotCount(blockTemplate);
+    if (blockIncomplete || rawExercises.length < expected) incomplete = true;
 
     blocks.push({
       type: blockTemplate.type,
       label: blockTemplate.label,
       duration: blockTemplate.duration,
       exercises: rawExercises.map((ex, i) => {
-        usedIds.add(ex.id);
+        filledIds.push(ex.id);
         return makeExerciseFromV2(ex, globalIdx + i, blockTemplate.type);
       }),
     });
     globalIdx += rawExercises.length;
   }
 
-  // Inyección prevención por lesión (sustituye complementarios)
+  // Inyección prevención por lesión (sustituye complementarios — NO añade ni elimina slots)
   let flat = blocks.flatMap((b) => b.exercises);
   flat = injectPreventionExercises(flat, userProfile, 2);
-  // Reconstruir blocks si hubo inyección por nombre
   if (flat.length) {
     let cursor = 0;
     for (const b of blocks) {
@@ -161,7 +207,7 @@ function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessio
     }
   }
 
-  // Bloque accesorio secundario incrustado
+  // Bloque accesorio secundario incrustado (extra, no forma parte del conteo de plantilla)
   if (meta.embedSecondary && meta.secondaryObjective) {
     const accSlot = {
       type: "complementario",
@@ -182,15 +228,13 @@ function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessio
         type: "complementario",
         label: accSlot.label,
         duration: accSlot.duration,
-        exercises: acc.map((ex, i) => {
-          usedIds.add(ex.id);
-          return makeExerciseFromV2(ex, globalIdx + i, "complementario");
-        }),
+        exercises: acc.map((ex, i) => makeExerciseFromV2(ex, globalIdx + i, "complementario")),
       });
+      globalIdx += acc.length;
+      acc.forEach((ex) => filledIds.push(ex.id));
     }
   }
 
-  // Variante de resistencia
   let variantInfo = null;
   if (template.variants) {
     const vKey = getResistanceVariantKey(templateKey, filterParams.week || 1);
@@ -216,12 +260,49 @@ function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessio
     blocks,
     exercises: blocks.flatMap((b) => b.exercises),
   };
-  return ensureMinimumExercises(session, filterParams, usedIds);
+
+  const validation = validateSessionAgainstTemplate(session, template);
+  if (!validation.ok) {
+    session.incomplete = true;
+    session.templateWarning = validation.warning;
+  }
+
+  filledIds.forEach((id) => usedIds.add(id));
+  return session;
 }
 
-function countSessionExercises(session) {
-  if (session.exercises?.length) return session.exercises.length;
-  return (session.blocks || []).reduce((n, b) => n + (b.exercises?.length || 0), 0);
+function fillTemplateV2(sessionType, filterParams, usedIds, templateKey = sessionType, titleOverride = null, meta = {}) {
+  const template = getTemplate(templateKey);
+  // Primer intento con dedupe semanal
+  let session = fillTemplateV2Once(sessionType, filterParams, usedIds, templateKey, titleOverride, meta, {
+    allowReuseWeek: false,
+  });
+  const firstCheck = validateSessionAgainstTemplate(session, template);
+
+  // Reintento si faltan slots (PDF §5.3): relajar dedupe semanal y rellenar
+  if (!firstCheck.ok) {
+    console.warn(`[DEPRO] Reintento llenado plantilla «${templateKey}»: ${firstCheck.warning}`);
+    const retryUsed = new Set();
+    session = fillTemplateV2Once(sessionType, filterParams, retryUsed, templateKey, titleOverride, meta, {
+      allowReuseWeek: true,
+    });
+    retryUsed.forEach((id) => usedIds.add(id));
+    const second = validateSessionAgainstTemplate(session, template);
+    if (!second.ok) {
+      session.adminNotice = `Plantilla «${templateKey}» incompleta tras reintento (${second.actual}/${second.expected} slots).`;
+      console.warn(`[DEPRO] ${session.adminNotice}`);
+    } else {
+      delete session.templateWarning;
+      session.incomplete = undefined;
+    }
+  }
+
+  // Solo pad si la plantilla es genuinamente corta (< MIN); no alterar estructura de plantillas grandes
+  const expected = countTemplateSlots(template);
+  if (expected < MIN_SESSION_EXERCISES) {
+    return ensureMinimumExercises(session, filterParams, usedIds);
+  }
+  return session;
 }
 
 function ensureMinimumExercises(session, filterParams, usedIds) {

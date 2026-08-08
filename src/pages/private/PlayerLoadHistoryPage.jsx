@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Gauge, Calendar, Dumbbell, TrendingUp, Activity, Target,
-  Timer, Route, Heart, BarChart2, CheckCircle2, ArrowRight,
+  Timer, Route, Heart, BarChart2, CheckCircle2, ArrowRight, Zap,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import FeatureGate from "../../components/private/FeatureGate";
@@ -11,6 +11,7 @@ import {
   getMaxWeightByWeek,
   getTopWeightedExercises,
   getImprovementSummary,
+  getLogsByDomain,
 } from "../../lib/loadAnalytics";
 import { loadProgressIds, weekKey } from "../../lib/sessionProgress";
 
@@ -155,15 +156,23 @@ function EmptyHint({ children }) {
   );
 }
 
+const PROGRESSION_TABS = [
+  { id: "fuerza", label: "Fuerza", Icon: Dumbbell },
+  { id: "velocidad", label: "Velocidad", Icon: Zap },
+  { id: "resistencia", label: "Resistencia", Icon: Heart },
+];
+
 export default function PlayerLoadHistoryPage() {
   const { user } = useAuth();
   const accent = accentOf(user);
+  const [progressionTab, setProgressionTab] = useState("fuerza");
   const now = useMemo(() => new Date(), []);
   const monthLabel = now.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
   const { start: monthStart, end: monthEnd } = useMemo(() => monthBounds(now), [now]);
   const monthWeeks = useMemo(() => weeksOfMonth(now), [now]);
 
   const logs = useMemo(() => getLoadLogs(user?.id), [user?.id]);
+  const domainBuckets = useMemo(() => getLogsByDomain(user?.id), [user?.id]);
   const monthLogs = useMemo(
     () => logs.filter((l) => {
       const d = new Date(l.recordedAt);
@@ -171,6 +180,13 @@ export default function PlayerLoadHistoryPage() {
     }),
     [logs, monthStart, monthEnd],
   );
+  const domainMonthLogs = useMemo(() => {
+    const bucket = domainBuckets[progressionTab] || [];
+    return bucket.filter((l) => {
+      const d = new Date(l.recordedAt);
+      return d >= monthStart && d <= monthEnd;
+    });
+  }, [domainBuckets, progressionTab, monthStart, monthEnd]);
 
   const weightWeeks = useMemo(() => getMaxWeightByWeek(user?.id), [user?.id]);
   const topExercises = useMemo(() => getTopWeightedExercises(user?.id, 6), [user?.id]);
@@ -278,6 +294,80 @@ export default function PlayerLoadHistoryPage() {
           </div>
         </header>
 
+        {/* Progresión por dominio (PDF §2.2) */}
+        <section className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden">
+          <div className="px-5 py-4 border-b border-depro-border">
+            <h2 className="text-base font-black text-depro-dark flex items-center gap-2">
+              <TrendingUp size={18} style={{ color: accent }} /> Progresión por dominio
+            </h2>
+            <p className="text-xs text-depro-gray mt-0.5">
+              Evolución mensual separada: fuerza, velocidad y resistencia
+            </p>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {PROGRESSION_TABS.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setProgressionTab(id)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                    progressionTab === id
+                      ? "bg-depro-blue border-depro-blue text-white"
+                      : "border-depro-border text-depro-gray hover:border-depro-blue"
+                  }`}
+                >
+                  <Icon size={12} /> {label}
+                  <span className="opacity-70">({(domainBuckets[id] || []).length})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="p-5">
+            {domainMonthLogs.length === 0 ? (
+              <EmptyHint>
+                Sin registros de {progressionTab} este mes. Introdúcelos desde tu rutina (solo ejercicios registrables).
+              </EmptyHint>
+            ) : progressionTab === "fuerza" ? (
+              <div className="space-y-4">
+                <BarChart
+                  items={monthWeeks.map((w) => {
+                    const wl = domainMonthLogs.filter((l) => {
+                      const d = new Date(l.recordedAt);
+                      return d >= w.start && d <= w.end;
+                    });
+                    const maxW = Math.max(0, ...wl.map((l) => parseNum(l.weight) || 0));
+                    return { label: w.label, value: maxW };
+                  })}
+                  accent={accent}
+                />
+                <p className="text-xs text-depro-gray">
+                  Máximo peso / semana · {domainMonthLogs.length} registros · volumen total{" "}
+                  {Math.round(domainMonthLogs.reduce((a, l) => a + volumeOf(l), 0))}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {domainMonthLogs.slice(0, 10).map((l, i) => (
+                  <div key={l.id || i} className="flex items-center justify-between gap-3 text-sm border border-depro-border rounded-xl px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-depro-dark truncate">{l.exerciseName}</p>
+                      <p className="text-[11px] text-depro-gray">
+                        {(l.recordedAt || "").slice(0, 10)}
+                        {l.distance ? ` · ${l.distance} m` : ""}
+                        {l.time ? ` · ${l.time}` : ""}
+                        {l.heartRate ? ` · FC ${l.heartRate}` : ""}
+                        {l.intensity ? ` · ${l.intensity}` : ""}
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold tabular-nums" style={{ color: accent }}>
+                      {paceLabel(l) || l.reps || "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
         {logs.length === 0 && testData.length === 0 ? (
           <div className="bg-white border border-depro-border rounded-2xl p-10 text-center shadow-card">
             <Gauge size={32} className="mx-auto mb-3" style={{ color: accent }} />
@@ -290,7 +380,7 @@ export default function PlayerLoadHistoryPage() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
             {/* Progresión */}
             <SectionCard
-              title="Progresión"
+              title="Progresión semanal"
               subtitle="Completado de sesiones · volumen e intensidad por semana del mes"
               icon={TrendingUp}
               accent={accent}
