@@ -16,6 +16,7 @@ const MATCH_DAY_MAP = {
   domingo: "Domingo",
   entre_semana: "Miércoles",
   "entre semana": "Miércoles",
+  no_compite: "Sábado", // sin partido: ancla semanal neutra
 };
 
 export function normalizeNivel(nivel) {
@@ -29,6 +30,7 @@ export function normalizeNivel(nivel) {
 
 export function normalizeMatchDay(diaPartido) {
   const raw = String(diaPartido || "sabado").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (raw.includes("no_compite") || raw.includes("no compite") || raw === "none") return "Sábado";
   if (raw.includes("domingo")) return "Domingo";
   if (raw.includes("entre")) return "Miércoles";
   return MATCH_DAY_MAP[raw] || "Sábado";
@@ -295,14 +297,27 @@ export function generateClubAutoMicrociclo(questionnaire, options = {}) {
   };
 }
 
-export function generateClubAutoFourWeeks(questionnaire) {
+/**
+ * Genera N ciclos de 4 semanas (por defecto 1 → 4 semanas).
+ * @param {object} questionnaire
+ * @param {{ cycles?: number }} [options]
+ */
+export function generateClubAutoFourWeeks(questionnaire, { cycles = 1 } = {}) {
+  const n = Math.max(1, Math.min(6, Number(cycles) || 1));
   const weeks = [];
-  for (let w = 0; w < 4; w++) {
-    weeks.push({
-      week: w + 1,
-      label: `Semana ${w + 1}`,
-      ...generateClubAutoMicrociclo(questionnaire, { weekOffset: w, seed: `w${w}` }),
-    });
+  for (let c = 0; c < n; c++) {
+    for (let w = 0; w < 4; w++) {
+      const weekOffset = c * 4 + w;
+      weeks.push({
+        week: weekOffset + 1,
+        label: `Semana ${weekOffset + 1}`,
+        cycle: c + 1,
+        ...generateClubAutoMicrociclo(questionnaire, {
+          weekOffset,
+          seed: `c${c}|w${w}`,
+        }),
+      });
+    }
   }
   return weeks;
 }

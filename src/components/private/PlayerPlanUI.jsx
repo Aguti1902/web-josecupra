@@ -12,6 +12,8 @@ import {
   blockAllowsLoadLogging,
   objectiveAllowsLoadLogging,
   loadLoggingMode,
+  getTipoRegistro,
+  isLoadRegistrable,
 } from "../../lib/loadAnalytics";
 import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
 import { hasFeatureAccess } from "../../lib/subscription";
@@ -48,15 +50,26 @@ function parseSetCount(exercise) {
 
 function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap }) {
   const ytId = getYouTubeId(exercise.videoUrl);
+  const typedExercise = {
+    ...exercise,
+    blockType,
+    carpeta: exercise.carpeta,
+    etiquetas: exercise.etiquetas || {
+      objetivo: objective ? [String(objective).toLowerCase()] : [],
+      rol: exercise.slotConstraints?.rol,
+    },
+  };
+  const tipoRegistro = getTipoRegistro(typedExercise);
   const showLogging = blockAllowsLoadLogging(blockType)
+    && isLoadRegistrable(typedExercise)
     && objectiveAllowsLoadLogging(objective)
     && (blockType === "principal" || blockType === "complementario");
-  const mode = loadLoggingMode(objective);
-  const fields = loadFieldsForExercise(exercise, objective);
-  const needsWeight = exerciseNeedsWeight(exercise) || mode === "fuerza_series";
+  const mode = loadLoggingMode(objective, typedExercise);
+  const fields = loadFieldsForExercise(typedExercise, objective).filter((f) => f !== "completed");
+  const needsWeight = tipoRegistro === "fuerza" || exerciseNeedsWeight(exercise);
   const setCount = parseSetCount(exercise);
   const [series, setSeries] = useState(() =>
-    Array.from({ length: setCount }, () => ({ weight: "", reps: "", rpe: "" })),
+    Array.from({ length: setCount }, () => ({ weight: "", reps: "", rpe: "", rest: "" })),
   );
   const [loadDraft, setLoadDraft] = useState({});
   const [loadSaved, setLoadSaved] = useState(false);
@@ -67,18 +80,21 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
       setLoadNotice(trialPersistBlockedMessage());
       return;
     }
-    if (!needsWeight && !hasFeatureAccess(user, "cargas")) {
+    if (!hasFeatureAccess(user, "cargas") && !canPersistInTrial(user, "save_loads")) {
       setLoadNotice("Activa el extra «Registro de cargas» en Suscripción para guardar todos los datos.");
       return;
     }
     const payload = {
       exerciseId: exercise.id,
-      exerciseName: exercise.name,
+      exerciseName: exercise.name || exercise.nombre,
       sessionId: sessionMeta?.sessionId,
       sessionTitle: sessionMeta?.sessionTitle,
       weekLabel: sessionMeta?.weekLabel || new Date().toISOString().slice(0, 10),
       objective,
       blockType,
+      tipoRegistro,
+      carpeta: exercise.carpeta || null,
+      rol: exercise.slotConstraints?.rol || exercise.etiquetas?.rol || null,
       ...loadDraft,
     };
     if (mode === "fuerza_series") {
@@ -89,6 +105,7 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
         payload.weight = filled.map((s) => s.weight).filter(Boolean).join(" / ");
         payload.reps = filled.map((s) => s.reps).filter(Boolean).join(" / ");
         payload.rpe = filled.map((s) => s.rpe).filter(Boolean).join(" / ");
+        payload.rest = filled.map((s) => s.rest).filter(Boolean).join(" / ") || loadDraft.rest || "";
       }
     }
     saveLoadLog(user?.id, payload);
@@ -103,8 +120,9 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
     rest: "Descanso",
     rpe: "RPE / RP",
     time: "Tiempo",
-    distance: "Distancia",
+    distance: "Metros / distancia",
     heartRate: "FC (ppm)",
+    intensity: "Zona / intensidad",
     feelings: "Sensaciones",
     notes: "Observaciones",
   };

@@ -32,6 +32,7 @@ import { buildPlayerPlan, buildFourWeekPlan, refreshExercise, normalizeLesions }
 import { DAY_ORDER, COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 import { getYouTubeId } from "../../lib/youtube";
+import AssignPlanModal from "../../components/admin/AssignPlanModal";
 
 const Youtube = PlayCircle;
 
@@ -94,6 +95,7 @@ function IASimulator() {
   const [loading, setLoading] = useState(false);
   const [expandedKey, setExpandedKey] = useState(null);
   const [viewWeek, setViewWeek] = useState(1);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   const buildUser = () => ({
     ...profile,
@@ -379,6 +381,16 @@ function IASimulator() {
                   <p>{simulated.sesiones.map((s) => `${s.day}: ${s.sessionType}${s.adaptedIntensity ? ` → ${s.adaptedIntensity}` : ""}`).join(" · ")}</p>
                 </div>
               )}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAssignOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-depro-blue text-white text-xs font-bold hover:bg-depro-blue-dark"
+                >
+                  Asignar
+                </button>
+                <span className="text-[11px] text-depro-gray">Asignar este plan a un jugador</span>
+              </div>
               <div className="flex gap-1 p-1 bg-white rounded-xl border border-depro-border">
                 {[1, 2, 3, 4].map((w) => (
                   <button key={w} type="button" onClick={() => setViewWeek(w)}
@@ -437,6 +449,15 @@ function IASimulator() {
           )}
         </div>
       </div>
+
+      <AssignPlanModal
+        open={assignOpen}
+        onClose={() => setAssignOpen(false)}
+        mode="player"
+        profile={buildUser()}
+        planPreview={simulated && !simulated.error ? { weeks: simulated.weeks, sesiones: simulated.sesiones } : null}
+        defaultCycles={1}
+      />
     </div>
   );
 }

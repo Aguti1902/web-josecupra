@@ -3,9 +3,10 @@ import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft, Calendar, Video, FileText, MessageSquare, Plus, Trash2,
   Edit3, Check, X, Upload, ChevronDown, ChevronUp, Star, Save, Clock, Target, Flame,
-  Info, PlayCircle, Layers, HardDrive, CalendarDays,
+  Info, PlayCircle, Layers, HardDrive, CalendarDays, RefreshCw,
 } from "lucide-react";
 import { useAdmin } from "../../context/AdminContext";
+import { refreshExercise as refreshExerciseInEngine } from "../../lib/playerPlanEngine";
 
 const INTENSITY_OPTIONS = ["Low", "Medium", "High", "Maximum"];
 const TYPE_OPTIONS = ["Technical", "Physical", "Tactical", "Recovery", "Match"];
@@ -35,6 +36,32 @@ function PlanTab({ clientId }) {
   const saveExercise = () => { updateExercise(clientId, editingExercise.dayIdx, editingExercise.sessionIdx, editingExercise.exIdx, exerciseDraft); setEditingExercise(null); };
   const handleAddSession = () => { addSession(clientId, selectedDay, { ...newSession }); setNewSession({ title: "", duration: "60 min", intensity: "Medium", type: "Technical", objective: "", status: "upcoming", exercises: [] }); setShowAddSession(false); };
   const handleAddExercise = (sIdx) => { addExercise(clientId, selectedDay, sIdx, { ...newExercise }); setNewExercise({ name: "", duration: "15 min", sets: "3", reps: "5", description: "", tips: "", videoUrl: "" }); setShowAddExercise(null); };
+
+  /** Sustituye ejercicio por otro compatible del mismo slot (PDF §3.4). */
+  const handleRefreshExercise = (dIdx, sIdx, eIdx) => {
+    const session = plan[dIdx]?.sessions?.[sIdx];
+    const ex = session?.exercises?.[eIdx];
+    if (!session || !ex) return;
+    const next = refreshExerciseInEngine(session, ex.id, {
+      material: ["Gimnasio completo"],
+      lesiones: [],
+      edad: 22,
+      experiencia: "intermedio",
+      userId: clientId,
+    });
+    const refreshed = (next.exercises || [])[eIdx];
+    if (!refreshed || refreshed.name === ex.name) return;
+    updateExercise(clientId, dIdx, sIdx, eIdx, {
+      ...ex,
+      ...refreshed,
+      name: refreshed.name,
+      catalogId: refreshed.catalogId,
+      pool: refreshed.pool,
+      videoUrl: refreshed.videoUrl || ex.videoUrl,
+      slotConstraints: refreshed.slotConstraints || ex.slotConstraints,
+      tips: Array.isArray(refreshed.tips) ? refreshed.tips.join(" · ") : (refreshed.tips || ex.tips),
+    });
+  };
 
   return (
     <div className="space-y-5">
@@ -182,6 +209,13 @@ function PlanTab({ clientId }) {
                             {ex.videoUrl && ex.videoUrl !== "#" && <a href={ex.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-depro-blue hover:underline mt-1 flex items-center gap-1"><PlayCircle size={11} /> Ver vídeo</a>}
                           </div>
                           <div className="flex gap-1 flex-shrink-0">
+                            <button
+                              title="Sustituir por ejercicio compatible"
+                              onClick={() => handleRefreshExercise(selectedDay, sIdx, eIdx)}
+                              className="p-1.5 text-depro-gray hover:text-depro-blue hover:bg-depro-blue-light rounded-lg transition-all"
+                            >
+                              <RefreshCw size={13} />
+                            </button>
                             <button onClick={() => startEditExercise(selectedDay, sIdx, eIdx)} className="p-1.5 text-depro-gray hover:text-depro-dark hover:bg-depro-gray-light rounded-lg transition-all"><Edit3 size={13} /></button>
                             <button onClick={() => deleteExercise(clientId, selectedDay, sIdx, eIdx)} className="p-1.5 text-depro-gray hover:text-depro-red hover:bg-depro-red-light rounded-lg transition-all"><Trash2 size={13} /></button>
                           </div>

@@ -171,6 +171,7 @@ export default function ClubOnboardingPage() {
         logo: form.logo || null,
         primaryColor: form.primaryColor || "#0A36F7",
         secondaryColor: form.secondaryColor || "#ffffff",
+        origen: "automatico",
         planningMode: "auto",
         mode: "depro",
         coachConfig: packedQ.config,

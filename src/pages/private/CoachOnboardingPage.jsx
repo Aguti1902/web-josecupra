@@ -160,6 +160,7 @@ export default function CoachOnboardingPage() {
         status: "activo",
         plan: user?.plan || "coach-starter",
         isSoloCoach: true,
+        origen: "automatico",
         planningMode: "auto",
         mode: "depro",
         coachConfig: cfg,

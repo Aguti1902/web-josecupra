@@ -1,12 +1,16 @@
 /** Análisis de cargas y pesos para ranking y gráficas. */
 import { getLoadLogs } from "./loadLogs.js";
 import { POOLS } from "./poolDefinitions.js";
+import { getTipoRegistro, fieldsForTipoRegistro, isLoadRegistrable } from "./tipoRegistro.js";
 
 const WEIGHT_POOL_PATTERN = /-(MAN|BAR)(?:$|[-_])/i;
 const WEIGHT_NAME_PATTERN = /mancuerna|barra|peso muerto|hip thrust|farmer|remo con barra|press banca|sentadilla con/i;
 
+export { getTipoRegistro, fieldsForTipoRegistro, isLoadRegistrable };
+
 export function exerciseNeedsWeight(exercise) {
   if (!exercise) return false;
+  if (getTipoRegistro(exercise) === "fuerza") return true;
   const pool = String(exercise.pool || "");
   if (WEIGHT_POOL_PATTERN.test(pool)) return true;
   const poolMat = POOLS[pool]?.material;
@@ -34,25 +38,52 @@ export function objectiveAllowsLoadLogging(objective) {
 }
 
 export function loadFieldsForExercise(exercise, objective) {
-  const obj = String(objective || "").toLowerCase();
-  if (obj.includes("velocidad")) return ["time", "distance", "heartRate", "rpe", "notes"];
-  if (obj.includes("resistencia")) return ["distance", "time", "heartRate", "rpe", "notes"];
-  if (exerciseNeedsWeight(exercise) || obj.includes("fuerza") || obj.includes("hipertrofia")) {
-    return ["weight", "sets", "reps", "rest", "rpe", "notes"];
-  }
-  if (obj.includes("movilidad") || obj.includes("prevención") || obj.includes("prevencion")) {
-    return [];
-  }
-  return ["weight", "sets", "reps", "rpe", "notes"];
+  const tipo = getTipoRegistro({
+    ...exercise,
+    etiquetas: exercise?.etiquetas || {
+      objetivo: objective ? [String(objective).toLowerCase()] : [],
+      rol: exercise?.slotConstraints?.rol,
+    },
+    carpeta: exercise?.carpeta,
+    blockType: exercise?.blockType,
+  });
+  if (tipo === "no_registrable") return [];
+  return fieldsForTipoRegistro(tipo);
 }
 
 /** Modo de registro por series (fuerza) vs campos simples (velocidad/resistencia). */
-export function loadLoggingMode(objective) {
+export function loadLoggingMode(objective, exercise = null) {
+  if (exercise) {
+    const tipo = getTipoRegistro(exercise);
+    if (tipo === "velocidad") return "velocidad";
+    if (tipo === "resistencia") return "resistencia";
+    if (tipo === "pliometria") return "pliometria";
+    if (tipo === "no_registrable") return "none";
+    return "fuerza_series";
+  }
   const obj = String(objective || "").toLowerCase();
   if (obj.includes("velocidad")) return "velocidad";
   if (obj.includes("resistencia")) return "resistencia";
   if (obj.includes("fuerza") || obj.includes("hipertrofia")) return "fuerza_series";
   return "fuerza_series";
+}
+
+/** Agrupa logs por dominio para progresión fuerza/velocidad/resistencia. */
+export function getLogsByDomain(userId) {
+  const logs = getLoadLogs(userId);
+  const buckets = { fuerza: [], velocidad: [], resistencia: [], pliometria: [] };
+  for (const log of logs) {
+    const tipo = log.tipoRegistro || getTipoRegistro({
+      nombre: log.exerciseName,
+      carpeta: log.carpeta,
+      etiquetas: { objetivo: log.objective ? [log.objective] : [], rol: log.rol },
+      tipo_registro: log.tipoRegistro,
+    });
+    if (tipo === "no_registrable") continue;
+    if (buckets[tipo]) buckets[tipo].push(log);
+    else if (tipo === "fuerza") buckets.fuerza.push(log);
+  }
+  return buckets;
 }
 
 function parseWeight(value) {

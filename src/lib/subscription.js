@@ -162,13 +162,15 @@ export function mustPayToContinue(user) {
     if (user.clubId && !user.stripeSubscriptionId && user.billingSource !== "stripe") return false;
   }
 
-  const hasStripeBilling =
+  const hasBillingTrail =
     sub.stripeSubscriptionId ||
     user.stripeSubscriptionId ||
     user.billingSource === "stripe" ||
+    user.billingSource === "trial_no_card" ||
+    sub.billingSource === "trial_no_card" ||
     sub.trialEndsAt;
 
-  return !!hasStripeBilling;
+  return !!hasBillingTrail;
 }
 
 export function shouldShowTrialWatermark(user) {

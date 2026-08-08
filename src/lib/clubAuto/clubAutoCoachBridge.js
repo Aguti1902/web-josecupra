@@ -21,6 +21,7 @@ export const CLUB_AUTO_MATCH_DAYS = [
   { id: "sabado", label: "Sábado" },
   { id: "domingo", label: "Domingo" },
   { id: "entre_semana", label: "Entre semana" },
+  { id: "no_compite", label: "No compite" },
 ];
 
 /**
@@ -33,13 +34,17 @@ export function usesClubAutoEngine(clubOrConfig) {
     clubOrConfig.coachConfig != null
     || clubOrConfig.planningMode != null
     || clubOrConfig.mode != null
+    || clubOrConfig.origen != null
     || clubOrConfig.isSoloCoach != null;
   const club = looksLikeClub ? clubOrConfig : null;
   const cfg = (club?.coachConfig || (!looksLikeClub ? clubOrConfig : {}) || {});
 
+  // Campo origen explícito (PDF §10) — manda sobre deducciones
+  if (club?.origen === "manual") return false;
   if (club?.mode === "personalizado" || club?.planningMode === "manual") return false;
   if (cfg.mode === "personalizado" || cfg.engine === "manual") return false;
 
+  if (club?.origen === "automatico") return true;
   if (cfg.engine === "club_auto") return true;
   if (club?.planningMode === "auto" && (club.isSoloCoach || cfg.nivel)) return true;
   // Config suelta (tests / llamadas con solo coachConfig)

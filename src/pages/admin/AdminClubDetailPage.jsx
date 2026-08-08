@@ -2431,6 +2431,7 @@ export default function AdminClubDetailPage() {
                           };
                       const updated = {
                         ...club,
+                        origen: opt.id === "manual" ? "manual" : "automatico",
                         planningMode: opt.id,
                         mode: opt.id === "manual" ? "personalizado" : "depro",
                         coachConfig: nextCfg,
