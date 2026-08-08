@@ -91,19 +91,21 @@ async function createCheckoutSession(stripe, params, embedded, origin) {
   const site = origin || getSiteUrl();
 
   if (embedded) {
-    const embeddedParams = {
-      ...params,
-      ui_mode: "embedded",
-      return_url: `${site}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`,
-    };
+    // Stripe 2026: ui_mode "embedded_page" (pares con createEmbeddedCheckoutPage).
+    // Fallback a "embedded" por si la cuenta/API aún usa el valor antiguo.
+    const returnUrl = `${site}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`;
     try {
-      return await stripe.checkout.sessions.create(embeddedParams);
+      return await stripe.checkout.sessions.create({
+        ...params,
+        ui_mode: "embedded_page",
+        return_url: returnUrl,
+      });
     } catch (err) {
       if (!String(err.message).includes("ui_mode")) throw err;
       return stripe.checkout.sessions.create({
         ...params,
-        ui_mode: "embedded_page",
-        return_url: `${site}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}`,
+        ui_mode: "embedded",
+        return_url: returnUrl,
       });
     }
   }
