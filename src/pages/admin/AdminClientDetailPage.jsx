@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
-  ArrowLeft, Calendar, Video, FileText, MessageSquare, Plus, Trash2,
-  Edit3, Check, X, Upload, ChevronDown, ChevronUp, Star, Save, Clock, Target, Flame,
-  Info, PlayCircle, Layers, HardDrive, CalendarDays, RefreshCw,
+  ArrowLeft, Calendar, MessageSquare, Plus, Trash2,
+  Edit3, Check, X, ChevronDown, ChevronUp, Star, Save, Clock, Target, Flame,
+  Info, PlayCircle, CalendarDays, RefreshCw,
 } from "lucide-react";
 import { useAdmin } from "../../context/AdminContext";
-import { refreshExercise as refreshExerciseInEngine } from "../../lib/playerPlanEngine";
+import { refreshExercise as refreshExerciseInEngine, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
+import { isPlayerPro } from "../../lib/subscription";
+import { loadPlayerPlan } from "../../lib/playerPlanStorage";
 
 const INTENSITY_OPTIONS = ["Low", "Medium", "High", "Maximum"];
 const TYPE_OPTIONS = ["Technical", "Physical", "Tactical", "Recovery", "Match"];
@@ -252,129 +254,61 @@ function PlanTab({ clientId }) {
   );
 }
 
-/* ── CONTENT TAB ─────────────────────────────────────────────────── */
-function ContentTab({ clientId }) {
-  const { clientContent, addVideo, deleteVideo, addPdf, deletePdf } = useAdmin();
-  const content = clientContent[clientId] || { videos: [], pdfs: [] };
-  const [showAddVideo, setShowAddVideo] = useState(false);
-  const [showAddPdf, setShowAddPdf] = useState(false);
-  const [videoForm, setVideoForm] = useState({ title: "", url: "", size: "", session: "" });
-  const [pdfForm, setPdfForm] = useState({ title: "", url: "", size: "" });
+/* ── MONTHLY PLAN TAB ────────────────────────────────────────────── */
+function MonthlyPlanTab({ client, clientId }) {
+  const stored = loadPlayerPlan(clientId);
+  const isPremium = isPlayerPro(client) || client?.plan === "player-pro";
+  const weeks = useMemo(() => {
+    if (stored?.weeks?.length) return stored.weeks;
+    if (stored?.premiumPending || stored?.planPendingManual) return [];
+    if (isPremium && !stored?.assignment && !stored?.source) return [];
+    try {
+      return buildMesoPlayerPlan(client, 4);
+    } catch {
+      return [];
+    }
+  }, [client, clientId, stored]);
 
-  const handleAddVideo = () => { if (!videoForm.title) return; addVideo(clientId, videoForm); setVideoForm({ title: "", url: "", size: "", session: "" }); setShowAddVideo(false); };
-  const handleAddPdf = () => { if (!pdfForm.title) return; addPdf(clientId, pdfForm); setPdfForm({ title: "", url: "", size: "" }); setShowAddPdf(false); };
+  if (stored?.premiumPending || (isPremium && !stored?.assignment && !stored?.source && !stored?.weeks)) {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 space-y-2">
+        <p className="font-bold">Premium · rutina pendiente de asignación manual</p>
+        <p>El usuario rellenó el cuestionario. Asigna la rutina desde el motor de planes; hasta entonces no debe verse como disponible.</p>
+      </div>
+    );
+  }
+
+  if (!weeks.length) {
+    return (
+      <div className="rounded-2xl border border-depro-border bg-depro-gray-light p-8 text-center text-sm text-depro-gray">
+        Sin plan mensual todavía. Genera o asigna un plan desde el motor.
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Videos */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-bold text-depro-dark">Vídeos de entrenamiento</h3>
-            <p className="text-xs text-depro-gray mt-0.5">{content.videos.length} vídeos subidos</p>
-          </div>
-          <button onClick={() => setShowAddVideo(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-depro-blue-light hover:bg-blue-100 border border-blue-200 text-depro-blue text-sm font-semibold transition-all">
-            <Upload size={15} /> Subir vídeo
-          </button>
-        </div>
-
-        {showAddVideo && (
-          <div className="rounded-2xl border border-blue-200 bg-depro-blue-light p-5 mb-4 space-y-3">
-            <h4 className="font-semibold text-depro-dark text-sm">Añadir Vídeo</h4>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <input placeholder="Título del vídeo" value={videoForm.title} onChange={(e) => setVideoForm({ ...videoForm, title: e.target.value })} className="admin-input" />
-              <input placeholder="Sesión / contexto (opcional)" value={videoForm.session} onChange={(e) => setVideoForm({ ...videoForm, session: e.target.value })} className="admin-input" />
-              <input placeholder="URL (YouTube, Vimeo, Drive...)" value={videoForm.url} onChange={(e) => setVideoForm({ ...videoForm, url: e.target.value })} className="admin-input sm:col-span-2" />
-              <input placeholder="Tamaño (ej. 45 MB)" value={videoForm.size} onChange={(e) => setVideoForm({ ...videoForm, size: e.target.value })} className="admin-input" />
-            </div>
-            <div className="border-2 border-dashed border-depro-blue/30 rounded-xl p-6 text-center hover:border-depro-blue/60 transition-colors cursor-pointer bg-white">
-              <Upload size={24} className="text-depro-blue mx-auto mb-2" />
-              <p className="text-sm text-depro-gray">Arrastra o <span className="text-depro-blue font-semibold">selecciona archivo</span></p>
-              <p className="text-xs text-gray-400 mt-1">MP4, MOV, AVI hasta 2GB</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={handleAddVideo} className="admin-btn-primary flex items-center gap-2"><Check size={15} /> Guardar vídeo</button>
-              <button onClick={() => setShowAddVideo(false)} className="admin-btn-ghost flex items-center gap-2"><X size={15} /> Cancelar</button>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-3">
-          {content.videos.map((v) => (
-            <div key={v.id} className="flex items-center gap-4 p-4 bg-white border border-depro-border rounded-2xl group hover:border-depro-blue/40 hover:shadow-depro transition-all">
-              <div className="w-11 h-11 rounded-xl bg-depro-blue-light flex items-center justify-center flex-shrink-0">
-                <Video size={19} className="text-depro-blue" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-depro-dark text-sm">{v.title}</div>
-                <div className="text-xs text-depro-gray mt-0.5">
-                  {v.session && <span className="mr-2 inline-flex items-center gap-1"><Layers size={11}/> {v.session}</span>}
-                  {v.size && <span className="mr-2 inline-flex items-center gap-1"><HardDrive size={11}/> {v.size}</span>}
-                  <span className="inline-flex items-center gap-1"><CalendarDays size={11}/> {v.uploadedAt}</span>
-                </div>
-              </div>
-              {v.url && v.url !== "#" && <a href={v.url} target="_blank" rel="noopener noreferrer" className="text-xs text-depro-blue hover:underline flex-shrink-0">Ver ↗</a>}
-              <button onClick={() => deleteVideo(clientId, v.id)} className="p-2 text-depro-gray hover:text-depro-red hover:bg-depro-red-light rounded-lg transition-all opacity-0 group-hover:opacity-100"><Trash2 size={15} /></button>
-            </div>
-          ))}
-          {content.videos.length === 0 && <div className="text-center py-8 text-depro-gray text-sm bg-depro-gray-light rounded-2xl">Sin vídeos aún.</div>}
-        </div>
+    <div className="space-y-4">
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        {isPremium
+          ? "Usuario Premium: se muestra la rutina asignada manualmente desde el motor de planes."
+          : "Usuario normal: vista del mesociclo / plan mensual generado."}
       </div>
-
-      {/* PDFs */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-bold text-depro-dark">Documentos y PDFs</h3>
-            <p className="text-xs text-depro-gray mt-0.5">{content.pdfs.length} documentos compartidos</p>
-          </div>
-          <button onClick={() => setShowAddPdf(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-depro-yellow-light hover:bg-yellow-100 border border-yellow-200 text-amber-700 text-sm font-semibold transition-all">
-            <Upload size={15} /> Subir PDF
-          </button>
-        </div>
-
-        {showAddPdf && (
-          <div className="rounded-2xl border border-yellow-200 bg-depro-yellow-light p-5 mb-4 space-y-3">
-            <h4 className="font-semibold text-depro-dark text-sm">Añadir Documento</h4>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <input placeholder="Título del documento" value={pdfForm.title} onChange={(e) => setPdfForm({ ...pdfForm, title: e.target.value })} className="admin-input sm:col-span-2" />
-              <input placeholder="URL (Drive, Dropbox...)" value={pdfForm.url} onChange={(e) => setPdfForm({ ...pdfForm, url: e.target.value })} className="admin-input" />
-              <input placeholder="Tamaño (ej. 1.2 MB)" value={pdfForm.size} onChange={(e) => setPdfForm({ ...pdfForm, size: e.target.value })} className="admin-input" />
-            </div>
-            <div className="border-2 border-dashed border-depro-yellow/50 rounded-xl p-6 text-center hover:border-depro-yellow transition-colors cursor-pointer bg-white">
-              <FileText size={24} className="text-amber-600 mx-auto mb-2" />
-              <p className="text-sm text-depro-gray">Arrastra o <span className="text-amber-600 font-semibold">selecciona archivo</span></p>
-              <p className="text-xs text-gray-400 mt-1">PDF, DOCX, XLSX hasta 50MB</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={handleAddPdf} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-depro-yellow hover:bg-yellow-400 text-depro-dark font-semibold text-sm transition-all"><Check size={15} /> Guardar</button>
-              <button onClick={() => setShowAddPdf(false)} className="admin-btn-ghost flex items-center gap-2"><X size={15} /> Cancelar</button>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-3">
-          {content.pdfs.map((p) => (
-            <div key={p.id} className="flex items-center gap-4 p-4 bg-white border border-depro-border rounded-2xl group hover:border-yellow-300 hover:shadow-sm transition-all">
-              <div className="w-11 h-11 rounded-xl bg-depro-yellow-light flex items-center justify-center flex-shrink-0">
-                <FileText size={19} className="text-amber-600" />
+      {weeks.map((w, i) => (
+        <div key={w.week || i} className="rounded-2xl border border-depro-border bg-white p-4">
+          <div className="font-bold text-depro-dark mb-2">{w.label || `Semana ${w.week || i + 1}`}</div>
+          <div className="space-y-1.5">
+            {(w.sessions || []).map((s, si) => (
+              <div key={s.id || si} className="text-sm flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-depro-gray-light">
+                <span className="font-medium text-depro-dark">{s.dayName || s.day || s.title || `Sesión ${si + 1}`}</span>
+                <span className="text-xs text-depro-gray">{s.type || s.title || s.duration || ""}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-depro-dark text-sm">{p.title}</div>
-                <div className="text-xs text-depro-gray mt-0.5">
-                  {p.size && <span className="mr-2 inline-flex items-center gap-1"><HardDrive size={11}/> {p.size}</span>}
-                  <span className="inline-flex items-center gap-1"><CalendarDays size={11}/> {p.uploadedAt}</span>
-                </div>
-              </div>
-              {p.url && p.url !== "#" && <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-xs text-amber-600 hover:underline flex-shrink-0">Ver ↗</a>}
-              <button onClick={() => deletePdf(clientId, p.id)} className="p-2 text-depro-gray hover:text-depro-red hover:bg-depro-red-light rounded-lg transition-all opacity-0 group-hover:opacity-100"><Trash2 size={15} /></button>
-            </div>
-          ))}
-          {content.pdfs.length === 0 && <div className="text-center py-8 text-depro-gray text-sm bg-depro-gray-light rounded-2xl">Sin documentos aún.</div>}
+            ))}
+            {!(w.sessions || []).length && (
+              <p className="text-xs text-depro-gray">Sin sesiones en esta semana.</p>
+            )}
+          </div>
         </div>
-      </div>
+      ))}
     </div>
   );
 }
@@ -484,6 +418,7 @@ function ProfileTab({ client }) {
   const info = [
     { label: "Nombre", value: client.name },
     { label: "Email", value: client.email },
+    (client.phone || client.telefono) && { label: "Teléfono", value: client.phone || client.telefono },
     { label: "Tipo", value: client.role },
     { label: "Plan", value: client.plan },
     { label: "Club", value: client.club?.name },
@@ -491,6 +426,9 @@ function ProfileTab({ client }) {
     client.age && { label: "Edad", value: client.age },
     client.level && { label: "Nivel", value: client.level },
     client.trainingDays && { label: "Días entrenamiento/semana", value: client.trainingDays },
+    client.disponibles && { label: "Días disponibles", value: Array.isArray(client.disponibles) ? client.disponibles.join(", ") : client.disponibles },
+    client.diaCompeticion && { label: "Día competición", value: client.diaCompeticion },
+    client.material && { label: "Material", value: Array.isArray(client.material) ? client.material.join(", ") : client.material },
     client.players && { label: "Jugadores en plantilla", value: `${client.players} jugadores` },
     client.objective && { label: "Objetivo", value: client.objective },
   ].filter(Boolean);
@@ -530,7 +468,7 @@ function ProfileTab({ client }) {
 /* ── MAIN PAGE ───────────────────────────────────────────────────── */
 const TABS = [
   { key: "plan", label: "Plan semanal", icon: Calendar },
-  { key: "content", label: "Contenido", icon: Video },
+  { key: "monthly", label: "Plan mensual", icon: CalendarDays },
   { key: "feedback", label: "Feedback", icon: MessageSquare },
   { key: "profile", label: "Perfil", icon: Target },
 ];
@@ -593,7 +531,7 @@ export default function AdminClientDetailPage() {
       </div>
 
       {activeTab === "plan" && <PlanTab clientId={clientId} />}
-      {activeTab === "content" && <ContentTab clientId={clientId} />}
+      {activeTab === "monthly" && <MonthlyPlanTab client={client} clientId={clientId} />}
       {activeTab === "feedback" && <FeedbackTab clientId={clientId} />}
       {activeTab === "profile" && <ProfileTab client={client} />}
     </div>

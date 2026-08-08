@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Search, X, AlertCircle } from "lucide-react";
+import { CheckCircle2, Search, X, AlertCircle, Loader2 } from "lucide-react";
 import {
-  listAssignablePlayers,
-  listAssignableClubTargets,
+  fetchAssignablePlayers,
+  fetchAssignableClubTargets,
   assignPlanToPlayer,
   assignClubAutoPlan,
 } from "../../lib/adminAssignPlan";
@@ -19,6 +19,7 @@ function addWeeksISO(iso, weeks) {
 
 /**
  * Modal reutilizable para asignar planes (jugador o club auto).
+ * Flujo: buscar → seleccionar → asignar (sin segundo desplegable vacío).
  * mode: "player" | "club"
  */
 export default function AssignPlanModal({
@@ -33,6 +34,8 @@ export default function AssignPlanModal({
 }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
+  const [targets, setTargets] = useState([]);
+  const [loadingTargets, setLoadingTargets] = useState(false);
   const [startDate, setStartDate] = useState(todayISO());
   const [endDate, setEndDate] = useState("");
   const [cycles, setCycles] = useState(Math.min(6, Math.max(1, Number(defaultCycles) || 1)));
@@ -40,10 +43,22 @@ export default function AssignPlanModal({
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  const targets = useMemo(() => {
-    if (mode === "club") return listAssignableClubTargets();
-    return listAssignablePlayers();
-  }, [mode, open]);
+  useEffect(() => {
+    if (!open) return;
+    setQuery("");
+    setSelectedId("");
+    setStartDate(todayISO());
+    setCycles(Math.min(6, Math.max(1, Number(defaultCycles) || 1)));
+    setError(null);
+    setSuccess(null);
+    setLoading(false);
+    setLoadingTargets(true);
+    const load = mode === "club" ? fetchAssignableClubTargets() : fetchAssignablePlayers();
+    load
+      .then((list) => setTargets(list || []))
+      .catch(() => setTargets([]))
+      .finally(() => setLoadingTargets(false));
+  }, [open, defaultCycles, mode]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -56,17 +71,6 @@ export default function AssignPlanModal({
   const selected = targets.find((t) => t.id === selectedId) || null;
 
   useEffect(() => {
-    if (!open) return;
-    setQuery("");
-    setSelectedId("");
-    setStartDate(todayISO());
-    setCycles(Math.min(6, Math.max(1, Number(defaultCycles) || 1)));
-    setError(null);
-    setSuccess(null);
-    setLoading(false);
-  }, [open, defaultCycles, mode]);
-
-  useEffect(() => {
     if (!startDate) return;
     const n = Math.min(6, Math.max(1, Number(cycles) || 1));
     setEndDate(addWeeksISO(startDate, n * 4));
@@ -77,8 +81,8 @@ export default function AssignPlanModal({
   const handleAssign = () => {
     setError(null);
     setSuccess(null);
-    if (!selectedId) {
-      setError("Selecciona un destino.");
+    if (!selectedId || !selected) {
+      setError("Selecciona un destino en la lista.");
       return;
     }
     setLoading(true);
@@ -127,7 +131,9 @@ export default function AssignPlanModal({
           <div>
             <h2 className="font-bold text-depro-dark text-lg">Asignar plan</h2>
             <p className="text-xs text-depro-gray mt-0.5">
-              {mode === "club" ? "Motor club automático → club / equipo / entrenador" : "Plan individual → jugador"}
+              {mode === "club"
+                ? "Motor club automático → club / equipo / entrenador / coordinador"
+                : "Plan individual → jugador"}
             </p>
           </div>
           <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-depro-gray-light text-depro-gray">
@@ -138,7 +144,7 @@ export default function AssignPlanModal({
         <div className="p-5 space-y-4 overflow-y-auto">
           <div>
             <label className="block text-sm font-medium text-depro-dark mb-1">
-              {mode === "club" ? "Destino" : "Jugador"}
+              {mode === "club" ? "Buscar destino" : "Buscar jugador"}
             </label>
             <div className="relative mb-2">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-depro-gray" />
@@ -150,22 +156,43 @@ export default function AssignPlanModal({
                 className="w-full border border-depro-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
               />
             </div>
-            <select
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              className="w-full border border-depro-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
-            >
-              <option value="">— Seleccionar —</option>
-              {filtered.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {mode === "club"
-                    ? `${t.name}${t.kind ? ` (${t.kind})` : ""}${t.email ? ` · ${t.email}` : ""}`
-                    : `${t.name}${t.email ? ` · ${t.email}` : ""}`}
-                </option>
-              ))}
-            </select>
-            {filtered.length === 0 && (
-              <p className="text-xs text-amber-700 mt-1.5">No hay destinos que coincidan con la búsqueda.</p>
+
+            <div className="border border-depro-border rounded-xl max-h-48 overflow-y-auto divide-y divide-depro-border">
+              {loadingTargets && (
+                <div className="px-3 py-6 text-sm text-depro-gray flex items-center justify-center gap-2">
+                  <Loader2 size={14} className="animate-spin" /> Cargando destinos…
+                </div>
+              )}
+              {!loadingTargets && filtered.length === 0 && (
+                <div className="px-3 py-6 text-sm text-amber-800 bg-amber-50 text-center">
+                  No hay destinos disponibles. Crea o sincroniza usuarios desde admin.
+                </div>
+              )}
+              {!loadingTargets && filtered.map((t) => {
+                const active = selectedId === t.id;
+                return (
+                  <button
+                    key={`${t.kind || "player"}:${t.id}`}
+                    type="button"
+                    onClick={() => setSelectedId(t.id)}
+                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${
+                      active ? "bg-depro-blue-light text-depro-blue" : "hover:bg-depro-gray-light text-depro-dark"
+                    }`}
+                  >
+                    <div className="font-semibold">{t.name}</div>
+                    <div className="text-xs text-depro-gray mt-0.5">
+                      {mode === "club" && t.kind ? `${t.kind} · ` : ""}
+                      {t.email || t.id}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {selected && (
+              <p className="text-xs text-depro-blue font-semibold mt-2">
+                Seleccionado: {selected.name}
+                {selected.kind ? ` (${selected.kind})` : ""}
+              </p>
             )}
           </div>
 
@@ -233,7 +260,7 @@ export default function AssignPlanModal({
           </button>
           <button
             type="button"
-            disabled={loading || !!success}
+            disabled={loading || !!success || !selectedId}
             onClick={handleAssign}
             className="px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark disabled:opacity-50"
           >

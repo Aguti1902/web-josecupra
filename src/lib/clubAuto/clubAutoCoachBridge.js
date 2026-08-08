@@ -21,7 +21,31 @@ export const CLUB_AUTO_MATCH_DAYS = [
   { id: "sabado", label: "Sábado" },
   { id: "domingo", label: "Domingo" },
   { id: "entre_semana", label: "Entre semana" },
-  { id: "no_compite", label: "No compite" },
+];
+
+export const CLUB_AUTO_DURATIONS = [
+  { id: "45", label: "45 min" },
+  { id: "60", label: "60 min" },
+  { id: "75", label: "75 min" },
+  { id: "90", label: "90 min" },
+  { id: "90+", label: "Más de 90 min" },
+];
+
+export const CLUB_AUTO_PLAYER_COUNTS = [
+  { id: "6-10", label: "6-10" },
+  { id: "10-14", label: "10-14" },
+  { id: "14-18", label: "14-18" },
+  { id: "18-24", label: "18-24" },
+  { id: "24+", label: "Más de 24" },
+];
+
+export const CLUB_AUTO_MATERIALS = [
+  "Conos",
+  "Picas",
+  "Mini vallas",
+  "Gomas",
+  "Balones",
+  "Porterías",
 ];
 
 /**
@@ -68,11 +92,15 @@ export function coachConfigFingerprint(config = {}) {
 
 /** coachConfig → cuestionario del motor */
 export function coachConfigToQuestionnaire(config = {}) {
+  const days = config.dias_exactos_entrenamiento || config.trainingDays || [];
   return {
     nivel: config.nivel || "B",
-    dias_entrenamiento_semana: Number(config.dias_entrenamiento_semana || config.trainingsPerWeek || 3),
-    dias_exactos_entrenamiento: config.dias_exactos_entrenamiento || config.trainingDays || [],
+    dias_entrenamiento_semana: Number(config.dias_entrenamiento_semana || config.trainingsPerWeek || days.length || 3),
+    dias_exactos_entrenamiento: days,
     dia_partido: config.dia_partido || config.matchDay || "sabado",
+    duracion_sesion: config.duracion_sesion || "75",
+    num_jugadores: config.num_jugadores || "14-18",
+    material: Array.isArray(config.material) ? config.material : [],
     acceso_gimnasio: config.acceso_gimnasio ?? (config.gymAccess ? "si" : "no"),
     gymAccess: config.gymAccess === true || config.acceso_gimnasio === "si" || config.acceso_gimnasio === true,
   };

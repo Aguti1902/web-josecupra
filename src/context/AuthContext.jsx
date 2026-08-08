@@ -182,6 +182,8 @@ function buildUser(authUser, profile) {
       disponibles: profile.disponibles ?? meta.disponibles ?? [],
       managedTeamIds: meta.managedTeamIds ?? profile.managedTeamIds ?? [],
       edad: profile.age ?? meta.edad ?? null,
+      phone: profile.phone ?? meta.phone ?? meta.telefono ?? null,
+      telefono: profile.telefono ?? meta.telefono ?? meta.phone ?? null,
       posicion: profile.position ?? meta.posicion ?? null,
       subscriptionStatus: meta.subscriptionStatus ?? cached?.status ?? null,
       subscriptionCancelAt: meta.subscriptionCancelAt ?? null,
@@ -227,6 +229,8 @@ function buildUser(authUser, profile) {
     diaCompeticion: meta.diaCompeticion ?? null,
     disponibles: meta.disponibles ?? [],
     edad:      meta.edad      ?? null,
+    phone:     meta.phone ?? meta.telefono ?? null,
+    telefono:  meta.telefono ?? meta.phone ?? null,
     posicion:  meta.posicion  ?? null,
     managedTeamIds: meta.managedTeamIds ?? [],
     // Club

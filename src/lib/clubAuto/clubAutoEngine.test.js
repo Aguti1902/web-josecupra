@@ -11,25 +11,30 @@ function protoMap(plan) {
 }
 
 describe("clubAutoEngine — cuestionario", () => {
-  it("valida coincidencia días exactos = nº entrenos", () => {
+  it("exige días + material + campos clave", () => {
     const bad = validateCoachQuestionnaire({
       nivel: "B",
-      dias_entrenamiento_semana: 3,
-      dias_exactos_entrenamiento: ["Lunes", "Miércoles"],
+      dias_exactos_entrenamiento: [],
       dia_partido: "sabado",
       acceso_gimnasio: "no",
+      duracion_sesion: "75",
+      num_jugadores: "14-18",
+      material: [],
     });
     assert.equal(bad.ok, false);
 
     const ok = validateCoachQuestionnaire({
       nivel: "B",
-      dias_entrenamiento_semana: 3,
-      dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
+      dias_exactos_entrenamiento: ["Martes", "Jueves", "Viernes"],
       dia_partido: "sabado",
       acceso_gimnasio: false,
+      duracion_sesion: "75",
+      num_jugadores: "14-18",
+      material: ["Conos", "Balones", "Picas"],
     });
     assert.equal(ok.ok, true);
     assert.equal(ok.normalized.nivel, "B");
+    assert.equal(ok.normalized.dias_entrenamiento_semana, 3);
   });
 });
 
@@ -92,6 +97,9 @@ describe("clubAutoEngine — generación sesión completa", () => {
       dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
       dia_partido: "sabado",
       acceso_gimnasio: "no",
+      duracion_sesion: "75",
+      num_jugadores: "14-18",
+      material: ["Conos", "Balones"],
     });
     assert.equal(result.ok, true);
     assert.equal(result.sessions.length, 3);
@@ -112,9 +120,32 @@ describe("clubAutoEngine — generación sesión completa", () => {
       dias_exactos_entrenamiento: ["Martes", "Jueves"],
       dia_partido: "sabado",
       acceso_gimnasio: "si",
+      duracion_sesion: "90",
+      num_jugadores: "18-24",
+      material: ["Balones", "Conos"],
     });
     assert.equal(result.ok, true);
     const proto = result.sessions[0].structure.find((b) => b.type === "protocolo");
     assert.match(proto.template.id, /^gym_/);
+  });
+
+  it("ejemplo real documento: M+J+V · sábado · 16 jugadores · 75 min", () => {
+    const result = generateClubAutoMicrociclo({
+      nivel: "B",
+      dias_exactos_entrenamiento: ["Martes", "Jueves", "Viernes"],
+      dia_partido: "sabado",
+      acceso_gimnasio: "no",
+      duracion_sesion: "75",
+      num_jugadores: "14-18",
+      material: ["Conos", "Balones", "Picas"],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.sessions.length, 3);
+    const byDay = Object.fromEntries(result.sessions.map((s) => [s.assignedDay, s.protocol]));
+    // 3 días: post más cercano → A, víspera → C, resto → B
+    assert.equal(byDay.Martes, "A");
+    assert.equal(byDay.Jueves, "B");
+    assert.equal(byDay.Viernes, "C");
+    assert.equal(result.sessions[0].structure.length, 5);
   });
 });

@@ -8,7 +8,8 @@ import { selectGeneralWarmup, selectBallWarmup, selectMainTask } from "./clubAut
 import { CLUB_AUTO_OBSERVACIONES } from "../../data/clubAutoCatalog.js";
 
 export const DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-export const TRAIN_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+/** Días seleccionables en el cuestionario (incluye fin de semana). */
+export const TRAIN_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
 const MATCH_DAY_MAP = {
   sabado: "Sábado",
@@ -39,7 +40,7 @@ export function normalizeMatchDay(diaPartido) {
 export function normalizeTrainDays(dias = []) {
   const map = {
     lunes: "Lunes", martes: "Martes", miercoles: "Miércoles", miércoles: "Miércoles",
-    jueves: "Jueves", viernes: "Viernes",
+    jueves: "Jueves", viernes: "Viernes", sabado: "Sábado", sábado: "Sábado", domingo: "Domingo",
   };
   return [...new Set(
     (dias || []).map((d) => {
@@ -56,29 +57,40 @@ export function normalizeTrainDays(dias = []) {
 export function validateCoachQuestionnaire(q = {}) {
   const errors = [];
   const nivel = normalizeNivel(q.nivel);
-  const n = Number(q.dias_entrenamiento_semana || q.trainingsPerWeek);
   const days = normalizeTrainDays(q.dias_exactos_entrenamiento || q.trainingDays || []);
+  const n = days.length || Number(q.dias_entrenamiento_semana || q.trainingsPerWeek) || 0;
   const matchDay = normalizeMatchDay(q.dia_partido || q.matchDay);
   const gymAccess = q.acceso_gimnasio === true || q.acceso_gimnasio === "si" || q.gymAccess === true;
+  const duracion = String(q.duracion_sesion || "75");
+  const numJugadores = String(q.num_jugadores || "14-18");
+  const material = Array.isArray(q.material) ? q.material.filter(Boolean) : [];
 
   if (!["A", "B", "C"].includes(nivel)) errors.push("Nivel de equipo inválido (A/B/C).");
-  if (![2, 3, 4].includes(n)) errors.push("Número de entrenamientos debe ser 2, 3 o 4.");
-  if (days.length !== n) {
-    errors.push(`Debes seleccionar exactamente ${n} días de entrenamiento (ahora: ${days.length}).`);
-  }
+  if (days.length < 1) errors.push("Selecciona al menos un día de entrenamiento.");
+  if (days.length > 7) errors.push("No puedes seleccionar más de 7 días.");
   if (days.some((d) => !TRAIN_DAYS.includes(d))) {
-    errors.push("Solo se permiten días de lunes a viernes.");
+    errors.push("Día de entrenamiento no válido.");
   }
   if (!matchDay) errors.push("Día de partido inválido.");
+  if (!["45", "60", "75", "90", "90+"].includes(duracion)) {
+    errors.push("Duración de sesión no válida.");
+  }
+  if (!["6-10", "10-14", "14-18", "18-24", "24+"].includes(numJugadores)) {
+    errors.push("Número de jugadores no válido.");
+  }
+  if (!material.length) errors.push("Selecciona al menos un material disponible.");
 
   return {
     ok: errors.length === 0,
     errors,
     normalized: {
       nivel,
-      dias_entrenamiento_semana: n,
+      dias_entrenamiento_semana: days.length || n,
       dias_exactos_entrenamiento: days,
       dia_partido: matchDay,
+      duracion_sesion: duracion,
+      num_jugadores: numJugadores,
+      material,
       acceso_gimnasio: gymAccess,
     },
   };

@@ -1,43 +1,14 @@
 import { useMemo, useState } from "react";
 import {
-  Sparkles, RefreshCw, ChevronDown, ChevronUp, AlertTriangle, Dumbbell, CheckCircle2,
+  Sparkles, RefreshCw, ChevronDown, ChevronUp, Dumbbell, CheckCircle2,
 } from "lucide-react";
 import {
   validateCoachQuestionnaire,
   generateClubAutoMicrociclo,
   generateClubAutoFourWeeks,
-  TRAIN_DAYS,
 } from "../../lib/clubAuto/clubAutoEngine";
-import { CLUB_TAG_VALUES } from "../../lib/clubAuto/clubExerciseTags";
 import AssignPlanModal from "../../components/admin/AssignPlanModal";
-
-const NIVELES = [
-  { id: "A", label: "A · 9–12 años" },
-  { id: "B", label: "B · 12–15 años" },
-  { id: "C", label: "C · 16+ años" },
-];
-const FREQ = [2, 3, 4];
-const MATCH = [
-  { id: "sabado", label: "Sábado" },
-  { id: "domingo", label: "Domingo" },
-  { id: "entre_semana", label: "Entre semana" },
-  { id: "no_compite", label: "No compite" },
-];
-
-function Chip({ active, onClick, children, disabled }) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
-        active ? "bg-depro-blue border-depro-blue text-white" : "border-depro-border text-depro-gray hover:border-depro-blue"
-      } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
-    >
-      {children}
-    </button>
-  );
-}
+import CoachAutoQuestionnaire from "../../components/shared/CoachAutoQuestionnaire";
 
 function SessionCard({ session }) {
   const [open, setOpen] = useState(false);
@@ -93,8 +64,11 @@ export default function AdminClubAutoMotorPage() {
   const [form, setForm] = useState({
     nivel: "B",
     dias_entrenamiento_semana: 3,
-    dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
+    dias_exactos_entrenamiento: ["Martes", "Jueves", "Viernes"],
     dia_partido: "sabado",
+    duracion_sesion: "75",
+    num_jugadores: "14-18",
+    material: ["Conos", "Balones", "Picas"],
     acceso_gimnasio: "no",
   });
   const [result, setResult] = useState(null);
@@ -104,19 +78,6 @@ export default function AdminClubAutoMotorPage() {
   const [loading, setLoading] = useState(false);
 
   const validation = useMemo(() => validateCoachQuestionnaire(form), [form]);
-
-  const toggleDay = (day) => {
-    setForm((f) => {
-      const cur = f.dias_exactos_entrenamiento || [];
-      const has = cur.includes(day);
-      let next = has ? cur.filter((d) => d !== day) : [...cur, day];
-      // auto-trim to frequency
-      if (next.length > f.dias_entrenamiento_semana) {
-        next = next.slice(-f.dias_entrenamiento_semana);
-      }
-      return { ...f, dias_exactos_entrenamiento: next };
-    });
-  };
 
   const generate = (four = false) => {
     setLoading(true);
@@ -154,71 +115,7 @@ export default function AdminClubAutoMotorPage() {
             <h2 className="font-bold text-depro-dark">Cuestionario del entrenador</h2>
           </div>
 
-          <div>
-            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Nivel del equipo *</p>
-            <div className="flex flex-wrap gap-2">
-              {NIVELES.map((n) => (
-                <Chip key={n.id} active={form.nivel === n.id} onClick={() => setForm((f) => ({ ...f, nivel: n.id }))}>{n.label}</Chip>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Entrenamientos / semana *</p>
-            <div className="flex gap-2">
-              {FREQ.map((n) => (
-                <Chip
-                  key={n}
-                  active={form.dias_entrenamiento_semana === n}
-                  onClick={() => setForm((f) => ({
-                    ...f,
-                    dias_entrenamiento_semana: n,
-                    dias_exactos_entrenamiento: (f.dias_exactos_entrenamiento || []).slice(0, n),
-                  }))}
-                >
-                  {n} días
-                </Chip>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Días exactos *</p>
-            <div className="flex flex-wrap gap-2">
-              {TRAIN_DAYS.map((d) => (
-                <Chip key={d} active={form.dias_exactos_entrenamiento.includes(d)} onClick={() => toggleDay(d)}>
-                  {d.slice(0, 3)}
-                </Chip>
-              ))}
-            </div>
-            <p className="text-[11px] text-depro-gray mt-2">
-              Seleccionados: {form.dias_exactos_entrenamiento.length} / {form.dias_entrenamiento_semana}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Día de partido *</p>
-            <div className="flex flex-wrap gap-2">
-              {MATCH.map((m) => (
-                <Chip key={m.id} active={form.dia_partido === m.id} onClick={() => setForm((f) => ({ ...f, dia_partido: m.id }))}>{m.label}</Chip>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Acceso a gimnasio *</p>
-            <div className="flex gap-2">
-              <Chip active={form.acceso_gimnasio === "si"} onClick={() => setForm((f) => ({ ...f, acceso_gimnasio: "si" }))}>Sí</Chip>
-              <Chip active={form.acceso_gimnasio === "no"} onClick={() => setForm((f) => ({ ...f, acceso_gimnasio: "no" }))}>No</Chip>
-            </div>
-          </div>
-
-          {!validation.ok && (
-            <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 space-y-1">
-              <p className="font-bold flex items-center gap-1"><AlertTriangle size={13} /> Revisa el cuestionario</p>
-              {validation.errors.map((e) => <p key={e}>• {e}</p>)}
-            </div>
-          )}
+          <CoachAutoQuestionnaire value={form} onChange={setForm} showErrors />
 
           <div className="flex flex-wrap gap-2">
             <button
@@ -274,7 +171,7 @@ export default function AdminClubAutoMotorPage() {
                 >
                   Asignar
                 </button>
-                <span className="text-[11px] text-depro-gray">Asignar a club / equipo / entrenador</span>
+                <span className="text-[11px] text-depro-gray">Asignar a club / equipo / entrenador / coordinador</span>
               </div>
 
               {weeks && (

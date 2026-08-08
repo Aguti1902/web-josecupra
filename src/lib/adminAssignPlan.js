@@ -5,6 +5,7 @@
 import { savePlayerPlan, loadPlayerPlan } from "./playerPlanStorage.js";
 import { buildFourWeekPlan, buildPlayerPlan } from "./playerPlanEngine.js";
 import { generateClubAutoFourWeeks } from "./clubAuto/clubAutoEngine.js";
+import { supabase } from "./supabase.js";
 
 const ASSIGNMENTS_KEY = "depro_admin_plan_assignments";
 const CLUB_ASSIGN_KEY = "depro_admin_club_plan_assignments";
@@ -22,7 +23,18 @@ function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-/** Lista usuarios jugador del admin storage + local auth mirror. */
+function mapPlayerRow(u) {
+  return {
+    id: u.id,
+    name: u.name || u.nombre || u.email || u.id,
+    email: u.email || "",
+    role: "player",
+    plan: u.plan || null,
+    subscriptionStatus: u.subscriptionStatus || null,
+  };
+}
+
+/** Lista jugadores asignables (local + API admin). */
 export function listAssignablePlayers() {
   const clients = readJson("depro_admin_clients", []);
   const users = readJson("depro_users", []);
@@ -32,26 +44,42 @@ export function listAssignablePlayers() {
     if (!c?.id) continue;
     const role = c.role || c.tipo || "player";
     if (role !== "player" && role !== "jugador") continue;
-    map.set(c.id, {
-      id: c.id,
-      name: c.name || c.nombre || c.email || c.id,
-      email: c.email || "",
-      role: "player",
-    });
+    map.set(c.id, mapPlayerRow(c));
   }
   for (const u of users) {
     if (!u?.id) continue;
     if (u.role && u.role !== "player" && u.role !== "jugador") continue;
-    if (!map.has(u.id)) {
-      map.set(u.id, {
-        id: u.id,
-        name: u.name || u.displayName || u.email || u.id,
-        email: u.email || "",
-        role: "player",
-      });
-    }
+    if (!map.has(u.id)) map.set(u.id, mapPlayerRow(u));
   }
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+/** Carga jugadores desde /api/admin-users y sincroniza caché local. */
+export async function fetchAssignablePlayers() {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    const res = await fetch("/api/admin-users", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return listAssignablePlayers();
+
+    const players = (json.users || [])
+      .filter((u) => u.type === "player" || u.role === "player")
+      .map(mapPlayerRow);
+
+    try {
+      const existing = readJson("depro_admin_clients", []);
+      const byId = new Map(existing.map((c) => [c.id, c]));
+      for (const p of players) byId.set(p.id, { ...byId.get(p.id), ...p, role: "player" });
+      writeJson("depro_admin_clients", [...byId.values()]);
+    } catch { /* ignore */ }
+
+    return players.sort((a, b) => a.name.localeCompare(b.name, "es"));
+  } catch {
+    return listAssignablePlayers();
+  }
 }
 
 export function listAssignableClubTargets() {
@@ -78,10 +106,34 @@ export function listAssignableClubTargets() {
         teamId: team.id || team.name,
       });
     }
+    const coord = club.coordinator || club.coordinador;
+    if (coord && (coord.email || coord.id || coord.name)) {
+      out.push({
+        id: coord.id || `${club.id}::coordinador`,
+        kind: "coordinador",
+        name: `${club.name || "Club"} · ${coord.name || "Coordinador"}`,
+        email: coord.email || "",
+        clubId: club.id,
+      });
+    }
   }
 
   for (const c of clients) {
-    if (c.role === "coach" || c.tipo === "coach" || c.tipo === "entrenador") {
+    const role = c.role || c.tipo;
+    const teamRole = c.teamRole || c.team_role;
+    const isCoach =
+      role === "coach"
+      || role === "entrenador"
+      || c.tipo === "entrenador"
+      || teamRole === "entrenador"
+      || c.type === "coach"
+      || c.type === "club_entrenador";
+    const isCoord =
+      teamRole === "coordinador"
+      || c.tipo === "coordinador"
+      || c.type === "club_coordinador";
+
+    if (isCoach) {
       out.push({
         id: c.id,
         kind: "entrenador",
@@ -89,10 +141,67 @@ export function listAssignableClubTargets() {
         email: c.email || "",
         clubId: c.clubId || null,
       });
+    } else if (isCoord) {
+      out.push({
+        id: c.id,
+        kind: "coordinador",
+        name: c.name || c.nombre || c.email || c.id,
+        email: c.email || "",
+        clubId: c.clubId || null,
+      });
     }
   }
 
-  return out.sort((a, b) => a.name.localeCompare(b.name, "es"));
+  // Deduplicar por id+kind
+  const seen = new Set();
+  return out
+    .filter((t) => {
+      const key = `${t.kind}:${t.id}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+/** Carga destinos club/equipo/entrenador/coordinador desde API + clubs. */
+export async function fetchAssignableClubTargets() {
+  const base = listAssignableClubTargets();
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    const res = await fetch("/api/admin-users", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return base;
+
+    const map = new Map(base.map((t) => [`${t.kind}:${t.id}`, t]));
+    for (const u of json.users || []) {
+      if (u.type === "coach" || u.type === "club_entrenador") {
+        const t = {
+          id: u.id,
+          kind: "entrenador",
+          name: u.name || u.email || u.id,
+          email: u.email || "",
+          clubId: u.clubId || null,
+        };
+        map.set(`${t.kind}:${t.id}`, t);
+      } else if (u.type === "club_coordinador") {
+        const t = {
+          id: u.id,
+          kind: "coordinador",
+          name: u.name || u.email || u.id,
+          email: u.email || "",
+          clubId: u.clubId || null,
+        };
+        map.set(`${t.kind}:${t.id}`, t);
+      }
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
+  } catch {
+    return base;
+  }
 }
 
 /**
@@ -115,8 +224,6 @@ export function assignPlanToPlayer({
     if (n <= 1) {
       assigned = buildPlayerPlan(profile);
     } else {
-      // buildFourWeekPlan no acepta weekOffset: concatenar N bloques de 4 semanas
-      // (contenido determinista repetido por ciclo; etiquetado por cycle/week).
       const weeks = [];
       for (let c = 0; c < n; c++) {
         const four = buildFourWeekPlan(profile);
@@ -134,7 +241,6 @@ export function assignPlanToPlayer({
       };
     }
   } else if (assigned && cycles > 1 && Array.isArray(assigned.weeks)) {
-    // Si hay planPreview de 4 semanas y se piden más ciclos, repetir etiquetado
     const n = Math.max(1, Math.min(6, Number(cycles) || 1));
     if (n > 1 && (assigned.weeks.length || 0) <= 4) {
       const base = assigned.weeks;
@@ -162,6 +268,7 @@ export function assignPlanToPlayer({
     ...assigned,
     assignment: meta,
     assignedTo: userId,
+    source: "admin_manual",
   };
 
   savePlayerPlan(userId, payload);
@@ -181,7 +288,7 @@ export function assignPlanToPlayer({
 }
 
 /**
- * Asigna microciclo/mesociclo club-auto a entrenador/equipo/club.
+ * Asigna microciclo/mesociclo club-auto a club / equipo / entrenador / coordinador.
  */
 export function assignClubAutoPlan({
   targetId,
@@ -222,8 +329,8 @@ export function assignClubAutoPlan({
   const key = `depro_club_auto_plan_${targetId}`;
   writeJson(key, payload);
 
-  // Bridge a coach sessions si el destino es entrenador
-  if (kind === "entrenador" || kind === "equipo") {
+  // Bridge a coach sessions si el destino es entrenador, equipo o coordinador
+  if (kind === "entrenador" || kind === "equipo" || kind === "coordinador") {
     try {
       const existing = readJson(`depro_coach_sessions_${targetId}`, null);
       const sessions = weeks.flatMap((w) => w.sessions || w.days || []);
@@ -250,7 +357,9 @@ export function getPlayerAssignment(userId) {
 
 export default {
   listAssignablePlayers,
+  fetchAssignablePlayers,
   listAssignableClubTargets,
+  fetchAssignableClubTargets,
   assignPlanToPlayer,
   assignClubAutoPlan,
 };

@@ -65,6 +65,7 @@ import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminClubAutoMotorPage from "./pages/admin/AdminClubAutoMotorPage";
 import AdminClubPlantillasPage from "./pages/admin/AdminClubPlantillasPage";
 import AdminClubCalentamientosPage from "./pages/admin/AdminClubCalentamientosPage";
+import AdminClubTareasPage from "./pages/admin/AdminClubTareasPage";
 
 /* ── Guards ───────────────────────────────────────────────────────── */
 function ScrollToTopOnNavigate() {
@@ -228,6 +229,7 @@ function AppRoutes() {
       <Route path="/admin/club-auto" element={<AdminRoute><AdminLayout><AdminClubAutoMotorPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/club-plantillas" element={<AdminRoute><AdminLayout><AdminClubPlantillasPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/club-calentamientos" element={<AdminRoute><AdminLayout><AdminClubCalentamientosPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/club-tareas" element={<AdminRoute><AdminLayout><AdminClubTareasPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/motor_club" element={<Navigate to="/admin/club-auto" replace />} />
       <Route path="/admin/motor-club" element={<Navigate to="/admin/club-auto" replace />} />
       <Route path="/admin/tests" element={<AdminRoute><AdminLayout><AdminTestsPage /></AdminLayout></AdminRoute>} />

@@ -1,16 +1,25 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Search, PlayCircle, Save, CheckCircle, RefreshCw, X,
+  Search, PlayCircle, Save, CheckCircle, RefreshCw, X, Plus,
   Flame, Zap, Target, Shield, Dumbbell, ChevronDown, ChevronUp,
-  Edit3, Info, Activity, TrendingUp,
+  Edit3, Info, Activity, TrendingUp, Trash2,
 } from "lucide-react";
 import { EXERCISES, TAGS } from "../../data/exercises";
 import { CATALOG_FOLDERS } from "../../data/extraExercises";
 
 /* ── Helpers ──────────────────────────────────────────────── */
 const CATALOG_OVERRIDES_KEY = "depro_catalog_overrides";
+const CATALOG_CUSTOM_KEY = "depro_catalog_custom_exercises";
 const CATALOG_CLOUD_ID = "CATALOG_OVERRIDES";
+
+function loadCustomExercises() {
+  try { return JSON.parse(localStorage.getItem(CATALOG_CUSTOM_KEY) || "[]"); }
+  catch { return []; }
+}
+function saveCustomExercises(list) {
+  localStorage.setItem(CATALOG_CUSTOM_KEY, JSON.stringify(list));
+}
 
 function getYouTubeId(url) {
   if (!url) return null;
@@ -91,6 +100,110 @@ function getSection(exercise) {
     if (s.match(exercise)) return s.key;
   }
   return "core";
+}
+
+/* ── Modal alta de ejercicio nuevo ───────────────────────── */
+function AddExerciseModal({ onSave, onClose }) {
+  const [form, setForm] = useState({
+    nombre: "",
+    material: "sin_material",
+    etiquetas: [],
+    carpeta: "core",
+    description: "",
+  });
+
+  const toggleTag = (tag) => {
+    setForm((f) => ({
+      ...f,
+      etiquetas: f.etiquetas.includes(tag)
+        ? f.etiquetas.filter((t) => t !== tag)
+        : [...f.etiquetas, tag],
+    }));
+  };
+
+  const canSave = form.nombre.trim().length >= 2;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-depro-border">
+          <h3 className="font-bold text-depro-dark">Añadir ejercicio</h3>
+          <button type="button" onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={18} /></button>
+        </div>
+        <div className="p-5 space-y-4 overflow-y-auto">
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Nombre *</label>
+            <input
+              className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm"
+              value={form.nombre}
+              onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+              placeholder="Nombre del ejercicio"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Material</label>
+            <select
+              className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm bg-white"
+              value={form.material}
+              onChange={(e) => setForm((f) => ({ ...f, material: e.target.value }))}
+            >
+              {TAGS.material.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Carpeta / sección</label>
+            <select
+              className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm bg-white"
+              value={form.carpeta}
+              onChange={(e) => setForm((f) => ({ ...f, carpeta: e.target.value }))}
+            >
+              {SECTION_LABELS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Etiquetas</label>
+            <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+              {TAGS.objetivo.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleTag(t)}
+                  className={`text-[11px] px-2.5 py-1 rounded-lg border font-semibold ${
+                    form.etiquetas.includes(t)
+                      ? "bg-depro-blue border-depro-blue text-white"
+                      : "border-depro-border text-depro-gray"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">Descripción</label>
+            <textarea
+              rows={3}
+              className="w-full border border-depro-border rounded-xl px-3 py-2.5 text-sm resize-none"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="Explicación breve (opcional)"
+            />
+          </div>
+        </div>
+        <div className="flex gap-2 px-5 py-4 border-t border-depro-border">
+          <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl border border-depro-border text-sm">Cancelar</button>
+          <button
+            type="button"
+            disabled={!canSave}
+            onClick={() => onSave(form)}
+            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold disabled:opacity-40"
+          >
+            Guardar ejercicio
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ── Modal editor de ejercicio ────────────────────────────── */
@@ -209,14 +322,21 @@ function ExerciseEditModal({ exercise, override, onSave, onClose }) {
 export default function AdminCatalogPage({ embedded = false }) {
   const [searchParams] = useSearchParams();
   const [overrides, setOverrides] = useState(loadOverrides);
+  const [customExercises, setCustomExercises] = useState(loadCustomExercises);
   const [search, setSearch]     = useState(() => searchParams.get("q") || "");
   const [filterMat, setFilterMat] = useState("");
   const [filterTag, setFilterTag] = useState("");
   const [filterFolder, setFilterFolder] = useState("");
   const [collapsed, setCollapsed] = useState({});
   const [editing, setEditing]   = useState(null); // exercise object
+  const [adding, setAdding]     = useState(false);
   const [syncing, setSyncing]   = useState(false);
   const [saved, setSaved]       = useState(false);
+
+  const allExercises = useMemo(
+    () => [...EXERCISES, ...customExercises],
+    [customExercises],
+  );
 
   // Cargar overrides desde la nube al montar
   useEffect(() => {
@@ -240,6 +360,37 @@ export default function AdminCatalogPage({ embedded = false }) {
     // Auto-save silencioso
     localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(updated));
     saveOverridesToCloud(updated).catch(() => {});
+  };
+
+  const handleAddExercise = (form) => {
+    const id = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const tags = form.etiquetas?.length ? form.etiquetas : [form.carpeta].filter(Boolean);
+    const exercise = {
+      id,
+      nombre: form.nombre.trim(),
+      etiquetas: tags,
+      material: form.material || "sin_material",
+      materiales: [form.material || "sin_material"],
+      carpeta: form.carpeta || "core",
+      contraindicado: [],
+      custom: true,
+      description: form.description || "",
+    };
+    const next = [exercise, ...customExercises];
+    setCustomExercises(next);
+    saveCustomExercises(next);
+    if (form.description) {
+      handleSaveOverride(id, { description: form.description });
+    }
+    setAdding(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleDeleteCustom = (id) => {
+    const next = customExercises.filter((e) => e.id !== id);
+    setCustomExercises(next);
+    saveCustomExercises(next);
   };
 
   const handleSyncNow = async () => {
@@ -278,7 +429,7 @@ export default function AdminCatalogPage({ embedded = false }) {
   // Filtrar ejercicios
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return EXERCISES.filter((e) => {
+    return allExercises.filter((e) => {
       const mats = e.materiales || [e.material].filter(Boolean);
       const multiStr = JSON.stringify(e.etiquetasMulti || {}).toLowerCase();
       if (
@@ -292,7 +443,7 @@ export default function AdminCatalogPage({ embedded = false }) {
       if (!matchesFolder(e, filterFolder)) return false;
       return true;
     });
-  }, [search, filterMat, filterTag, filterFolder]);
+  }, [allExercises, search, filterMat, filterTag, filterFolder]);
 
   // Agrupar por sección
   const grouped = useMemo(() => {
@@ -317,14 +468,23 @@ export default function AdminCatalogPage({ embedded = false }) {
         <div>
           <h1 className="text-2xl font-black text-depro-dark">Catálogo de ejercicios</h1>
           <p className="text-sm text-depro-gray mt-0.5">
-            {EXERCISES.length} ejercicios multi-eje · {totalWithVideo} con vídeo añadido
+            {allExercises.length} ejercicios · {customExercises.length} añadidos · {totalWithVideo} con vídeo
           </p>
         </div>
-        <button onClick={handleSyncNow} disabled={syncing}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white font-bold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-50 flex-shrink-0">
-          {syncing ? <RefreshCw size={15} className="animate-spin" /> : saved ? <CheckCircle size={15} /> : <Save size={15} />}
-          {syncing ? "Guardando…" : saved ? "¡Guardado!" : "Guardar en la nube"}
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-depro-blue text-depro-blue font-bold text-sm hover:bg-depro-blue-light"
+          >
+            <Plus size={15} /> Añadir ejercicio
+          </button>
+          <button onClick={handleSyncNow} disabled={syncing}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white font-bold text-sm hover:bg-depro-blue-dark transition-colors disabled:opacity-50">
+            {syncing ? <RefreshCw size={15} className="animate-spin" /> : saved ? <CheckCircle size={15} /> : <Save size={15} />}
+            {syncing ? "Guardando…" : saved ? "¡Guardado!" : "Guardar en la nube"}
+          </button>
+        </div>
       </div>
 
       {/* Info */}
@@ -342,13 +502,22 @@ export default function AdminCatalogPage({ embedded = false }) {
       {embedded && (
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <p className="text-sm text-depro-gray">
-            {EXERCISES.length} ejercicios para planes de jugadores · {totalWithVideo} con vídeo
+            {allExercises.length} ejercicios para planes de jugadores · {totalWithVideo} con vídeo
           </p>
-          <button onClick={handleSyncNow} disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-depro-blue text-white font-bold text-sm hover:bg-depro-blue-dark disabled:opacity-50">
-            {syncing ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
-            Guardar
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-depro-blue text-depro-blue font-bold text-sm"
+            >
+              <Plus size={14} /> Añadir ejercicio
+            </button>
+            <button onClick={handleSyncNow} disabled={syncing}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-depro-blue text-white font-bold text-sm hover:bg-depro-blue-dark disabled:opacity-50">
+              {syncing ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+              Guardar
+            </button>
+          </div>
         </div>
       )}
 
@@ -482,17 +651,28 @@ export default function AdminCatalogPage({ embedded = false }) {
                           </div>
                         </div>
 
-                        {/* Botón editar */}
-                        <button
-                          onClick={() => setEditing(exercise)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-shrink-0
-                            ${hasContent
-                              ? "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
-                              : "bg-depro-gray-light text-depro-gray border border-depro-border hover:border-depro-blue hover:text-depro-blue opacity-0 group-hover:opacity-100"
-                            }`}>
-                          <Edit3 size={11} />
-                          {hasContent ? "Editar" : "Añadir"}
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {exercise.custom && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCustom(exercise.id)}
+                              className="p-1.5 rounded-lg text-depro-gray hover:text-depro-red hover:bg-depro-red-light"
+                              title="Eliminar ejercicio añadido"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setEditing(exercise)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all
+                              ${hasContent
+                                ? "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
+                                : "bg-depro-gray-light text-depro-gray border border-depro-border hover:border-depro-blue hover:text-depro-blue opacity-0 group-hover:opacity-100"
+                              }`}>
+                            <Edit3 size={11} />
+                            {hasContent ? "Editar" : "Vídeo/tips"}
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -502,6 +682,13 @@ export default function AdminCatalogPage({ embedded = false }) {
           );
         })}
       </div>
+
+      {adding && (
+        <AddExerciseModal
+          onSave={handleAddExercise}
+          onClose={() => setAdding(false)}
+        />
+      )}
 
       {/* Modal de edición */}
       {editing && (

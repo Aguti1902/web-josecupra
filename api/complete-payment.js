@@ -63,6 +63,8 @@ export default async function handler(req, res) {
         experiencia: meta.experiencia || "",
         diaCompeticion: meta.diaCompeticion || "",
         edad: meta.edad || "",
+        phone: meta.phone || meta.telefono || "",
+        telefono: meta.phone || meta.telefono || "",
         lesion: meta.lesion ? meta.lesion.split("|") : [],
         lesionSubtipo: meta.lesionSubtipo ? meta.lesionSubtipo.split("|") : [],
         disponibles: meta.disponibles ? meta.disponibles.split("|") : [],
@@ -77,6 +79,8 @@ export default async function handler(req, res) {
         stripeCustomerId,
         trialEndsAt,
         billingSource: "stripe",
+        // Premium: rutina pendiente de intervención humana
+        planPendingManual: meta.plan === "player-pro" || meta.plan === "premium",
       };
 
       if (authUserId) {
