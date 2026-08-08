@@ -105,11 +105,13 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError, clas
         checkoutRef.current = null;
         if (containerRef.current) containerRef.current.innerHTML = "";
 
+        // Stripe.js 2026: initEmbeddedCheckout() still exists but throws IntegrationError.
+        // Prefer createEmbeddedCheckoutPage(); keep legacy init as last resort.
         let checkout;
-        if (typeof stripe.initEmbeddedCheckout === "function") {
-          checkout = await stripe.initEmbeddedCheckout({ fetchClientSecret });
-        } else if (typeof stripe.createEmbeddedCheckoutPage === "function") {
+        if (typeof stripe.createEmbeddedCheckoutPage === "function") {
           checkout = await stripe.createEmbeddedCheckoutPage({ fetchClientSecret });
+        } else if (typeof stripe.initEmbeddedCheckout === "function") {
+          checkout = await stripe.initEmbeddedCheckout({ fetchClientSecret });
         } else {
           throw new Error("Tu navegador no soporta Embedded Checkout. Actualiza el navegador.");
         }
