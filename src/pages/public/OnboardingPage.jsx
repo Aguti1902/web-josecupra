@@ -1301,6 +1301,40 @@ export default function OnboardingPage() {
     navigate("/");
   };
 
+  const handleRestartQuestionnaire = () => {
+    clearOnboardingDraft();
+    setAudience(initialAudience);
+    setPlanId(initialPlanId || plansForAudience(initialAudience)[0]?.id || "");
+    setStep(initialPlanId ? 2 : 1);
+    setForm({
+      nombre: "",
+      email: "",
+      password: "",
+      pendingPassword: "",
+      edad: "",
+      club: "",
+      equipos: "",
+      clubCode: "",
+      clubId: "",
+      clubTeamId: "",
+      logo: "",
+      primaryColor: "#0A36F7",
+      secondaryColor: "#ffffff",
+      objetivos: [],
+      objetivo: "",
+      objetivoSecundario: "",
+      deporte: "",
+      frecuencia: "",
+      material: [],
+      experiencia: "",
+      lesion: [],
+      lesionSubtipo: [],
+      diaCompeticion: "Fin de semana",
+      disponibles: ["Lunes", "Miércoles", "Viernes"],
+      selectedAddons: [],
+    });
+  };
+
   useEffect(() => {
     if (window.location.hash.includes("access_token")) {
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
@@ -1381,6 +1415,13 @@ export default function OnboardingPage() {
             <span className="text-sm font-bold">Volver al inicio</span>
           </Link>
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleRestartQuestionnaire}
+              className="text-xs font-bold text-depro-gray hover:text-depro-blue transition-colors"
+            >
+              Reiniciar cuestionario
+            </button>
             <button
               type="button"
               onClick={handleCancelQuestionnaire}

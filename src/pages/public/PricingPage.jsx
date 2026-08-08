@@ -16,7 +16,7 @@ const PLANS = {
       features: [
         "Microciclo IA automático",
         "Sesiones A / B / C semanales",
-        "Biblioteca 90+ ejercicios",
+        "Biblioteca 180+ ejercicios",
         "Panel entrenador completo",
         "Gestión básica de plantilla",
         "Export PDF de sesiones",
@@ -143,7 +143,7 @@ const PLANS = {
         "Ejercicios de prevención básicos",
         "Export PDF del plan",
         "Registro RPE post-sesión",
-        "Descuento −15% con código club",
+        "Descuento −10% con código club",
         "Soporte email",
       ],
       notIncluded: [
@@ -196,7 +196,7 @@ const COMPARE_BY_AUDIENCE = {
     { label: "Ajuste semanal IA", values: ["—", "✓"] },
     { label: "Tests + ratings", values: ["—", "✓"] },
     { label: "Ranking equipo", values: ["—", "✓"] },
-    { label: "Descuento código club", values: ["−15%", "−15%"] },
+    { label: "Descuento código club", values: ["−10%", "−10%"] },
   ],
 };
 
@@ -222,7 +222,7 @@ export default function PricingPage() {
       { q: "¿Incluye formación para el staff?", a: "Onboarding guiado en todos los planes. Sesión en vivo incluida en Profesional y Elite." },
     ],
     player: [
-      { q: "¿Cómo funciona el descuento de club?", a: "Al registrarte con el código de tu entrenador obtienes 15% de descuento permanente en tu suscripción." },
+      { q: "¿Cómo funciona el descuento de club?", a: "Al registrarte con el código de tu entrenador obtienes 10% de descuento permanente en tu suscripción. El club recibe una comisión del 10% sobre esas ventas." },
       { q: "¿Puedo usar DEPRO Player sin club?", a: "Sí. Es totalmente independiente. El código de club es opcional y añade descuento + conexión con tu entrenador." },
     ],
   };

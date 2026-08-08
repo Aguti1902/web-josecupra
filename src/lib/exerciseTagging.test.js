@@ -69,6 +69,26 @@ describe("etiquetado — casos críticos", () => {
     assert.ok(hits.every((e) => /tr[ií]ceps|franc[eé]s|fondos?/i.test(e.nombre)));
   });
 
+  it("prevención/rotadores/movilidad no entran como analítico de brazo", () => {
+    const armSlots = [
+      { rol: "complementario", patron: "analitico", grupo_muscular: "biceps" },
+      { rol: "complementario", patron: "analitico", grupo_muscular: "triceps" },
+    ];
+    for (const slot of armSlots) {
+      const hits = EXERCISES.filter((e) => matchSlotTags(e, slot));
+      assert.ok(hits.every((e) => e.carpeta !== "prevencion" && e.carpeta !== "movilidad"));
+      assert.ok(hits.every((e) => !/rotador|escapular|Y-?T-?W|monster|lateral walk/i.test(e.nombre)));
+    }
+  });
+
+  it("tracción básica no incluye prevención escapular mal etiquetada", () => {
+    const slot = { rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion" };
+    const hits = EXERCISES.filter((e) => matchSlotTags(e, slot));
+    assert.ok(hits.length >= 1);
+    assert.ok(hits.every((e) => e.carpeta !== "prevencion"));
+    assert.ok(hits.every((e) => !/superman|Y-?T-?W|trap.?3|elevaci[oó]n escapular/i.test(e.nombre)));
+  });
+
   it("plantillas Fuerza Superior/Full exigen patrón analítico en bíceps", () => {
     for (const key of ["Fuerza Superior", "Fuerza Full", "Hipertrofia Full"]) {
       const tpl = SESSION_TEMPLATES[key];

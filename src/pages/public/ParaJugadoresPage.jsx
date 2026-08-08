@@ -51,11 +51,11 @@ export default function ParaJugadoresPage() {
           <Users size={36} className="text-holded-blue-light mx-auto mb-5" />
           <h2 className="text-2xl md:text-3xl font-black text-white mb-4">¿Tu club usa DEPRO?</h2>
           <p className="text-holded-muted max-w-lg mx-auto mb-6 leading-relaxed">
-            Pide el código a tu entrenador y regístrate con un <strong className="text-white">15% de descuento</strong> en tu plan.
+            Pide el código a tu entrenador y regístrate con un <strong className="text-white">10% de descuento</strong> en tu plan.
             Además, compartirás datos de carga y tests con el cuerpo técnico automáticamente.
           </p>
           <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 text-white text-sm font-bold px-5 py-2.5 rounded-full">
-            <Zap size={16} className="text-holded-green" /> Código club · −15% en tu suscripción
+            <Zap size={16} className="text-holded-green" /> Código club · −10% en tu suscripción
           </div>
         </div>
       </section>
@@ -80,7 +80,7 @@ export default function ParaJugadoresPage() {
         dark={false}
         items={[
           { q: "¿Necesito un entrenador para usar DEPRO Player?", a: "No. Puedes usarlo de forma independiente. Si tu club usa DEPRO, conectas con tu entrenador automáticamente." },
-          { q: "¿Qué incluye el descuento de club?", a: "15% en tu suscripción mensual al registrarte con el código que te da tu entrenador o club." },
+          { q: "¿Qué incluye el descuento de club?", a: "10% en tu suscripción mensual al registrarte con el código que te da tu entrenador o club. El club recibe comisión del 10%." },
           { q: "¿Puedo cancelar cuando quiera?", a: "Sí. Sin permanencia. Cancela desde tu perfil en cualquier momento." },
         ]}
       />

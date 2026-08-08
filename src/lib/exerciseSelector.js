@@ -190,16 +190,19 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
     candidates = candidates.filter((ex) => !usedExerciseIds.includes(ex.id));
   }
 
-  // Último recurso: mismo rol sin demás filtros (excepto material/lesión)
-  if (!candidates.length && slot.rol) {
+  const isAnaliticoSlot = asArray(slot.patron).includes("analitico") && !!slot.grupo_muscular;
+  const isTraccionSlot = asArray(slot.patron).includes("traccion");
+
+  // Último recurso: mismo rol — NUNCA para slots analíticos/tracción (evita rotadores/prevención)
+  if (!candidates.length && slot.rol && !isAnaliticoSlot && !isTraccionSlot) {
     candidates = filterExercisesForUser(
       EXERCISES.filter((ex) => tagsOf(ex).rol === slot.rol),
       userProfile,
     ).filter((ex) => !usedExerciseIds.includes(ex.id));
   }
 
-  // Calentamiento / vuelta a la calma: permitir repetir en la semana si el pool es pequeño
-  if (!candidates.length && (slot.rol === "vuelta_calma" || slot.rol === "calentamiento" || slot.rol === "core")) {
+  // Calentamiento / core: permitir repetir en la semana si el pool es pequeño
+  if (!candidates.length && (slot.rol === "calentamiento" || slot.rol === "core") && !isAnaliticoSlot) {
     candidates = filterExercisesForUser(
       EXERCISES.filter((ex) => matchSlotTags(ex, { rol: slot.rol }) || tagsOf(ex).rol === slot.rol),
       userProfile,

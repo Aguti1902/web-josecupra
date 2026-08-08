@@ -518,9 +518,7 @@ export const EXERCISES = [
         "fuerza"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "complementario",
       "grupo_principal": "gluteos",
       "grupo_muscular": [
@@ -564,9 +562,7 @@ export const EXERCISES = [
         "fuerza"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "complementario",
       "grupo_principal": "gluteos",
       "grupo_muscular": [
@@ -1734,7 +1730,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "traccion"
+        "isometrico"
       ],
       "rol": "complementario",
       "grupo_principal": "espalda_baja",
@@ -1772,7 +1768,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "traccion",
         "isometrico"
       ],
       "rol": "complementario",
@@ -1937,8 +1932,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "isometrico",
-        "analitico"
+        "isometrico"
       ],
       "rol": "complementario",
       "grupo_principal": "hombros",
@@ -5700,9 +5694,7 @@ export const EXERCISES = [
         "prevencion"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "complementario",
       "grupo_principal": "gluteos",
       "grupo_muscular": [
@@ -5742,9 +5734,7 @@ export const EXERCISES = [
         "prevencion"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "complementario",
       "grupo_principal": "isquios",
       "grupo_muscular": [
@@ -5912,9 +5902,7 @@ export const EXERCISES = [
         "velocidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "complementario",
       "grupo_principal": "isquios",
       "grupo_muscular": [
@@ -5998,7 +5986,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "traccion",
         "isometrico"
       ],
       "rol": "complementario",
@@ -6044,9 +6031,7 @@ export const EXERCISES = [
         "prevencion"
       ],
       "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "complementario",
       "grupo_principal": "espalda",
       "grupo_muscular": [
@@ -6083,7 +6068,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "traccion"
+        "isometrico"
       ],
       "rol": "complementario",
       "grupo_principal": "hombros",
@@ -6203,9 +6188,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "tobillo",
       "grupo_muscular": [
@@ -6242,9 +6225,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "gemelo",
       "grupo_muscular": [
@@ -6280,9 +6261,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "tobillo",
       "grupo_muscular": [
@@ -6317,9 +6296,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "gluteos",
       "grupo_muscular": [
@@ -6355,9 +6332,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "aductores",
       "grupo_muscular": [
@@ -6397,9 +6372,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "gluteos",
       "grupo_muscular": [
@@ -6439,9 +6412,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "full_body",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "espalda",
       "grupo_muscular": [
@@ -6477,9 +6448,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "hombros",
       "grupo_muscular": [
@@ -6515,9 +6484,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "hombros",
       "grupo_muscular": [
@@ -6557,7 +6524,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "traccion",
         "isometrico"
       ],
       "rol": "complementario",
@@ -6603,9 +6569,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "hombros",
       "grupo_muscular": [
@@ -6645,9 +6609,7 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
+      "patron": [],
       "rol": "calentamiento",
       "grupo_principal": "espalda",
       "grupo_muscular": [
@@ -6683,10 +6645,8 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
-      "rol": "vuelta_calma",
+      "patron": [],
+      "rol": "calentamiento",
       "grupo_principal": "isquios",
       "grupo_muscular": [
         "isquios"
@@ -6725,10 +6685,8 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
-      "rol": "vuelta_calma",
+      "patron": [],
+      "rol": "calentamiento",
       "grupo_principal": "isquios",
       "grupo_muscular": [
         "isquios"
@@ -6767,10 +6725,8 @@ export const EXERCISES = [
         "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
-      "rol": "vuelta_calma",
+      "patron": [],
+      "rol": "calentamiento",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
@@ -6919,7 +6875,7 @@ export const EXERCISES = [
   },
   {
     "id": 167,
-    "nombre": "Técnica de carrera (marcha A / drills)",
+    "nombre": "Drills de marcha A (técnica de carrera)",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -7297,8 +7253,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "isometrico",
-        "analitico"
+        "isometrico"
       ],
       "rol": "complementario",
       "grupo_principal": "hombros",

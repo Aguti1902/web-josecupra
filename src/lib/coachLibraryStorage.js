@@ -48,7 +48,7 @@ function catalogSeed() {
  */
 function maybeRemigrateOldSeed(list) {
   if (!Array.isArray(list) || list.length === 0) return catalogSeed();
-  if (lsFlag(MIGRATE_FLAG) === "1") return list;
+  // Seed antiguo (~91) o incompleto: siempre ampliar al catálogo completo
   if (list.length >= 120) {
     lsSetFlag(MIGRATE_FLAG);
     return list;

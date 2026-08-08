@@ -22,7 +22,7 @@ export const WEBSITE_FAQ = [
   },
   {
     keywords: ["entrenador", "coach", "individual"],
-    answer: "**DEPRO Coach** es para entrenadores individuales: microciclos automáticos, biblioteca de 90+ ejercicios, control de carga y tests físicos.",
+    answer: "**DEPRO Coach** es para entrenadores individuales: microciclos automáticos, biblioteca compartida de 180+ ejercicios, control de carga y tests físicos.",
   },
   {
     keywords: ["jugador", "player", "app", "móvil"],

@@ -39,7 +39,12 @@ const CALENTAMIENTO_CORTO = block("calentamiento", "Calentamiento", "5-6 min", [
 ]);
 
 const CORE = block("core", "Core", "6 min", [
-  slot({ rol: "core", description: "Core", slotId: "core" }),
+  slot({
+    rol: "core",
+    patronOr: ["isometrico", "anti_rotacion", "anti_extension", "anti_flexion"],
+    description: "Core / control",
+    slotId: "core",
+  }),
 ]);
 
 export const SESSION_TEMPLATES = {
