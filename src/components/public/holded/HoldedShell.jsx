@@ -69,12 +69,12 @@ export function ExitIntentModal({ open, onClose }) {
             <span className="w-2 h-2 rounded-full bg-holded-blue animate-pulse" /> Prueba gratuita
           </span>
           <h2 className="text-2xl md:text-3xl font-black mb-2 leading-tight">
-            Prueba DEPRO sin tarjeta
+            Prueba DEPRO 15 días
           </h2>
-          <p className="text-holded-muted text-sm mb-6">Y acceso completo a planificación IA, cargas y tests.</p>
+          <p className="text-holded-muted text-sm mb-6">Tarjeta requerida · cargo 0 € hoy. Acceso a planificación IA, cargas y tests.</p>
           <div className="mb-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-holded-muted mb-1">Plan Coach Pro</p>
-            <p className="text-3xl font-black text-holded-blue-light">0 € <span className="text-base text-holded-muted font-medium">/ prueba</span></p>
+            <p className="text-3xl font-black text-holded-blue-light">0 € <span className="text-base text-holded-muted font-medium">/ hoy</span></p>
             <p className="text-xs text-holded-muted mt-1">Después desde 14,99 €/mes</p>
           </div>
           <Link
@@ -92,7 +92,7 @@ export function ExitIntentModal({ open, onClose }) {
             <GoogleIcon size={16} /> Continuar con Google
           </Link>
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-5 text-[11px] text-holded-muted">
-            {["Sin tarjeta de crédito", "Listo en 2 minutos", "Cancela cuando quieras"].map((t) => (
+            {["0 € hoy", "Listo en 2 minutos", "Cancela cuando quieras"].map((t) => (
               <span key={t} className="flex items-center gap-1"><Check size={10} className="text-holded-blue-light" /> {t}</span>
             ))}
           </div>
@@ -133,7 +133,7 @@ function TopBar() {
   return (
     <div className="bg-holded-topbar text-white text-center text-xs sm:text-sm py-2 px-4 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-4">
       <span>
-        Empieza ahora y prueba <strong className="underline underline-offset-2">15 días gratis</strong> sin tarjeta
+        Empieza ahora y prueba <strong className="underline underline-offset-2">15 días gratis</strong> · 0 € hoy
       </span>
       <span className="hidden sm:inline text-white/40">|</span>
       <a href="mailto:ventas@depro.es" className="text-white/90 hover:text-white font-medium">

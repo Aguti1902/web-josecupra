@@ -234,7 +234,7 @@ export default function PricingPage() {
         theme="dark"
         badge="Precios · Transparentes"
         title="Planes que crecen contigo"
-        description="Elige el perfil que mejor encaje — entrenador individual, club/academia o jugador. Todos incluyen prueba gratuita sin tarjeta."
+        description="Elige el perfil que mejor encaje — entrenador individual, club/academia o jugador. Todos incluyen 15 días de prueba (0 € hoy; se pide tarjeta)."
         bullets={["Sin permanencia", "Cancela cuando quieras", "Datos conservados 30 días", "Soporte en español"]}
         primaryCta={{ label: "Empezar prueba gratis", to: "/comprar" }}
         secondaryCta={{ label: "Comparar funcionalidades", to: "/funcionalidades" }}
