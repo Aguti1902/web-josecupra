@@ -29,13 +29,13 @@ const navGroups = [
     ],
   },
   {
-    label: "Clubs",
-    groupIcon: Building2,
-    accent: "#60A5FA",
+    label: "Clubs · automático",
+    groupIcon: Sparkles,
+    accent: "#38BDF8",
     items: [
-      { to: "/admin/clubs", icon: Building2, label: "Clubs", tour: "nav-clubs" },
+      { to: "/admin/clubs", icon: Building2, label: "Clubs (auto / manual)", tour: "nav-clubs", hint: "Filtro Automáticos / Llevados por mí" },
+      { to: "/admin/club-auto", icon: Sparkles, label: "Motor club auto", hint: "Protocolos y preview" },
       { to: "/admin/planificacion", icon: CalendarDays, label: "Planificación" },
-      { to: "/admin/club-auto", icon: Sparkles, label: "Motor club auto" },
       { to: "/admin/tests", icon: ClipboardList, label: "Tests físicos" },
     ],
   },
@@ -44,10 +44,10 @@ const navGroups = [
     groupIcon: Users,
     accent: "#A78BFA",
     items: [
-      { to: "/admin/clients", icon: Users, label: "Clientes jugadores" },
+      { to: "/admin/clients", icon: Users, label: "Clientes jugadores", hint: "Automáticos / Llevados por mí" },
       { to: "/admin/plan-builder", icon: Brain, label: "Motor de planes" },
       { to: "/admin/templates", icon: Layers, label: "Plantillas F_*" },
-      { to: "/admin/catalog", icon: BookOpen, label: "Catálogo multi-eje" },
+      { to: "/admin/catalog", icon: BookOpen, label: "Catálogo ejercicios", hint: "Base compartida + club_*" },
     ],
   },
   {
