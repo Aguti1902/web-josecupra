@@ -33,9 +33,9 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
   const dispArr = formData?.disponibles || [];
 
   return {
-    // Apple Pay / Google Pay / wallets: Stripe los ofrece automáticamente cuando el dominio
-    // está verificado en el Dashboard (Payment method domains). No requiere integración extra.
-    automatic_payment_methods: { enabled: true },
+    // Wallets (Apple Pay / Google Pay): Stripe los ofrece si el dominio está verificado
+    // y el método está activo en el Dashboard. No usar automatic_payment_methods aquí
+    // (es de PaymentIntents; Checkout Session lo rechaza).
     mode: "subscription",
     // Siempre pedir tarjeta aunque el trial sea 0 € hoy (no permitir checkout sin PM).
     payment_method_collection: "always",
