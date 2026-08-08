@@ -1070,10 +1070,10 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
       <StripeTestBanner />
 
       <div className="mb-8">
-        <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Empieza tu prueba o suscríbete</h2>
+        <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu suscripción</h2>
         <p className="text-depro-gray text-sm">
-          Puedes empezar <strong className="text-depro-dark">15 días de prueba gratis sin tarjeta</strong>.
-          Al terminar, se te pedirá el pago para seguir usando DEPRO (tus datos se conservan).
+          Introduce tu método de pago. Tienes <strong className="text-depro-dark">15 días de prueba gratis</strong> antes del primer cargo.
+          También puedes empezar la prueba sin tarjeta (opción más abajo).
         </p>
       </div>
 
@@ -1190,7 +1190,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
           </div>
         </aside>
 
-        {/* Checkout embebido — protagonista */}
+        {/* Checkout embebido Stripe — protagonista del último paso */}
         <div className="lg:col-span-3 order-2 space-y-4">
           {error && (
             <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl p-4">
@@ -1199,10 +1199,32 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
           )}
 
           <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card space-y-3">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-depro-blue/10 px-2.5 py-1 text-[11px] font-bold text-depro-blue">
+              <Lock size={12} /> Pago seguro con Stripe
+            </div>
+            <h3 className="font-black text-depro-dark text-lg">Método de pago</h3>
+            <p className="text-sm text-depro-gray">
+              Completa el checkout para activar tu plan con <strong className="text-depro-dark">15 días de prueba</strong>.
+              El primer cargo se hace al terminar el trial.
+            </p>
+            <EmbeddedStripeCheckout
+              planId={plan.id}
+              formData={formPayload}
+              onError={setError}
+            />
+          </div>
+
+          <div className="relative flex items-center gap-3 py-1">
+            <div className="flex-1 h-px bg-depro-border" />
+            <span className="text-[11px] font-bold uppercase tracking-wide text-depro-gray">o empieza sin tarjeta</span>
+            <div className="flex-1 h-px bg-depro-border" />
+          </div>
+
+          <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card space-y-3">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-depro-green/10 px-2.5 py-1 text-[11px] font-bold text-depro-green">
               <BadgeCheck size={12} /> Sin tarjeta necesaria
             </div>
-            <h3 className="font-black text-depro-dark text-lg">Prueba gratuita 15 días</h3>
+            <h3 className="font-black text-depro-dark text-base">Prueba gratuita 15 días</h3>
             <p className="text-sm text-depro-gray">
               Crea tu cuenta y explora DEPRO sin introducir tarjeta. Máx. 3 PDFs; las cargas no se guardan de forma permanente.
               Al vencer, el acceso se bloquea hasta completar el pago.
@@ -1211,24 +1233,12 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
               type="button"
               disabled={trialLoading}
               onClick={startTrialWithoutCard}
-              className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full btn-ghost border border-depro-border flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {trialLoading ? "Activando prueba…" : "Empezar prueba gratis sin tarjeta"}
               {!trialLoading && <ArrowRight size={16} />}
             </button>
           </div>
-
-          <div className="relative flex items-center gap-3 py-1">
-            <div className="flex-1 h-px bg-depro-border" />
-            <span className="text-[11px] font-bold uppercase tracking-wide text-depro-gray">o suscríbete con tarjeta</span>
-            <div className="flex-1 h-px bg-depro-border" />
-          </div>
-
-          <EmbeddedStripeCheckout
-            planId={plan.id}
-            formData={formPayload}
-            onError={setError}
-          />
 
           <p className="lg:hidden flex items-center gap-2 text-[11px] text-depro-gray justify-center">
             <Lock size={12} className="text-depro-green" />
