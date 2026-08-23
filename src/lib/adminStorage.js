@@ -7,6 +7,20 @@
  *  3. Si localStorage está vacío se intenta Supabase como seed inicial
  */
 import { supabase } from "./supabase.js";
+import { clonePlans } from "./clubManualPlans.js";
+import { describeCloudSaveError } from "./adminGlobalBlobs.js";
+
+const AUTH_TIMEOUT_MS = 4000;
+const API_TIMEOUT_MS = 20000;
+
+function withTimeout(promise, ms, label = "timeout") {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(label)), ms);
+    }),
+  ]);
+}
 
 
 /**
@@ -30,10 +44,14 @@ export function generateLoginCode(abbreviation = "") {
 async function getAuthHeaders() {
   const headers = { "Content-Type": "application/json" };
   try {
-    const { data } = await supabase.auth.getSession();
+    const { data } = await withTimeout(
+      supabase.auth.getSession(),
+      AUTH_TIMEOUT_MS,
+      "auth-timeout",
+    );
     const token = data?.session?.access_token;
     if (token) headers.Authorization = `Bearer ${token}`;
-  } catch { /* sin sesión */ }
+  } catch { /* sin sesión o auth colgada */ }
   return headers;
 }
 
@@ -204,13 +222,29 @@ function genId() {
 // ════════════════════════════════════════════════════════════
 
 async function apiClubs(method, body) {
-  const res = await fetch("/api/admin-clubs", {
-    method,
-    headers: await getAuthHeaders(),
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-  const json = await res.json().catch(() => null);
-  return { ok: res.ok, data: json };
+  const headers = await getAuthHeaders();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), API_TIMEOUT_MS);
+  try {
+    const res = await fetch("/api/admin-clubs", {
+      method,
+      headers,
+      signal: ctrl.signal,
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    const json = await res.json().catch(() => null);
+    return { ok: res.ok, data: json, status: res.status };
+  } catch (e) {
+    const aborted = e?.name === "AbortError" || e?.message === "auth-timeout";
+    return {
+      ok: false,
+      aborted,
+      status: 0,
+      data: { error: aborted ? "Tiempo de espera agotado" : (e?.message || "Error de red") },
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function loadClubs() {
@@ -352,6 +386,19 @@ export async function saveClubDetail(clubId, data) {
   const pending = lsGet("depro_sync_pending", []).filter((x) => x !== clubId);
   lsSet("depro_sync_pending", pending);
   return { ok: true };
+}
+
+/** Una sola fuente de verdad para clubs academia (llevados por mí y automáticos). */
+export async function persistGlobalPlans(plans) {
+  const list = clonePlans(plans);
+  lsSet("depro_global_plans", list);
+  const result = await apiClubs("POST", {
+    club: { id: "GLOBAL_PLANS", name: "Global Plans", plans: list },
+  });
+  if (!result.ok && !result.data?.error) {
+    result.data = { ...(result.data || {}), error: describeCloudSaveError(result) };
+  }
+  return result;
 }
 
 // ════════════════════════════════════════════════════════════

@@ -3,6 +3,11 @@ import {
   clubDiscountCode,
   withSyncedDiscountCode,
 } from "../src/lib/clubEconomy.js";
+import { isMetaClubId, buildMetaClubPayload } from "../src/lib/adminGlobalBlobs.js";
+
+export const config = {
+  maxDuration: 60,
+};
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
 const SERVICE_ROLE_KEY =
@@ -64,6 +69,25 @@ export default async function handler(req, res) {
   // AuthContext y dashboards la usan para sincronizar). Sin token: también
   // permitido para no romper la carga inicial, pero POST/DELETE sí exigen auth.
   if (req.method === "GET") {
+    let onlyId = typeof req.query?.id === "string" ? req.query.id : null;
+    if (!onlyId) {
+      try {
+        onlyId = new URL(req.url, "http://localhost").searchParams.get("id");
+      } catch { /* ignore */ }
+    }
+    if (onlyId) {
+      const { data: row, error: oneErr } = await admin
+        .from("clubs_detail")
+        .select("club_id, data")
+        .eq("club_id", onlyId)
+        .maybeSingle();
+      if (oneErr) {
+        return res.status(400).json({ error: oneErr.message });
+      }
+      const clubs = row ? [{ ...(row.data || {}), id: row.club_id }] : [];
+      return res.status(200).json({ clubs });
+    }
+
     const { data: details, error: detErr } = await admin
       .from("clubs_detail")
       .select("club_id, data");
@@ -120,6 +144,20 @@ export default async function handler(req, res) {
         // entrenadores pueden persistir datos de su club (plantilla, etc.)
         // ayudantes también si tienen clubId
       }
+    }
+
+    // GLOBAL_PLANS / tests / catálogo: un upsert corto, sin tabla clubs ni merge económico.
+    if (isMetaClubId(clubId)) {
+      if (!caller.isAdmin) {
+        return res.status(403).json({ error: "Solo el admin puede guardar datos globales" });
+      }
+      const blob = buildMetaClubPayload(club, detail);
+      const result = await upsertClubDetail(admin, clubId, blob);
+      if (!result.ok) {
+        console.warn("[admin-clubs] meta blob upsert failed:", result.error);
+        return res.status(400).json({ error: result.error });
+      }
+      return res.status(200).json({ ok: true, id: clubId });
     }
 
     const { data: existingRow } = await admin.from("clubs_detail").select("data").eq("club_id", clubId).maybeSingle();

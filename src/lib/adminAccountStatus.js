@@ -70,11 +70,11 @@ export function clubRecordStatus(club) {
   return club.subscriptionStatus || club.status || null;
 }
 
-export function shouldBlockAccountLogin(userLike = {}, club = null) {
-  if (userLike.role === "admin" || userLike.email === "jose@depro.es") return false;
-  if (isDraftLoginBlocked(userLike.subscriptionStatus)) return true;
-  if (club && isDraftLoginBlocked(clubRecordStatus(club))) return true;
-  return false;
+export function shouldBlockAccountLogin(userLike = {}, _club = null) {
+  if (userLike.role === "admin" || String(userLike.email || "").toLowerCase() === "jose@depro.es") return false;
+  // Solo el estado de LA CUENTA. El status del club en localStorage (a menudo
+  // "borrador" o desfasado) no debe cerrar la sesión al recargar.
+  return isDraftLoginBlocked(userLike.subscriptionStatus);
 }
 
 /** Cuenta como cobro mensual (no demo ni borrador). */

@@ -2,56 +2,49 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   clonePlans,
-  isBroadcastTargetClub,
+  normalizeAgeBlock,
+  ageBlockForCategory,
+  filterPlansForTeam,
   resolveClubPanelPlans,
   pickPlansFromAdminClubsResponse,
   GLOBAL_PLANS_CLUB_ID,
 } from "./clubManualPlans.js";
 
-describe("clubManualPlans", () => {
-  it("solo reparte a clubs academia llevados por mí", () => {
-    assert.equal(isBroadcastTargetClub({
-      id: "club_1",
-      planningMode: "manual",
-      origen: "manual",
-    }), true);
-    assert.equal(isBroadcastTargetClub({
-      id: "club_auto",
-      planningMode: "auto",
-      origen: "automatico",
-    }), false);
-    assert.equal(isBroadcastTargetClub({
-      id: "coach_1",
-      isSoloCoach: true,
-      planningMode: "manual",
-    }), false);
-    assert.equal(isBroadcastTargetClub({ id: GLOBAL_PLANS_CLUB_ID, planningMode: "manual" }), false);
+describe("clubManualPlans — una fuente global", () => {
+  it("normaliza ageBlock label e id", () => {
+    assert.equal(normalizeAgeBlock("Bloque 1"), "Bloque 1");
+    assert.equal(normalizeAgeBlock("Bloque 1 · Fútbol Base"), "Bloque 1");
+    assert.equal(normalizeAgeBlock("Bloque 2 · Fútbol Formativo"), "Bloque 2");
+    assert.equal(ageBlockForCategory("Sub-11"), "Bloque 1");
+    assert.equal(ageBlockForCategory("Juvenil"), "Bloque 3");
   });
 
-  it("el panel manual usa club.plans y no pisa con global si hay copia", () => {
-    const own = [{ id: "mc_club", title: "Del club" }];
-    const global = [{ id: "mc_global", title: "Global" }];
-    assert.deepEqual(
-      resolveClubPanelPlans({ planningMode: "manual", isSoloCoach: false, plans: own }, global),
-      own,
-    );
-    assert.deepEqual(
-      resolveClubPanelPlans({ planningMode: "manual", isSoloCoach: false, plans: [] }, global),
-      global,
-    );
-    assert.deepEqual(
-      resolveClubPanelPlans({ planningMode: "auto", origen: "automatico", plans: own }, global),
-      global,
-    );
+  it("filtra planes por categoría del equipo", () => {
+    const plans = [
+      { id: "b1", ageBlock: "Bloque 1" },
+      { id: "b1b", ageBlock: "Bloque 1 · Fútbol Base" },
+      { id: "b3", ageBlock: "Bloque 3" },
+      { id: "old", ageBlock: null },
+    ];
+    const sub11 = filterPlansForTeam(plans, "Sub-11").map((p) => p.id);
+    assert.deepEqual(sub11, ["b1", "b1b", "old"]);
+    const juv = filterPlansForTeam(plans, "Juvenil").map((p) => p.id);
+    assert.deepEqual(juv, ["b3", "old"]);
   });
 
-  it("pickPlansFromAdminClubsResponse prioriza el detalle del club manual", () => {
+  it("el panel ignora club.plans y usa GLOBAL_PLANS", () => {
+    const own = [{ id: "mc_club" }];
+    const global = [{ id: "mc_global" }];
+    assert.deepEqual(
+      resolveClubPanelPlans({ planningMode: "manual", plans: own }, global),
+      global,
+    );
     const clubs = [
-      { id: GLOBAL_PLANS_CLUB_ID, plans: [{ id: "g" }] },
-      { id: "club_1", planningMode: "manual", plans: [{ id: "c" }] },
+      { id: GLOBAL_PLANS_CLUB_ID, plans: global },
+      { id: "club_1", planningMode: "manual", plans: own },
     ];
     const picked = pickPlansFromAdminClubsResponse(clubs, { id: "club_1", planningMode: "manual" }, []);
-    assert.equal(picked[0].id, "c");
+    assert.equal(picked[0].id, "mc_global");
   });
 
   it("clonePlans no comparte referencia", () => {

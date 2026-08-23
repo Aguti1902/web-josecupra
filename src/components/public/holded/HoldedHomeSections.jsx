@@ -191,10 +191,10 @@ export function ExtraToolsSection({ dark = true }) {
 /* ── Precios teaser (split + tarjetas apiladas) ──────────────── */
 
 const PLAN_CARDS = [
-  { name: "Coach", color: "from-slate-600 to-slate-700", price: "30 €" },
-  { name: "Pro", color: "from-holded-blue to-indigo-600", price: "29,99 €", featured: true },
-  { name: "Club", color: "from-violet-600 to-purple-700", price: "49,99 €" },
-  { name: "Elite", color: "from-emerald-600 to-teal-700", price: "Custom" },
+  { name: "Jugador", color: "from-slate-600 to-slate-700", price: "29 €" },
+  { name: "Coach", color: "from-holded-blue to-indigo-600", price: "30 €", featured: true },
+  { name: "Coach Premium", color: "from-violet-600 to-purple-700", price: "45 €" },
+  { name: "Club", color: "from-emerald-600 to-teal-700", price: "199 €" },
 ];
 
 export function PricingTeaserSection({ dark = true }) {

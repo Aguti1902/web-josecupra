@@ -155,6 +155,19 @@ function ClubSetupRoute({ children }) {
   return children;
 }
 
+function loginHome(user) {
+  if (user.impersonating) return "/dashboard";
+  if (user.role === "admin" || String(user.email || "").toLowerCase() === "jose@depro.es") return "/admin";
+  return "/dashboard";
+}
+
+function LoginRedirect() {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  if (user) return <Navigate to={loginHome(user)} replace />;
+  return <LoginPage />;
+}
+
 function AdminRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
@@ -184,8 +197,6 @@ function PublicLayout({ children }) {
 }
 
 function AppRoutes() {
-  const { user } = useAuth();
-
   return (
     <Routes>
       {/* ── Public ─────────────────────────────────────────────── */}
@@ -199,17 +210,7 @@ function AppRoutes() {
       <Route path="/recursos" element={<PublicLayout><ResourcesPage /></PublicLayout>} />
       <Route
         path="/login"
-        element={
-          user
-            ? <Navigate to={
-                user.impersonating
-                  ? "/dashboard"
-                  : ((user.role === "admin" || String(user.email || "").toLowerCase() === "jose@depro.es")
-                    ? "/admin"
-                    : "/dashboard")
-              } replace />
-            : <LoginPage />
-        }
+        element={<LoginRedirect />}
       />
       <Route path="/recuperar-contrasena" element={<ForgotPasswordPage />} />
       <Route path="/restablecer-contrasena" element={<ResetPasswordPage />} />
