@@ -1,8 +1,8 @@
 import { supabase } from "./supabase";
 import { PLANS, getPlanLimits, getNextPlan, resolvePlanForClub } from "./checkoutPlans";
 import { FEATURES, planIncludesFeature, upsellPlanForFeature } from "./planFeatures";
-import { featuresForAddon } from "./playerAddons";
 import { isClubAdmin } from "./clubRoles";
+import { evaluateFeatureAccess } from "./featureAccess";
 
 const STORAGE_PREFIX = "depro_subscription_";
 export const TRIAL_PERIOD_DAYS = 15;
@@ -199,31 +199,25 @@ export function isPlayerPro(user) {
 /** Acceso a una funcionalidad concreta (plan + trial + extras comprados). */
 export function hasFeatureAccess(user, featureId) {
   if (!user) return false;
-  if (isManualBilling(user)) return true;
 
   const feature = FEATURES[featureId];
   if (!feature) return true;
 
   const audience = resolveUserAudience(user);
-  if (!feature.audiences.includes(audience)) return true;
-
   const sub = getSubscriptionFromUser(user);
-  const planId = sub?.plan || user.plan;
+  const planId = sub?.plan || user.plan || null;
   const purchased = user.purchasedAddons || sub?.purchasedAddons || [];
+  const billingSource = sub?.billingSource || user.billingSource || null;
 
-  if (feature.addonId && purchased.includes(feature.addonId)) return true;
-  // Addons agrupados (p.ej. progresión+test, ejercicios+biblioteca)
-  if (purchased.some((aid) => featuresForAddon(aid).includes(featureId))) return true;
-
-  // Premium incluye todos los extras cuando no está en trial
-  if (audience === "player" && isPlayerPro(user) && !isInTrial(user)) return true;
-
-  // Prueba gratuita 15 días: acceso de prueba a TODAS las funcionalidades individuales
-  // (la persistencia a largo plazo sigue dependiendo del plan/contratación)
-  if (isInTrial(user)) return true;
-
-  if (!planId) return true;
-  return planIncludesFeature(planId, audience, feature);
+  return evaluateFeatureAccess({
+    audience,
+    planId,
+    billingSource,
+    isTrial: isInTrial(user),
+    isPro: isPlayerPro(user),
+    purchasedAddons: purchased,
+    featureId,
+  });
 }
 
 export function getFeatureLockReason(user, featureId) {

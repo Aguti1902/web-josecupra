@@ -258,8 +258,8 @@ function AppLayoutInner({ children }) {
   const playerNav = [
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/dashboard/plan", icon: Calendar, label: t("nav.weekly_plan") },
-    { to: "/dashboard/mis-cargas", icon: TrendingUp, label: "Mis cargas" },
     { to: "/dashboard/wellness", icon: HeartPulse, label: "Wellness" },
+    { to: "/dashboard/mis-cargas", icon: TrendingUp, label: "Mis cargas" },
     { to: "/dashboard/physical", icon: Activity, label: t("nav.tests") },
     { to: "/dashboard/feedback", icon: MessageSquare, label: t("nav.feedback") },
     { to: "/dashboard/ranking", icon: Trophy, label: t("nav.ranking") },

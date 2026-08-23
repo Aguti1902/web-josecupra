@@ -5,7 +5,7 @@
  * PDF §6: durante la demo el usuario explora casi todo; solo se bloquea
  * persistencia (PDF, export, guardar progreso/cargas/estadísticas).
  */
-import { PLAN_ORDER, PLANS } from "./checkoutPlans";
+import { PLAN_ORDER, PLANS } from "./checkoutPlans.js";
 
 export const FEATURES = {
   feedback: {
