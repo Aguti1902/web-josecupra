@@ -14,9 +14,9 @@ export const PLAN_LABELS = {
   "club-inicial": "Club Inicial",
   "club-pro": "Club Profesional",
   "club-elite": "Club Elite",
-  "player-essential": "Jugador Básico",
+  "player-essential": "Jugador Standard",
   "player-pro": "Jugador Premium",
-  basic: "Plan Básico",
+  basic: "Plan Standard",
   premium: "Plan Premium",
 };
 
@@ -409,7 +409,7 @@ export async function changePlan({ user, newPlanId }) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) {
-      return { ok: false, error: data.error || "No se pudo cambiar el plan" };
+      return { ok: false, error: data.error || "No se pudo cambiar el plan", remaining: data.remaining };
     }
     saveLocalSubscription(user.id, {
       plan: newPlanId,
@@ -419,5 +419,23 @@ export async function changePlan({ user, newPlanId }) {
     return { ok: true, plan: newPlanId, status: data.status, mode: data.mode };
   } catch (e) {
     return { ok: false, error: e.message || "Error de red al cambiar el plan" };
+  }
+}
+
+/** Plazas Premium restantes (máx. 40 jugadores). */
+export async function fetchPremiumCapacity() {
+  try {
+    const res = await fetch("/api/premium-capacity");
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, remaining: 0, available: false, error: data.error };
+    return {
+      ok: true,
+      cap: data.cap,
+      used: data.used,
+      remaining: data.remaining,
+      available: !!data.available,
+    };
+  } catch (e) {
+    return { ok: false, remaining: 0, available: false, error: e.message };
   }
 }

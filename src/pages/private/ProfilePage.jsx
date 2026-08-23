@@ -17,7 +17,10 @@ import {
   isSuccessfulGeneratedPlan,
 } from "../../lib/planSwapLimits";
 import { loadPlayerPlan, fetchPlayerPlan, savePlayerPlan, persistPlayerPlanRemote, normalizePlayerPlan } from "../../lib/playerPlanStorage";
-import { openBillingPortal, isSubscriptionActive } from "../../lib/subscription";
+import { openBillingPortal, isSubscriptionActive, purchaseAddon, changePlan, fetchPremiumCapacity, hasFeatureAccess, isPlayerPro, isInTrial } from "../../lib/subscription";
+import { PLAYER_ADDONS } from "../../lib/playerAddons";
+import { PLANS, formatPrice } from "../../lib/checkoutPlans";
+import { PREMIUM_PLAYER_CAP } from "../../lib/premiumCapacity";
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import {
   registerPendingClubPlayer,
@@ -222,6 +225,9 @@ export default function ProfilePage() {
   const [accountSaving, setAccountSaving] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
   const [accountMsg, setAccountMsg] = useState(null);
+  const [addonLoading, setAddonLoading] = useState(null);
+  const [premiumCap, setPremiumCap] = useState(null);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   useEffect(() => {
     setAccountName(user?.name || "");
@@ -289,6 +295,53 @@ export default function ProfilePage() {
     const res = await openBillingPortal(user);
     setBillingLoading(false);
     if (!res.ok) showAccountMsg("error", res.error || "No se pudo abrir el portal de facturación.");
+  };
+
+  useEffect(() => {
+    if (user?.role !== "player" || isPlayerPro(user)) return;
+    let cancelled = false;
+    fetchPremiumCapacity().then((cap) => {
+      if (!cancelled) setPremiumCap(cap);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id, user?.plan, user?.role]);
+
+  const handleBuyAddonFromProfile = async (addon) => {
+    if (!addon?.id || !user) return;
+    const ok = window.confirm(
+      `¿Añadir «${addon.name}» por ${addon.price}€${addon.period || "/ mes"}?\nSe abrirá el pago seguro con Stripe.`,
+    );
+    if (!ok) return;
+    setAddonLoading(addon.id);
+    showAccountMsg("ok", "Redirigiendo al pago…");
+    const res = await purchaseAddon(user, addon.id);
+    setAddonLoading(null);
+    if (!res.ok) showAccountMsg("error", res.error || "No se pudo iniciar el pago del extra.");
+  };
+
+  const handleUpgradePremiumFromProfile = async () => {
+    if (!user || isPlayerPro(user)) return;
+    if (premiumCap && premiumCap.ok && !premiumCap.available) {
+      showAccountMsg("error", `No quedan plazas Premium (máx. ${PREMIUM_PLAYER_CAP}).`);
+      return;
+    }
+    const spots = premiumCap?.remaining != null ? ` Quedan ${premiumCap.remaining} plazas.` : "";
+    const ok = window.confirm(
+      `¿Cambiar a Premium (${formatPrice(PLANS["player-pro"]?.price || 99)}/mes)?${spots}\nSe actualizará tu suscripción (prorrateo en Stripe si aplica).`,
+    );
+    if (!ok) return;
+    setUpgradeLoading(true);
+    const res = await changePlan({ user, newPlanId: "player-pro" });
+    setUpgradeLoading(false);
+    if (!res.ok) {
+      showAccountMsg("error", res.error || "No se pudo actualizar a Premium.");
+      const cap = await fetchPremiumCapacity();
+      setPremiumCap(cap);
+      return;
+    }
+    await refreshUser();
+    showAccountMsg("ok", "Plan actualizado a Premium ✓");
+    setPremiumCap(await fetchPremiumCapacity());
   };
 
   // Precarga desde cuestionario O snapshot del plan (motor). No pisa edits locales.
@@ -885,12 +938,19 @@ export default function ProfilePage() {
 
       <div className="bg-white border border-depro-border rounded-2xl p-6">
         <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
-          <CreditCard size={18} className="text-depro-blue" /> Facturación
+          <CreditCard size={18} className="text-depro-blue" /> Facturación y extras
         </h2>
-        <p className="text-sm text-depro-gray mb-4">
-          Gestiona tu suscripción, método de pago y datos de facturación en Stripe.
+        <p className="text-sm text-depro-gray mb-2">
+          Plan actual:{" "}
+          <span className="font-bold text-depro-dark">
+            {isPlayerPro(user) ? "Premium" : "Standard"}
+            {isInTrial(user) ? " · prueba 15 días" : ""}
+          </span>
         </p>
-        <div className="flex flex-wrap gap-3">
+        <p className="text-sm text-depro-gray mb-4">
+          Gestiona el pago en Stripe, añade extras (+5€/mes) o pásate a Premium si quedan plazas.
+        </p>
+        <div className="flex flex-wrap gap-3 mb-5">
           {user?.stripeCustomerId && (
             <button
               type="button"
@@ -906,9 +966,75 @@ export default function ProfilePage() {
             to="/dashboard/subscription"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-dark hover:border-depro-blue hover:text-depro-blue transition-colors"
           >
-            <Sparkles size={14} /> Ver plan y mejoras
+            <Sparkles size={14} /> Ver plan completo
           </Link>
         </div>
+
+        {user?.role === "player" && !isPlayerPro(user) && (
+          <div className="space-y-4 border-t border-depro-border pt-5">
+            <div>
+              <h3 className="font-bold text-depro-dark text-sm mb-1">Extras (+5€ / mes)</h3>
+              <p className="text-xs text-depro-gray mb-3">
+                En Standard el feedback es Premium. PDF, tests y mis cargas se añaden aquí confirmando el pago.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-3">
+                {PLAYER_ADDONS.map((addon) => {
+                  const owned = hasFeatureAccess(user, addon.featureId)
+                    || (user.purchasedAddons || []).includes(addon.id);
+                  return (
+                    <div key={addon.id} className="rounded-xl border border-depro-border p-3 flex flex-col">
+                      <div className="font-bold text-depro-dark text-sm">{addon.name}</div>
+                      <p className="text-xs text-depro-gray mt-1 flex-1">{addon.description}</p>
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <span className="text-sm font-black text-depro-dark">{addon.price}€{addon.period}</span>
+                        {owned ? (
+                          <span className="text-xs font-bold text-green-600">Incluido</span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={!!addonLoading}
+                            onClick={() => handleBuyAddonFromProfile(addon)}
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg bg-depro-blue text-white hover:bg-depro-blue-dark disabled:opacity-50"
+                          >
+                            {addonLoading === addon.id ? "…" : "Añadir"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+              <h3 className="font-bold text-depro-dark text-sm mb-1">Pasar a Premium</h3>
+              <p className="text-xs text-depro-gray mb-2">
+                Feedback del preparador, todos los extras y seguimiento humano.
+                Plazas limitadas ({PREMIUM_PLAYER_CAP}).
+                {premiumCap?.ok && (
+                  <> · Disponibles: <strong>{premiumCap.remaining}</strong></>
+                )}
+              </p>
+              <button
+                type="button"
+                disabled={upgradeLoading || (premiumCap?.ok && !premiumCap.available)}
+                onClick={handleUpgradePremiumFromProfile}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-depro-dark text-white text-sm font-bold hover:opacity-90 disabled:opacity-50"
+              >
+                {upgradeLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                {premiumCap?.ok && !premiumCap.available
+                  ? "Sin plazas Premium"
+                  : `Actualizar a Premium · ${formatPrice(PLANS["player-pro"]?.price || 99)}`}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {user?.role === "player" && isPlayerPro(user) && (
+          <p className="text-xs text-green-700 font-semibold border-t border-depro-border pt-4">
+            Premium activo: feedback, PDF, tests y mis cargas incluidos.
+          </p>
+        )}
       </div>
 
       {user?.role === "player" && (

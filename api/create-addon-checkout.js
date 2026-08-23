@@ -3,9 +3,9 @@ import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 
 /** Alineado con src/lib/playerAddons.js (ids actuales + legacy). */
 const ADDONS = {
-  "addon-pdf": { name: "PDF DEPRO", amount: 500, featureId: "pdf_export" },
-  "addon-cargas": { name: "Registro de cargas DEPRO", amount: 500, featureId: "cargas" },
-  "addon-progression": { name: "Progresión y test DEPRO", amount: 500, featureId: "progression" },
+  "addon-pdf": { name: "Descarga en PDF DEPRO", amount: 500, featureId: "pdf_export" },
+  "addon-cargas": { name: "Mis cargas DEPRO", amount: 500, featureId: "cargas" },
+  "addon-progression": { name: "Tests con registro DEPRO", amount: 500, featureId: "physical_tests" },
   "addon-unlimited-exercises": { name: "Ejercicios ilimitados + carpeta", amount: 500, featureId: "unlimited_exercises" },
   // Legacy
   "addon-library": { name: "Biblioteca ampliada DEPRO", amount: 500, featureId: "exercise_library" },

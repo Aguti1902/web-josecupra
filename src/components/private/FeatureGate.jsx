@@ -108,7 +108,7 @@ export default function FeatureGate({
         </p>
       )}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
-        {trialAddon && (
+        {trialAddon && feature !== "feedback" && (
           <button
             type="button"
             onClick={handleBuyAddon}
@@ -116,7 +116,7 @@ export default function FeatureGate({
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
           >
             <Sparkles size={16} />
-            Añadir al carrito · {trialAddon.name}
+            Añadir · {trialAddon.name} · {trialAddon.price}€
           </button>
         )}
         {upsellPlan && (
@@ -127,8 +127,19 @@ export default function FeatureGate({
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
           >
             <ArrowUpCircle size={16} />
-            {t("features.upgrade_to", { plan: upsellPlan.name, price: formatPrice(upsellPlan.price) })}
+            {feature === "feedback"
+              ? `Actualizar a Premium · ${formatPrice(upsellPlan.price)}`
+              : t("features.upgrade_to", { plan: upsellPlan.name, price: formatPrice(upsellPlan.price) })}
           </button>
+        )}
+        {feature === "feedback" && !upsellPlan && (
+          <Link
+            to="/dashboard/subscription"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors"
+          >
+            <ArrowUpCircle size={16} />
+            Actualizar a Premium
+          </Link>
         )}
         {reason === "trial" && !trialAddon && !upsellPlan && (
           <button
