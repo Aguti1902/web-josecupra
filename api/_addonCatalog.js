@@ -49,6 +49,20 @@ export const ADDON_CATALOG = {
     description: "Tests físicos con registro.",
     featureId: "physical_tests",
   },
+  "addon-coach-ball-refresh": {
+    id: "addon-coach-ball-refresh",
+    amount: 500,
+    name: "DEPRO Coach · Refresco ilimitado con balón",
+    description: "Cambios ilimitados de calentamientos con balón.",
+    featureId: "unlimited_ball_warmups",
+  },
+  "addon-coach-teams": {
+    id: "addon-coach-teams",
+    amount: 500,
+    name: "DEPRO Coach · Tres equipos más",
+    description: "Hasta 4 equipos (1 incluido + 3 extra).",
+    featureId: "extra_teams",
+  },
 };
 
 const LEGACY_ALIAS = {

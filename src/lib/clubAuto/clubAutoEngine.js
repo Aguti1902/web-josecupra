@@ -228,28 +228,31 @@ export function assignProtocolsToDays(trainDays, matchDay) {
   }));
 }
 
-function buildSession({ day, protocol, nivel, gymAccess, seed, weekOffset = 0 }) {
+function buildSession({ day, protocol, nivel, gymAccess, seed, weekOffset = 0, variant = 0, materials = [] }) {
   const template = getProtocolTemplate(protocol, gymAccess);
-  const warmup = selectGeneralWarmup({ seed: `${seed}|${day}|${weekOffset}|w` });
-  const ball = selectBallWarmup({ nivel, protocolo: protocol, seed: `${seed}|${day}|${weekOffset}|b` });
+  const warmup = selectGeneralWarmup({ seed: `${seed}|${day}|${weekOffset}|v${variant}|w` });
+  const ball = selectBallWarmup({ nivel, protocolo: protocol, seed: `${seed}|${day}|${weekOffset}|v${variant}|b` });
   const { exercises: protocolExercises } = selectProtocolExercises({
     protocolo: protocol,
     gymAccess,
-    seed: `${seed}|${day}|${weekOffset}|p`,
+    materials,
+    seed: `${seed}|${day}|${weekOffset}|v${variant}|p`,
   });
   const mainTask = selectMainTask({
     nivel,
     protocolo: protocol,
     gymAccess,
-    seed: `${seed}|${day}|${weekOffset}|m`,
+    seed: `${seed}|${day}|${weekOffset}|v${variant}|m`,
+    avoidId: ball?.id,
   });
 
   return {
-    id: `club_auto_${day}_${protocol}_${weekOffset}`,
+    id: `club_auto_${day}_${protocol}_${weekOffset}_v${variant}`,
     assignedDay: day,
     protocol,
     protocolLabel: PROTOCOL_DAY_META[protocol]?.label || protocol,
     intensityDay: PROTOCOL_DAY_META[protocol]?.intensidadDia,
+    sessionVariant: variant + 1,
     title: `Sesión ${protocol} · ${day}`,
     structure: [
       { type: "calentamiento_general", label: "1. Calentamiento general", item: warmup },
@@ -266,12 +269,35 @@ function buildSession({ day, protocol, nivel, gymAccess, seed, weekOffset = 0 })
         label: "5. Diseñador de tareas / observaciones / adaptaciones",
         item: {
           observaciones: CLUB_AUTO_OBSERVACIONES[protocol],
-          adaptaciones_jugadores: mainTask.adaptaciones?.jugadores,
-          adaptaciones_espacio: mainTask.adaptaciones?.espacio,
+          adaptaciones_jugadores: mainTask?.adaptaciones?.jugadores,
+          adaptaciones_espacio: mainTask?.adaptaciones?.espacio,
         },
       },
     ],
   };
+}
+
+export function monthKeyFromDate(isoOrDate = new Date()) {
+  const d = typeof isoOrDate === "string"
+    ? new Date(`${isoOrDate}${isoOrDate.includes("T") ? "" : "T12:00:00"}`)
+    : (isoOrDate || new Date());
+  if (Number.isNaN(d.getTime())) {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** 2 variantes por tipo de sesión, repartidas en el mes (semanas pares/impares). */
+export function variantIndexForWeek(weekOffset = 0) {
+  return Math.abs(Number(weekOffset) || 0) % 2;
+}
+
+export function weekOffsetInMonth(weekStart) {
+  if (!weekStart) return 0;
+  const d = new Date(`${weekStart}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return 0;
+  return Math.min(3, Math.max(0, Math.floor((d.getDate() - 1) / 7)));
 }
 
 /**
@@ -284,7 +310,10 @@ export function generateClubAutoMicrociclo(questionnaire, options = {}) {
   }
 
   const q = validation.normalized;
-  const seed = options.seed || `${q.nivel}|${q.dia_partido}|${q.dias_exactos_entrenamiento.join("-")}|${options.weekOffset || 0}`;
+  const monthKey = options.monthKey || monthKeyFromDate(options.weekStart);
+  const weekOffset = options.weekOffset ?? weekOffsetInMonth(options.weekStart);
+  const variant = options.variant ?? variantIndexForWeek(weekOffset);
+  const seed = options.seed || `${monthKey}|v${variant}|${q.nivel}|${q.dia_partido}|${q.dias_exactos_entrenamiento.join("-")}`;
   const plan = assignProtocolsToDays(q.dias_exactos_entrenamiento, q.dia_partido);
 
   const sessions = plan.map(({ day, protocol, distance, meta }) => ({
@@ -293,11 +322,15 @@ export function generateClubAutoMicrociclo(questionnaire, options = {}) {
       protocol,
       nivel: q.nivel,
       gymAccess: q.acceso_gimnasio,
+      materials: q.material,
       seed,
-      weekOffset: options.weekOffset || 0,
+      weekOffset,
+      variant,
     }),
     matchDistance: distance,
     dayMeta: meta,
+    monthKey,
+    sessionVariant: variant + 1,
   }));
 
   return {
@@ -305,6 +338,7 @@ export function generateClubAutoMicrociclo(questionnaire, options = {}) {
     errors: [],
     questionnaire: q,
     sessions,
+    monthKey,
     summary: sessions.map((s) => `${s.assignedDay}: ${s.protocol}`).join(" · "),
   };
 }
@@ -314,8 +348,9 @@ export function generateClubAutoMicrociclo(questionnaire, options = {}) {
  * @param {object} questionnaire
  * @param {{ cycles?: number }} [options]
  */
-export function generateClubAutoFourWeeks(questionnaire, { cycles = 1 } = {}) {
+export function generateClubAutoFourWeeks(questionnaire, { cycles = 1, monthKey } = {}) {
   const n = Math.max(1, Math.min(6, Number(cycles) || 1));
+  const mk = monthKey || monthKeyFromDate(new Date());
   const weeks = [];
   for (let c = 0; c < n; c++) {
     for (let w = 0; w < 4; w++) {
@@ -324,9 +359,12 @@ export function generateClubAutoFourWeeks(questionnaire, { cycles = 1 } = {}) {
         week: weekOffset + 1,
         label: `Semana ${weekOffset + 1}`,
         cycle: c + 1,
+        monthKey: mk,
         ...generateClubAutoMicrociclo(questionnaire, {
           weekOffset,
-          seed: `c${c}|w${w}`,
+          monthKey: mk,
+          variant: variantIndexForWeek(weekOffset),
+          seed: `${mk}|c${c}|w${w}|v${variantIndexForWeek(weekOffset)}`,
         }),
       });
     }

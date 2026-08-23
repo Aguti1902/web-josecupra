@@ -719,7 +719,7 @@ export default function SquadPage() {
 
   // ── Límite de jugadores según plan ────────────────────────
   const plan = useMemo(() => resolveCurrentPlan(user, club), [user, club]);
-  const limits = plan ? getPlanLimits(plan.id) : { maxTeams: null, maxPlayers: null };
+  const limits = plan ? getPlanLimits(plan.id, { purchasedAddons: user?.purchasedAddons || [] }) : { maxTeams: null, maxPlayers: null };
   // Total de jugadores en TODO el club (mi equipo cargado + resto de equipos ya sincronizados)
   const clubTotalPlayers = useMemo(() => {
     if (isCoord) return stats.total;

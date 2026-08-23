@@ -75,7 +75,7 @@ export function ExitIntentModal({ open, onClose }) {
           <div className="mb-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-holded-muted mb-1">Plan Coach Pro</p>
             <p className="text-3xl font-black text-holded-blue-light">0 € <span className="text-base text-holded-muted font-medium">/ hoy</span></p>
-            <p className="text-xs text-holded-muted mt-1">Después desde 14,99 €/mes</p>
+            <p className="text-xs text-holded-muted mt-1">Después desde 30 €/mes</p>
           </div>
           <Link
             to="/comprar"

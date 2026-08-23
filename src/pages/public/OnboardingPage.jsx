@@ -11,6 +11,7 @@ import {
 } from "../../lib/checkoutPlans";
 import { useAuth } from "../../context/AuthContext";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
+import { COACH_ADDONS } from "../../lib/coachAddons";
 import TeamBrandingFields, { saveCoachBrandingDraft } from "../../components/shared/TeamBrandingFields";
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import { clubMatchesDiscountCode } from "../../lib/clubEconomy";
@@ -996,6 +997,10 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
   const [error, setError] = useState("");
   const [showDetails, setShowDetails] = useState(false);
   const selectedAddons = form.selectedAddons || [];
+  const cartAddons = plan?.audience === "coach" ? COACH_ADDONS : PLAYER_ADDONS;
+  const showAddons = (plan?.audience === "player" && plan?.id !== "player-pro")
+    || (plan?.audience === "coach" && plan?.id !== "coach-premium");
+  const effectiveAddons = showAddons ? selectedAddons : [];
 
   useEffect(() => {
     if (!authUserId || !form.clubId || !form.clubTeamId) return;
@@ -1008,7 +1013,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
       plan: plan?.id,
     });
   }, [authUserId, form.clubId, form.clubTeamId, form.nombre, form.email, plan?.id]);
-  const addonsTotal = selectedAddons.reduce((sum, id) => sum + (PLAYER_ADDONS.find((a) => a.id === id)?.price || 0), 0);
+  const addonsTotal = effectiveAddons.reduce((sum, id) => sum + (cartAddons.find((a) => a.id === id)?.price || 0), 0);
 
   const toggleAddon = (id) => {
     const next = selectedAddons.includes(id)
@@ -1028,11 +1033,11 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
       // Password elegido en StepCuenta (usuario aún no creado hasta complete-payment)
       password: form.password || form.pendingPassword || "",
       pendingPassword: form.pendingPassword || form.password || "",
-      selectedAddons,
+      selectedAddons: effectiveAddons,
       primaryColor: form.primaryColor || "#0A36F7",
       secondaryColor: form.secondaryColor || "#ffffff",
     }),
-    [form, plan?.audience, authUserId, selectedAddons],
+    [form, plan?.audience, authUserId, effectiveAddons],
   );
 
   if (!plan?.id) {
@@ -1164,11 +1169,11 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
             </div>
           </div>
 
-          {plan.audience === "player" && (
+          {showAddons && (
             <div className="bg-white border border-depro-border rounded-2xl p-5 shadow-card space-y-3">
               <div className="font-bold text-depro-dark text-sm">Extras opcionales</div>
-              <p className="text-xs text-depro-gray">Añade funcionalidades al carrito antes de pagar.</p>
-              {PLAYER_ADDONS.map((addon) => {
+              <p className="text-xs text-depro-gray">Añade funcionalidades al carrito antes de pagar. En Premium van incluidos.</p>
+              {cartAddons.map((addon) => {
                 const sel = selectedAddons.includes(addon.id);
                 return (
                   <button

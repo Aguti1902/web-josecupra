@@ -297,11 +297,11 @@ function AppLayoutInner({ children }) {
 
   const coachNav = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/dashboard/mesocycle", icon: ClipboardList, label: "Planificación" },
-    { to: "/dashboard/plan", icon: Calendar, label: "Sesiones" },
+    { to: "/dashboard/plan", icon: Calendar, label: "Microciclo" },
+    { to: "/dashboard/mesocycle", icon: ClipboardList, label: "Mesociclo" },
     { to: "/dashboard/squad", icon: UsersIcon, label: "Plantilla" },
     { to: "/dashboard/team-tests", icon: Activity, label: "Tests" },
-    ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Carga" }] : []),
+    ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Cargas" }] : []),
     subscriptionNav,
     { to: "/dashboard/club-profile", icon: User, label: "Mi perfil" },
   ];

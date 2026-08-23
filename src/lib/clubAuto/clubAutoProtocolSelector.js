@@ -7,6 +7,7 @@ import { EXERCISES } from "../exerciseCatalog.js";
 import { CLUB_SLOT_EXERCISE_NAMES } from "../../data/clubAutoCatalog.js";
 import { getProtocolTemplate } from "./clubAutoTemplates.js";
 import { getClubTagsForExercise } from "./clubExerciseTags.js";
+import { isExerciseAllowedForMaterials, normalizeMaterialList } from "../exerciseSelector.js";
 
 function stableIndex(seed, length) {
   if (length <= 0) return 0;
@@ -73,17 +74,28 @@ function findExercisesForSlot(slotKey, { gymAccess, protocolo } = {}) {
   return found;
 }
 
-function materialOk(ex, gymAccess) {
-  const mats = ex.etiquetas?.material || [];
-  if (gymAccess) return true;
-  // sin gym: evitar máquinas
-  return !mats.some((m) => String(m).startsWith("maquina") || m === "barra" || m === "gym_completo");
+function materialOk(ex, gymAccess, materials = []) {
+  const mats = normalizeMaterialList(materials);
+  const hasGymKit = mats.includes("gym_completo") || gymAccess;
+  if (hasGymKit && mats.includes("gym_completo")) {
+    return isExerciseAllowedForMaterials(ex.etiquetas?.material || [], materials.length ? materials : ["gym_completo"]);
+  }
+  if (!hasGymKit) {
+    const exMats = ex.etiquetas?.material || [];
+    if (exMats.some((m) => String(m).startsWith("maquina") || m === "barra" || m === "gym_completo")) {
+      return false;
+    }
+  }
+  if (!materials.length) {
+    return isExerciseAllowedForMaterials(ex.etiquetas?.material || [], gymAccess ? ["gym_completo"] : ["sin_material"]);
+  }
+  return isExerciseAllowedForMaterials(ex.etiquetas?.material || [], materials);
 }
 
 /**
  * Rellena los 6 slots del protocolo A/B/C (campo o gym).
  */
-export function selectProtocolExercises({ protocolo, gymAccess, seed = "", usedIds = [] }) {
+export function selectProtocolExercises({ protocolo, gymAccess, seed = "", usedIds = [], materials = [] }) {
   const template = getProtocolTemplate(protocolo, gymAccess);
   const used = new Set(usedIds);
   const exercises = [];
@@ -93,12 +105,14 @@ export function selectProtocolExercises({ protocolo, gymAccess, seed = "", usedI
     let candidates = [];
     for (const key of keys) {
       candidates = findExercisesForSlot(key, { gymAccess, protocolo }).filter(
-        (ex) => materialOk(ex, gymAccess) && !used.has(ex.id),
+        (ex) => materialOk(ex, gymAccess, materials) && !used.has(ex.id),
       );
       if (candidates.length) break;
     }
     if (!candidates.length) {
-      candidates = findExercisesForSlot(slotDef.slot, { gymAccess, protocolo }).filter((ex) => !used.has(ex.id));
+      candidates = findExercisesForSlot(slotDef.slot, { gymAccess, protocolo }).filter(
+        (ex) => materialOk(ex, gymAccess, materials) && !used.has(ex.id),
+      );
     }
     if (!candidates.length) {
       // §4.4: no renderizar bloques sin ejercicios etiquetados

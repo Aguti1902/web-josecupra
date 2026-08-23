@@ -68,8 +68,8 @@ export default function CoachPlanning({ club, team }) {
       <div>
         <h2 className="text-xl font-black text-depro-dark">Planificación mensual</h2>
         <p className="text-sm text-depro-gray">
-          {isClubAuto
-            ? "Mesociclo mensual del motor automático (A/B/C según día de partido y días reales). Pulsa cada semana o sesión para abrirla."
+            {isClubAuto
+            ? "Mesociclo del mes: dos sesiones por tipo de entreno (extensiva, intensiva…) repartidas en 4 semanas. Al terminar el mes se generan otras nuevas."
             : "Mesociclo mensual generado por DEPRO. Dentro del mes hay progresión; el marco principal es mensual."}
         </p>
       </div>

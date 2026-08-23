@@ -1,5 +1,7 @@
 /** Planes de suscripción DEPRO — IDs alineados con landing y Stripe checkout */
 
+import { COACH_EXTRA_TEAMS_ADDON, COACH_STANDARD_MAX_TEAMS, COACH_TEAMS_WITH_ADDON } from "./coachAddons.js";
+
 export const AUDIENCES = {
   coach: { id: "coach", label: "Entrenador" },
   club: { id: "club", label: "Club" },
@@ -10,17 +12,18 @@ export const PLANS = {
   "coach-starter": {
     id: "coach-starter",
     audience: "coach",
-    name: "Starter",
-    tagline: "1 equipo · hasta 25 jugadores",
-    price: 14.99,
+    name: "Standard",
+    tagline: "Sesiones automáticas · 1 equipo · extras +5€",
+    price: 30,
     period: "/ mes",
     limits: { maxTeams: 1, maxPlayers: 25 },
     features: [
-      "Microciclo IA mensual",
-      "Sesiones automáticas A/B/C",
-      "Panel entrenador",
-      "Export PDF básico",
-      "Soporte por email",
+      "Microciclo y mesociclo automáticos según tu cuestionario",
+      "Dos sesiones por tipo de entreno, repartidas en el mes",
+      "Actualización automática al cambiar de mes",
+      "1 equipo incluido",
+      "Extras opcionales (+5€/mes): refresco con balón, tests, cargas, +3 equipos",
+      "Mismo flujo de compra que las planificaciones individuales",
     ],
     color: "#0A36F7",
     bg: "#EEF1FF",
@@ -28,39 +31,35 @@ export const PLANS = {
   "coach-pro": {
     id: "coach-pro",
     audience: "coach",
-    name: "Pro",
-    tagline: "3 equipos · hasta 60 jugadores",
-    price: 29.99,
+    name: "Standard (legado)",
+    tagline: "Plan anterior Pro — se trata como Standard",
+    price: 30,
     period: "/ mes",
-    limits: { maxTeams: 3, maxPlayers: 60 },
-    features: [
-      "Todo Starter +",
-      "Control de carga manual",
-      "Tests físicos T1→T3",
-      "Chat staff básico",
-      "Histórico por jugador",
-    ],
+    limits: { maxTeams: 1, maxPlayers: 25 },
+    features: ["Sesiones automáticas", "1 equipo"],
     color: "#0A36F7",
     bg: "#EEF1FF",
-    highlight: true,
+    legacy: true,
   },
   "coach-premium": {
     id: "coach-premium",
     audience: "coach",
     name: "Premium",
-    tagline: "Equipos ilimitados · jugadores ilimitados",
-    price: 49.99,
+    tagline: "Todo el Standard + extras · descuento sobre 50€",
+    price: 45,
     period: "/ mes",
-    limits: { maxTeams: null, maxPlayers: null },
+    limits: { maxTeams: 4, maxPlayers: 60 },
     features: [
-      "Todo Pro +",
-      "Import GPS (Catapult, STATSports)",
-      "Clasificación IA de carga",
-      "Diagramas tácticos IA",
-      "Soporte prioritario",
+      "Todo el plan Standard",
+      "Refresco ilimitado de calentamientos con balón",
+      "Tests con registro",
+      "Control de cargas",
+      "Hasta 4 equipos (1 + 3 extra)",
+      "Pequeño descuento vs Standard 30€ + extras 20€ (50€ → 45€)",
     ],
     color: "#F6CC12",
     bg: "#FEFAE7",
+    highlight: true,
   },
   "club-inicial": {
     id: "club-inicial",
@@ -162,13 +161,13 @@ export const PLANS = {
 
 /** Orden ascendente de planes por audiencia — se usa para sugerir upgrades */
 export const PLAN_ORDER = {
-  coach: ["coach-starter", "coach-pro", "coach-premium"],
+  coach: ["coach-starter", "coach-premium"],
   club: ["club-inicial", "club-pro", "club-elite"],
   player: ["player-essential", "player-pro"],
 };
 
 const PLAN_SLUGS = {
-  coach: { starter: "coach-starter", pro: "coach-pro", premium: "coach-premium" },
+  coach: { starter: "coach-starter", pro: "coach-starter", premium: "coach-premium", essential: "coach-starter" },
   club: { inicial: "club-inicial", pro: "club-pro", elite: "club-elite" },
   player: { essential: "player-essential", pro: "player-pro", basic: "player-essential", premium: "player-pro" },
 };
@@ -179,7 +178,7 @@ export function resolvePlanId(audience, planSlug) {
 }
 
 export function plansForAudience(audience) {
-  return Object.values(PLANS).filter((p) => p.audience === audience);
+  return Object.values(PLANS).filter((p) => p.audience === audience && !p.legacy);
 }
 
 export function formatPrice(price) {
@@ -196,8 +195,15 @@ export function applyClubDiscount(price, pct = CLUB_DISCOUNT_PCT) {
 }
 
 /** Límites del plan. Si el plan no se reconoce, se devuelve ilimitado (fail-open). */
-export function getPlanLimits(planId) {
-  return PLANS[planId]?.limits || { maxTeams: null, maxPlayers: null };
+export function getPlanLimits(planId, { purchasedAddons = [] } = {}) {
+  const plan = PLANS[planId];
+  const base = plan?.limits || { maxTeams: null, maxPlayers: null };
+  if (plan?.audience !== "coach") return { ...base };
+  const extraTeams = planId === "coach-premium" || (purchasedAddons || []).includes(COACH_EXTRA_TEAMS_ADDON);
+  return {
+    ...base,
+    maxTeams: extraTeams ? COACH_TEAMS_WITH_ADDON : (base.maxTeams ?? COACH_STANDARD_MAX_TEAMS),
+  };
 }
 
 /** Siguiente plan (superior) dentro de la misma audiencia, o null si ya es el más alto. */
@@ -224,7 +230,10 @@ export function resolvePlanForClub(planText, audience = "club") {
 
   const norm = String(planText).toLowerCase();
   if (norm.includes("elite") || norm.includes("premium")) return topPlan;
-  if (norm.includes("pro") || norm.includes("profesional")) return PLANS[order[1]] || topPlan;
+  if (norm.includes("pro") || norm.includes("profesional")) {
+    if (audience === "coach") return PLANS[order[0]] || topPlan;
+    return PLANS[order[1]] || topPlan;
+  }
   if (norm.includes("inicial") || norm.includes("starter") || norm.includes("básico") || norm.includes("basico")) {
     return PLANS[order[0]] || topPlan;
   }

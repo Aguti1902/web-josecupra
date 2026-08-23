@@ -46,7 +46,7 @@ import AdminClubCalentamientosPage from "./AdminClubCalentamientosPage";
 import AdminClubTareasPage from "./AdminClubTareasPage";
 import AdminClubPlantillasPage from "./AdminClubPlantillasPage";
 import AdminClubAutoMotorPage from "./AdminClubAutoMotorPage";
-import AdminCatalogPage from "./AdminCatalogPage";
+import AdminClubExercisesPage from "./AdminClubExercisesPage";
 import AdminTestsPage from "./AdminTestsPage";
 import { loadClubs, saveClub, saveClubDetail, loadClubDetail, createClubUser, updateUserByEmail } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect, ManualPriceField } from "../../components/admin/PlanSelectField";
@@ -2693,15 +2693,7 @@ export default function AdminClubDetailPage() {
             {contenidoMode === "automatico" && contenidoPanel === "sin_balon" && <AdminClubCalentamientosPage embedded />}
             {contenidoMode === "automatico" && contenidoPanel === "con_balon" && <AdminClubTareasPage embedded />}
             {contenidoMode === "automatico" && contenidoPanel === "ejercicios" && (
-              <div className="space-y-3">
-                <p className="text-sm text-depro-gray">
-                  Catálogo duplicado para club con etiquetas <code className="text-xs bg-depro-gray-light px-1 rounded">club_*</code> independientes del motor individual.
-                </p>
-                <AdminCatalogPage embedded />
-                <Link to="/admin/catalog" className="inline-flex items-center gap-1 text-xs font-bold text-depro-blue">
-                  Abrir catálogo completo <ChevronRight size={12} />
-                </Link>
-              </div>
+              <AdminClubExercisesPage />
             )}
             {contenidoMode === "automatico" && contenidoPanel === "motor" && <AdminClubAutoMotorPage />}
             {contenidoMode === "manual" && contenidoPanel === "planificacion" && (

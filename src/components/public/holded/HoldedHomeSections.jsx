@@ -191,7 +191,7 @@ export function ExtraToolsSection({ dark = true }) {
 /* ── Precios teaser (split + tarjetas apiladas) ──────────────── */
 
 const PLAN_CARDS = [
-  { name: "Coach", color: "from-slate-600 to-slate-700", price: "14,99 €" },
+  { name: "Coach", color: "from-slate-600 to-slate-700", price: "30 €" },
   { name: "Pro", color: "from-holded-blue to-indigo-600", price: "29,99 €", featured: true },
   { name: "Club", color: "from-violet-600 to-purple-700", price: "49,99 €" },
   { name: "Elite", color: "from-emerald-600 to-teal-700", price: "Custom" },
@@ -512,7 +512,7 @@ const FAQS = [
   {
     icon: Zap,
     q: "¿Cuánto cuesta DEPRO?",
-    a: "Los planes empiezan desde 14,99 €/mes (Coach Pro). Hay opciones para entrenadores individuales, clubs y academias. Consulta la página de precios para comparar límites y funcionalidades.",
+    a: "Los planes de entrenador empiezan desde 30 €/mes (Standard). Hay extras +5€ y Premium a 45€. Consulta la página de precios para comparar límites y funcionalidades.",
   },
   {
     icon: Users,

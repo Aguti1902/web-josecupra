@@ -1,154 +1,56 @@
 import { useMemo, useState } from "react";
-import { Flame, Save, ExternalLink } from "lucide-react";
-import { CLUB_GENERAL_WARMUPS, CLUB_BALL_WARMUPS } from "../../data/clubAutoCatalog";
+import { Flame, Save, ExternalLink, Plus, Trash2 } from "lucide-react";
+import {
+  CLUB_SIN_BALON_INTRO,
+  loadCustomWarmups,
+  saveCustomWarmups,
+} from "../../data/clubAutoCatalog";
 
-const STORAGE_KEY = "depro_club_warmup_overrides";
-
-const TIPO_LABELS = {
-  rondo: "Rondos",
-  rueda_pases: "Ruedas de pases",
-  circuito: "Circuitos",
-  posiciones: "Trabajo de posiciones",
-  pases: "Ejercicios de pases",
-};
-
-function readOverrides() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeOverrides(value) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-}
-
-function Tag({ children }) {
-  return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-depro-gray-light text-depro-dark border border-depro-border">
-      {children}
-    </span>
-  );
-}
-
-function WarmupRow({ item, override, onChange, youtubeOnly = false }) {
-  const nombre = override?.nombre ?? item.nombre;
-  const tags = override?.tags ?? null;
-  const tipo = tags?.tipo ?? item.tipo;
-  const nivel = tags?.nivel ?? (Array.isArray(item.nivel) ? item.nivel.join("/") : item.nivel);
-  const intensidad = tags?.intensidad ?? item.intensidad;
-  const videoUrl = override?.videoUrl ?? item.videoUrl ?? item.video ?? "";
-
-  return (
-    <div className="rounded-xl border border-depro-border p-3 space-y-2">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <input
-            type="text"
-            value={nombre}
-            onChange={(e) => onChange(item.id, { nombre: e.target.value })}
-            className="w-full text-sm font-semibold text-depro-dark border border-transparent hover:border-depro-border focus:border-depro-blue rounded-lg px-2 py-1 focus:outline-none"
-          />
-          <p className="text-[11px] text-depro-gray mt-0.5 px-2">{item.descripcion || item.duracion}</p>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {tipo && <Tag>tipo · {tipo}</Tag>}
-          {nivel && <Tag>nivel · {nivel}</Tag>}
-          {intensidad && <Tag>intensidad · {intensidad}</Tag>}
-          {item.duracion && <Tag>{item.duracion}</Tag>}
-        </div>
-      </div>
-
-      <label className="block text-[10px] text-depro-gray px-2">
-        Vídeo de YouTube {youtubeOnly && <span className="text-depro-blue">(obligatorio · solo enlace)</span>}
-        <div className="mt-0.5 flex gap-2">
-          <input
-            type="url"
-            value={videoUrl}
-            placeholder="https://www.youtube.com/watch?v=…"
-            onChange={(e) => onChange(item.id, { videoUrl: e.target.value })}
-            className="flex-1 border border-depro-border rounded-lg px-2 py-1.5 text-xs"
-          />
-          {videoUrl && (
-            <a
-              href={videoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 px-2 rounded-lg border border-depro-border text-[10px] font-bold text-depro-blue"
-            >
-              <ExternalLink size={12} /> Ver
-            </a>
-          )}
-        </div>
-      </label>
-
-      {!youtubeOnly && (
-        <div className="grid sm:grid-cols-3 gap-2 px-2">
-          <label className="text-[10px] text-depro-gray">
-            Tipo
-            <input
-              type="text"
-              value={tipo || ""}
-              onChange={(e) => onChange(item.id, { tags: { ...(override?.tags || {}), tipo: e.target.value, nivel, intensidad } })}
-              className="mt-0.5 w-full border border-depro-border rounded-lg px-2 py-1.5 text-xs"
-            />
-          </label>
-          <label className="text-[10px] text-depro-gray">
-            Nivel
-            <input
-              type="text"
-              value={nivel || ""}
-              onChange={(e) => onChange(item.id, { tags: { ...(override?.tags || {}), tipo, nivel: e.target.value, intensidad } })}
-              className="mt-0.5 w-full border border-depro-border rounded-lg px-2 py-1.5 text-xs"
-            />
-          </label>
-          <label className="text-[10px] text-depro-gray">
-            Intensidad
-            <input
-              type="text"
-              value={intensidad || ""}
-              onChange={(e) => onChange(item.id, { tags: { ...(override?.tags || {}), tipo, nivel, intensidad: e.target.value } })}
-              className="mt-0.5 w-full border border-depro-border rounded-lg px-2 py-1.5 text-xs"
-            />
-          </label>
-        </div>
-      )}
-    </div>
-  );
+function youtubeOk(url) {
+  return /youtu\.?be|youtube\.com/i.test(String(url || ""));
 }
 
 export default function AdminClubCalentamientosPage({ embedded = false } = {}) {
-  const [overrides, setOverrides] = useState(() => readOverrides());
+  const [warmups, setWarmups] = useState(() => loadCustomWarmups());
+  const [draftUrl, setDraftUrl] = useState("");
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
-  const ballGroups = useMemo(() => {
-    const map = new Map();
-    for (const item of CLUB_BALL_WARMUPS) {
-      const key = item.tipo || item.carpeta || "otros";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(item);
-    }
-    return [...map.entries()];
-  }, []);
-
-  const changeItem = (id, patch) => {
-    setOverrides((prev) => {
-      const next = {
-        ...prev,
-        [id]: {
-          ...prev[id],
-          ...patch,
-          tags: patch.tags ? { ...(prev[id]?.tags || {}), ...patch.tags } : prev[id]?.tags,
-        },
-      };
-      writeOverrides(next);
-      return next;
-    });
+  const persist = (next) => {
+    const numbered = saveCustomWarmups(next);
+    setWarmups(numbered);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
+
+  const addWarmup = () => {
+    const url = draftUrl.trim();
+    if (!url || !youtubeOk(url)) {
+      setError("Pega un enlace de YouTube.");
+      return;
+    }
+    setError("");
+    persist([
+      ...warmups,
+      {
+        id: `cgw_${Date.now()}`,
+        videoUrl: url,
+        video: url,
+        carpeta: "/calentamientos_sin_balon",
+      },
+    ]);
+    setDraftUrl("");
+  };
+
+  const changeUrl = (id, videoUrl) => {
+    persist(warmups.map((w) => (w.id === id ? { ...w, videoUrl, video: videoUrl } : w)));
+  };
+
+  const removeWarmup = (id) => {
+    persist(warmups.filter((w) => w.id !== id));
+  };
+
+  const preview = useMemo(() => warmups, [warmups]);
 
   return (
     <div className="space-y-6">
@@ -157,10 +59,10 @@ export default function AdminClubCalentamientosPage({ embedded = false } = {}) {
           <div>
             <h1 className="text-2xl font-bold text-depro-dark flex items-center gap-2">
               <Flame size={22} className="text-orange-500" />
-              Calentamientos club auto
+              Calentamientos sin balón
             </h1>
             <p className="text-sm text-depro-gray mt-1">
-              Sin balón (solo YouTube) y con balón. El motor elige el general de forma aleatoria.
+              Solo enlace de YouTube. Se numeran solos: Calentamiento 1, 2, 3…
             </p>
           </div>
           {saved && (
@@ -176,48 +78,70 @@ export default function AdminClubCalentamientosPage({ embedded = false } = {}) {
         </span>
       )}
 
-      <section className="space-y-3">
-        <h2 className="font-bold text-depro-dark">Calentamientos sin balón</h2>
-        <p className="text-xs text-depro-gray">
-          Carpeta · /calentamientos_sin_balon · {CLUB_GENERAL_WARMUPS.length} vídeos de movilidad · selección aleatoria como calentamiento general
+      <div className="rounded-2xl border border-depro-border bg-depro-blue-light/30 p-4">
+        <p className="text-sm font-bold text-depro-dark">{CLUB_SIN_BALON_INTRO.titulo}</p>
+        <p className="text-xs text-depro-gray mt-1 leading-relaxed">{CLUB_SIN_BALON_INTRO.descripcion}</p>
+        <p className="text-[11px] text-depro-gray mt-2">
+          El entrenador ve este texto; no ve títulos inventados. El motor elige uno de los vídeos numerados.
         </p>
-        <div className="space-y-2">
-          {CLUB_GENERAL_WARMUPS.map((item) => (
-            <WarmupRow
-              key={item.id}
-              item={{ ...item, tipo: "movilidad", intensidad: "baja", nivel: "A/B/C" }}
-              override={overrides[item.id]}
-              onChange={changeItem}
-              youtubeOnly
-            />
-          ))}
-        </div>
-      </section>
+      </div>
 
-      <section className="space-y-5">
-        <h2 className="font-bold text-depro-dark">Calentamientos con balón (activación específica)</h2>
-        <p className="text-xs text-depro-gray">
-          La carpeta principal de tareas con balón filtradas por día está en «Calentamiento con balón». Aquí se mantienen las activaciones técnicas cortas.
-        </p>
-        {ballGroups.map(([tipo, items]) => (
-          <div key={tipo} className="space-y-2">
-            <h3 className="text-sm font-bold text-depro-blue">
-              {TIPO_LABELS[tipo] || tipo}
-              <span className="text-depro-gray font-normal ml-2 text-xs">{items[0]?.carpeta}</span>
-            </h3>
-            <div className="space-y-2">
-              {items.map((item) => (
-                <WarmupRow
-                  key={item.id}
-                  item={item}
-                  override={overrides[item.id]}
-                  onChange={changeItem}
-                />
-              ))}
-            </div>
+      <div className="rounded-2xl border border-depro-border bg-white p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="url"
+            value={draftUrl}
+            onChange={(e) => { setDraftUrl(e.target.value); setError(""); }}
+            placeholder="https://www.youtube.com/watch?v=…"
+            className="flex-1 border border-depro-border rounded-xl px-3 py-2.5 text-sm"
+          />
+          <button
+            type="button"
+            onClick={addWarmup}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold"
+          >
+            <Plus size={14} /> Añadir calentamiento
+          </button>
+        </div>
+        {error && <p className="text-xs text-red-600">{error}</p>}
+      </div>
+
+      <div className="space-y-2">
+        {preview.length === 0 && (
+          <p className="text-sm text-depro-gray italic border border-dashed border-depro-border rounded-xl p-6 text-center">
+            Todavía no hay calentamientos. Añade el enlace de YouTube.
+          </p>
+        )}
+        {preview.map((item) => (
+          <div key={item.id} className="rounded-xl border border-depro-border p-3 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-bold text-depro-dark min-w-[8.5rem]">{item.nombre}</span>
+            <input
+              type="url"
+              value={item.videoUrl || item.video || ""}
+              onChange={(e) => changeUrl(item.id, e.target.value)}
+              className="flex-1 min-w-[12rem] border border-depro-border rounded-lg px-2 py-1.5 text-xs"
+            />
+            {(item.videoUrl || item.video) && (
+              <a
+                href={item.videoUrl || item.video}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-depro-blue"
+              >
+                <ExternalLink size={12} /> Ver
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => removeWarmup(item.id)}
+              className="p-1.5 rounded-lg border border-depro-border text-depro-gray hover:text-red-600 hover:border-red-200"
+              aria-label="Eliminar"
+            >
+              <Trash2 size={14} />
+            </button>
           </div>
         ))}
-      </section>
+      </div>
     </div>
   );
 }
