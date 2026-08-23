@@ -69,8 +69,24 @@ if (mode === "live" && keyIsTest) {
   process.exit(1);
 }
 
-const siteUrl = (process.env.SITE_URL || (mode === "test" ? "http://localhost:5173" : "https://depro.es")).replace(/\/$/, "");
+const siteUrl = (process.env.SITE_URL || (mode === "test" ? "http://localhost:5173" : "https://www.deprotrain.com")).replace(/\/$/, "");
 const webhookUrl = `${siteUrl}/api/stripe-webhook`;
+const paymentDomains = Array.from(
+  new Set(
+    [
+      process.env.STRIPE_PAYMENT_DOMAIN,
+      (() => {
+        try {
+          return new URL(siteUrl).hostname;
+        } catch {
+          return null;
+        }
+      })(),
+      "www.deprotrain.com",
+      "deprotrain.com",
+    ].filter(Boolean),
+  ),
+);
 
 const stripe = new Stripe(key);
 const pricesOut = {};
@@ -120,14 +136,41 @@ async function ensureWebhook() {
   });
 }
 
+async function ensurePaymentMethodDomains() {
+  const existing = await stripe.paymentMethodDomains.list({ limit: 100 });
+  for (const domain of paymentDomains) {
+    let row = existing.data.find((d) => d.domain_name === domain);
+    if (!row) {
+      row = await stripe.paymentMethodDomains.create({ domain_name: domain, enabled: true });
+      console.log(`✅ Payment Method Domain creado: ${domain} (${row.id})`);
+    } else if (!row.enabled) {
+      row = await stripe.paymentMethodDomains.update(row.id, { enabled: true });
+      console.log(`✅ Payment Method Domain reactivado: ${domain}`);
+    } else {
+      console.log(`ℹ️  Payment Method Domain OK: ${domain}`);
+    }
+    console.log(
+      `   Apple Pay: ${row.apple_pay?.status || "?"} · Google Pay: ${row.google_pay?.status || "?"} · Link: ${row.link?.status || "?"}`,
+    );
+  }
+}
+
 async function ensureBillingPortal() {
   try {
     const configs = await stripe.billingPortal.configurations.list({ limit: 1 });
-    if (configs.data.length) return;
+    const returnUrl = `${siteUrl.replace(/\/$/, "")}/dashboard/subscription`;
+    if (configs.data.length) {
+      await stripe.billingPortal.configurations.update(configs.data[0].id, {
+        default_return_url: returnUrl,
+      });
+      console.log(`✅ Customer Portal return_url → ${returnUrl}`);
+      return;
+    }
     await stripe.billingPortal.configurations.create({
       business_profile: {
         headline: "DEPRO — gestión de suscripción",
       },
+      default_return_url: returnUrl,
       features: {
         subscription_cancel: { enabled: true, mode: "at_period_end" },
         subscription_update: { enabled: false },
@@ -165,8 +208,10 @@ async function main() {
     console.log("\nℹ️  El secreto del webhook solo se muestra al crearlo. Revócalo y vuelve a ejecutar si necesitas uno nuevo.");
   }
 
+  await ensurePaymentMethodDomains();
   await ensureBillingPortal();
   console.log(`\n✅ Setup ${mode} completado. Haz commit de api/stripe-prices.${mode}.json y despliega.`);
+  console.log(`   En Vercel Production: SITE_URL=${siteUrl}`);
 }
 
 main().catch((err) => {

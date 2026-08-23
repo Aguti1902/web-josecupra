@@ -1,4 +1,4 @@
-import { getStripe } from "./_stripeClient.js";
+import { getStripe, getSiteUrl } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 
 export default async function handler(req, res) {
@@ -19,7 +19,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "No hay cliente Stripe vinculado a esta cuenta" });
     }
 
-    const returnUrl = `${origin || "https://depro.es"}/dashboard/subscription`;
+    const base = (origin || getSiteUrl()).replace(/\/$/, "");
+    const returnUrl = `${base}/dashboard/subscription`;
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: returnUrl,

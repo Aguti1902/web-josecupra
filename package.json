@@ -12,6 +12,7 @@
     "stripe:setup": "node scripts/setup-stripe.mjs --test",
     "stripe:setup:test": "node scripts/setup-stripe.mjs --test",
     "stripe:setup:live": "node scripts/setup-stripe.mjs --live",
+    "stripe:domain": "node scripts/configure-stripe-domain.mjs",
     "stripe:seed-secret": "node scripts/seed-stripe-secret.mjs"
   },
   "dependencies": {
@@ -24,7 +25,7 @@
     "react-dom": "^19.2.5",
     "react-i18next": "^17.0.7",
     "react-router-dom": "^7.14.1",
-    "stripe": "^22.1.1"
+    "stripe": "^22.5.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
