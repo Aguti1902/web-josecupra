@@ -139,6 +139,7 @@ function TeamModal({ team, clubId, onClose, onSave }) {
       category: form.category,
       season: form.season,
       trainingDays: form.trainingDays,
+      questionnaireBy: form.questionnaireBy || "club",
       coach: form.coachEmail
         ? {
           id: coachUserId,
