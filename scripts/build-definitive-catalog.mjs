@@ -698,7 +698,7 @@ const NAME_OVERRIDES = {
 function inferMaterial(nombre) {
   const n = norm(nombre);
   // Aparatos / polea / jalón (lat pulldown) / cruces de pie suelen ser máquina o cable
-  if (/maquina|prensa|polea|multipower|rowerg|skierg|bikeerg|haka|jal[oó]n|cruces pecho|remo agarre|trineo/.test(n)) {
+  if (/maquina|prensa|polea|multipower|rowerg|skierg|bikeerg|haka|jal[oó]n|cruces pecho|remo agarre|trineo|curl femoral/.test(n)) {
     if (/trineo/.test(n)) return ["trineo"];
     return ["maquina"];
   }

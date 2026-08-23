@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════════════════
 import { EXTRA_EXERCISES } from "./extraExercises.js";
 import { getLegacyCatalogFromV2 } from "../lib/catalogAdapter.js";
+import { isExerciseAllowedForMaterials, normalizeMaterialList } from "../lib/exerciseSelector.js";
 
 const BASE_EXERCISES = [
   // ── 1. FUERZA – TREN INFERIOR ──────────────────────────
@@ -204,20 +205,19 @@ export function filterExercises({ etiquetas = [], material, lesiones = [], edad,
   if (edadNum < 14)  excludeByAge.push("fuerza_maxima", "barra", "pliometria");
   if (edadNum < 18)  excludeByAge.push("fuerza_maxima");
 
-  // Material normalizado
-  const mat = material
-    ? material.toLowerCase().replace(/\s/g,"_").replace("/","_").replace("barra_gimnasio","barra")
-    : null;
+  // Material normalizado (array o string)
+  const mats = normalizeMaterialList(material);
 
   let results = EXERCISES.filter((ex) => {
     // Excluir contraindicaciones activas
-    if (lesiones.some((l) => ex.contraindicado.includes(l.toLowerCase()))) return false;
+    if (lesiones.some((l) => (ex.contraindicado || []).includes(l.toLowerCase()))) return false;
     // Excluir etiquetas peligrosas por edad
-    if (excludeByAge.some((t) => ex.etiquetas.includes(t))) return false;
-    // Material compatible (sin_material siempre pasa)
-    if (mat && ex.material !== "sin_material" && ex.material !== mat) return false;
+    if (excludeByAge.some((t) => (ex.etiquetas || []).includes(t))) return false;
+    // Material: solo disponible del usuario o peso corporal
+    const exMats = ex.materiales || ex.etiquetasMulti?.material || [ex.material].filter(Boolean);
+    if (mats.length && !isExerciseAllowedForMaterials(exMats, mats)) return false;
     // Al menos una etiqueta coincide
-    if (allTags.length > 0 && !allTags.some((t) => ex.etiquetas.includes(t))) return false;
+    if (allTags.length > 0 && !allTags.some((t) => (ex.etiquetas || []).includes(t))) return false;
     return true;
   });
 
@@ -305,16 +305,17 @@ export function filterExercisesEnriched(params) {
   const excludeByAge = [];
   if (edadNum < 14) excludeByAge.push("fuerza_maxima","barra","pliometria");
   if (edadNum < 18) excludeByAge.push("fuerza_maxima");
-  const mat = material ? material.toLowerCase().replace(/\s/g,"_").replace("/","_").replace("barra_gimnasio","barra") : null;
+  const mats = normalizeMaterialList(material);
   let results = enriched.filter((ex) => {
     const nombre = String(ex.nombre || "").toLowerCase();
     // §9.6 / reglas: no incluir tests ni no-ejercicios en el pool IA
     if (ex.esTest || /\btest\b|cooper adaptado/i.test(nombre)) return false;
-    if (lesiones.some((l) => ex.contraindicado.includes(l.toLowerCase()))) return false;
-    if (excludeByAge.some((t) => ex.etiquetas.includes(t))) return false;
-    if (params.experiencia === "novato" && (ex.etiquetas.includes("pliometria") || ex.etiquetas.includes("fuerza_maxima"))) return false;
-    if (mat && ex.material !== "sin_material" && ex.material !== mat) return false;
-    if (allTags.length > 0 && !allTags.some((t) => ex.etiquetas.includes(t))) return false;
+    if (lesiones.some((l) => (ex.contraindicado || []).includes(String(l).toLowerCase()))) return false;
+    if (excludeByAge.some((t) => (ex.etiquetas || []).includes(t))) return false;
+    if (params.experiencia === "novato" && ((ex.etiquetas || []).includes("pliometria") || (ex.etiquetas || []).includes("fuerza_maxima"))) return false;
+    const exMats = ex.materiales || ex.etiquetasMulti?.material || [ex.material].filter(Boolean);
+    if (mats.length && !isExerciseAllowedForMaterials(exMats, mats)) return false;
+    if (allTags.length > 0 && !allTags.some((t) => (ex.etiquetas || []).includes(t))) return false;
     return true;
   });
   if (edadNum >= 30) {
