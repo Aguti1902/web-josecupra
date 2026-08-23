@@ -48,10 +48,31 @@ describe("etiquetado — casos críticos", () => {
   });
 
   it("Y-T-W = prevención escapular", () => {
-    const ytw = EXERCISES.find((e) => /y-?t-?w escapular en suelo/i.test(e.nombre));
+    const ytw = EXERCISES.find((e) => /y[\s\-]?t[\s\-]?w/i.test(e.nombre));
     assert.ok(ytw);
     assert.equal(ytw.carpeta, "prevencion");
     assert.equal(ytw.etiquetas.grupo_principal, "escapular");
+  });
+
+  it("cada ejercicio tiene descripcion y tips", () => {
+    for (const ex of EXERCISES) {
+      assert.ok(ex.descripcion && String(ex.descripcion).length > 10, `${ex.nombre} sin descripcion`);
+      assert.ok(Array.isArray(ex.tips) && ex.tips.length >= 2, `${ex.nombre} sin tips`);
+    }
+  });
+
+  it("variantes de resistencia/velocidad comparten vídeo por familia", () => {
+    const continua = EXERCISES.filter((e) => e.videoGroup === "res_continua");
+    assert.ok(continua.length >= 5, "faltan variantes de carrera continua");
+    const url = continua[0].videoUrl;
+    assert.ok(url);
+    assert.ok(continua.every((e) => e.videoUrl === url && e.carpeta === "resistencia"));
+
+    for (const group of ["vel_acel", "vel_sprint", "vel_cod"]) {
+      const family = EXERCISES.filter((e) => e.videoGroup === group);
+      assert.ok(family.length >= 2, `familia ${group} incompleta`);
+      assert.ok(family.every((e) => e.videoUrl === family[0].videoUrl && e.carpeta === "velocidad"));
+    }
   });
 
   it("slots bíceps analítico solo curls", () => {
@@ -115,24 +136,20 @@ describe("etiquetado — casos críticos", () => {
   });
 });
 
-describe("isométricos nuevos", () => {
-  it("incluye los 15 holds pedidos", () => {
+describe("isométricos del listado §9.6", () => {
+  it("incluye isometrías del documento con patrón isometrico", () => {
     const required = [
-      "Split squat hold",
-      "Puente de glúteo unilateral isométrico",
-      "Wall sit unilateral",
-      "Isometría aductores con balón",
-      "Copenhagen hold básico",
-      "Copenhagen hold medio",
-      "Isometría isquios supino talones en banco",
-      "Press isométrico pared unilateral",
-      "Rotación externa isométrica con banda",
-      "Serrato wall hold",
-      "Dead bug hold",
-      "Bear plank hold",
-      "Pallof hold",
-      "Drop landing + hold",
-      "Skater landing hold",
+      "Sentadilla isométrica en pared (Wall sit)",
+      "Isometría en sentadilla 90°",
+      "Isometría zancada",
+      "Isometría gemelo en punta",
+      "Isometría puente de glúteo",
+      "Isometría femoral Nordic hold",
+      "Isometría de remo con banda",
+      "Plancha frontal",
+      "Plancha lateral",
+      "Hollow hold",
+      "Nordic hold",
     ];
     for (const name of required) {
       const ex = EXERCISES.find((e) => e.nombre === name);
@@ -152,7 +169,8 @@ describe("capa club_* aislada", () => {
     assert.ok(sample.club_entorno?.every((t) => t.startsWith("club_")));
     assert.ok(CLUB_TAG_VALUES.club_slot.length >= 15);
     // motor individual no ve club_* en etiquetas del ejercicio
-    const remo = EXERCISES.find((e) => e.id === 126);
+    const remo = EXERCISES.find((e) => /isometr[ií]a de remo/i.test(e.nombre));
+    assert.ok(remo);
     assert.equal(remo.etiquetas.club_slot, undefined);
   });
 });

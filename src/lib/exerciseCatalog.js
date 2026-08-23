@@ -2,12 +2,13 @@
  * DEPRO — Catálogo multi-eje de ejercicios (fuente de verdad del motor individual).
  *
  * Taxonomía:
- * - carpeta: fuerza_tren_inferior | fuerza_tren_superior | velocidad | pliometria | core | prevencion | movilidad
+ * - carpeta: fuerza_tren_inferior | fuerza_tren_superior | velocidad | resistencia | pliometria | core | prevencion | movilidad
  * - etiquetas base: material, objetivo, segmento, patron, rol, grupo_principal, grupo_muscular, accion_secundaria?
  * - grupo_muscular = [grupo_principal] (sin músculos accesorios) para no romper el selector AND
  * - Etiquetas club_* viven en capa paralela (clubExerciseTags) y NO se usan aquí
+ * - Listado alineado a Prompt final Depro 2.0 §9.6 + variantes con vídeo compartido
  *
- * Generado/actualizado por scripts/retag-exercise-catalog.mjs
+ * Generado por scripts/build-definitive-catalog.mjs
  */
 export const EXERCISES = [
   {
@@ -32,24 +33,24 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla",
-        "lesion_espalda"
+        "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ROD-BI-SIN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_espalda"
+      "lesion_rodilla"
     ],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_inferior"
@@ -74,35 +75,33 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla",
-        "lesion_hombro",
-        "lesion_espalda"
+        "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ROD-BI-SIN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_hombro",
-      "lesion_espalda"
+      "lesion_rodilla"
     ],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_inferior"
   },
   {
     "id": 3,
-    "nombre": "Sentadilla isométrica en pared (wall sit)",
+    "nombre": "Sentadilla isométrica en pared (Wall sit)",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -113,6 +112,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
+        "cadena_anterior",
         "isometrico"
       ],
       "rol": "complementario",
@@ -123,18 +123,20 @@ export const EXERCISES = [
       "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ISO-INFERIOR",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "ISO-INF",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -157,13 +159,17 @@ export const EXERCISES = [
       "patron": [
         "cadena_anterior"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
@@ -172,11 +178,12 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén la columna neutra y el core activo",
+      "Equilibra ambos lados; empieza por el más débil",
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ROD-BI-SIN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -199,13 +206,17 @@ export const EXERCISES = [
       "patron": [
         "cadena_anterior"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
@@ -214,11 +225,12 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén la columna neutra y el core activo",
+      "Equilibra ambos lados; empieza por el más débil",
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ROD-BI-SIN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -242,24 +254,30 @@ export const EXERCISES = [
         "cadena_anterior"
       ],
       "rol": "complementario",
-      "grupo_principal": "gluteos",
+      "grupo_principal": "cuadriceps",
       "grupo_muscular": [
-        "gluteos"
+        "cuadriceps"
       ],
-      "intensidad": "media",
+      "accion_secundaria": [
+        "control_motor"
+      ],
+      "intensidad": "alta",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén la columna neutra y el core activo",
+      "Equilibra ambos lados; empieza por el más débil",
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ROD-BI-SIN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -282,30 +300,31 @@ export const EXERCISES = [
       "patron": [
         "cadena_anterior"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
       "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén la columna neutra y el core activo",
+      "Equilibra ambos lados; empieza por el más débil",
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ROD-BI-SIN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-UNI",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_inferior"
   },
@@ -324,24 +343,26 @@ export const EXERCISES = [
       "patron": [
         "cadena_posterior"
       ],
-      "rol": "complementario",
-      "grupo_principal": "isquios",
+      "rol": "basico",
+      "grupo_principal": "gluteos",
       "grupo_muscular": [
-        "isquios"
+        "gluteos"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén la columna neutra y el core activo",
+      "Equilibra ambos lados; empieza por el más débil",
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "CAD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gluteos. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -362,26 +383,31 @@ export const EXERCISES = [
       "patron": [
         "cadena_anterior"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "media",
+      "accion_secundaria": [
+        "control_motor"
+      ],
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ROD-BI-SIN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -404,23 +430,26 @@ export const EXERCISES = [
       "patron": [
         "cadena_posterior"
       ],
-      "rol": "complementario",
-      "grupo_principal": "isquios",
+      "rol": "basico",
+      "grupo_principal": "gluteos",
       "grupo_muscular": [
-        "isquios"
+        "gluteos"
       ],
-      "intensidad": "baja",
+      "intensidad": "alta",
       "experiencia": [
-        "novato"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "CAD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gluteos. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -441,26 +470,28 @@ export const EXERCISES = [
       "patron": [
         "cadena_anterior"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ROD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: gomas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -483,23 +514,26 @@ export const EXERCISES = [
       "patron": [
         "cadena_posterior"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "gluteos",
       "grupo_muscular": [
         "gluteos"
       ],
-      "intensidad": "baja",
+      "intensidad": "alta",
       "experiencia": [
-        "novato"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "CAD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gluteos. Material: gomas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -514,40 +548,36 @@ export const EXERCISES = [
         "gomas"
       ],
       "objetivo": [
-        "prevencion",
         "fuerza"
       ],
       "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "complementario",
-      "grupo_principal": "gluteos",
+      "patron": [
+        "cadena_anterior"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
       "grupo_muscular": [
-        "gluteos"
+        "cuadriceps"
       ],
-      "accion_secundaria": [
-        "prevencion_rodilla"
-      ],
-      "intensidad": "baja",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "INF-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: gomas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "prevencion"
+    "carpeta": "fuerza_tren_inferior"
   },
   {
     "id": 14,
@@ -558,40 +588,36 @@ export const EXERCISES = [
         "gomas"
       ],
       "objetivo": [
-        "prevencion",
         "fuerza"
       ],
       "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "complementario",
-      "grupo_principal": "gluteos",
+      "patron": [
+        "cadena_anterior"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
       "grupo_muscular": [
-        "gluteos"
+        "cuadriceps"
       ],
-      "accion_secundaria": [
-        "prevencion_rodilla",
-        "control_motor"
-      ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "INF-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: gomas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "prevencion"
+    "carpeta": "fuerza_tren_inferior"
   },
   {
     "id": 15,
@@ -608,23 +634,26 @@ export const EXERCISES = [
       "patron": [
         "cadena_posterior"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "isquios",
       "grupo_muscular": [
         "isquios"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "CAD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: gomas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -652,24 +681,25 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla",
-        "lesion_espalda"
+        "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "ROD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_espalda"
+      "lesion_rodilla"
     ],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_inferior"
@@ -689,13 +719,17 @@ export const EXERCISES = [
       "patron": [
         "cadena_anterior"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
@@ -704,11 +738,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén la columna neutra y el core activo",
+      "Equilibra ambos lados; empieza por el más débil",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "ROD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -738,6 +774,7 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
@@ -746,11 +783,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "CAD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_espalda"
@@ -773,13 +812,15 @@ export const EXERCISES = [
       "patron": [
         "cadena_posterior"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "isquios",
       "grupo_muscular": [
         "isquios"
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
@@ -787,11 +828,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén la columna neutra y el core activo",
+      "Equilibra ambos lados; empieza por el más débil",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "CAD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_espalda"
@@ -814,13 +857,17 @@ export const EXERCISES = [
       "patron": [
         "cadena_anterior"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
@@ -829,11 +876,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "ROD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -863,18 +912,21 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ROD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -904,17 +956,20 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "CAD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gluteos. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -935,13 +990,18 @@ export const EXERCISES = [
       "patron": [
         "cadena_anterior"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
@@ -949,11 +1009,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén la columna neutra y el core activo",
+      "Equilibra ambos lados; empieza por el más débil",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "ROD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -976,29 +1038,29 @@ export const EXERCISES = [
       "patron": [
         "cadena_posterior"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "isquios",
       "grupo_muscular": [
         "isquios"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "CAD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_inferior"
   },
@@ -1024,22 +1086,23 @@ export const EXERCISES = [
         "core"
       ],
       "accion_secundaria": [
-        "estabilidad_lumbopelvica",
-        "estabilidad_escapular"
+        "estabilidad_lumbopelvica"
       ],
       "intensidad": "media",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "FUNC-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a core. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "ISO-CARRY",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -1067,6 +1130,7 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
@@ -1076,17 +1140,19 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "ROD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: barra. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla",
       "lesion_espalda"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "fuerza_tren_inferior"
   },
   {
@@ -1102,7 +1168,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "fuerza_maxima",
         "cadena_posterior"
       ],
       "rol": "basico",
@@ -1112,6 +1177,8 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
@@ -1119,16 +1186,18 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "CAD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: barra. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_espalda"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "fuerza_tren_inferior"
   },
   {
@@ -1153,6 +1222,7 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
@@ -1161,11 +1231,12 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ROD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -1188,24 +1259,27 @@ export const EXERCISES = [
       "patron": [
         "cadena_posterior"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "isquios",
       "grupo_muscular": [
         "isquios"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "CAD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -1227,39 +1301,37 @@ export const EXERCISES = [
         "analitico"
       ],
       "rol": "complementario",
-      "grupo_principal": "gemelo",
+      "grupo_principal": "gemelos",
       "grupo_muscular": [
-        "gemelo"
+        "gemelos"
       ],
       "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_tobillo"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "INF-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gemelos. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "pool": "AN-GEMELOS",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_tobillo"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_inferior"
   },
   {
     "id": 31,
-    "nombre": "Sentadilla multipower",
-    "nuevo": true,
+    "nombre": "Extensión de cuádriceps en máquina",
+    "nuevo": false,
     "etiquetas": {
       "material": [
-        "barra",
         "maquina"
       ],
       "objetivo": [
@@ -1276,77 +1348,72 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla",
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "ROD-BI-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_inferior"
   },
   {
     "id": 32,
-    "nombre": "Extensión de cuádriceps",
-    "nuevo": true,
+    "nombre": "Curl femoral sentado",
+    "nuevo": false,
     "etiquetas": {
       "material": [
-        "maquina"
+        "sin_material"
       ],
       "objetivo": [
         "fuerza"
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "analitico"
+        "cadena_posterior"
       ],
-      "rol": "complementario",
-      "grupo_principal": "cuadriceps",
+      "rol": "basico",
+      "grupo_principal": "isquios",
       "grupo_muscular": [
-        "cuadriceps"
+        "isquios"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "INF-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_inferior"
   },
   {
     "id": 33,
-    "nombre": "Curl de isquios sentado",
-    "nuevo": true,
+    "nombre": "Elevación de gemelos de pie",
+    "nuevo": false,
     "etiquetas": {
       "material": [
-        "maquina"
+        "sin_material"
       ],
       "objetivo": [
         "fuerza"
@@ -1356,23 +1423,25 @@ export const EXERCISES = [
         "analitico"
       ],
       "rol": "complementario",
-      "grupo_principal": "isquios",
+      "grupo_principal": "gemelos",
       "grupo_muscular": [
-        "isquios"
+        "gemelos"
       ],
       "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia"
     ],
-    "pool": "INF-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gemelos. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "AN-GEMELOS",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -1380,90 +1449,6 @@ export const EXERCISES = [
   },
   {
     "id": 34,
-    "nombre": "Sentadilla máquina (tipo hack)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "cadena_anterior"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "ROD-BI-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_inferior"
-  },
-  {
-    "id": 35,
-    "nombre": "Adductores máquina",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "analitico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "aductores",
-      "grupo_muscular": [
-        "aductores"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_pubalgia"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "INF-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_pubalgia"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_inferior"
-  },
-  {
-    "id": 36,
     "nombre": "Flexiones clásicas",
     "nuevo": false,
     "etiquetas": {
@@ -1482,21 +1467,23 @@ export const EXERCISES = [
       "grupo_muscular": [
         "pecho"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_hombro"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_hombro"
@@ -1505,7 +1492,7 @@ export const EXERCISES = [
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 37,
+    "id": 35,
     "nombre": "Flexiones estrechas (tríceps)",
     "nuevo": false,
     "etiquetas": {
@@ -1513,41 +1500,41 @@ export const EXERCISES = [
         "sin_material"
       ],
       "objetivo": [
-        "fuerza"
+        "fuerza",
+        "estetica"
       ],
       "segmento": "tren_superior",
       "patron": [
+        "analitico",
         "empuje"
       ],
       "rol": "complementario",
-      "grupo_principal": "pecho",
+      "grupo_principal": "triceps",
       "grupo_muscular": [
-        "pecho"
+        "triceps"
       ],
       "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "AN-TRICEPS",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 38,
+    "id": 36,
     "nombre": "Flexiones pica (hombros)",
     "nuevo": false,
     "etiquetas": {
@@ -1559,27 +1546,31 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "empuje"
+        "empuje",
+        "analitico"
       ],
       "rol": "complementario",
       "grupo_principal": "hombros",
       "grupo_muscular": [
         "hombros"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_hombro"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a hombros. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_hombro"
@@ -1588,7 +1579,7 @@ export const EXERCISES = [
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 39,
+    "id": 37,
     "nombre": "Flexiones con apertura amplia",
     "nuevo": false,
     "etiquetas": {
@@ -1607,21 +1598,23 @@ export const EXERCISES = [
       "grupo_muscular": [
         "pecho"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_hombro"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_hombro"
@@ -1630,7 +1623,7 @@ export const EXERCISES = [
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 40,
+    "id": 38,
     "nombre": "Tríceps fondo en banco",
     "nuevo": false,
     "etiquetas": {
@@ -1638,7 +1631,8 @@ export const EXERCISES = [
         "sin_material"
       ],
       "objetivo": [
-        "fuerza"
+        "fuerza",
+        "estetica"
       ],
       "segmento": "tren_superior",
       "patron": [
@@ -1652,29 +1646,27 @@ export const EXERCISES = [
       ],
       "intensidad": "media",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "AN-TRICEPS",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 41,
-    "nombre": "Dominadas asistidas (barra baja o ayuda)",
+    "id": 39,
+    "nombre": "Dominadas asistidas",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -1687,37 +1679,33 @@ export const EXERCISES = [
       "patron": [
         "traccion"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "espalda",
       "grupo_muscular": [
         "espalda"
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_hombro",
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "TRAC-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro",
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 42,
+    "id": 40,
     "nombre": "Superman",
     "nuevo": false,
     "etiquetas": {
@@ -1725,7 +1713,6 @@ export const EXERCISES = [
         "sin_material"
       ],
       "objetivo": [
-        "fuerza",
         "prevencion"
       ],
       "segmento": "tren_superior",
@@ -1733,22 +1720,28 @@ export const EXERCISES = [
         "isometrico"
       ],
       "rol": "complementario",
-      "grupo_principal": "espalda_baja",
+      "grupo_principal": "espalda",
       "grupo_muscular": [
-        "espalda_baja"
+        "espalda"
+      ],
+      "accion_secundaria": [
+        "estabilidad_escapular",
+        "prevencion_hombro"
       ],
       "intensidad": "baja",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Controla el equilibrio antes de aumentar dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
     ],
+    "descripcion": "Ejercicio preventivo/propioceptivo centrado en espalda. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1756,8 +1749,8 @@ export const EXERCISES = [
     "carpeta": "prevencion"
   },
   {
-    "id": 43,
-    "nombre": "Y-T-W escapular en suelo",
+    "id": 41,
+    "nombre": "Y-T-W en suelo",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -1782,23 +1775,25 @@ export const EXERCISES = [
       "intensidad": "baja",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Controla el equilibrio antes de aumentar dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
     ],
-    "pool": "PREV-GEN",
+    "descripcion": "Ejercicio preventivo/propioceptivo centrado en escapular. Mejora control motor y reduce riesgo de lesión.",
+    "pool": "PREV-ESCAP",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "prevencion"
   },
   {
-    "id": 44,
+    "id": 42,
     "nombre": "Remo con banda elástica",
     "nuevo": false,
     "etiquetas": {
@@ -1812,31 +1807,33 @@ export const EXERCISES = [
       "patron": [
         "traccion"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "espalda",
       "grupo_muscular": [
         "espalda"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "TRAC-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 45,
+    "id": 43,
     "nombre": "Press con banda elástica",
     "nuevo": false,
     "etiquetas": {
@@ -1850,26 +1847,28 @@ export const EXERCISES = [
       "patron": [
         "empuje"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "pecho",
       "grupo_muscular": [
         "pecho"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_hombro"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_hombro"
@@ -1878,7 +1877,7 @@ export const EXERCISES = [
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 46,
+    "id": 44,
     "nombre": "Aperturas con banda",
     "nuevo": false,
     "etiquetas": {
@@ -1897,31 +1896,29 @@ export const EXERCISES = [
       "grupo_muscular": [
         "pecho"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 47,
-    "nombre": "Rotadores externos hombro con goma",
+    "id": 45,
+    "nombre": "Rotadores externos de hombro con goma",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -1932,7 +1929,8 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "isometrico"
+        "isometrico",
+        "analitico"
       ],
       "rol": "complementario",
       "grupo_principal": "hombros",
@@ -1940,30 +1938,32 @@ export const EXERCISES = [
         "hombros"
       ],
       "accion_secundaria": [
-        "estabilidad_hombro",
+        "estabilidad_escapular",
         "prevencion_hombro"
       ],
       "intensidad": "baja",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Controla el equilibrio antes de aumentar dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
     ],
-    "pool": "PREV-GEN",
+    "descripcion": "Ejercicio preventivo/propioceptivo centrado en hombros. Mejora control motor y reduce riesgo de lesión.",
+    "pool": "PREV-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "prevencion"
   },
   {
-    "id": 48,
-    "nombre": "Press mancuernas (banca o suelo)",
+    "id": 46,
+    "nombre": "Press con mancuernas",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -1976,13 +1976,14 @@ export const EXERCISES = [
       "patron": [
         "empuje"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "pecho",
       "grupo_muscular": [
         "pecho"
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
@@ -1991,11 +1992,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_hombro"
@@ -2004,8 +2007,8 @@ export const EXERCISES = [
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 49,
-    "nombre": "Remo con mancuerna (un brazo)",
+    "id": 47,
+    "nombre": "Remo con mancuerna",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -2018,117 +2021,116 @@ export const EXERCISES = [
       "patron": [
         "traccion"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "espalda",
       "grupo_muscular": [
         "espalda"
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "TRAC-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 48,
+    "nombre": "Elevaciones laterales",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "empuje",
+        "analitico"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "hombros",
+      "grupo_muscular": [
+        "hombros"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
     ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a hombros. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-HOMBRO",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 49,
+    "nombre": "Elevación frontal",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "empuje",
+        "analitico"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "hombros",
+      "grupo_muscular": [
+        "hombros"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a hombros. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-HOMBRO",
+    "videoUrl": "",
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_superior"
   },
   {
     "id": 50,
-    "nombre": "Elevaciones laterales",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "mancuernas"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 51,
-    "nombre": "Elevación frontal",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "mancuernas"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 52,
     "nombre": "Press Arnold",
     "nuevo": false,
     "etiquetas": {
@@ -2140,15 +2142,18 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "empuje"
+        "empuje",
+        "analitico"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "hombros",
       "grupo_muscular": [
         "hombros"
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
@@ -2156,11 +2161,12 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a hombros. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_hombro"
@@ -2169,15 +2175,16 @@ export const EXERCISES = [
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 53,
-    "nombre": "Fondos apoyado banco + mancuerna (tríceps)",
+    "id": 51,
+    "nombre": "Fondos en banco + mancuerna",
     "nuevo": false,
     "etiquetas": {
       "material": [
         "mancuernas"
       ],
       "objetivo": [
-        "fuerza"
+        "fuerza",
+        "estetica"
       ],
       "segmento": "tren_superior",
       "patron": [
@@ -2191,27 +2198,27 @@ export const EXERCISES = [
       ],
       "intensidad": "media",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "AN-TRICEPS",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 54,
+    "id": 52,
     "nombre": "Press banca con barra",
     "nuevo": false,
     "etiquetas": {
@@ -2232,6 +2239,7 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
@@ -2240,20 +2248,22 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "EMP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: barra. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_hombro"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 55,
+    "id": 53,
     "nombre": "Remo con barra",
     "nuevo": false,
     "etiquetas": {
@@ -2267,1075 +2277,34 @@ export const EXERCISES = [
       "patron": [
         "traccion"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "espalda",
       "grupo_muscular": [
         "espalda"
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "TRAC-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 56,
-    "nombre": "Dominadas",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "traccion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro",
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "TRAC-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro",
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 57,
-    "nombre": "Press inclinado con barra",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "barra"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "basico",
-      "grupo_principal": "pecho",
-      "grupo_muscular": [
-        "pecho"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 58,
-    "nombre": "Press plano con mancuernas",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "mancuernas"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "basico",
-      "grupo_principal": "pecho",
-      "grupo_muscular": [
-        "pecho"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 59,
-    "nombre": "Press francés con mancuernas",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "mancuernas"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "triceps",
-      "grupo_muscular": [
-        "triceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 60,
-    "nombre": "Curl de bíceps alterno sentado",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "mancuernas"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "biceps",
-      "grupo_muscular": [
-        "biceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "SUP-GEN",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: barra. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 61,
-    "nombre": "Curl de bíceps a la vez",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "mancuernas"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "biceps",
-      "grupo_muscular": [
-        "biceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "SUP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 62,
-    "nombre": "Press en máquina (máquina de polea)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "basico",
-      "grupo_principal": "pecho",
-      "grupo_muscular": [
-        "pecho"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 63,
-    "nombre": "Press de hombro en máquina 1 (polea)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "basico",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 64,
-    "nombre": "Press de hombro en máquina 2 (disco)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_disco"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "basico",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 65,
-    "nombre": "Remo en máquina (polea)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "traccion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "TRAC-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 66,
-    "nombre": "Jalón en máquina (polea)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "traccion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro",
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "TRAC-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro",
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 67,
-    "nombre": "Remo en polea normal (multistación, agarre estrecho)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "traccion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "TRAC-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 68,
-    "nombre": "Remo en polea normal (agarre ancho)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "traccion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "TRAC-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 69,
-    "nombre": "Jalón en polea normal (agarre normal)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "traccion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro",
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "TRAC-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro",
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 70,
-    "nombre": "Jalón en polea normal (agarre neutro)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "traccion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro",
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "TRAC-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro",
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 71,
-    "nombre": "Cruces de pecho en polea de pie",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "pecho",
-      "grupo_muscular": [
-        "pecho"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 72,
-    "nombre": "Elevaciones laterales sentado",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "mancuernas"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 73,
-    "nombre": "Remo en banco con mancuerna",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "mancuernas"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "traccion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "TRAC-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 74,
-    "nombre": "Máquina de pecho (aperturas)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "pecho",
-      "grupo_muscular": [
-        "pecho"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 75,
-    "nombre": "Máquina de elevación lateral",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 76,
-    "nombre": "Bíceps en máquina",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "biceps",
-      "grupo_muscular": [
-        "biceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "SUP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 77,
-    "nombre": "Extensión de tríceps en polea normal (de pie)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "triceps",
-      "grupo_muscular": [
-        "triceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 78,
-    "nombre": "Extensión de tríceps en polea trasnuca",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_polea"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "analitico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "triceps",
-      "grupo_muscular": [
-        "triceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 79,
-    "nombre": "Remo en máquina de discos",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_disco"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "traccion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "TRAC-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 80,
-    "nombre": "Press en máquina de discos",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "maquina_disco"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje"
-      ],
-      "rol": "basico",
-      "grupo_principal": "pecho",
-      "grupo_muscular": [
-        "pecho"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "EMP-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_superior"
-  },
-  {
-    "id": 81,
+    "id": 54,
     "nombre": "Aceleraciones 10 m",
     "nuevo": false,
     "etiquetas": {
@@ -3360,21 +2329,29 @@ export const EXERCISES = [
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": []
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-ACEL",
+    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoGroup": "vel_acel",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 14,
     "carpeta": "velocidad"
   },
   {
-    "id": 82,
+    "id": 55,
     "nombre": "Aceleraciones 15 m",
     "nuevo": false,
     "etiquetas": {
@@ -3395,24 +2372,33 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": []
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-ACEL",
+    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoGroup": "vel_acel",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 14,
     "carpeta": "velocidad"
   },
   {
-    "id": 83,
+    "id": 56,
     "nombre": "Salidas desde rodilla",
     "nuevo": false,
     "etiquetas": {
@@ -3433,72 +2419,34 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
+        "lesion_tobillo",
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-ACEL",
+    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoGroup": "vel_acel",
     "lesionesContra": [
+      "lesion_tobillo",
       "lesion_rodilla"
     ],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
   {
-    "id": 84,
+    "id": 57,
     "nombre": "Salidas laterales",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "velocidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "aceleracion",
-        "COD"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "velocidad"
-  },
-  {
-    "id": 85,
-    "nombre": "Aceleración jogging → sprint",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -3518,24 +2466,80 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": []
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-ACEL",
+    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoGroup": "vel_acel",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
   {
-    "id": 86,
+    "id": 58,
+    "nombre": "Aceleración jogging → sprint",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "velocidad_pura"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-SPRINT",
+    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoGroup": "vel_sprint",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 14,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 59,
     "nombre": "Sprint progresivo 10-20-30",
     "nuevo": false,
     "etiquetas": {
@@ -3556,24 +2560,33 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": []
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-SPRINT",
+    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoGroup": "vel_sprint",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 14,
     "carpeta": "velocidad"
   },
   {
-    "id": 87,
+    "id": 60,
     "nombre": "Sprint 20 m",
     "nuevo": false,
     "etiquetas": {
@@ -3594,28 +2607,33 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
+        "lesion_tobillo",
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-SPRINT",
+    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoGroup": "vel_sprint",
     "lesionesContra": [
+      "lesion_tobillo",
       "lesion_rodilla"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "velocidad"
   },
   {
-    "id": 88,
+    "id": 61,
     "nombre": "Sprint 30 m",
     "nuevo": false,
     "etiquetas": {
@@ -3636,28 +2654,33 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
+        "lesion_tobillo",
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-SPRINT",
+    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoGroup": "vel_sprint",
     "lesionesContra": [
+      "lesion_tobillo",
       "lesion_rodilla"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "velocidad"
   },
   {
-    "id": 89,
+    "id": 62,
     "nombre": "Sprint 40 m",
     "nuevo": false,
     "etiquetas": {
@@ -3678,36 +2701,41 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
+        "lesion_tobillo",
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-SPRINT",
+    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoGroup": "vel_sprint",
     "lesionesContra": [
+      "lesion_tobillo",
       "lesion_rodilla"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "velocidad"
   },
   {
-    "id": 90,
-    "nombre": "Sprint 60 m (según edad)",
+    "id": 63,
+    "nombre": "Sprint 60 m",
     "nuevo": false,
     "etiquetas": {
       "material": [
         "sin_material"
       ],
       "objetivo": [
-        "velocidad",
-        "resistencia"
+        "velocidad"
       ],
       "segmento": "tren_inferior",
       "patron": [
@@ -3720,27 +2748,33 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
+        "lesion_tobillo",
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-SPRINT",
+    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoGroup": "vel_sprint",
     "lesionesContra": [
+      "lesion_tobillo",
       "lesion_rodilla"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "velocidad"
   },
   {
-    "id": 91,
+    "id": 64,
     "nombre": "COD 5-10-5",
     "nuevo": false,
     "etiquetas": {
@@ -3759,32 +2793,35 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
+        "lesion_tobillo",
+        "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COD",
+    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoGroup": "vel_cod",
     "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
+      "lesion_tobillo",
+      "lesion_rodilla"
     ],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
   {
-    "id": 92,
+    "id": 65,
     "nombre": "COD 3 conos",
     "nuevo": false,
     "etiquetas": {
@@ -3803,32 +2840,35 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
+        "lesion_tobillo",
+        "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COD",
+    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoGroup": "vel_cod",
     "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
+      "lesion_tobillo",
+      "lesion_rodilla"
     ],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
   {
-    "id": 93,
+    "id": 66,
     "nombre": "Zig-zag 6 conos",
     "nuevo": false,
     "etiquetas": {
@@ -3842,36 +2882,41 @@ export const EXERCISES = [
       "patron": [
         "COD"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_tobillo"
+        "lesion_tobillo",
+        "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COD",
+    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoGroup": "vel_cod",
     "lesionesContra": [
-      "lesion_tobillo"
+      "lesion_tobillo",
+      "lesion_rodilla"
     ],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
   {
-    "id": 94,
-    "nombre": "T-test",
+    "id": 67,
+    "nombre": "COD reacción (start visual)",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -3884,81 +2929,40 @@ export const EXERCISES = [
       "patron": [
         "COD"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
-    ],
-    "edadMinima": 10,
-    "esTest": true,
-    "carpeta": "velocidad"
-  },
-  {
-    "id": 95,
-    "nombre": "COD reacción (start visual)",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "velocidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "COD",
-        "reaccion"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
+        "lesion_tobillo",
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COD",
+    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoGroup": "vel_cod",
     "lesionesContra": [
+      "lesion_tobillo",
       "lesion_rodilla"
     ],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
   {
-    "id": 96,
+    "id": 68,
     "nombre": "COD planta-pivote derecha/izquierda",
     "nuevo": false,
     "etiquetas": {
@@ -3972,37 +2976,40 @@ export const EXERCISES = [
       "patron": [
         "COD"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
+        "lesion_tobillo",
+        "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COD",
+    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoGroup": "vel_cod",
     "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
+      "lesion_tobillo",
+      "lesion_rodilla"
     ],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
   {
-    "id": 97,
+    "id": 69,
     "nombre": "Reacción visual (flechas/colores)",
     "nuevo": false,
     "etiquetas": {
@@ -4016,31 +3023,40 @@ export const EXERCISES = [
       "patron": [
         "reaccion"
       ],
-      "rol": "complementario",
-      "grupo_principal": "core",
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
       "grupo_muscular": [
-        "core"
+        "cuadriceps"
       ],
       "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": []
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en reaccion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-REAC",
+    "videoUrl": "https://www.youtube.com/watch?v=3PqgN9q_0ZQ",
+    "videoGroup": "vel_reaccion",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
   {
-    "id": 98,
+    "id": 70,
     "nombre": "Reacción auditiva",
     "nuevo": false,
     "etiquetas": {
@@ -4054,31 +3070,40 @@ export const EXERCISES = [
       "patron": [
         "reaccion"
       ],
-      "rol": "complementario",
-      "grupo_principal": "core",
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
       "grupo_muscular": [
-        "core"
+        "cuadriceps"
       ],
       "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": []
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en reaccion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-REAC",
+    "videoUrl": "https://www.youtube.com/watch?v=3PqgN9q_0ZQ",
+    "videoGroup": "vel_reaccion",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
   {
-    "id": 99,
+    "id": 71,
     "nombre": "Sprint + frenada",
     "nuevo": false,
     "etiquetas": {
@@ -4090,7 +3115,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "COD",
         "velocidad_pura"
       ],
       "rol": "basico",
@@ -4100,27 +3124,33 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
+        "lesion_tobillo",
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-SPRINT",
+    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoGroup": "vel_sprint",
     "lesionesContra": [
+      "lesion_tobillo",
       "lesion_rodilla"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "velocidad"
   },
   {
-    "id": 100,
+    "id": 72,
     "nombre": "Sprint curveado",
     "nuevo": false,
     "etiquetas": {
@@ -4132,7 +3162,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "COD",
         "velocidad_pura"
       ],
       "rol": "basico",
@@ -4142,29 +3171,33 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
+        "lesion_tobillo",
+        "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-SPRINT",
+    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoGroup": "vel_sprint",
     "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
+      "lesion_tobillo",
+      "lesion_rodilla"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "velocidad"
   },
   {
-    "id": 101,
+    "id": 73,
     "nombre": "Saltos verticales simples",
     "nuevo": false,
     "etiquetas": {
@@ -4186,27 +3219,31 @@ export const EXERCISES = [
       "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla"
+        "lesion_rodilla",
+        "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla"
+      "lesion_rodilla",
+      "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 102,
+    "id": 74,
     "nombre": "Saltos laterales sobre línea",
     "nuevo": false,
     "etiquetas": {
@@ -4221,14 +3258,15 @@ export const EXERCISES = [
         "pliometria"
       ],
       "rol": "complementario",
-      "grupo_principal": "gluteos",
+      "grupo_principal": "cuadriceps",
       "grupo_muscular": [
-        "gluteos"
+        "cuadriceps"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_rodilla",
@@ -4236,21 +3274,22 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla",
       "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 103,
+    "id": 75,
     "nombre": "Saltos adelante cortos",
     "nuevo": false,
     "etiquetas": {
@@ -4269,30 +3308,34 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla"
+        "lesion_rodilla",
+        "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla"
+      "lesion_rodilla",
+      "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 104,
+    "id": 76,
     "nombre": "Mini saltos pogos",
     "nuevo": false,
     "etiquetas": {
@@ -4307,34 +3350,38 @@ export const EXERCISES = [
         "pliometria"
       ],
       "rol": "complementario",
-      "grupo_principal": "gemelo",
+      "grupo_principal": "cuadriceps",
       "grupo_muscular": [
-        "gemelo"
+        "cuadriceps"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
+        "lesion_rodilla",
         "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
+      "lesion_rodilla",
       "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 105,
+    "id": 77,
     "nombre": "Caídas y saltos (drop jump)",
     "nuevo": false,
     "etiquetas": {
@@ -4346,7 +3393,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "fuerza_explosiva",
         "pliometria"
       ],
       "rol": "complementario",
@@ -4356,6 +3402,8 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
@@ -4364,21 +3412,22 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla",
       "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 106,
+    "id": 78,
     "nombre": "Saltos unipodales suaves",
     "nuevo": false,
     "etiquetas": {
@@ -4393,33 +3442,38 @@ export const EXERCISES = [
         "pliometria"
       ],
       "rol": "complementario",
-      "grupo_principal": "gluteos",
+      "grupo_principal": "cuadriceps",
       "grupo_muscular": [
-        "gluteos"
+        "cuadriceps"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
+        "lesion_rodilla",
         "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
+      "lesion_rodilla",
       "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 107,
+    "id": 79,
     "nombre": "Depth jumps",
     "nuevo": false,
     "etiquetas": {
@@ -4431,7 +3485,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "fuerza_explosiva",
         "pliometria"
       ],
       "rol": "complementario",
@@ -4441,6 +3494,8 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
@@ -4449,21 +3504,22 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla",
       "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 108,
+    "id": 80,
     "nombre": "Repeticiones salto a banco",
     "nuevo": false,
     "etiquetas": {
@@ -4475,7 +3531,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "fuerza_explosiva",
         "pliometria"
       ],
       "rol": "complementario",
@@ -4485,28 +3540,32 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla"
+        "lesion_rodilla",
+        "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla"
+      "lesion_rodilla",
+      "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 109,
+    "id": 81,
     "nombre": "Saltos en escalera tipo quick feet",
     "nuevo": false,
     "etiquetas": {
@@ -4514,7 +3573,6 @@ export const EXERCISES = [
         "sin_material"
       ],
       "objetivo": [
-        "velocidad",
         "fuerza"
       ],
       "segmento": "tren_inferior",
@@ -4526,30 +3584,34 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
+        "lesion_rodilla",
         "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
+      "lesion_rodilla",
       "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 110,
+    "id": 82,
     "nombre": "Boundings (saltos largos)",
     "nuevo": false,
     "etiquetas": {
@@ -4561,7 +3623,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "fuerza_explosiva",
         "pliometria"
       ],
       "rol": "complementario",
@@ -4571,27 +3632,32 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla"
+        "lesion_rodilla",
+        "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla"
+      "lesion_rodilla",
+      "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 111,
+    "id": 83,
     "nombre": "Lateral bounds (patinador)",
     "nuevo": false,
     "etiquetas": {
@@ -4603,16 +3669,16 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "COD",
         "pliometria"
       ],
       "rol": "complementario",
-      "grupo_principal": "gluteos",
+      "grupo_principal": "cuadriceps",
       "grupo_muscular": [
-        "gluteos"
+        "cuadriceps"
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
@@ -4622,21 +3688,22 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla",
       "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 112,
+    "id": 84,
     "nombre": "Sprint + salto reactivo",
     "nuevo": false,
     "etiquetas": {
@@ -4644,13 +3711,11 @@ export const EXERCISES = [
         "sin_material"
       ],
       "objetivo": [
-        "velocidad",
         "fuerza"
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "pliometria",
-        "velocidad_pura"
+        "pliometria"
       ],
       "rol": "complementario",
       "grupo_principal": "cuadriceps",
@@ -4659,27 +3724,32 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla"
+        "lesion_rodilla",
+        "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla"
+      "lesion_rodilla",
+      "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 113,
+    "id": 85,
     "nombre": "Salto caja baja",
     "nuevo": false,
     "etiquetas": {
@@ -4698,29 +3768,34 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla"
+        "lesion_rodilla",
+        "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla"
+      "lesion_rodilla",
+      "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 114,
+    "id": 86,
     "nombre": "Salto caja alta (seguro)",
     "nuevo": false,
     "etiquetas": {
@@ -4732,8 +3807,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "pliometria",
-        "fuerza_explosiva"
+        "pliometria"
       ],
       "rol": "complementario",
       "grupo_principal": "cuadriceps",
@@ -4742,27 +3816,32 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla"
+        "lesion_rodilla",
+        "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla"
+      "lesion_rodilla",
+      "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 115,
+    "id": 87,
     "nombre": "Drop jump desde cajón",
     "nuevo": false,
     "etiquetas": {
@@ -4774,7 +3853,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "fuerza_explosiva",
         "pliometria"
       ],
       "rol": "complementario",
@@ -4784,6 +3862,8 @@ export const EXERCISES = [
       ],
       "intensidad": "alta",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
       "contraindicado": [
@@ -4792,108 +3872,23 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla",
       "lesion_tobillo"
     ],
-    "edadMinima": 10,
+    "edadMinima": 14,
     "carpeta": "pliometria"
   },
   {
-    "id": 116,
-    "nombre": "Salto largo + subida al cajón",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "fuerza_explosiva",
-        "pliometria"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PLIO-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "pliometria"
-  },
-  {
-    "id": 117,
-    "nombre": "Salto al cajón + caída + salto largo",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "fuerza_explosiva",
-        "pliometria"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PLIO-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
-    ],
-    "edadMinima": 10,
-    "carpeta": "pliometria"
-  },
-  {
-    "id": 118,
-    "nombre": "Wall sit",
+    "id": 88,
+    "nombre": "Isometría en sentadilla 90°",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -4904,6 +3899,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
+        "cadena_anterior",
         "isometrico"
       ],
       "rol": "complementario",
@@ -4914,18 +3910,20 @@ export const EXERCISES = [
       "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ISO-INFERIOR",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "ISO-INF",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -4934,48 +3932,7 @@ export const EXERCISES = [
     "carpeta": "fuerza_tren_inferior"
   },
   {
-    "id": 119,
-    "nombre": "Isometría en sentadilla 90º",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "fuerza_tren_inferior"
-  },
-  {
-    "id": 120,
+    "id": 89,
     "nombre": "Isometría zancada",
     "nuevo": false,
     "etiquetas": {
@@ -4987,6 +3944,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
+        "cadena_anterior",
         "isometrico"
       ],
       "rol": "complementario",
@@ -4996,18 +3954,21 @@ export const EXERCISES = [
       ],
       "intensidad": "media",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén la columna neutra y el core activo",
+      "Equilibra ambos lados; empieza por el más débil",
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ISO-INFERIOR",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "ISO-INF",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
@@ -5016,7 +3977,7 @@ export const EXERCISES = [
     "carpeta": "fuerza_tren_inferior"
   },
   {
-    "id": 121,
+    "id": 90,
     "nombre": "Isometría gemelo en punta",
     "nuevo": false,
     "etiquetas": {
@@ -5028,36 +3989,36 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
+        "cadena_anterior",
         "isometrico"
       ],
       "rol": "complementario",
-      "grupo_principal": "gemelo",
+      "grupo_principal": "gemelos",
       "grupo_muscular": [
-        "gemelo"
+        "gemelos"
       ],
       "intensidad": "media",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_tobillo"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia"
     ],
-    "pool": "ISO-INFERIOR",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gemelos. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "ISO-INF",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_tobillo"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_inferior"
   },
   {
-    "id": 122,
+    "id": 91,
     "nombre": "Isometría puente de glúteo",
     "nuevo": false,
     "etiquetas": {
@@ -5069,6 +4030,7 @@ export const EXERCISES = [
       ],
       "segmento": "tren_inferior",
       "patron": [
+        "cadena_posterior",
         "isometrico"
       ],
       "rol": "complementario",
@@ -5076,26 +4038,28 @@ export const EXERCISES = [
       "grupo_muscular": [
         "gluteos"
       ],
-      "intensidad": "baja",
+      "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ISO-INFERIOR",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gluteos. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "ISO-INF",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_inferior"
   },
   {
-    "id": 123,
+    "id": 92,
     "nombre": "Isometría femoral Nordic hold",
     "nuevo": false,
     "etiquetas": {
@@ -5103,42 +4067,42 @@ export const EXERCISES = [
         "sin_material"
       ],
       "objetivo": [
-        "fuerza",
-        "prevencion"
+        "core"
       ],
-      "segmento": "tren_inferior",
+      "segmento": "core",
       "patron": [
-        "isometrico",
-        "cadena_posterior"
+        "isometrico"
       ],
-      "rol": "complementario",
-      "grupo_principal": "isquios",
+      "rol": "core",
+      "grupo_principal": "core",
       "grupo_muscular": [
-        "isquios"
+        "core"
       ],
-      "intensidad": "alta",
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
+      "intensidad": "media",
       "experiencia": [
+        "novato",
+        "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
     ],
-    "pool": "PREV-GEN",
+    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "prevencion"
+    "carpeta": "core"
   },
   {
-    "id": 124,
+    "id": 93,
     "nombre": "Plancha frontal",
     "nuevo": false,
     "etiquetas": {
@@ -5157,30 +4121,31 @@ export const EXERCISES = [
       "grupo_muscular": [
         "core"
       ],
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
       "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
     ],
-    "pool": "CORE-ANTI-EXT",
+    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "core"
   },
   {
-    "id": 125,
+    "id": 94,
     "nombre": "Plancha lateral",
     "nuevo": false,
     "etiquetas": {
@@ -5199,30 +4164,31 @@ export const EXERCISES = [
       "grupo_muscular": [
         "core"
       ],
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
       "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
     ],
-    "pool": "CORE-ANTI-EXT",
+    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "core"
   },
   {
-    "id": 126,
+    "id": 95,
     "nombre": "Isometría de remo con banda",
     "nuevo": false,
     "etiquetas": {
@@ -5242,32 +4208,28 @@ export const EXERCISES = [
       "grupo_muscular": [
         "espalda"
       ],
-      "accion_secundaria": [
-        "estabilidad_escapular"
-      ],
       "intensidad": "media",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga"
     ],
-    "pool": "ISO-SUPERIOR",
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "ISO-REMO",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "fuerza_tren_superior"
   },
   {
-    "id": 127,
+    "id": 96,
     "nombre": "Hollow hold",
     "nuevo": false,
     "etiquetas": {
@@ -5286,29 +4248,31 @@ export const EXERCISES = [
       "grupo_muscular": [
         "core"
       ],
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
       "intensidad": "media",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
     ],
-    "pool": "CORE-ANTI-EXT",
+    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "core"
   },
   {
-    "id": 128,
+    "id": 97,
     "nombre": "Dead bug",
     "nuevo": false,
     "etiquetas": {
@@ -5320,6 +4284,7 @@ export const EXERCISES = [
       ],
       "segmento": "core",
       "patron": [
+        "anti_extension",
         "isometrico"
       ],
       "rol": "core",
@@ -5328,29 +4293,30 @@ export const EXERCISES = [
         "core"
       ],
       "accion_secundaria": [
-        "estabilidad_lumbopelvica",
-        "control_motor"
+        "estabilidad_lumbopelvica"
       ],
-      "intensidad": "baja",
+      "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
     ],
-    "pool": "CORE-ANTI-EXT",
+    "descripcion": "Ejercicio de core para estabilidad del tronco (anti_extension). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "core"
   },
   {
-    "id": 129,
+    "id": 98,
     "nombre": "Bird dog",
     "nuevo": false,
     "etiquetas": {
@@ -5372,26 +4338,28 @@ export const EXERCISES = [
       "accion_secundaria": [
         "estabilidad_lumbopelvica"
       ],
-      "intensidad": "baja",
+      "intensidad": "media",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
     ],
-    "pool": "CORE-ANTI-EXT",
+    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "core"
   },
   {
-    "id": 130,
+    "id": 99,
     "nombre": "Hollow rock",
     "nuevo": false,
     "etiquetas": {
@@ -5410,29 +4378,31 @@ export const EXERCISES = [
       "grupo_muscular": [
         "core"
       ],
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
       "intensidad": "media",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
     ],
-    "pool": "CORE-ANTI-EXT",
+    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "core"
   },
   {
-    "id": 131,
+    "id": 100,
     "nombre": "Russian twist",
     "nuevo": false,
     "etiquetas": {
@@ -5444,36 +4414,38 @@ export const EXERCISES = [
       ],
       "segmento": "core",
       "patron": [
-        "isometrico"
+        "anti_rotacion"
       ],
       "rol": "core",
       "grupo_principal": "core",
       "grupo_muscular": [
         "core"
       ],
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
       "intensidad": "media",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
     ],
-    "pool": "CORE-ANTI-EXT",
+    "descripcion": "Ejercicio de core para estabilidad del tronco (anti_rotacion). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "core"
   },
   {
-    "id": 132,
+    "id": 101,
     "nombre": "Elevación de piernas tumbado",
     "nuevo": false,
     "etiquetas": {
@@ -5492,29 +4464,31 @@ export const EXERCISES = [
       "grupo_muscular": [
         "core"
       ],
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
       "intensidad": "media",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
     ],
-    "pool": "CORE-ANTI-EXT",
+    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "core"
   },
   {
-    "id": 133,
+    "id": 102,
     "nombre": "Anti-rotación con banda (Pallof)",
     "nuevo": false,
     "etiquetas": {
@@ -5526,6 +4500,7 @@ export const EXERCISES = [
       ],
       "segmento": "core",
       "patron": [
+        "anti_rotacion",
         "isometrico"
       ],
       "rol": "core",
@@ -5533,31 +4508,33 @@ export const EXERCISES = [
       "grupo_muscular": [
         "core"
       ],
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
       "intensidad": "media",
       "experiencia": [
-        "intermedio"
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
     ],
-    "pool": "CORE-ANTI-EXT",
+    "descripcion": "Ejercicio de core para estabilidad del tronco (anti_rotacion). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "core"
   },
   {
-    "id": 134,
-    "nombre": "Equilibrio unipodal en línea (talón-punta)",
-    "nuevo": true,
+    "id": 103,
+    "nombre": "Equilibrio unipodal",
+    "nuevo": false,
     "etiquetas": {
       "material": [
         "sin_material"
@@ -5581,198 +4558,113 @@ export const EXERCISES = [
       "intensidad": "baja",
       "experiencia": [
         "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PREV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "prevencion"
-  },
-  {
-    "id": 135,
-    "nombre": "Equilibrio unipodal con ojos cerrados",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "tobillo",
-      "grupo_muscular": [
-        "tobillo"
-      ],
-      "accion_secundaria": [
-        "equilibrio",
-        "prevencion_tobillo"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PREV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "prevencion"
-  },
-  {
-    "id": 136,
-    "nombre": "Equilibrio unipodal plano inestable (toalla doblada)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "tobillo",
-      "grupo_muscular": [
-        "tobillo"
-      ],
-      "accion_secundaria": [
-        "equilibrio",
-        "prevencion_tobillo"
-      ],
-      "intensidad": "media",
-      "experiencia": [
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_tobillo"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Controla el equilibrio antes de aumentar dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
     ],
+    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_tobillo"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "prevencion"
   },
   {
-    "id": 137,
-    "nombre": "Pase pierna por encima (cadera móvil)",
-    "nuevo": true,
+    "id": 104,
+    "nombre": "Pase pierna por encima",
+    "nuevo": false,
     "etiquetas": {
       "material": [
         "sin_material"
       ],
       "objetivo": [
-        "prevencion"
+        "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "complementario",
-      "grupo_principal": "gluteos",
+      "patron": [
+        "movilidad"
+      ],
+      "rol": "calentamiento",
+      "grupo_principal": "cadera",
       "grupo_muscular": [
-        "gluteos"
+        "cadera"
       ],
       "intensidad": "baja",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Rango cómodo: no fuerces hasta el dolor",
+      "Movimiento lento y controlado en ambas direcciones",
+      "Combina con respiración profunda"
     ],
-    "pool": "PREV-GEN",
+    "descripcion": "Movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
+    "pool": "MOV-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "prevencion"
+    "carpeta": "movilidad"
   },
   {
-    "id": 138,
-    "nombre": "Pase pierna por debajo (cadera móvil)",
-    "nuevo": true,
+    "id": 105,
+    "nombre": "Pase pierna por debajo",
+    "nuevo": false,
     "etiquetas": {
       "material": [
         "sin_material"
       ],
       "objetivo": [
-        "prevencion"
+        "movilidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "complementario",
-      "grupo_principal": "isquios",
+      "patron": [
+        "movilidad"
+      ],
+      "rol": "calentamiento",
+      "grupo_principal": "cadera",
       "grupo_muscular": [
-        "isquios"
+        "cadera"
       ],
       "intensidad": "baja",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Rango cómodo: no fuerces hasta el dolor",
+      "Movimiento lento y controlado en ambas direcciones",
+      "Combina con respiración profunda"
     ],
-    "pool": "PREV-GEN",
+    "descripcion": "Movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
+    "pool": "MOV-GEN",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "prevencion"
+    "carpeta": "movilidad"
   },
   {
-    "id": 139,
-    "nombre": "Estabilidad rodilla + mini saltos laterales controlados",
-    "nuevo": true,
+    "id": 106,
+    "nombre": "Estabilidad rodilla + mini saltos",
+    "nuevo": false,
     "etiquetas": {
       "material": [
         "sin_material"
       ],
       "objetivo": [
-        "prevencion"
+        "fuerza"
       ],
       "segmento": "tren_inferior",
       "patron": [
@@ -5783,32 +4675,79 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
       "contraindicado": [
-        "lesion_rodilla"
+        "lesion_rodilla",
+        "lesion_tobillo"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
     ],
-    "pool": "PREV-GEN",
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
-      "lesion_rodilla"
+      "lesion_rodilla",
+      "lesion_tobillo"
     ],
+    "edadMinima": 14,
+    "carpeta": "pliometria"
+  },
+  {
+    "id": 107,
+    "nombre": "Estabilidad tobillo",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "prevencion"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "isometrico"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "tobillo",
+      "grupo_muscular": [
+        "tobillo"
+      ],
+      "accion_secundaria": [
+        "prevencion_rodilla"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Controla el equilibrio antes de aumentar dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
+    ],
+    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
+    "pool": "PREV-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "prevencion"
   },
   {
-    "id": 140,
-    "nombre": "Estabilidad tobillo (apoyo monopodal + alcance multidireccional)",
-    "nuevo": true,
+    "id": 108,
+    "nombre": "Caminata talón-punta",
+    "nuevo": false,
     "etiquetas": {
       "material": [
         "sin_material"
@@ -5827,21 +4766,22 @@ export const EXERCISES = [
       ],
       "accion_secundaria": [
         "equilibrio",
-        "control_motor",
         "prevencion_tobillo"
       ],
       "intensidad": "baja",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Controla el equilibrio antes de aumentar dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
     ],
+    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5849,9 +4789,9 @@ export const EXERCISES = [
     "carpeta": "prevencion"
   },
   {
-    "id": 141,
-    "nombre": "Caminata talón-punta línea recta (10 m)",
-    "nuevo": true,
+    "id": 109,
+    "nombre": "Trabajo multidireccional controlado",
+    "nuevo": false,
     "etiquetas": {
       "material": [
         "sin_material"
@@ -5869,21 +4809,22 @@ export const EXERCISES = [
         "tobillo"
       ],
       "accion_secundaria": [
-        "equilibrio",
-        "prevencion_tobillo"
+        "prevencion_rodilla"
       ],
       "intensidad": "baja",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Controla el equilibrio antes de aumentar dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
     ],
+    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5891,872 +4832,1525 @@ export const EXERCISES = [
     "carpeta": "prevencion"
   },
   {
-    "id": 142,
-    "nombre": "Skipping técnico en sitio (rodilla alta controlada)",
-    "nuevo": true,
+    "id": 110,
+    "nombre": "Skipping técnico",
+    "nuevo": false,
     "etiquetas": {
       "material": [
         "sin_material"
       ],
       "objetivo": [
-        "prevencion",
         "velocidad"
       ],
       "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "complementario",
-      "grupo_principal": "isquios",
-      "grupo_muscular": [
-        "isquios"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PREV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "prevencion"
-  },
-  {
-    "id": 143,
-    "nombre": "Nordic hold excéntrico (3 segundos bajada)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_inferior",
       "patron": [
-        "cadena_posterior",
-        "isometrico"
+        "aceleracion"
       ],
-      "rol": "complementario",
-      "grupo_principal": "isquios",
-      "grupo_muscular": [
-        "isquios"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PREV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "prevencion"
-  },
-  {
-    "id": 144,
-    "nombre": "Trap 3 con banda (elevación escapular)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "gomas"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "escapular",
-      "grupo_muscular": [
-        "escapular"
-      ],
-      "accion_secundaria": [
-        "estabilidad_escapular",
-        "prevencion_hombro"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PREV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "prevencion"
-  },
-  {
-    "id": 145,
-    "nombre": "Rotación torácica en cuadrupedia",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_superior",
-      "patron": [],
-      "rol": "complementario",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PREV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "prevencion"
-  },
-  {
-    "id": 146,
-    "nombre": "Elevación escapular en Y con banda",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "gomas"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PREV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "prevencion"
-  },
-  {
-    "id": 147,
-    "nombre": "Dead bug controlado (antiextensión)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "core"
-      ],
-      "segmento": "core",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "core",
-      "grupo_principal": "core",
-      "grupo_muscular": [
-        "core"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PREV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "core"
-  },
-  {
-    "id": 148,
-    "nombre": "Pallof press con banda (anti-rotación)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "gomas"
-      ],
-      "objetivo": [
-        "core"
-      ],
-      "segmento": "core",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "core",
-      "grupo_principal": "core",
-      "grupo_muscular": [
-        "core"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "PREV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "core"
-  },
-  {
-    "id": 149,
-    "nombre": "Movilidad de tobillo en círculos (10 por sentido)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "tobillo",
-      "grupo_muscular": [
-        "tobillo"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 150,
-    "nombre": "Movilidad de tobillo en flexión (peso sobre pared)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "gemelo",
-      "grupo_muscular": [
-        "gemelo"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 151,
-    "nombre": "Movilidad de tobillo dorsiflexión con banda",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "gomas"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "tobillo",
-      "grupo_muscular": [
-        "tobillo"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 152,
-    "nombre": "Movilidad de cadera en círculos (8 por sentido, bipedal)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "gluteos",
-      "grupo_muscular": [
-        "gluteos"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 153,
-    "nombre": "Movilidad de cadera maripeda (rodillas abiertas en suelo)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "aductores",
-      "grupo_muscular": [
-        "aductores"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 154,
-    "nombre": "Movilidad de cadera 90/90 (rotación interna y externa)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "gluteos",
-      "grupo_muscular": [
-        "gluteos"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 155,
-    "nombre": "Movilidad de cadera estocada + rotación torácica",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "full_body",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 156,
-    "nombre": "Movilidad de hombro en círculos (10 por sentido)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_superior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 157,
-    "nombre": "Movilidad de hombro con bastón (circunducción)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_superior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 158,
-    "nombre": "Y-T-W con banda (movilidad escapular)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "gomas"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "escapular",
-      "grupo_muscular": [
-        "escapular"
-      ],
-      "accion_secundaria": [
-        "estabilidad_escapular",
-        "prevencion_hombro"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "prevencion"
-  },
-  {
-    "id": 159,
-    "nombre": "Movilidad de hombro en pared (wall slides)",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_superior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_hombro"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_hombro"
-    ],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 160,
-    "nombre": "Rotación torácica en decúbito lateral",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_superior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "espalda",
-      "grupo_muscular": [
-        "espalda"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 161,
-    "nombre": "Estiramiento flexores de cadera en cuadrupedia",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "isquios",
-      "grupo_muscular": [
-        "isquios"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 162,
-    "nombre": "Estiramiento isquios sentado",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "calentamiento",
-      "grupo_principal": "isquios",
-      "grupo_muscular": [
-        "isquios"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": [
-        "lesion_espalda"
-      ]
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
-    ],
-    "pool": "MOV-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_espalda"
-    ],
-    "edadMinima": 10,
-    "carpeta": "movilidad"
-  },
-  {
-    "id": 163,
-    "nombre": "Estiramiento cuádriceps de pie",
-    "nuevo": true,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "movilidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [],
-      "rol": "calentamiento",
+      "rol": "basico",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-ACEL",
+    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoGroup": "vel_acel",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 111,
+    "nombre": "Rotación torácica",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "movilidad"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "movilidad"
+      ],
+      "rol": "calentamiento",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
       "intensidad": "baja",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Rango cómodo: no fuerces hasta el dolor",
+      "Movimiento lento y controlado en ambas direcciones",
+      "Combina con respiración profunda"
+    ],
+    "descripcion": "Movilidad articular enfocada en espalda. Usa rangos cómodos y respiración constante.",
+    "pool": "MOV-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "movilidad"
+  },
+  {
+    "id": 112,
+    "nombre": "Elevación escapular Y",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "prevencion"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "isometrico"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "escapular",
+      "grupo_muscular": [
+        "escapular"
+      ],
+      "accion_secundaria": [
+        "estabilidad_escapular",
+        "prevencion_hombro"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Controla el equilibrio antes de aumentar dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
+    ],
+    "descripcion": "Ejercicio preventivo/propioceptivo centrado en escapular. Mejora control motor y reduce riesgo de lesión.",
+    "pool": "PREV-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "prevencion"
+  },
+  {
+    "id": 113,
+    "nombre": "Antiextensión lumbar",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "core"
+      ],
+      "segmento": "core",
+      "patron": [
+        "anti_extension",
+        "isometrico"
+      ],
+      "rol": "core",
+      "grupo_principal": "core",
+      "grupo_muscular": [
+        "core"
+      ],
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
+    ],
+    "descripcion": "Ejercicio de core para estabilidad del tronco (anti_extension). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "core"
+  },
+  {
+    "id": 114,
+    "nombre": "Movilidad de cadera",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "movilidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "movilidad"
+      ],
+      "rol": "calentamiento",
+      "grupo_principal": "cadera",
+      "grupo_muscular": [
+        "cadera"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Rango cómodo: no fuerces hasta el dolor",
+      "Movimiento lento y controlado en ambas direcciones",
+      "Combina con respiración profunda"
+    ],
+    "descripcion": "Movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
+    "pool": "MOV-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "movilidad"
+  },
+  {
+    "id": 115,
+    "nombre": "Movilidad de tobillo",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "movilidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "movilidad"
+      ],
+      "rol": "calentamiento",
+      "grupo_principal": "tobillo",
+      "grupo_muscular": [
+        "tobillo"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Rango cómodo: no fuerces hasta el dolor",
+      "Movimiento lento y controlado en ambas direcciones",
+      "Combina con respiración profunda"
+    ],
+    "descripcion": "Movilidad articular enfocada en tobillo. Usa rangos cómodos y respiración constante.",
+    "pool": "MOV-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "movilidad"
+  },
+  {
+    "id": 116,
+    "nombre": "Estiramiento flexores de cadera",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "movilidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "movilidad"
+      ],
+      "rol": "calentamiento",
+      "grupo_principal": "cadera",
+      "grupo_muscular": [
+        "cadera"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Rango cómodo: no fuerces hasta el dolor",
+      "Movimiento lento y controlado en ambas direcciones",
+      "Combina con respiración profunda"
+    ],
+    "descripcion": "Movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
+    "pool": "MOV-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "movilidad"
+  },
+  {
+    "id": 117,
+    "nombre": "Jalón al pecho",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "traccion"
+      ],
+      "rol": "basico",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 118,
+    "nombre": "Cruces pecho de pie",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "empuje"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "pecho",
+      "grupo_muscular": [
+        "pecho"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 119,
+    "nombre": "Elevaciones laterales en polea",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "empuje",
+        "analitico"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "hombros",
+      "grupo_muscular": [
+        "hombros"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a hombros. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-HOMBRO",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 120,
+    "nombre": "Dominadas",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "traccion"
+      ],
+      "rol": "basico",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 121,
+    "nombre": "Remo barra",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "barra"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: barra. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 14,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 122,
+    "nombre": "Remo agarre estrecho",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 123,
+    "nombre": "Extensión tríceps en polea",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza",
+        "estetica"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "analitico",
+        "empuje"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "triceps",
+      "grupo_muscular": [
+        "triceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "AN-TRICEPS",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 124,
+    "nombre": "Extensión tríceps tras nuca",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza",
+        "estetica"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "analitico",
+        "empuje"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "triceps",
+      "grupo_muscular": [
+        "triceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "AN-TRICEPS",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 125,
+    "nombre": "Curl bíceps en máquina",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza",
+        "estetica"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "analitico",
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "biceps",
+      "grupo_muscular": [
+        "biceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a biceps. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "AN-BICEPS",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 126,
+    "nombre": "Curl bíceps alterno sentado mancuerna",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "mancuernas"
+      ],
+      "objetivo": [
+        "fuerza",
+        "estetica"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "analitico",
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "biceps",
+      "grupo_muscular": [
+        "biceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a biceps. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "AN-BICEPS",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 127,
+    "nombre": "Curl bíceps sentado mancuernas",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "mancuernas"
+      ],
+      "objetivo": [
+        "fuerza",
+        "estetica"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "analitico",
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "biceps",
+      "grupo_muscular": [
+        "biceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a biceps. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "AN-BICEPS",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 128,
+    "nombre": "Curl bíceps sentado declinado mancuerna",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "mancuernas"
+      ],
+      "objetivo": [
+        "fuerza",
+        "estetica"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "analitico",
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "biceps",
+      "grupo_muscular": [
+        "biceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a biceps. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "AN-BICEPS",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 129,
+    "nombre": "Press mancuernas inclinado",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "mancuernas"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "empuje"
+      ],
+      "rol": "basico",
+      "grupo_principal": "pecho",
+      "grupo_muscular": [
+        "pecho"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_hombro"
+      ]
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_hombro"
+    ],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 130,
+    "nombre": "Extensión tríceps mancuernas en banco",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "mancuernas"
+      ],
+      "objetivo": [
+        "fuerza",
+        "estetica"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "analitico",
+        "empuje"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "triceps",
+      "grupo_muscular": [
+        "triceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Aísla el músculo objetivo sin balanceo",
+      "Controla la fase excéntrica 2–3 segundos",
+      "Elige un peso que permita técnica limpia",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "AN-TRICEPS",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 131,
+    "nombre": "Remo con mancuerna en banco",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "mancuernas"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 132,
+    "nombre": "Remo en máquina",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 133,
+    "nombre": "Elevación lateral en máquina",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "cadena_anterior"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_inferior"
+  },
+  {
+    "id": 134,
+    "nombre": "Press inclinado en máquina",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "empuje"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "pecho",
+      "grupo_muscular": [
+        "pecho"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_hombro"
+      ]
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_hombro"
+    ],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 135,
+    "nombre": "Press plano en máquina",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "empuje"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "pecho",
+      "grupo_muscular": [
+        "pecho"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_hombro"
+      ]
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_hombro"
+    ],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 136,
+    "nombre": "Abducción pectoral en máquina",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "empuje"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "pecho",
+      "grupo_muscular": [
+        "pecho"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 137,
+    "nombre": "Jalón al pecho máquina",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 138,
+    "nombre": "Sentadilla en máquina inclinada (tipo haka)",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "cadena_anterior"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
       ],
       "contraindicado": [
         "lesion_rodilla"
       ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
+      "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
     ],
-    "pool": "MOV-GEN",
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla"
     ],
     "edadMinima": 10,
-    "carpeta": "movilidad"
+    "carpeta": "fuerza_tren_inferior"
   },
   {
-    "id": 164,
-    "nombre": "Carrera continua aeróbica",
+    "id": 139,
+    "nombre": "Prensa en máquina plana",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "cadena_anterior"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla"
+    ],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_inferior"
+  },
+  {
+    "id": 140,
+    "nombre": "Jalón al pecho agarre neutro ancho",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 141,
+    "nombre": "Jalón al pecho agarre neutro estrecho",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 142,
+    "nombre": "Press militar en máquina de discos",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "empuje"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "pecho",
+      "grupo_muscular": [
+        "pecho"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_hombro"
+      ]
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_hombro"
+    ],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 143,
+    "nombre": "Remo en máquina de discos",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "traccion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-TRACCION",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 144,
+    "nombre": "Press inclinado barra",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "barra"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "empuje"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "pecho",
+      "grupo_muscular": [
+        "pecho"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_hombro"
+      ]
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: barra. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-EMPUJE",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_hombro"
+    ],
+    "edadMinima": 14,
+    "carpeta": "fuerza_tren_superior"
+  },
+  {
+    "id": 145,
+    "nombre": "RowErg",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "resistencia"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aerobico"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+    ],
+    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
+    "pool": "RES-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "resistencia"
+  },
+  {
+    "id": 146,
+    "nombre": "Carrera continua",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -6783,10 +6377,52 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
     ],
+    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
+    "pool": "RES-GEN",
+    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
+    "videoGroup": "res_continua",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "resistencia"
+  },
+  {
+    "id": 147,
+    "nombre": "SkiErg",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "resistencia"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aerobico"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+    ],
+    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
     "pool": "RES-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -6794,7 +6430,993 @@ export const EXERCISES = [
     "carpeta": "resistencia"
   },
   {
+    "id": 148,
+    "nombre": "BikeErg",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "resistencia"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aerobico"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+    ],
+    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
+    "pool": "RES-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "resistencia"
+  },
+  {
+    "id": 149,
+    "nombre": "Empuje trineo",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "trineo"
+      ],
+      "objetivo": [
+        "resistencia"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "anaerobico"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+    ],
+    "descripcion": "Trabajo de resistencia (anaerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
+    "pool": "RES-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "resistencia"
+  },
+  {
+    "id": 150,
+    "nombre": "Peso muerto barra hexagonal",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "barra"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "cadena_posterior"
+      ],
+      "rol": "basico",
+      "grupo_principal": "isquios",
+      "grupo_muscular": [
+        "isquios"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_espalda"
+      ]
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga",
+      "Calienta la articulación principal antes de series pesadas"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: barra. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-POST",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_espalda"
+    ],
+    "edadMinima": 14,
+    "carpeta": "fuerza_tren_inferior"
+  },
+  {
+    "id": 151,
+    "nombre": "Sentadilla en multipower",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "maquina"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "cadena_anterior"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla"
+    ],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_inferior"
+  },
+  {
+    "id": 152,
+    "nombre": "Salto profundo + salto al cajón",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "pliometria"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla",
+        "lesion_tobillo"
+      ]
+    },
+    "tips": [
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
+    ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "pool": "PLIO-GEN",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla",
+      "lesion_tobillo"
+    ],
+    "edadMinima": 14,
+    "carpeta": "pliometria"
+  },
+  {
+    "id": 153,
+    "nombre": "Salto cajón + caigo + salto profundo",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "pliometria"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla",
+        "lesion_tobillo"
+      ]
+    },
+    "tips": [
+      "Aterriza suave, rodillas alineadas con los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Si aparece dolor articular, reduce altura o volumen"
+    ],
+    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "pool": "PLIO-GEN",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla",
+      "lesion_tobillo"
+    ],
+    "edadMinima": 14,
+    "carpeta": "pliometria"
+  },
+  {
+    "id": 154,
+    "nombre": "Step up + rodilla arriba",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "cadena_anterior"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-UNI",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla"
+    ],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_inferior"
+  },
+  {
+    "id": 155,
+    "nombre": "Perro gato movilidad torácica",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "movilidad"
+      ],
+      "segmento": "tren_superior",
+      "patron": [
+        "movilidad"
+      ],
+      "rol": "calentamiento",
+      "grupo_principal": "espalda",
+      "grupo_muscular": [
+        "espalda"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Rango cómodo: no fuerces hasta el dolor",
+      "Movimiento lento y controlado en ambas direcciones",
+      "Combina con respiración profunda"
+    ],
+    "descripcion": "Movilidad articular enfocada en espalda. Usa rangos cómodos y respiración constante.",
+    "pool": "MOV-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "movilidad"
+  },
+  {
+    "id": 156,
+    "nombre": "Equilibrio unipodal ir a tocar conos",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "prevencion"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "isometrico"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "tobillo",
+      "grupo_muscular": [
+        "tobillo"
+      ],
+      "accion_secundaria": [
+        "equilibrio",
+        "prevencion_tobillo"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Controla el equilibrio antes de aumentar dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
+    ],
+    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
+    "pool": "PREV-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "prevencion"
+  },
+  {
+    "id": 157,
+    "nombre": "Caminar sobre línea con los ojos cerrados",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "fuerza"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "cadena_anterior"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén la columna neutra y el core activo",
+      "Controla el movimiento en ambas fases",
+      "No sacrifiques técnica por carga"
+    ],
+    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "TI-ANT",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "fuerza_tren_inferior"
+  },
+  {
+    "id": 158,
+    "nombre": "Equilibrio sobre BOSU",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "bosu"
+      ],
+      "objetivo": [
+        "prevencion"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "isometrico"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "tobillo",
+      "grupo_muscular": [
+        "tobillo"
+      ],
+      "accion_secundaria": [
+        "equilibrio",
+        "prevencion_tobillo"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Controla el equilibrio antes de aumentar dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
+    ],
+    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
+    "pool": "PREV-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "prevencion"
+  },
+  {
+    "id": 159,
+    "nombre": "Coordinación 1 pie por espacio",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aceleracion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla",
+        "lesion_tobillo"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COORD",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla",
+      "lesion_tobillo"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 160,
+    "nombre": "Coordinación Dos pies por espacio",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aceleracion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla",
+        "lesion_tobillo"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COORD",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla",
+      "lesion_tobillo"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 161,
+    "nombre": "Coordinación Un pie (dentro-fuera)",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aceleracion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla",
+        "lesion_tobillo"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COORD",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla",
+      "lesion_tobillo"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 162,
+    "nombre": "Coordinación Dos pies dentro, uno fuera",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aceleracion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla",
+        "lesion_tobillo"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COORD",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla",
+      "lesion_tobillo"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 163,
+    "nombre": "Coordinación Lateral dos dentro, dos fuera",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aceleracion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla",
+        "lesion_tobillo"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COORD",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla",
+      "lesion_tobillo"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 164,
+    "nombre": "Coordinación Salto pies juntos",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aceleracion"
+      ],
+      "rol": "complementario",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "accion_secundaria": [
+        "control_motor"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_rodilla",
+        "lesion_tobillo"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COORD",
+    "videoUrl": "",
+    "lesionesContra": [
+      "lesion_rodilla",
+      "lesion_tobillo"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
     "id": 165,
+    "nombre": "Inch worm + plancha",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "core"
+      ],
+      "segmento": "core",
+      "patron": [
+        "anti_extension",
+        "isometrico"
+      ],
+      "rol": "core",
+      "grupo_principal": "core",
+      "grupo_muscular": [
+        "core"
+      ],
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
+    ],
+    "descripcion": "Ejercicio de core para estabilidad del tronco (anti_extension). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "core"
+  },
+  {
+    "id": 166,
+    "nombre": "Nordic hold",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "core"
+      ],
+      "segmento": "core",
+      "patron": [
+        "isometrico"
+      ],
+      "rol": "core",
+      "grupo_principal": "core",
+      "grupo_muscular": [
+        "core"
+      ],
+      "accion_secundaria": [
+        "estabilidad_lumbopelvica"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Respira sin perder la tensión del tronco",
+      "Calidad de posición por encima del tiempo o las reps"
+    ],
+    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "pool": "CORE-GEN",
+    "videoUrl": "",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "core"
+  },
+  {
+    "id": 167,
+    "nombre": "Drill pared",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aceleracion"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-ACEL",
+    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoGroup": "vel_acel",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 168,
+    "nombre": "Carrera continua zona 2",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "resistencia"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aerobico"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+    ],
+    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
+    "pool": "RES-GEN",
+    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
+    "videoGroup": "res_continua",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "resistencia"
+  },
+  {
+    "id": 169,
+    "nombre": "Carrera continua regenerativa",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "resistencia"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aerobico"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+    ],
+    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
+    "pool": "RES-GEN",
+    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
+    "videoGroup": "res_continua",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "resistencia"
+  },
+  {
+    "id": 170,
     "nombre": "Series umbral controlado",
     "nuevo": false,
     "etiquetas": {
@@ -6822,19 +7444,21 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
     ],
+    "descripcion": "Trabajo de resistencia (umbral). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
     "pool": "RES-GEN",
-    "videoUrl": "",
+    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
+    "videoGroup": "res_continua",
     "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "resistencia"
   },
   {
-    "id": 166,
-    "nombre": "Intervalos anaeróbicos",
+    "id": 171,
+    "nombre": "Intervalos anaeróbicos cortos",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -6852,31 +7476,112 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
+        "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
     ],
+    "descripcion": "Trabajo de resistencia (anaerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
     "pool": "RES-GEN",
-    "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla"
-    ],
+    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
+    "videoGroup": "res_continua",
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "resistencia"
   },
   {
-    "id": 167,
-    "nombre": "Drills de marcha A (técnica de carrera)",
+    "id": 172,
+    "nombre": "Fartlek controlado",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "resistencia"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "anaerobico"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+    ],
+    "descripcion": "Trabajo de resistencia (anaerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
+    "pool": "RES-GEN",
+    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
+    "videoGroup": "res_continua",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "resistencia"
+  },
+  {
+    "id": 173,
+    "nombre": "Carrera continua en cinta",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "resistencia"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aerobico"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "baja",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": []
+    },
+    "tips": [
+      "Mantén un ritmo sostenible y respiración controlada",
+      "Postura erguida, mirada al frente y zancada eficiente",
+      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+    ],
+    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
+    "pool": "RES-GEN",
+    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
+    "videoGroup": "res_continua",
+    "lesionesContra": [],
+    "edadMinima": 10,
+    "carpeta": "resistencia"
+  },
+  {
+    "id": 174,
+    "nombre": "Aceleraciones 20 m",
     "nuevo": false,
     "etiquetas": {
       "material": [
@@ -6889,696 +7594,42 @@ export const EXERCISES = [
       "patron": [
         "aceleracion"
       ],
-      "rol": "calentamiento",
+      "rol": "basico",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "accion_secundaria": [
-        "control_motor"
-      ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": []
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
     },
     "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla el movimiento en ambas fases",
-      "Respira con normalidad"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10,
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-ACEL",
+    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoGroup": "vel_acel",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 14,
     "carpeta": "velocidad"
   },
   {
-    "id": 168,
-    "nombre": "Split squat hold",
-    "nuevo": true,
-    "carpeta": "fuerza_tren_inferior",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "cadena_anterior",
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "accion_secundaria": [
-        "control_motor"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 169,
-    "nombre": "Puente de glúteo unilateral isométrico",
-    "nuevo": true,
-    "carpeta": "fuerza_tren_inferior",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "cadena_posterior",
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "gluteos",
-      "grupo_muscular": [
-        "gluteos"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 170,
-    "nombre": "Wall sit unilateral",
-    "nuevo": true,
-    "carpeta": "fuerza_tren_inferior",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "cadena_anterior",
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 171,
-    "nombre": "Isometría aductores con balón",
-    "nuevo": true,
-    "carpeta": "prevencion",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "aductores",
-      "grupo_muscular": [
-        "aductores"
-      ],
-      "accion_secundaria": [
-        "prevencion_rodilla"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 172,
-    "nombre": "Copenhagen hold básico",
-    "nuevo": true,
-    "carpeta": "prevencion",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "aductores",
-      "grupo_muscular": [
-        "aductores"
-      ],
-      "accion_secundaria": [
-        "prevencion_rodilla"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 173,
-    "nombre": "Copenhagen hold medio",
-    "nuevo": true,
-    "carpeta": "prevencion",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "aductores",
-      "grupo_muscular": [
-        "aductores"
-      ],
-      "accion_secundaria": [
-        "prevencion_rodilla"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 174,
-    "nombre": "Isometría isquios supino talones en banco",
-    "nuevo": true,
-    "carpeta": "fuerza_tren_inferior",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "cadena_posterior",
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "isquios",
-      "grupo_muscular": [
-        "isquios"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
     "id": 175,
-    "nombre": "Press isométrico pared unilateral",
-    "nuevo": true,
-    "carpeta": "fuerza_tren_superior",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "empuje",
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "pecho",
-      "grupo_muscular": [
-        "pecho"
-      ],
-      "accion_secundaria": [
-        "estabilidad_hombro"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-SUPERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 176,
-    "nombre": "Rotación externa isométrica con banda",
-    "nuevo": true,
-    "carpeta": "prevencion",
-    "etiquetas": {
-      "material": [
-        "gomas"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "hombros",
-      "grupo_muscular": [
-        "hombros"
-      ],
-      "accion_secundaria": [
-        "prevencion_hombro",
-        "estabilidad_hombro"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 177,
-    "nombre": "Serrato wall hold",
-    "nuevo": true,
-    "carpeta": "prevencion",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "prevencion"
-      ],
-      "segmento": "tren_superior",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "escapular",
-      "grupo_muscular": [
-        "escapular"
-      ],
-      "accion_secundaria": [
-        "estabilidad_escapular",
-        "prevencion_hombro"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 178,
-    "nombre": "Dead bug hold",
-    "nuevo": true,
-    "carpeta": "core",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "core"
-      ],
-      "segmento": "core",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "core",
-      "grupo_principal": "core",
-      "grupo_muscular": [
-        "core"
-      ],
-      "accion_secundaria": [
-        "estabilidad_lumbopelvica"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "CORE-ANTI-EXT",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 179,
-    "nombre": "Bear plank hold",
-    "nuevo": true,
-    "carpeta": "core",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "core"
-      ],
-      "segmento": "core",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "core",
-      "grupo_principal": "core",
-      "grupo_muscular": [
-        "core"
-      ],
-      "accion_secundaria": [
-        "estabilidad_lumbopelvica"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "CORE-ANTI-EXT",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 180,
-    "nombre": "Pallof hold",
-    "nuevo": true,
-    "carpeta": "core",
-    "etiquetas": {
-      "material": [
-        "gomas"
-      ],
-      "objetivo": [
-        "core"
-      ],
-      "segmento": "core",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "core",
-      "grupo_principal": "core",
-      "grupo_muscular": [
-        "core"
-      ],
-      "accion_secundaria": [
-        "estabilidad_lumbopelvica"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "CORE-ANTI-EXT",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 181,
-    "nombre": "Drop landing + hold",
-    "nuevo": true,
-    "carpeta": "pliometria",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "pliometria",
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "accion_secundaria": [
-        "prevencion_rodilla",
-        "control_motor"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 182,
-    "nombre": "Skater landing hold",
-    "nuevo": true,
-    "carpeta": "pliometria",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "fuerza"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "pliometria",
-        "isometrico"
-      ],
-      "rol": "complementario",
-      "grupo_principal": "gluteos",
-      "grupo_muscular": [
-        "gluteos"
-      ],
-      "accion_secundaria": [
-        "prevencion_rodilla",
-        "equilibrio"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "ISO-INFERIOR",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 183,
-    "nombre": "Plancha con toque de hombro",
-    "nuevo": true,
-    "carpeta": "core",
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "core"
-      ],
-      "segmento": "core",
-      "patron": [
-        "isometrico"
-      ],
-      "rol": "core",
-      "grupo_principal": "core",
-      "grupo_muscular": [
-        "core"
-      ],
-      "accion_secundaria": [
-        "estabilidad_hombro"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén la postura durante toda la serie",
-      "Controla la respiración sin perder la tensión",
-      "Calidad de posición por encima del tiempo"
-    ],
-    "pool": "CORE-ANTI-EXT",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 12
-  },
-  {
-    "id": 184,
-    "nombre": "Marcha A",
-    "nuevo": true,
-    "carpeta": "velocidad",
+    "nombre": "Aceleraciones 30 m",
+    "nuevo": false,
     "etiquetas": {
       "material": [
         "sin_material"
@@ -7590,30 +7641,319 @@ export const EXERCISES = [
       "patron": [
         "aceleracion"
       ],
-      "rol": "calentamiento",
+      "rol": "basico",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "accion_secundaria": [
-        "control_motor"
-      ],
-      "intensidad": "baja",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
-        "intermedio"
+        "intermedio",
+        "avanzado"
       ],
-      "contraindicado": []
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
     },
     "tips": [
-      "Ritmo controlado",
-      "Rodilla alta y pie activo",
-      "Tronco estable"
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
     ],
-    "pool": "VEL-GEN",
-    "videoUrl": "",
-    "lesionesContra": [],
-    "edadMinima": 10
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-ACEL",
+    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoGroup": "vel_acel",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 14,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 176,
+    "nombre": "Salidas desde pie",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "aceleracion"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-ACEL",
+    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoGroup": "vel_acel",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 177,
+    "nombre": "Sprint 10 m",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "velocidad_pura"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-SPRINT",
+    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoGroup": "vel_sprint",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 14,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 178,
+    "nombre": "Sprint 15 m",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "velocidad_pura"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "alta",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-SPRINT",
+    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoGroup": "vel_sprint",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 14,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 179,
+    "nombre": "COD 5-10-5 reactivo",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "COD"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COD",
+    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoGroup": "vel_cod",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 180,
+    "nombre": "COD 4 conos",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "COD"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COD",
+    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoGroup": "vel_cod",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
+  },
+  {
+    "id": 181,
+    "nombre": "Zig-zag 4 conos",
+    "nuevo": false,
+    "etiquetas": {
+      "material": [
+        "sin_material"
+      ],
+      "objetivo": [
+        "velocidad"
+      ],
+      "segmento": "tren_inferior",
+      "patron": [
+        "COD"
+      ],
+      "rol": "basico",
+      "grupo_principal": "cuadriceps",
+      "grupo_muscular": [
+        "cuadriceps"
+      ],
+      "intensidad": "media",
+      "experiencia": [
+        "novato",
+        "intermedio",
+        "avanzado"
+      ],
+      "contraindicado": [
+        "lesion_tobillo",
+        "lesion_rodilla"
+      ]
+    },
+    "tips": [
+      "Salida explosiva con apoyo completo del pie",
+      "Tronco estable y brazos activos en oposición",
+      "Prioriza calidad técnica antes que volumen"
+    ],
+    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "pool": "VEL-COD",
+    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoGroup": "vel_cod",
+    "lesionesContra": [
+      "lesion_tobillo",
+      "lesion_rodilla"
+    ],
+    "edadMinima": 10,
+    "carpeta": "velocidad"
   }
 ];
 
