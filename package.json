@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "node scripts/write-public-config.mjs && node scripts/write-server-secrets.mjs && vite build",
     "lint": "eslint .",
-    "test": "node --test src/lib/objectiveSessionMatrix.test.js src/lib/muscleSplitAlternation.test.js src/lib/playerPlanEngine.test.js src/lib/playerPlanStorage.test.js src/lib/sessionBlocks.test.js src/lib/exerciseTagging.test.js src/lib/clubAuto/clubAutoEngine.test.js src/lib/clubAuto/clubAutoCoachBridge.test.js src/lib/clubAuto/clubAutoTaskSelector.test.js src/lib/tipoRegistro.test.js src/lib/templateSlotFill.test.js",
+    "test": "node --test src/lib/objectiveSessionMatrix.test.js src/lib/muscleSplitAlternation.test.js src/lib/playerPlanEngine.test.js src/lib/playerPlanStorage.test.js src/lib/sessionBlocks.test.js src/lib/exerciseTagging.test.js src/lib/clubAuto/clubAutoEngine.test.js src/lib/clubAuto/clubAutoCoachBridge.test.js src/lib/clubAuto/clubAutoTaskSelector.test.js src/lib/tipoRegistro.test.js src/lib/templateSlotFill.test.js src/lib/loadAnalytics.test.js",
     "preview": "vite preview",
     "stripe:setup": "node scripts/setup-stripe.mjs --test",
     "stripe:setup:test": "node scripts/setup-stripe.mjs --test",
