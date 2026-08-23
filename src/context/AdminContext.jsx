@@ -2,6 +2,12 @@ import { createContext, useContext, useState, useCallback, useEffect } from "rea
 import { clients as initialClients, weeklyPlan as initialPlan } from "../data/mockData";
 import { supabase } from "../lib/supabase";
 import { loadPlayerPlan, savePlayerPlan, persistPlayerPlanRemote } from "../lib/playerPlanStorage";
+import {
+  getPlayerFeedback,
+  addPlayerFeedback,
+  deletePlayerFeedback,
+  archivePlayerFeedback as archiveStoredFeedback,
+} from "../lib/playerFeedback";
 
 const AdminContext = createContext(null);
 
@@ -61,35 +67,16 @@ function buildInitialState() {
       plans[c.id] = JSON.parse(JSON.stringify(initialPlan));
       content[c.id] = {
         videos: [
-          { id: 1, title: "Rondo 4v2 - Technique", url: "#", size: "42 MB", uploadedAt: "Apr 15, 2025", session: "Technical Foundation" },
-          { id: 2, title: "Sprint Mechanics - Full Breakdown", url: "#", size: "58 MB", uploadedAt: "Apr 16, 2025", session: "Physical Conditioning" },
-          { id: 3, title: "Positional Play 8v8", url: "#", size: "71 MB", uploadedAt: "Apr 17, 2025", session: "Tactical + Technical" },
+          { id: 1, title: "Sprint Mechanics - Full Breakdown", url: "#", size: "58 MB", uploadedAt: "Apr 16, 2025", session: "Physical Conditioning" },
+          { id: 2, title: "Hamstring Prevention Protocol", url: "#", size: "0.8 MB", uploadedAt: "Apr 10, 2025", session: "Prevention" },
         ],
         pdfs: [
           { id: 1, title: "Week 15 - Full Plan PDF", url: "#", size: "1.2 MB", uploadedAt: "Apr 14, 2025" },
           { id: 2, title: "Hamstring Prevention Protocol", url: "#", size: "0.8 MB", uploadedAt: "Apr 10, 2025" },
         ],
       };
-      feedbackMap[c.id] = [
-        {
-          id: 1,
-          date: "Apr 18, 2025",
-          week: "Week 15",
-          message: "Great improvement in your first touch this week. The rondo sessions are clearly paying off. I noticed you're still hesitating before shooting — next week we'll focus specifically on decision-making in the final third.",
-          adjustments: ["Added extra finishing sessions on Tue/Thu", "Increased pressing intensity", "New 1v1 duel module added"],
-          rating: 8,
-          nextFocus: "Decision-making in front of goal",
-        },
-        {
-          id: 2,
-          date: "Apr 11, 2025",
-          week: "Week 14",
-          message: "Excellent week physically. Sprint numbers are up 12% from baseline. Technically you need to work on your weak foot — starting to add some specific exercises for that.",
-          adjustments: ["Weak foot exercises added to warm-up", "Sprint protocol adjusted", "Recovery session moved to Wednesday"],
-          rating: 7,
-          nextFocus: "Weak foot development",
-        },
-      ];
+      // Sin feedback mock: solo mensajes realmente enviados por el preparador
+      feedbackMap[c.id] = [];
     });
 
   return { plans, content, feedbackMap };
@@ -141,8 +128,12 @@ export function AdminProvider({ children }) {
       const next = { ...prev };
       let changed = false;
       for (const id of clientIds) {
-        if (!next[id]) {
-          next[id] = [];
+        const stored = getPlayerFeedback(id);
+        if (JSON.stringify(next[id] || []) !== JSON.stringify(stored)) {
+          next[id] = stored;
+          changed = true;
+        } else if (!next[id]) {
+          next[id] = stored;
           changed = true;
         }
       }
@@ -335,25 +326,29 @@ export function AdminProvider({ children }) {
     }));
   }, []);
 
-  // ── FEEDBACK ──────────────────────────────────────────────────────
+  // ── FEEDBACK (persistido → visible para el jugador) ───────────────
   const addFeedback = useCallback((clientId, feedback) => {
+    const saved = addPlayerFeedback(clientId, feedback);
+    if (!saved) return;
     setClientFeedback((prev) => ({
       ...prev,
-      [clientId]: [
-        {
-          ...feedback,
-          id: Date.now(),
-          date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        },
-        ...(prev[clientId] || []),
-      ],
+      [clientId]: getPlayerFeedback(clientId),
     }));
   }, []);
 
   const deleteFeedback = useCallback((clientId, feedbackId) => {
+    deletePlayerFeedback(clientId, feedbackId);
     setClientFeedback((prev) => ({
       ...prev,
-      [clientId]: prev[clientId].filter((f) => f.id !== feedbackId),
+      [clientId]: getPlayerFeedback(clientId),
+    }));
+  }, []);
+
+  const archiveFeedback = useCallback((clientId, feedbackId) => {
+    archiveStoredFeedback(clientId, feedbackId);
+    setClientFeedback((prev) => ({
+      ...prev,
+      [clientId]: getPlayerFeedback(clientId),
     }));
   }, []);
 
@@ -380,6 +375,7 @@ export function AdminProvider({ children }) {
         deletePdf,
         addFeedback,
         deleteFeedback,
+        archiveFeedback,
       }}
     >
       {children}

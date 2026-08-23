@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft, Calendar, MessageSquare, Plus, Trash2,
   Edit3, Check, X, ChevronDown, ChevronUp, Star, Save, Clock, Target, Flame,
-  Info, PlayCircle, CalendarDays, RefreshCw,
+  Info, PlayCircle, CalendarDays, RefreshCw, Archive,
 } from "lucide-react";
 import { useAdmin } from "../../context/AdminContext";
 import { refreshExercise as refreshExerciseInEngine, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
@@ -337,19 +337,22 @@ function MonthlyPlanTab({ client, clientId }) {
 
 /* ── FEEDBACK TAB ────────────────────────────────────────────────── */
 function FeedbackTab({ clientId }) {
-  const { clientFeedback, addFeedback, deleteFeedback } = useAdmin();
-  const feedbacks = clientFeedback[clientId] || [];
+  const { clientFeedback, addFeedback, deleteFeedback, archiveFeedback } = useAdmin();
+  const all = clientFeedback[clientId] || [];
+  const feedbacks = all.filter((f) => !f.archivedAt);
+  const archived = all.filter((f) => f.archivedAt);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ week: "", message: "", rating: 8, nextFocus: "", adjustments: "" });
 
   const handleAdd = () => {
-    if (!form.message) return;
+    if (!form.message.trim()) return;
     addFeedback(clientId, {
-      week: form.week || `Semana ${feedbacks.length + 1}`,
+      week: form.week || `Semana ${feedbacks.length + archived.length + 1}`,
       message: form.message,
-      rating: parseInt(form.rating),
+      rating: parseInt(form.rating, 10),
       nextFocus: form.nextFocus,
       adjustments: form.adjustments ? form.adjustments.split("\n").filter(Boolean) : [],
+      coach: "Preparador",
     });
     setForm({ week: "", message: "", rating: 8, nextFocus: "", adjustments: "" });
     setShowForm(false);
@@ -359,8 +362,10 @@ function FeedbackTab({ clientId }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-depro-dark">Feedback del preparador</h3>
-          <p className="text-xs text-depro-gray mt-0.5">{feedbacks.length} revisiones enviadas</p>
+          <h3 className="font-bold text-depro-dark">Feedback del preparador físico</h3>
+          <p className="text-xs text-depro-gray mt-0.5">
+            {feedbacks.length} activos · {archived.length} archivados — solo preparación física (cargas, adherencia, fuerza/velocidad/resistencia)
+          </p>
         </div>
         <button onClick={() => setShowForm(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-depro-green-light hover:bg-green-100 border border-green-200 text-green-700 text-sm font-semibold transition-all">
@@ -370,7 +375,7 @@ function FeedbackTab({ clientId }) {
 
       {showForm && (
         <div className="rounded-2xl border border-green-200 bg-depro-green-light p-5 space-y-3">
-          <h4 className="font-semibold text-depro-dark text-sm">Revisión semanal</h4>
+          <h4 className="font-semibold text-depro-dark text-sm">Revisión de preparación física</h4>
           <div className="grid sm:grid-cols-2 gap-3">
             <input placeholder="Semana (ej. Semana 16)" value={form.week} onChange={(e) => setForm({ ...form, week: e.target.value })} className="admin-input" />
             <div className="flex items-center gap-3">
@@ -378,9 +383,26 @@ function FeedbackTab({ clientId }) {
               <input type="range" min={1} max={10} value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })} className="flex-1 accent-depro-blue" />
             </div>
           </div>
-          <textarea placeholder="Escribe el feedback para este jugador/club..." rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="admin-input w-full resize-none" />
-          <textarea placeholder="Ajustes realizados (uno por línea)" rows={3} value={form.adjustments} onChange={(e) => setForm({ ...form, adjustments: e.target.value })} className="admin-input w-full resize-none" />
-          <input placeholder="Foco para la próxima semana" value={form.nextFocus} onChange={(e) => setForm({ ...form, nextFocus: e.target.value })} className="admin-input" />
+          <textarea
+            placeholder="Feedback físico: adherencia, cargas, progresión de fuerza/velocidad/resistencia, recuperación…"
+            rows={4}
+            value={form.message}
+            onChange={(e) => setForm({ ...form, message: e.target.value })}
+            className="admin-input w-full resize-none"
+          />
+          <textarea
+            placeholder="Ajustes de carga física (uno por línea), ej. −10% volumen fuerza inferior"
+            rows={3}
+            value={form.adjustments}
+            onChange={(e) => setForm({ ...form, adjustments: e.target.value })}
+            className="admin-input w-full resize-none"
+          />
+          <input
+            placeholder="Foco físico próxima semana (ej. potencia, VAM, prevención isquios)"
+            value={form.nextFocus}
+            onChange={(e) => setForm({ ...form, nextFocus: e.target.value })}
+            className="admin-input"
+          />
           <div className="flex gap-2">
             <button onClick={handleAdd} className="admin-btn-primary flex items-center gap-2"><Check size={15} /> Enviar feedback</button>
             <button onClick={() => setShowForm(false)} className="admin-btn-ghost flex items-center gap-2"><X size={15} /> Cancelar</button>
@@ -395,20 +417,30 @@ function FeedbackTab({ clientId }) {
               <div className="font-semibold text-depro-dark">{fb.week}</div>
               <div className="text-xs text-depro-gray">{fb.date}</div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-0.5">
-                {Array(5).fill(0).map((_, i) => (
-                  <Star key={i} size={14} className={i < Math.round(fb.rating / 2) ? "fill-depro-yellow text-depro-yellow" : "text-depro-border"} />
-                ))}
-                <span className="text-xs text-depro-gray ml-1">{fb.rating}/10</span>
-              </div>
+            <div className="flex items-center gap-2">
+              {fb.rating != null && (
+                <div className="flex items-center gap-0.5">
+                  {Array(5).fill(0).map((_, i) => (
+                    <Star key={i} size={14} className={i < Math.round(fb.rating / 2) ? "fill-depro-yellow text-depro-yellow" : "text-depro-border"} />
+                  ))}
+                  <span className="text-xs text-depro-gray ml-1">{fb.rating}/10</span>
+                </div>
+              )}
+              <button
+                type="button"
+                title="Archivar"
+                onClick={() => archiveFeedback(clientId, fb.id)}
+                className="p-1.5 text-depro-gray hover:text-depro-blue hover:bg-depro-blue-light rounded-lg transition-all opacity-0 group-hover:opacity-100"
+              >
+                <Archive size={14} />
+              </button>
               <button onClick={() => deleteFeedback(clientId, fb.id)} className="p-1.5 text-depro-gray hover:text-depro-red hover:bg-depro-red-light rounded-lg transition-all opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
             </div>
           </div>
           <p className="text-sm text-depro-gray leading-relaxed mb-3">{fb.message}</p>
           {fb.adjustments?.length > 0 && (
             <div className="mb-3">
-              <div className="text-xs font-bold text-depro-gray mb-1.5 uppercase tracking-wider">Ajustes</div>
+              <div className="text-xs font-bold text-depro-gray mb-1.5 uppercase tracking-wider">Ajustes de carga</div>
               <div className="space-y-1">
                 {fb.adjustments.map((a, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-depro-gray">
@@ -420,15 +452,36 @@ function FeedbackTab({ clientId }) {
           )}
           {fb.nextFocus && (
             <div className="bg-depro-blue-light border border-blue-100 rounded-xl px-3 py-2 text-xs">
-              <span className="text-depro-blue font-semibold">Próximo foco: </span>
+              <span className="text-depro-blue font-semibold">Foco físico: </span>
               <span className="text-depro-gray">{fb.nextFocus}</span>
             </div>
           )}
         </div>
       ))}
 
+      {archived.length > 0 && (
+        <div className="pt-2">
+          <p className="text-xs font-bold uppercase text-depro-gray mb-2">Archivados ({archived.length})</p>
+          <div className="space-y-2">
+            {archived.map((fb) => (
+              <div key={fb.id} className="rounded-xl border border-depro-border bg-depro-gray-light/50 px-4 py-3 text-sm text-depro-gray flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-depro-dark text-xs">{fb.week} · {fb.date}</p>
+                  <p className="line-clamp-2 mt-0.5">{fb.message}</p>
+                </div>
+                <button type="button" onClick={() => deleteFeedback(clientId, fb.id)} className="text-depro-gray hover:text-depro-red shrink-0">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {feedbacks.length === 0 && !showForm && (
-        <div className="text-center py-10 text-depro-gray text-sm bg-depro-gray-light rounded-2xl">Sin feedback aún.</div>
+        <div className="text-center py-10 text-depro-gray text-sm bg-depro-gray-light rounded-2xl">
+          Sin feedback enviado. Las plantillas demo ya no se muestran al jugador.
+        </div>
       )}
     </div>
   );
