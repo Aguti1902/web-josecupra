@@ -14,7 +14,7 @@ import {
   MAX_PROFILE_REGENS_PER_CYCLE,
   resetCycleCounters,
 } from "../../lib/planSwapLimits";
-import { loadPlayerPlan } from "../../lib/playerPlanStorage";
+import { loadPlayerPlan, fetchPlayerPlan, savePlayerPlan, persistPlayerPlanRemote } from "../../lib/playerPlanStorage";
 import { openBillingPortal, isSubscriptionActive } from "../../lib/subscription";
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import {
@@ -23,16 +23,21 @@ import {
   applyClubBrandingToPlayer,
 } from "../../lib/clubPlayerRegistry";
 import {
-  trainingFieldsFromUser,
+  mergeTrainingSources,
   trainingFieldsKey,
   normalizeStringList,
+  normalizeFrecuencia,
+  filterCatalogObjetivos,
+  trainingFieldsToAuthMetadata,
+  trainingProfileSnapshotFromAny,
+  CATALOG_OBJECTIVES,
 } from "../../lib/playerTrainingProfile";
 
 const SPORTS = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const FREQUENCY = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem", "5 días / sem"];
 const MATERIALS = ["Sin material", "Gomas", "Mancuernas", "Barra", "Gimnasio completo"];
 const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
-const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
+const OBJECTIVES = CATALOG_OBJECTIVES;
 const INJURIES = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda", "Pubalgia"];
 const INJURY_SUBTYPES = {
   Rodilla: ["ACL", "Menisco", "Rotuliana", "Otra"],
@@ -159,7 +164,8 @@ export default function ProfilePage() {
   const [currentClub, setCurrentClub] = useState(null);
   const [currentTeam, setCurrentTeam] = useState(null);
 
-  const initialTraining = trainingFieldsFromUser(user || {});
+  const [planForProfile, setPlanForProfile] = useState(() => (user?.id ? loadPlayerPlan(user.id) : null));
+  const initialTraining = mergeTrainingSources(user || {}, planForProfile);
   const [trainingDays, setTrainingDays] = useState(() => (
     initialTraining.disponibles.length ? initialTraining.disponibles : ["Lunes", "Miércoles", "Viernes"]
   ));
@@ -168,18 +174,21 @@ export default function ProfilePage() {
   const [edadSel, setEdadSel] = useState(() => initialTraining.edad);
   const [deporteSel, setDeporteSel] = useState(() => initialTraining.deporte);
   const [frecuenciaSel, setFrecuenciaSel] = useState(() => initialTraining.frecuencia);
-  const [objetivosSel, setObjetivosSel] = useState(() => initialTraining.objetivos);
+  const [objetivosSel, setObjetivosSel] = useState(() => filterCatalogObjetivos(initialTraining.objetivos));
   const [lesionSel, setLesionSel] = useState(() => initialTraining.lesion);
   const [lesionSubtipoSel, setLesionSubtipoSel] = useState(() => initialTraining.lesionSubtipo);
   const [diaCompeticionSel, setDiaCompeticionSel] = useState(() => initialTraining.diaCompeticion || "Fin de semana");
   const [daysSaving, setDaysSaving] = useState(false);
   const [daysMsg, setDaysMsg] = useState("");
   const [trainingHydratedKey, setTrainingHydratedKey] = useState(() => trainingFieldsKey(initialTraining));
-  const currentPlan = user?.id ? loadPlayerPlan(user.id) : null;
+  const trainingDirtyRef = useRef(false);
+  const trainingHydratedKeyRef = useRef(trainingHydratedKey);
+  trainingHydratedKeyRef.current = trainingHydratedKey;
+  const currentPlan = planForProfile || (user?.id ? loadPlayerPlan(user.id) : null);
   const profileRegensUsed = user?.id ? getProfileRegenCount(user.id, currentPlan) : 0;
   const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, currentPlan) : false;
-  const freqN = freqNumber(frecuenciaSel);
-  const maxObjetivos = freqN <= 1 ? 1 : 2;
+  const freqN = freqNumber(frecuenciaSel || "3 días / sem");
+  const markTrainingDirty = () => { trainingDirtyRef.current = true; };
 
   const [accountName, setAccountName] = useState(user?.name || "");
   const [accountEmail, setAccountEmail] = useState(user?.email || "");
@@ -258,25 +267,51 @@ export default function ProfilePage() {
     if (!res.ok) showAccountMsg("error", res.error || "No se pudo abrir el portal de facturación.");
   };
 
-  // Precarga desde cuestionario: solo rehidrata cuando cambian los datos guardados
-  // (no en cada re-render / TOKEN_REFRESH, para no pisar multiselección en curso).
-  useEffect(() => {
-    if (!user?.id) return;
-    const next = trainingFieldsFromUser(user);
+  // Precarga desde cuestionario O snapshot del plan (motor). No pisa edits locales.
+  const applyTrainingFields = (next, { force = false } = {}) => {
+    if (!force && trainingDirtyRef.current) return;
     const key = trainingFieldsKey(next);
-    if (key === trainingHydratedKey) return;
+    if (!force && key === trainingHydratedKeyRef.current) return;
+    trainingHydratedKeyRef.current = key;
     setTrainingHydratedKey(key);
     setEdadSel(next.edad);
     setDeporteSel(next.deporte);
-    setFrecuenciaSel(next.frecuencia);
-    setObjetivosSel(next.objetivos);
+    setFrecuenciaSel(normalizeFrecuencia(next.frecuencia) || next.frecuencia || "");
+    setObjetivosSel(filterCatalogObjetivos(next.objetivos));
     setMaterialSel(next.material);
     setExperienciaSel(next.experiencia);
     setLesionSel(next.lesion);
     setLesionSubtipoSel(next.lesionSubtipo);
     if (next.diaCompeticion) setDiaCompeticionSel(next.diaCompeticion);
     if (next.disponibles.length) setTrainingDays(next.disponibles);
-  }, [user, trainingHydratedKey]);
+  };
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    const localPlan = loadPlayerPlan(user.id);
+    if (localPlan) setPlanForProfile(localPlan);
+    applyTrainingFields(mergeTrainingSources(user, localPlan));
+
+    fetchPlayerPlan(user.id).then((remote) => {
+      if (cancelled) return;
+      if (remote) setPlanForProfile(remote);
+      applyTrainingFields(mergeTrainingSources(user, remote || localPlan));
+    });
+    return () => { cancelled = true; };
+  }, [
+    user?.id,
+    user?.edad,
+    user?.age,
+    user?.objetivo,
+    user?.objetivoSecundario,
+    user?.frecuencia,
+    user?.deporte,
+    user?.experiencia,
+    Array.isArray(user?.objetivos) ? user.objetivos.join("|") : String(user?.objetivos || ""),
+    Array.isArray(user?.disponibles) ? user.disponibles.join("|") : String(user?.disponibles || ""),
+    Array.isArray(user?.material) ? user.material.join("|") : String(user?.material || ""),
+  ]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -400,6 +435,7 @@ export default function ProfilePage() {
   };
 
   const toggleTrainingDay = (day) => {
+    markTrainingDirty();
     setTrainingDays((prev) => (
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
     ));
@@ -407,6 +443,7 @@ export default function ProfilePage() {
   };
 
   const toggleMaterial = (item) => {
+    markTrainingDirty();
     setMaterialSel((prev) => {
       const has = prev.includes(item);
       if (has) {
@@ -421,20 +458,21 @@ export default function ProfilePage() {
   };
 
   const toggleObjective = (obj) => {
+    markTrainingDirty();
     setObjetivosSel((prev) => {
-      const cur = Array.isArray(prev) ? prev : normalizeStringList(prev);
+      const cur = filterCatalogObjetivos(prev);
       if (cur.includes(obj)) {
         const next = cur.filter((o) => o !== obj);
         return next.length ? next : cur;
       }
-      if (maxObjetivos <= 1) return [obj];
-      if (cur.length >= maxObjetivos) return [cur[0], obj].slice(0, maxObjetivos);
+      if (cur.length >= 2) return [cur[0], obj];
       return [...cur, obj];
     });
     setDaysMsg("");
   };
 
   const toggleLesion = (item) => {
+    markTrainingDirty();
     setLesionSel((prev) => {
       if (item === "Ninguna") return ["Ninguna"];
       const withoutNone = prev.filter((l) => l !== "Ninguna");
@@ -449,6 +487,7 @@ export default function ProfilePage() {
   };
 
   const toggleLesionSubtipo = (item) => {
+    markTrainingDirty();
     setLesionSubtipoSel((prev) => (
       prev.includes(item) ? prev.filter((s) => s !== item) : [...prev, item]
     ));
@@ -456,11 +495,13 @@ export default function ProfilePage() {
   };
 
   const buildTrainingPayload = () => {
-    const objetivos = objetivosSel.slice(0, 2);
+    let objetivos = filterCatalogObjetivos(objetivosSel).slice(0, 2);
+    const n = freqNumber(frecuenciaSel || "3 días / sem");
+    if (n <= 1) objetivos = objetivos.slice(0, 1);
     return {
       edad: String(edadSel || "").trim(),
       deporte: deporteSel,
-      frecuencia: frecuenciaSel,
+      frecuencia: normalizeFrecuencia(frecuenciaSel) || frecuenciaSel,
       objetivos,
       objetivo: objetivos[0] || "",
       objetivoSecundario: objetivos[1] || "",
@@ -484,6 +525,10 @@ export default function ProfilePage() {
       setDaysMsg("Selecciona al menos un objetivo.");
       return;
     }
+    if (n <= 1 && filterCatalogObjetivos(objetivosSel).length > 1) {
+      setDaysMsg("Con 1 día/sem solo puedes tener 1 objetivo. Quita el secundario o sube la frecuencia.");
+      return;
+    }
     if (trainingDays.length < n) {
       setDaysMsg(`Con frecuencia ${n} días/sem, selecciona al menos ${n} días disponibles.`);
       return;
@@ -493,36 +538,51 @@ export default function ProfilePage() {
       return;
     }
 
-    const fromUser = trainingFieldsFromUser(user || {});
+    const prevMerged = mergeTrainingSources(user || {}, planForProfile || loadPlayerPlan(user?.id));
     const prevData = {
-      ...fromUser,
-      lesion: fromUser.lesion.includes("Ninguna") ? [] : fromUser.lesion,
-      lesionSubtipo: fromUser.lesion.includes("Ninguna") ? [] : fromUser.lesionSubtipo,
+      ...prevMerged,
+      lesion: prevMerged.lesion.includes("Ninguna") ? [] : prevMerged.lesion,
+      lesionSubtipo: prevMerged.lesion.includes("Ninguna") ? [] : prevMerged.lesionSubtipo,
     };
     const changed = profileTrainingFingerprint(nextData) !== profileTrainingFingerprint(prevData);
+    const metaPayload = trainingFieldsToAuthMetadata(nextData);
 
     setDaysSaving(true);
     setDaysMsg("");
     try {
-      await supabase.auth.updateUser({
-        data: {
-          edad: nextData.edad,
-          deporte: nextData.deporte,
-          frecuencia: nextData.frecuencia,
-          objetivos: nextData.objetivos,
-          objetivo: nextData.objetivo,
-          objetivoSecundario: nextData.objetivoSecundario,
-          material: nextData.material,
-          experiencia: nextData.experiencia,
-          lesion: nextData.lesion,
-          lesionSubtipo: nextData.lesionSubtipo,
-          diaCompeticion: nextData.diaCompeticion,
-          disponibles: nextData.disponibles,
-        },
-      });
+      await supabase.auth.updateUser({ data: metaPayload });
 
-      // Evita que el sync del user pise el formulario tras guardar
-      setTrainingHydratedKey(trainingFieldsKey(nextData));
+      // Mantener snapshot en el plan asignado (motor ↔ perfil)
+      const existingPlan = planForProfile || loadPlayerPlan(user.id);
+      if (existingPlan) {
+        const snap = trainingProfileSnapshotFromAny(nextData);
+        existingPlan.profileSnapshot = snap;
+        savePlayerPlan(user.id, existingPlan);
+        setPlanForProfile(existingPlan);
+        // Persistir en servidor sin regenerar semanas
+        const remotePayload = {
+          ...(existingPlan.weeks ? { weeks: existingPlan.weeks } : {}),
+          profileSnapshot: snap,
+          assignment: existingPlan.assignment || null,
+          source: existingPlan.source || "admin_manual",
+          startDate: existingPlan.startDate || null,
+          assignedTo: user.id,
+        };
+        if (!remotePayload.weeks && Array.isArray(existingPlan)) {
+          // Plan normalizado día-array: reenviar lo cacheado vía fetch no siempre tiene weeks;
+          // al menos actualizamos metadata del jugador (ya hecho) y snapshot local.
+        } else {
+          await persistPlayerPlanRemote(user.id, {
+            ...remotePayload,
+            weeks: remotePayload.weeks || existingPlan.weeks,
+          });
+        }
+      }
+
+      trainingDirtyRef.current = false;
+      const key = trainingFieldsKey(nextData);
+      trainingHydratedKeyRef.current = key;
+      setTrainingHydratedKey(key);
 
       if (!changed) {
         await refreshUser();
@@ -538,13 +598,23 @@ export default function ProfilePage() {
         return;
       }
 
+      // No borrar plan admin_manual: solo regenera essential auto
+      if (plan?.source === "admin_manual") {
+        await refreshUser();
+        setDaysMsg("Perfil actualizado. Tu plan asignado por el preparador se mantiene ✓");
+        setTimeout(() => setDaysMsg(""), 5000);
+        return;
+      }
+
       localStorage.removeItem(`depro_plan_${user.id}`);
       const newUser = { ...user, ...nextData };
       const newPlan = ensurePlayerPlan(newUser);
       if (newPlan && !newPlan.planError) {
+        newPlan.profileSnapshot = trainingProfileSnapshotFromAny(nextData);
         resetCycleCounters(user.id, newPlan.startDate);
         recordProfileRegen(user.id, newPlan);
         localStorage.setItem(`depro_plan_${user.id}`, JSON.stringify(newPlan));
+        setPlanForProfile(newPlan);
         await refreshUser();
         setDaysMsg("Perfil actualizado · rutina regenerada (1 cambio este mesociclo) ✓");
         setTimeout(() => setDaysMsg(""), 5000);
@@ -790,33 +860,30 @@ export default function ProfilePage() {
               min={10}
               max={80}
               value={edadSel}
-              onChange={(e) => { setEdadSel(e.target.value); setDaysMsg(""); }}
+              onChange={(e) => { markTrainingDirty(); setEdadSel(e.target.value); setDaysMsg(""); }}
               className="w-28 px-3 py-2 rounded-xl border border-depro-border text-sm focus:outline-none focus:border-depro-blue"
               placeholder="años"
             />
           </div>
 
           <div className="mb-5">
-            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Objetivos {maxObjetivos > 1 ? "(máx. 2)" : "(1 con frecuencia de 1 día)"}</p>
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Objetivos (máx. 2)</p>
             <p className="text-xs text-depro-gray mb-2">
-              Se marcan los del cuestionario. El principal es obligatorio
-              {maxObjetivos > 1 ? "; puedes añadir un segundo si entrenas ≥2 días/sem." : "."}
+              Se marcan los del cuestionario o los del motor de planes. Puedes elegir hasta 2.
             </p>
             <ChipGroup
               options={OBJECTIVES}
               selected={objetivosSel}
               onToggle={toggleObjective}
               multi
-              maxSelected={maxObjetivos}
+              maxSelected={2}
             />
             <p className="text-xs text-depro-gray mt-2">
               {objetivosSel.length === 0
                 ? "Selecciona al menos 1 objetivo"
                 : objetivosSel.length === 1
-                  ? maxObjetivos > 1
-                    ? "1 objetivo · puedes añadir otro"
-                    : "1 objetivo"
-                  : "2 objetivos (principal + secundario)"}
+                  ? `Seleccionado: ${objetivosSel[0]} · puedes añadir un segundo`
+                  : `Seleccionados: ${objetivosSel.join(" + ")}`}
             </p>
           </div>
 
@@ -825,7 +892,7 @@ export default function ProfilePage() {
             <ChipGroup
               options={SPORTS}
               selected={deporteSel}
-              onToggle={(s) => { setDeporteSel(s); setDaysMsg(""); }}
+              onToggle={(s) => { markTrainingDirty(); setDeporteSel(s); setDaysMsg(""); }}
               multi={false}
             />
           </div>
@@ -834,11 +901,10 @@ export default function ProfilePage() {
             <p className="text-xs font-bold uppercase text-depro-gray mb-2">Frecuencia semanal</p>
             <ChipGroup
               options={FREQUENCY}
-              selected={frecuenciaSel}
+              selected={normalizeFrecuencia(frecuenciaSel) || frecuenciaSel}
               onToggle={(f) => {
+                markTrainingDirty();
                 setFrecuenciaSel(f);
-                const n = freqNumber(f);
-                if (n <= 1) setObjetivosSel((prev) => (Array.isArray(prev) && prev.length ? [prev[0]] : prev));
                 setDaysMsg("");
               }}
               multi={false}
@@ -850,7 +916,7 @@ export default function ProfilePage() {
             <ChipGroup
               options={COMPETITION_DAY_OPTIONS}
               selected={diaCompeticionSel}
-              onToggle={(d) => { setDiaCompeticionSel(d); setDaysMsg(""); }}
+              onToggle={(d) => { markTrainingDirty(); setDiaCompeticionSel(d); setDaysMsg(""); }}
               multi={false}
             />
           </div>
@@ -887,7 +953,7 @@ export default function ProfilePage() {
             <ChipGroup
               options={EXPERIENCE}
               selected={experienciaSel}
-              onToggle={(exp) => { setExperienciaSel(exp); setDaysMsg(""); }}
+              onToggle={(exp) => { markTrainingDirty(); setExperienciaSel(exp); setDaysMsg(""); }}
               multi={false}
             />
           </div>

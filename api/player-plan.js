@@ -21,6 +21,59 @@ function planKey(userId) {
   return `PLAYER_PLAN_${userId}`;
 }
 
+function normalizeMetaList(value) {
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  if (value == null || value === "") return [];
+  const s = String(value).trim();
+  if (!s) return [];
+  if (s.includes("|")) return s.split("|").map((t) => t.trim()).filter(Boolean);
+  if (s.includes(",")) return s.split(",").map((t) => t.trim()).filter(Boolean);
+  return [s];
+}
+
+function normalizeFrecuenciaMeta(value) {
+  if (value == null || value === "") return "";
+  const n = parseInt(String(value).replace(/\D/g, ""), 10);
+  if (!Number.isFinite(n) || n < 1) return String(value);
+  const clamped = Math.min(5, Math.max(1, n));
+  return `${clamped} día${clamped === 1 ? "" : "s"} / sem`;
+}
+
+const CATALOG_OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
+
+function resolveObjetivosMeta(snap = {}) {
+  const raw = normalizeMetaList(snap.objetivos);
+  const fromArr = raw.filter((o) => CATALOG_OBJECTIVES.includes(o)).slice(0, 2);
+  if (fromArr.length) return fromArr;
+  return [snap.objetivo, snap.objetivoSecundario]
+    .map((o) => String(o || "").trim())
+    .filter((o) => CATALOG_OBJECTIVES.includes(o))
+    .slice(0, 2);
+}
+
+/** Sincroniza el snapshot del motor/cuestionario al user_metadata del jugador. */
+function trainingMetaFromSnapshot(snap) {
+  if (!snap || typeof snap !== "object") return null;
+  const objetivos = resolveObjetivosMeta(snap);
+  const lesion = normalizeMetaList(snap.lesion).filter((l) => !/^ninguna$/i.test(l));
+  return {
+    edad: snap.edad != null && snap.edad !== "" ? String(snap.edad) : undefined,
+    deporte: snap.deporte || undefined,
+    frecuencia: normalizeFrecuenciaMeta(snap.frecuencia) || undefined,
+    objetivos: objetivos.length ? objetivos : undefined,
+    objetivo: objetivos[0] || undefined,
+    objetivoSecundario: objetivos[1] || "",
+    material: normalizeMetaList(snap.material).length ? normalizeMetaList(snap.material) : undefined,
+    experiencia: snap.experiencia || undefined,
+    lesion,
+    lesionSubtipo: lesion.length ? normalizeMetaList(snap.lesionSubtipo) : [],
+    diaCompeticion: snap.diaCompeticion || snap.dia_competicion || undefined,
+    disponibles: normalizeMetaList(snap.disponibles).length
+      ? normalizeMetaList(snap.disponibles)
+      : undefined,
+  };
+}
+
 async function resolveCaller(req, admin) {
   const auth = req.headers.authorization || req.headers.Authorization || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -93,16 +146,21 @@ export default async function handler(req, res) {
       if (r2.error) return res.status(400).json({ error: r2.error.message });
     }
 
-    // Marca en metadata del jugador para que el cliente sepa que hay plan asignado
+    // Marca plan asignado + sincroniza perfil de entrenamiento (motor/cuestionario)
     try {
       const { data: userData } = await admin.auth.admin.getUserById(userId);
       if (userData?.user) {
+        const trainingMeta = trainingMetaFromSnapshot(payload.profileSnapshot);
+        const cleaned = trainingMeta
+          ? Object.fromEntries(Object.entries(trainingMeta).filter(([, v]) => v !== undefined))
+          : {};
         await admin.auth.admin.updateUserById(userId, {
           user_metadata: {
             ...(userData.user.user_metadata || {}),
             hasAssignedPlan: true,
             assignedPlanAt: new Date().toISOString(),
             planPendingManual: false,
+            ...cleaned,
           },
         });
       }

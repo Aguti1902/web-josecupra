@@ -6,6 +6,7 @@ import {
   normalizeStringList,
   resolveObjetivos,
   resolveEdad,
+  normalizeFrecuencia,
 } from "../lib/playerTrainingProfile";
 
 const AuthContext = createContext(null);
@@ -179,7 +180,7 @@ function buildUser(authUser, profile) {
         objetivoSecundario: profile.objetivoSecundario ?? meta.objetivoSecundario,
       }),
       deporte:   profile.deporte   ?? meta.deporte   ?? null,
-      frecuencia: profile.frecuencia ?? meta.frecuencia ?? null,
+      frecuencia: normalizeFrecuencia(profile.frecuencia ?? meta.frecuencia) || (profile.frecuencia ?? meta.frecuencia ?? null),
       material:  normalizeStringList(profile.material ?? meta.material),
       lesion:    normalizeStringList(profile.lesion ?? meta.lesion),
       lesionSubtipo: normalizeStringList(profile.lesionSubtipo ?? meta.lesionSubtipo),
@@ -223,7 +224,7 @@ function buildUser(authUser, profile) {
     objetivoSecundario: meta.objetivoSecundario ?? null,
     objetivos: resolveObjetivos(meta),
     deporte:   meta.deporte   ?? null,
-    frecuencia: meta.frecuencia ?? null,
+    frecuencia: normalizeFrecuencia(meta.frecuencia) || meta.frecuencia || null,
     material:  normalizeStringList(meta.material),
     lesion:    normalizeStringList(meta.lesion),
     lesionSubtipo: normalizeStringList(meta.lesionSubtipo),

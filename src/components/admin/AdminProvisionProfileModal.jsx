@@ -130,7 +130,6 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           billingSource: "manual",
           posicion: form.posicion,
           deporte: "Fútbol",
-          objetivo: "Rendimiento",
         });
 
         if (res.ok) mirrorPlayerLocal(res.userId);
