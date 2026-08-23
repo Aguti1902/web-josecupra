@@ -78,7 +78,7 @@ export default function AssignPlanModal({
 
   if (!open) return null;
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
     setError(null);
     setSuccess(null);
     if (!selectedId || !selected) {
@@ -102,7 +102,7 @@ export default function AssignPlanModal({
           cycles: n,
         });
       } else {
-        payload = assignPlanToPlayer({
+        payload = await assignPlanToPlayer({
           userId: selected.id,
           plan: planPreview || null,
           profile: profile || null,
@@ -114,7 +114,7 @@ export default function AssignPlanModal({
       setSuccess(
         mode === "club"
           ? `Plan club auto asignado a ${selected.name} (${n} ciclo${n > 1 ? "s" : ""} · ${n * 4} semanas).`
-          : `Plan asignado a ${selected.name} (${n} ciclo${n > 1 ? "s" : ""} · ${n * 4} semanas).`
+          : `Plan asignado a ${selected.name}. Ya está disponible en su cuenta.`
       );
       onAssigned?.(payload);
     } catch (e) {

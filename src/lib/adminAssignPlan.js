@@ -2,7 +2,7 @@
  * Asignación de planes desde admin (individuales + club auto).
  * Persistencia local alineada con playerPlanStorage / coachSessionsStorage.
  */
-import { savePlayerPlan, loadPlayerPlan } from "./playerPlanStorage.js";
+import { savePlayerPlan, loadPlayerPlan, normalizePlayerPlan, persistPlayerPlanRemote } from "./playerPlanStorage.js";
 import { buildFourWeekPlan, buildPlayerPlan } from "./playerPlanEngine.js";
 import { generateClubAutoFourWeeks } from "./clubAuto/clubAutoEngine.js";
 import { supabase } from "./supabase.js";
@@ -206,9 +206,10 @@ export async function fetchAssignableClubTargets() {
 
 /**
  * Asigna un plan individual generado a un usuario.
- * @param {{ userId: string, plan?: object, profile?: object, startDate?: string, endDate?: string, cycles?: number }} opts
+ * Normaliza a formato día-array y persiste en servidor + localStorage.
+ * @returns {Promise<object>}
  */
-export function assignPlanToPlayer({
+export async function assignPlanToPlayer({
   userId,
   plan = null,
   profile = null,
@@ -234,7 +235,6 @@ export function assignPlanToPlayer({
         })));
       }
       assigned = {
-        ...buildPlayerPlan(profile),
         weeks,
         cycles: n,
         multiCycle: true,
@@ -269,9 +269,22 @@ export function assignPlanToPlayer({
     assignment: meta,
     assignedTo: userId,
     source: "admin_manual",
+    premiumPending: false,
+    planPendingManual: false,
   };
 
-  savePlayerPlan(userId, payload);
+  // Guardar forma canónica (weeks + días) en servidor; local = normalizado para UI admin
+  const normalized = normalizePlayerPlan(payload);
+  savePlayerPlan(userId, normalized);
+
+  const remote = await persistPlayerPlanRemote(userId, {
+    ...payload,
+    // Asegurar weeks si venía solo como día-array
+    weeks: payload.weeks || (Array.isArray(normalized) ? [{ week: 1, days: normalized, sessions: [] }] : undefined),
+  });
+  if (!remote.ok) {
+    throw new Error(remote.error || "No se pudo guardar el plan en el servidor. El jugador no lo verá en otro dispositivo.");
+  }
 
   const registry = readJson(ASSIGNMENTS_KEY, []);
   registry.unshift({
@@ -279,12 +292,12 @@ export function assignPlanToPlayer({
     startDate: meta.startDate,
     endDate: meta.endDate,
     assignedAt: meta.assignedAt,
-    sessionCount: payload.sessions?.length || payload.weeks?.[0]?.sessions?.length || 0,
+    sessionCount: payload.sessions?.length || payload.weeks?.[0]?.sessions?.length || normalized?.filter?.((d) => d.sessions?.length)?.length || 0,
     cycles: payload.cycles || 1,
   });
   writeJson(ASSIGNMENTS_KEY, registry.slice(0, 200));
 
-  return payload;
+  return normalized;
 }
 
 /**

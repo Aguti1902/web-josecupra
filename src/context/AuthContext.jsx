@@ -289,13 +289,13 @@ export function AuthProvider({ children }) {
             setUser(builtUser);
 
             if (builtUser.role === "player") {
-              import("../lib/playerPlanEngine").then(({ ensurePlayerPlan }) => {
+              import("../lib/playerPlanEngine").then(({ hydratePlayerPlan }) => {
                 const pending = sessionStorage.getItem("depro_pending_plan_user");
                 if (pending === builtUser.id) {
                   localStorage.removeItem(`depro_plan_${builtUser.id}`);
                   sessionStorage.removeItem("depro_pending_plan_user");
                 }
-                ensurePlayerPlan(builtUser);
+                return hydratePlayerPlan(builtUser);
               }).catch(() => {});
             }
 

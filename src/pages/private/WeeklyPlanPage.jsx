@@ -16,7 +16,7 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, buildMinimalSession, refreshExercise, normalizeLesions, checkPlanCompatibility } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, hydratePlayerPlan, buildMinimalSession, refreshExercise, normalizeLesions, checkPlanCompatibility } from "../../lib/playerPlanEngine";
 import PlanCompatibilityModal from "../../components/private/PlanCompatibilityModal";
 import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "../../lib/sessionProgress";
 import {
@@ -380,16 +380,13 @@ function PlayerWeeklyPlan({ accent }) {
 
   useEffect(() => {
     if (!user?.id) return;
-    try {
-      const saved = localStorage.getItem(planKey);
-      if (saved) {
-        setPlan(JSON.parse(saved));
-        return;
-      }
-    } catch { /* ignore */ }
-    const generated = ensurePlayerPlan(user);
-    if (generated) setPlan(generated);
-  }, [planKey, user?.id, user?.plan]);
+    let cancelled = false;
+    (async () => {
+      const hydrated = await hydratePlayerPlan(user);
+      if (!cancelled && hydrated) setPlan(hydrated);
+    })();
+    return () => { cancelled = true; };
+  }, [planKey, user?.id, user?.plan, user?.hasAssignedPlan]);
 
   useEffect(() => {
     if (wantMinimal && user) {

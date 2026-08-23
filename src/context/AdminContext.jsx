@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { clients as initialClients, weeklyPlan as initialPlan } from "../data/mockData";
 import { supabase } from "../lib/supabase";
-import { loadPlayerPlan, savePlayerPlan } from "../lib/playerPlanStorage";
+import { loadPlayerPlan, savePlayerPlan, persistPlayerPlanRemote } from "../lib/playerPlanStorage";
 
 const AdminContext = createContext(null);
 
@@ -211,7 +211,10 @@ export function AdminProvider({ children }) {
 
   // ── PLAN ──────────────────────────────────────────────────────────
   const persistClientPlan = useCallback((clientId, plan) => {
-    if (clientId && plan) savePlayerPlan(clientId, plan);
+    if (clientId && plan) {
+      savePlayerPlan(clientId, plan);
+      void persistPlayerPlanRemote(clientId, plan);
+    }
   }, []);
 
   const updateSession = useCallback((clientId, dayIdx, sessionIdx, updates) => {
