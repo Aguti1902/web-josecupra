@@ -187,7 +187,40 @@ function renderTaskSection(task, index, accent) {
     </div>`;
 }
 
-/** Construye payload completo para PDF de sesión club */
+function exercisesFromClubAuto(session) {
+  const structure = session?.structure || [];
+  const warm = [];
+  const main = [];
+  for (const block of structure) {
+    if (block.type === "calentamiento_general" || block.type === "calentamiento_balon") {
+      const item = block.item;
+      if (item && !item.placeholder && (item.nombre || item.name)) {
+        warm.push({
+          name: item.nombre || item.name,
+          description: item.descripcion || item.description || "",
+          videoUrl: item.videoUrl || item.video || "",
+          subLabel: block.type === "calentamiento_balon" ? "Con balón" : "Sin balón",
+        });
+      }
+    }
+    if (block.type === "protocolo") {
+      for (const ex of block.exercises || []) {
+        if (ex.missing || !(ex.nombre || ex.name)) continue;
+        main.push({
+          name: ex.nombre || ex.name,
+          description: ex.descripcion || ex.description || ex.label || "",
+          sets: ex.sets,
+          rest: ex.rest,
+          videoUrl: ex.videoUrl || "",
+          subLabel: ex.label || ex.slot || null,
+        });
+      }
+    }
+  }
+  return { warm, main };
+}
+
+/** Construye payload completo para PDF de sesión club / ProCoach */
 export function buildClubSessionPdfPayload({
   session,
   displayKey,
@@ -199,10 +232,13 @@ export function buildClubSessionPdfPayload({
   clubLogo = "",
   secondaryColor = "",
 }) {
-  const fw = sessionType || session.framework || "A";
+  const fw = sessionType || session.framework || session.protocol || "A";
   const blocks = getSessionBlocks(session);
   const warmBlock = blocks.find((b) => b.type === "calentamiento") || {};
   const mainBlock = blocks.find((b) => b.type === "principal") || {};
+  const auto = exercisesFromClubAuto(session);
+  const warmExercises = flattenExercises(warmBlock);
+  const mainExercises = flattenExercises(mainBlock);
   const td = normalizeTaskDesigner(session.taskDesigner);
   const selectedTasks = loadSelectedTasks(taskStorageKey, session.taskDesigner);
 
@@ -217,13 +253,13 @@ export function buildClubSessionPdfPayload({
     warmUp: {
       label: BLOCK_LABELS.calentamiento,
       duration: warmBlock.duration,
-      exercises: flattenExercises(warmBlock),
+      exercises: warmExercises.length ? warmExercises : auto.warm,
       guideItems: resolveBlockGuideItems(warmBlock, "calentamiento", fw),
     },
     principal: {
       label: BLOCK_LABELS.principal,
       duration: mainBlock.duration,
-      exercises: flattenExercises(mainBlock),
+      exercises: mainExercises.length ? mainExercises : auto.main,
       guideItems: resolveBlockGuideItems(mainBlock, "principal", fw),
     },
     tasks: selectedTasks.map((name) => ({

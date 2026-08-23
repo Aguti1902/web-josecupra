@@ -158,11 +158,17 @@ export function resolveTaskParams(taskDesigner, framework = "A") {
   return { ...DEFAULT_PARAMS[fw], ...td.paramsByFramework[fw] };
 }
 
+function asCueList(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).map(String);
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  return [];
+}
+
 export function resolveTaskCues(taskDesigner, taskName, framework = "A") {
   const td = normalizeTaskDesigner(taskDesigner);
   const fw = framework || "A";
-  const custom = td.cuesByTask?.[taskName]?.[fw];
-  if (custom?.length) return custom.filter(Boolean);
+  const custom = asCueList(td.cuesByTask?.[taskName]?.[fw]);
+  if (custom.length) return custom;
   if (DEFAULT_TASK_CUES[taskName]?.[fw]) return DEFAULT_TASK_CUES[taskName][fw];
   return DEFAULT_FRAMEWORK_CUES[fw] || DEFAULT_FRAMEWORK_CUES.A;
 }
@@ -170,7 +176,7 @@ export function resolveTaskCues(taskDesigner, taskName, framework = "A") {
 export function resolveTaskRecommendations(taskDesigner, framework = "A") {
   const td = normalizeTaskDesigner(taskDesigner);
   const fw = framework || "A";
-  const list = td.recommendationsByFramework[fw];
-  if (list?.length) return list.filter(Boolean);
+  const list = asCueList(td.recommendationsByFramework[fw]);
+  if (list.length) return list;
   return DEFAULT_RECOMMENDATIONS[fw] || DEFAULT_RECOMMENDATIONS.A;
 }

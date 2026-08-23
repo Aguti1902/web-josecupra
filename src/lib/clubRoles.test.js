@@ -6,6 +6,8 @@ import {
   canSeeClubEconomy,
   canSeeClubPricing,
   canViewClubReferrals,
+  isProCoachOverview,
+  isClubGlobalView,
 } from "./clubRoles.js";
 
 describe("clubRoles economía", () => {
@@ -33,5 +35,19 @@ describe("clubRoles economía", () => {
   it("admin DEPRO ve economía y catálogo de precios", () => {
     assert.equal(canSeeClubEconomy(depro), true);
     assert.equal(canSeeClubPricing(depro), true);
+  });
+
+  it("ProCoach con 2+ equipos entra en vista coordinador", () => {
+    const coach = {
+      isSoloCoach: true,
+      club: { isSoloCoach: true, id: "coach_1", teams: [{ id: "a" }, { id: "b" }] },
+    };
+    assert.equal(isProCoachOverview(coach, null), true);
+    assert.equal(isClubGlobalView(coach, null), true);
+    assert.equal(isProCoachOverview(coach, { id: "a" }), false);
+    assert.equal(isClubGlobalView({
+      isSoloCoach: true,
+      club: { isSoloCoach: true, teams: [{ id: "a" }] },
+    }, null), false);
   });
 });

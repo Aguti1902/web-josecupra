@@ -3,13 +3,35 @@
  * Resumen | Calentamiento | Parte principal (hasta 6 huecos) | Diseñador de tareas
  */
 import { useState, useEffect } from "react";
-import { Dumbbell, Clock, Sparkles, StickyNote, Activity, BarChart2, Flame, ListChecks, PencilRuler, ExternalLink, Layers } from "lucide-react";
-import { sessionTextsFor } from "../../data/sessionTypeTexts";
-import { sessionTypeForProtocol } from "../../lib/clubAuto/clubAutoTaskSelector";
+import { Dumbbell, Clock, Sparkles, StickyNote, Activity, BarChart2, Flame, ListChecks, PencilRuler, ExternalLink, Layers, FileText } from "lucide-react";
 import { CLUB_SIN_BALON_INTRO } from "../../data/clubAutoCatalog";
 import { prefetchCatalogMedia, resolveExerciseVideo, youtubeEmbedUrl } from "../../lib/catalogMedia";
-import DisenarTareas, { SESSION_FRAMEWORK_UI, FRAMEWORK_TO_SESSION_TEXT } from "../shared/DisenarTareas";
+import DisenarTareas, { SESSION_FRAMEWORK_UI } from "../shared/DisenarTareas";
 import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
+import { useAuth } from "../../context/AuthContext";
+import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
+import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
+import { Component } from "react";
+
+class DesignerBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { failed: false };
+  }
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (this.state.failed) {
+      return (
+        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-xl p-4">
+          No se pudo abrir el diseñador de tareas. Recarga la sesión o vuelve a generar el microciclo.
+        </p>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function youtubeEmbed(url) {
   return youtubeEmbedUrl(url);
@@ -124,6 +146,8 @@ export default function ClubAutoSessionView({
   refreshBallLocked = "",
   taskStorageKey = "",
 }) {
+  const { user } = useAuth();
+  const canDownloadPdf = isInTrial(user) || hasFeatureAccess(user, "pdf_export");
   const [tab, setTab] = useState("resumen");
   const [, setMediaReady] = useState(0);
   useEffect(() => {
@@ -139,8 +163,6 @@ export default function ClubAutoSessionView({
   const framework = session?.framework || session?.protocol || "A";
   const st = SESSION_FRAMEWORK_UI[framework] || SESSION_FRAMEWORK_UI.A;
   const StIcon = st.Icon;
-  const sessionType = sessionTypeForProtocol(session?.protocol || framework);
-  const texts = sessionTextsFor(FRAMEWORK_TO_SESSION_TEXT[framework] || sessionType || "extensiva");
   const duration = session.duration || session.duracionEstimada || "75 min";
   const intensity = session.intensity || st.label;
   const exerciseCount = (proto?.exercises || []).filter((ex) => !ex.missing && (ex.nombre || ex.name)).length;
@@ -204,24 +226,27 @@ export default function ClubAutoSessionView({
             ))}
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="rounded-xl border border-depro-border p-4">
-              <p className="text-[11px] font-black uppercase text-depro-gray mb-2">{texts.warmup.title}</p>
-              <ul className="space-y-1">
-                {texts.warmup.bullets.slice(0, 3).map((b) => (
-                  <li key={b} className="text-xs text-depro-dark">· {b}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-xl border border-depro-border p-4">
-              <p className="text-[11px] font-black uppercase text-depro-gray mb-2">{texts.main.title}</p>
-              <ul className="space-y-1">
-                {texts.main.bullets.map((b) => (
-                  <li key={b} className="text-xs text-depro-dark">· {b}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          {canDownloadPdf && (
+            <button
+              type="button"
+              onClick={() => {
+                void downloadSessionPdf(buildClubSessionPdfPayload({
+                  session,
+                  displayKey: session.templateKey || framework,
+                  sessionType: framework,
+                  accentColor: accent,
+                  taskStorageKey,
+                  clubName: user?.club?.name || "",
+                  teamName: user?.team?.name || "",
+                  clubLogo: user?.club?.logo || "",
+                  secondaryColor: user?.club?.secondaryColor || "",
+                }));
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors"
+            >
+              <FileText size={14} /> Descargar PDF
+            </button>
+          )}
         </div>
       )}
 
@@ -273,12 +298,14 @@ export default function ClubAutoSessionView({
 
       {tab === "tareas" && (
         <section className="space-y-4">
-          <DisenarTareas
-            accentColor={accent}
-            sessionType={framework}
-            storageKey={taskStorageKey}
-            taskDesigner={session.taskDesigner || createDefaultTaskDesigner()}
-          />
+          <DesignerBoundary>
+            <DisenarTareas
+              accentColor={accent}
+              sessionType={["A", "B", "C", "D"].includes(framework) ? framework : "A"}
+              storageKey={taskStorageKey}
+              taskDesigner={session.taskDesigner || createDefaultTaskDesigner()}
+            />
+          </DesignerBoundary>
           {(obs?.item?.observaciones || session.observaciones) && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-depro-dark space-y-2">
               <p className="text-[11px] font-black uppercase text-amber-800 flex items-center gap-1.5">

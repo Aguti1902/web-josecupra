@@ -14,9 +14,22 @@ export function isWideClubRole(teamRole) {
   return teamRole === CLUB_ADMIN_ROLE || teamRole === CLUB_COORD_ROLE;
 }
 
-export function isClubGlobalView(user, viewingTeam) {
-  if (user?.role !== "club" || user?.club?.isSoloCoach) return false;
+/** ProCoach con varios equipos: vista global tipo coordinador. */
+export function isProCoachOverview(user, viewingTeam) {
+  const solo = !!(
+    user?.isSoloCoach
+    || user?.club?.isSoloCoach
+    || String(user?.clubId || user?.club?.id || "").startsWith("coach_")
+  );
+  if (!solo) return false;
   if (viewingTeam) return false;
+  return (user?.club?.teams?.length || 0) > 1;
+}
+
+export function isClubGlobalView(user, viewingTeam) {
+  if (viewingTeam) return false;
+  if (isProCoachOverview(user, viewingTeam)) return true;
+  if (user?.role !== "club" || user?.club?.isSoloCoach) return false;
   return isClubAdmin(user) || isClubCoordinator(user);
 }
 

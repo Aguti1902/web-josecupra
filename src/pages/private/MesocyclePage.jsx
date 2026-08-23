@@ -226,7 +226,7 @@ export default function MesocyclePage() {
     return (
       <FeatureGate user={user} feature="mesocycle">
       <div className="dash-page">
-        <CoachPlanning club={user.club} team={user.team} />
+        <CoachPlanning club={user.club} team={activeTeam || user.team} />
       </div>
       </FeatureGate>
     );
