@@ -42,6 +42,11 @@ export function v2ToLegacyExercise(ex) {
     videoGroup: ex.videoGroup || null,
     edadMinima: ex.edadMinima,
     esTest: !!ex.esTest,
+    sets: ex.sets || null,
+    reps: ex.reps || null,
+    rest: ex.rest || null,
+    duration: ex.duration || null,
+    load: ex.load || null,
   };
 }
 

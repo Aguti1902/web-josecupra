@@ -61,17 +61,30 @@ describe("etiquetado — casos críticos", () => {
     }
   });
 
-  it("resistencia no cae en core; Nordic no es core", () => {
-    for (const ex of EXERCISES.filter((e) => e.carpeta === "resistencia")) {
-      assert.ok(["RowErg", "Carrera continua", "SkiErg", "BikeErg", "Empuje trineo"].includes(ex.nombre), `inesperado en resistencia: ${ex.nombre}`);
+  it("resistencia cubre plantillas aeróbica / umbral / anaeróbica", () => {
+    const res = EXERCISES.filter((e) => e.carpeta === "resistencia");
+    assert.ok(res.length >= 15, `pocos en resistencia: ${res.length}`);
+    for (const patron of ["aerobico", "umbral", "anaerobico"]) {
+      const hits = res.filter((e) => e.etiquetas.patron.includes(patron) && e.etiquetas.rol === "basico");
+      assert.ok(hits.length >= 3, `faltan ejercicios patron ${patron}: ${hits.length}`);
+      assert.ok(hits.every((e) => e.descripcion && e.tips?.length >= 2));
     }
+    const vam = res.find((e) => /vam|90%/i.test(e.nombre));
+    assert.ok(vam, "falta protocolo VAM 3×3'");
+    assert.ok(vam.etiquetas.patron.includes("anaerobico"));
+    assert.equal(vam.sets, "3");
+    assert.match(String(vam.reps), /3/);
+    assert.match(String(vam.rest), /2/);
+  });
+
+  it("Nordic no es core", () => {
     const nordic = EXERCISES.filter((e) => /nordic/i.test(e.nombre));
     assert.ok(nordic.length >= 1);
     assert.ok(nordic.every((e) => e.carpeta === "fuerza_tren_inferior"));
   });
 
   it("no incluye genéricos inventados ni tests", () => {
-    const banned = [/skipping [abc]\b/i, /t-?test/i, /cooper/i, /zona 2/i, /fartlek controlado/i, /carrera continua regenerativa/i];
+    const banned = [/skipping [abc]\b/i, /t-?test/i, /cooper/i];
     for (const ex of EXERCISES) {
       for (const re of banned) {
         assert.equal(re.test(ex.nombre), false, `no debe existir ${ex.nombre}`);

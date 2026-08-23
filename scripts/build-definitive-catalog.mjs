@@ -195,6 +195,304 @@ const DEFINITIVE = [
   "Drill pared",
 ];
 
+/**
+ * Protocolos de resistencia para cubrir plantillas:
+ * Resistencia aeróbica (patron aerobico), umbral (umbral), anaeróbica (anaerobico).
+ * ~15 estímulos de distintas capacidades; varios reutilizan el mismo vídeo de carrera.
+ */
+const RESISTENCIA_PROTOCOLS = [
+  // ── Anaeróbica ──
+  {
+    nombre: "Series VAM 3×3' al 90%",
+    patron: "anaerobico",
+    videoGroup: "res_continua",
+    sets: "3",
+    reps: "3 min",
+    rest: "2 min",
+    duration: "3×3' + descansos",
+    load: "90% VAM",
+    descripcion: "Resistencia anaeróbica: 3 series de 3 minutos al 90% de la VAM con 2 minutos de descanso entre series. Mantén el ritmo objetivo en cada bloque.",
+    tips: [
+      "Calcula tu VAM con un test reciente antes de programar el ritmo",
+      "Las 3 series deben mantenerse cerca del 90%; si caes mucho, acorta la siguiente",
+      "Recupera de pie o trote muy suave en los 2 minutos de descanso",
+      "Hidratación y calentamiento previo de al menos 10 minutos",
+    ],
+  },
+  {
+    nombre: "Intervalos 30/30 carrera ×10",
+    patron: "anaerobico",
+    videoGroup: "res_continua",
+    sets: "10",
+    reps: "30\" ON / 30\" OFF",
+    rest: "incluido",
+    duration: "10 min trabajo",
+    load: "≈95–100% VAM en ON",
+    descripcion: "Resistencia anaeróbica intermitente: 10 repeticiones de 30 segundos rápidos y 30 segundos de recuperación activa trotando.",
+    tips: [
+      "El tramo ON debe ser rápido pero sostenible las 10 series",
+      "En OFF no te pares: trote muy suave",
+      "Mantén la misma zancada; evita tensar hombros",
+    ],
+  },
+  {
+    nombre: "Series 400 m ×6",
+    patron: "anaerobico",
+    videoGroup: "res_continua",
+    sets: "6",
+    reps: "400 m",
+    rest: "90–120\"",
+    duration: "6×400 m",
+    load: "ritmo 3.000–5.000 m",
+    descripcion: "Series de 400 m a ritmo alto con recuperación incompleta. Desarrolla capacidad anaeróbica láctica y tolerancia al ritmo.",
+    tips: [
+      "Salidas controladas: no quemes la primera serie",
+      "Recupera caminando o trote suave",
+      "Si el tiempo cae >8% respecto a la mejor serie, termina la sesión",
+    ],
+  },
+  {
+    nombre: "Intervalos 15/15 ×12",
+    patron: "anaerobico",
+    videoGroup: "res_continua",
+    sets: "12",
+    reps: "15\" ON / 15\" OFF",
+    rest: "incluido",
+    duration: "6 min densos",
+    load: "alta / casi máxima",
+    descripcion: "Estímulo anaeróbico corto: 12 intervalos de 15 segundos intensos con 15 segundos de recuperación activa.",
+    tips: [
+      "Máxima calidad en cada ON; no alargues el paso en OFF",
+      "Útil tras buen calentamiento neuromuscular",
+      "Para si aparece dolor articular o pérdida clara de técnica",
+    ],
+  },
+  {
+    nombre: "BikeErg 5×2' anaeróbico",
+    patron: "anaerobico",
+    videoGroup: "res_erg",
+    material: ["maquina"],
+    sets: "5",
+    reps: "2 min",
+    rest: "2 min",
+    duration: "5×2'",
+    load: "alta (≈90% esfuerzo)",
+    descripcion: "Series anaeróbicas en BikeErg: 5 bloques de 2 minutos a alta intensidad con 2 minutos de pedaleo suave.",
+    tips: [
+      "Cadencia estable; no solo subas resistencia de golpe",
+      "En el descanso baja a zona fácil sin parar del todo",
+      "Mantén tronco estable y agarre relajado",
+    ],
+  },
+  {
+    nombre: "Fartlek intenso 20'",
+    patron: "anaerobico",
+    videoGroup: "res_continua",
+    sets: "1",
+    reps: "20 min",
+    rest: "—",
+    duration: "20 min",
+    load: "cambios de ritmo",
+    descripcion: "Fartlek de 20 minutos con cambios de ritmo espontáneos o marcados (p. ej. 1' fuerte / 1' suave). Combina aeróbico alto y picos anaeróbicos.",
+    tips: [
+      "Alterna tramos fuertes y suaves sin parar",
+      "Los picos no deben ser sprints máximos al inicio",
+      "Termina con 3–5 minutos suaves",
+    ],
+  },
+  // ── Umbral ──
+  {
+    nombre: "Tempo run umbral 20'",
+    patron: "umbral",
+    videoGroup: "res_continua",
+    sets: "1",
+    reps: "20 min",
+    rest: "—",
+    duration: "20 min",
+    load: "umbral (≈85–90% FCmáx)",
+    descripcion: "Carrera continua a ritmo de umbral durante 20 minutos. Debes poder hablar solo frases cortas.",
+    tips: [
+      "El ritmo debe ser exigente pero estable de principio a fin",
+      "Si te pasas, reduce 5–10\"/km en la siguiente sesión",
+      "Calienta 10' y enfría 5' suaves",
+    ],
+  },
+  {
+    nombre: "Series umbral 4×5'",
+    patron: "umbral",
+    videoGroup: "res_continua",
+    sets: "4",
+    reps: "5 min",
+    rest: "2 min",
+    duration: "4×5'",
+    load: "ritmo umbral",
+    descripcion: "4 series de 5 minutos a ritmo de umbral con 2 minutos de trote suave entre series.",
+    tips: [
+      "Todas las series al mismo ritmo objetivo",
+      "En el descanso no te sientes: trote regenerativo",
+      "Útil para subir el umbral sin saturar como un anaeróbico puro",
+    ],
+  },
+  {
+    nombre: "Carrera umbral continua 25'",
+    patron: "umbral",
+    videoGroup: "res_continua",
+    sets: "1",
+    reps: "25 min",
+    rest: "—",
+    duration: "25 min",
+    load: "umbral",
+    descripcion: "Bloque continuo de 25 minutos en zona umbral. Prioriza constancia de ritmo sobre picos de velocidad.",
+    tips: [
+      "Controla el ritmo cada 5 minutos",
+      "Respira profundo y mantén zancada económica",
+      "Si la FC se dispara, baja ligeramente el pace",
+    ],
+  },
+  {
+    nombre: "RowErg umbral 4×4'",
+    patron: "umbral",
+    videoGroup: "res_erg",
+    material: ["maquina"],
+    sets: "4",
+    reps: "4 min",
+    rest: "2 min",
+    duration: "4×4'",
+    load: "umbral (split estable)",
+    descripcion: "Series de umbral en remoergómetro: 4×4 minutos a intensidad umbral con 2 minutos suaves.",
+    tips: [
+      "Cadencia 24–28 spm según nivel",
+      "Tracción con piernas → tronco → brazos",
+      "Mantén el split homogéneo en las 4 series",
+    ],
+  },
+  {
+    nombre: "BikeErg umbral 3×8'",
+    patron: "umbral",
+    videoGroup: "res_erg",
+    material: ["maquina"],
+    sets: "3",
+    reps: "8 min",
+    rest: "3 min",
+    duration: "3×8'",
+    load: "umbral",
+    descripcion: "3 bloques de 8 minutos en BikeErg a intensidad umbral con 3 minutos de recuperación activa.",
+    tips: [
+      "Elige una resistencia que puedas sostener los 8 minutos",
+      "No te levantes del sillín salvo técnica concreta",
+      "Hidratación entre bloques",
+    ],
+  },
+  // ── Aeróbica ──
+  {
+    nombre: "Carrera continua zona 2 30'",
+    patron: "aerobico",
+    videoGroup: "res_continua",
+    sets: "1",
+    reps: "30 min",
+    rest: "—",
+    duration: "30 min",
+    load: "zona 2",
+    descripcion: "Carrera continua aeróbica en zona 2 durante 30 minutos. Ritmo conversacional; base aeróbica.",
+    tips: [
+      "Debes poder hablar en frases completas",
+      "Prioriza volumen y técnica sobre velocidad",
+      "Ideal en días de carga baja o regenerativos activos",
+    ],
+  },
+  {
+    nombre: "Carrera regenerativa 25'",
+    patron: "aerobico",
+    videoGroup: "res_continua",
+    sets: "1",
+    reps: "25 min",
+    rest: "—",
+    duration: "25 min",
+    load: "baja",
+    intensidad: "baja",
+    descripcion: "Trote regenerativo de 25 minutos a intensidad baja. Facilita recuperación sin estímulo anaeróbico.",
+    tips: [
+      "Ritmo muy cómodo; si dudas, ve más despacio",
+      "Respira por nariz si te resulta natural",
+      "Úsalo el día después de sesiones duras",
+    ],
+  },
+  {
+    nombre: "RowErg aeróbico continuo 20'",
+    patron: "aerobico",
+    videoGroup: "res_erg",
+    material: ["maquina"],
+    sets: "1",
+    reps: "20 min",
+    rest: "—",
+    duration: "20 min",
+    load: "zona 2",
+    descripcion: "Remo continuo aeróbico 20 minutos a intensidad conversacional. Buena opción indoor para base aeróbica.",
+    tips: [
+      "Cadencia cómoda y split sostenible",
+      "No tires solo de brazos",
+      "Mantén lumbar neutra todo el bloque",
+    ],
+  },
+  {
+    nombre: "SkiErg aeróbico continuo 15'",
+    patron: "aerobico",
+    videoGroup: "res_erg",
+    material: ["maquina"],
+    sets: "1",
+    reps: "15 min",
+    rest: "—",
+    duration: "15 min",
+    load: "zona 2",
+    descripcion: "SkiErg continuo 15 minutos en zona aeróbica. Trabaja tren superior y tronco sin impacto.",
+    tips: [
+      "Tracción larga y controlada; no rebotes",
+      "Core activo y cadera estable",
+      "Empieza suave los primeros 3 minutos",
+    ],
+  },
+];
+
+function makeResistenciaProtocol(id, p) {
+  const material = p.material || ["sin_material"];
+  const intensidad = p.intensidad || (p.patron === "aerobico" ? "baja" : p.patron === "umbral" ? "media" : "alta");
+  const grupo = /bike|carrera|fartlek|vam|400|tempo|umbral continua|regenerativa|zona 2/i.test(p.nombre) ? "cuadriceps" : "espalda";
+  return {
+    id,
+    nombre: p.nombre,
+    nuevo: false,
+    etiquetas: {
+      material,
+      objetivo: ["resistencia"],
+      segmento: /ski|row/i.test(p.nombre) ? (/ski/i.test(p.nombre) ? "tren_superior" : "full_body") : "tren_inferior",
+      patron: [p.patron],
+      rol: "basico",
+      grupo_principal: grupo,
+      grupo_muscular: [grupo],
+      intensidad,
+      experiencia: ["novato", "intermedio", "avanzado"],
+      contraindicado: /carrera|fartlek|vam|400|tempo|zona 2|regenerativa/i.test(p.nombre)
+        ? ["lesion_tobillo", "lesion_rodilla"]
+        : [],
+    },
+    tips: p.tips,
+    descripcion: p.descripcion,
+    pool: p.patron === "anaerobico" ? "RES-ANA" : p.patron === "umbral" ? "RES-UMB" : "RES-AER",
+    videoUrl: "",
+    ...(p.videoGroup ? { videoGroup: p.videoGroup } : {}),
+    sets: p.sets,
+    reps: p.reps,
+    rest: p.rest,
+    duration: p.duration,
+    load: p.load || null,
+    lesionesContra: /carrera|fartlek|vam|400|tempo|zona 2|regenerativa/i.test(p.nombre)
+      ? ["lesion_tobillo", "lesion_rodilla"]
+      : [],
+    edadMinima: p.patron === "anaerobico" ? 14 : 10,
+    carpeta: "resistencia",
+  };
+}
+
 /** Mismo vídeo solo entre ejercicios reales de la misma familia del documento. */
 const SHARED_VIDEOS = {
   res_continua: "",
@@ -769,8 +1067,21 @@ for (const n of DEFINITIVE) {
 
 const exercises = names.map((nombre, i) => makeExercise(i + 1, nombre));
 
+let nextId = exercises.length + 1;
+for (const p of RESISTENCIA_PROTOCOLS) {
+  const k = norm(p.nombre);
+  if (seen.has(k)) continue;
+  seen.add(k);
+  exercises.push(makeResistenciaProtocol(nextId++, p));
+}
+
 const byFolder = {};
 for (const e of exercises) byFolder[e.carpeta] = (byFolder[e.carpeta] || 0) + 1;
+const resByPatron = {};
+for (const e of exercises.filter((x) => x.carpeta === "resistencia")) {
+  const p = e.etiquetas.patron?.[0] || "?";
+  resByPatron[p] = (resByPatron[p] || 0) + 1;
+}
 
 const header = `/**
  * DEPRO — Catálogo multi-eje de ejercicios (fuente de verdad del motor individual).
@@ -780,7 +1091,7 @@ const header = `/**
  * - etiquetas base: material, objetivo, segmento, patron, rol, grupo_principal, grupo_muscular, accion_secundaria?
  * - grupo_muscular = [grupo_principal] (sin músculos accesorios) para no romper el selector AND
  * - Etiquetas club_* viven en capa paralela (clubExerciseTags) y NO se usan aquí
- * - Listado alineado a Prompt final Depro 2.0 §9.6 (sin inventados; tests fuera del catálogo)
+ * - Listado §9.6 + protocolos de resistencia para plantillas aeróbica/umbral/anaeróbica
  *
  * Generado por scripts/build-definitive-catalog.mjs
  */
@@ -794,6 +1105,7 @@ export default EXERCISES;
 fs.writeFileSync(OUT, header);
 console.log(`Wrote ${exercises.length} exercises → ${OUT}`);
 console.log("By folder:", byFolder);
+console.log("Resistencia por patrón:", resByPatron);
 console.log("With tips:", exercises.filter((e) => e.tips?.length).length);
 console.log("With descripcion:", exercises.filter((e) => e.descripcion).length);
 console.log("Banned generics present?", exercises.some((e) => /skipping [abc]$/i.test(e.nombre)));
