@@ -58,6 +58,22 @@ export function materialMatches(exerciseMaterials = [], playerMaterials = []) {
   return (exerciseMaterials || []).some((m) => unlocked.has(m) || (m === "gym_completo" && mats.includes("gym_completo")));
 }
 
+/** Peso corporal / sin material (fallback permitido). */
+export function isBodyweightMaterial(exerciseMaterials = []) {
+  const em = asArray(exerciseMaterials).map((x) => String(x).toLowerCase());
+  if (!em.length) return true;
+  return em.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno/.test(m));
+}
+
+/**
+ * True si el ejercicio exige equipo que el jugador no tiene.
+ * El peso corporal nunca se considera "equipo faltante".
+ */
+export function requiresUnavailableEquipment(exerciseMaterials = [], playerMaterials = []) {
+  if (isBodyweightMaterial(exerciseMaterials)) return false;
+  return !materialMatches(exerciseMaterials, playerMaterials);
+}
+
 function asArray(v) {
   if (v == null) return [];
   return Array.isArray(v) ? v : [v];
@@ -286,10 +302,14 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
 
   if (!candidates.length) return null;
   const ranked = rankByMaterialPreference(candidates, userProfile);
-  // Preferir material del perfil: tomar el top score band primero
+  // Preferir material del perfil; si no hay match, solo peso corporal (nunca máquina/barra ajenas)
   const mats = normalizeMaterialList(userProfile.material);
   const preferMatched = ranked.filter((ex) => materialMatches(tagsOf(ex).material, mats));
-  const pool = preferMatched.length ? preferMatched : ranked;
+  const bodyFallback = ranked.filter((ex) => isBodyweightMaterial(tagsOf(ex).material));
+  const pool = preferMatched.length
+    ? preferMatched
+    : (bodyFallback.length ? bodyFallback : ranked.filter((ex) => !requiresUnavailableEquipment(tagsOf(ex).material, mats)));
+  if (!pool.length) return null;
   return pickFrom(pool, userProfile, slot, usedExerciseIds, seedExtra);
 }
 
@@ -508,6 +528,8 @@ export { GYM_UNLOCK, MACHINE_MATERIALS };
 export default {
   filterExercisesForUser,
   rankByMaterialPreference,
+  isBodyweightMaterial,
+  requiresUnavailableEquipment,
   selectExerciseForSlot,
   fillBlockSlots,
   refreshExercise,
@@ -515,4 +537,5 @@ export default {
   matchSlotTags,
   normalizeMaterialList,
   materialMatches,
+  getExercisesByPattern,
 };

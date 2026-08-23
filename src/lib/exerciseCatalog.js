@@ -1962,7 +1962,7 @@ export const EXERCISES = [
       "patron": [
         "empuje"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "pecho",
       "grupo_muscular": [
         "pecho"
@@ -2006,7 +2006,7 @@ export const EXERCISES = [
       "patron": [
         "traccion"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "espalda",
       "grupo_muscular": [
         "espalda"
@@ -2259,7 +2259,7 @@ export const EXERCISES = [
       "patron": [
         "traccion"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "espalda",
       "grupo_muscular": [
         "espalda"
@@ -5107,7 +5107,7 @@ export const EXERCISES = [
     "nuevo": false,
     "etiquetas": {
       "material": [
-        "sin_material"
+        "maquina"
       ],
       "objetivo": [
         "fuerza"
@@ -5134,7 +5134,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Jalón al pecho: fuerza de tren superior orientada a espalda (traccion). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Jalón al pecho: fuerza de tren superior orientada a espalda (traccion). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5147,7 +5147,7 @@ export const EXERCISES = [
     "nuevo": false,
     "etiquetas": {
       "material": [
-        "sin_material"
+        "maquina"
       ],
       "objetivo": [
         "fuerza"
@@ -5174,7 +5174,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Cruces pecho de pie: fuerza de tren superior orientada a pecho (empuje). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Cruces pecho de pie: fuerza de tren superior orientada a pecho (empuje). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5277,7 +5277,7 @@ export const EXERCISES = [
       "patron": [
         "traccion"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "espalda",
       "grupo_muscular": [
         "espalda"
@@ -5308,7 +5308,7 @@ export const EXERCISES = [
     "nuevo": false,
     "etiquetas": {
       "material": [
-        "sin_material"
+        "maquina"
       ],
       "objetivo": [
         "fuerza"
@@ -5335,7 +5335,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Remo agarre estrecho: fuerza de tren superior orientada a espalda (traccion). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Remo agarre estrecho: fuerza de tren superior orientada a espalda (traccion). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5609,7 +5609,7 @@ export const EXERCISES = [
       "patron": [
         "empuje"
       ],
-      "rol": "basico",
+      "rol": "complementario",
       "grupo_principal": "pecho",
       "grupo_muscular": [
         "pecho"
@@ -5944,7 +5944,7 @@ export const EXERCISES = [
       "patron": [
         "traccion"
       ],
-      "rol": "complementario",
+      "rol": "basico",
       "grupo_principal": "espalda",
       "grupo_muscular": [
         "espalda"
@@ -6063,7 +6063,7 @@ export const EXERCISES = [
     "nuevo": false,
     "etiquetas": {
       "material": [
-        "sin_material"
+        "maquina"
       ],
       "objetivo": [
         "fuerza"
@@ -6090,7 +6090,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Jalón al pecho agarre neutro ancho: fuerza de tren superior orientada a espalda (traccion). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Jalón al pecho agarre neutro ancho: fuerza de tren superior orientada a espalda (traccion). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -6103,7 +6103,7 @@ export const EXERCISES = [
     "nuevo": false,
     "etiquetas": {
       "material": [
-        "sin_material"
+        "maquina"
       ],
       "objetivo": [
         "fuerza"
@@ -6130,7 +6130,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Jalón al pecho agarre neutro estrecho: fuerza de tren superior orientada a espalda (traccion). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Jalón al pecho agarre neutro estrecho: fuerza de tren superior orientada a espalda (traccion). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],

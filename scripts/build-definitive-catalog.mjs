@@ -697,12 +697,15 @@ const NAME_OVERRIDES = {
 
 function inferMaterial(nombre) {
   const n = norm(nombre);
-  if (/maquina|prensa|polea|multipower|rowerg|skierg|bikeerg|haka/.test(n)) return ["maquina"];
-  if (/barra|hexagonal|press banca|press inclinado barra|press militar/.test(n)) return ["barra"];
+  // Aparatos / polea / jalón (lat pulldown) / cruces de pie suelen ser máquina o cable
+  if (/maquina|prensa|polea|multipower|rowerg|skierg|bikeerg|haka|jal[oó]n|cruces pecho|remo agarre|trineo/.test(n)) {
+    if (/trineo/.test(n)) return ["trineo"];
+    return ["maquina"];
+  }
+  if (/barra|hexagonal|press banca|press inclinado barra|press militar(?! en maquina)/.test(n)) return ["barra"];
   if (/mancuerna|goblet|arnold|fondos en banco \+/.test(n)) return ["mancuernas"];
   if (/goma|banda|elastica|pallof|monster walk|lateral walk/.test(n)) return ["gomas"];
   if (/bosu/.test(n)) return ["bosu"];
-  if (/trineo/.test(n)) return ["trineo"];
   return ["sin_material"];
 }
 
@@ -875,7 +878,9 @@ function inferTags(nombre) {
       grupo_principal = "pecho";
       pool = "TS-EMPUJE";
     }
-    rol = /flexiones cl[aá]sicas|press banca|press mancuernas|dominadas(?! asistidas)|jal[oó]n al pecho$/.test(n) ? "basico" : "complementario";
+    rol = /flexiones cl[aá]sicas|press banca|press (con )?mancuernas$|dominadas(?! asistidas)|remo con mancuerna$|remo con barra$|remo barra$|jal[oó]n al pecho( maquina)?$/.test(n)
+      ? "basico"
+      : "complementario";
     intensidad = "alta";
     if (/hombro|press|flexiones/.test(n)) contraindicado = ["lesion_hombro"];
   } else {
