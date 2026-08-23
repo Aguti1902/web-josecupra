@@ -126,12 +126,24 @@ export async function syncCheckoutSession(supabaseAdmin, session) {
     secondaryColor: meta.secondaryColor || "",
   };
 
+  const selectedAddons = meta.selectedAddons
+    ? meta.selectedAddons.split("|").map((s) => s.trim()).filter(Boolean)
+    : [];
+
   const { data: list } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
   const found = list?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
 
   if (found) {
+    const prev = found.user_metadata?.purchasedAddons || [];
+    const purchasedAddons = selectedAddons.length
+      ? Array.from(new Set([...prev, ...selectedAddons]))
+      : undefined;
     await supabaseAdmin.auth.admin.updateUserById(found.id, {
-      user_metadata: { ...found.user_metadata, ...payload },
+      user_metadata: {
+        ...found.user_metadata,
+        ...payload,
+        ...(purchasedAddons ? { purchasedAddons } : {}),
+      },
     });
     return { ok: true, userId: found.id, created: false };
   }

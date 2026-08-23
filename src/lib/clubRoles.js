@@ -23,26 +23,12 @@ export function canManageClubBilling(user) {
 }
 
 /**
- * Visibilidad de precios / plan / suscripción en clubs.
- * En clubs «Llevado por mí» (planningMode manual), el staff no-admin
- * (coordinador / entrenador / ayudante) no ve precios ni upsells.
- * Administrador, solo coach, player y admin sí.
+ * Visibilidad de precios / plan / suscripción.
+ * Depro 2.0 §8: ningún usuario final ve info económica — solo rol admin DEPRO.
  */
 export function canSeeClubPricing(user) {
   if (!user) return false;
-  if (user.role === "admin" || user.role === "player" || user.role === "coach") return true;
-  if (user.role !== "club") return true;
-  if (user.club?.isSoloCoach) return true;
-  if (isClubAdmin(user) || user.team_role === CLUB_ADMIN_ROLE) return true;
-  const isManual =
-    user.club?.origen === "manual"
-    || user.club?.planningMode === "manual"
-    || user.club?.mode === "personalizado";
-  if (isManual) {
-    const staffHidden = [CLUB_COORD_ROLE, ...CLUB_COACH_ROLES];
-    if (staffHidden.includes(user.team_role)) return false;
-  }
-  return true;
+  return user.role === "admin";
 }
 
 export function canEditClubBranding(user) {

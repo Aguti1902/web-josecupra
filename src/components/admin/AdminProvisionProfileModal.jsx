@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CheckCircle, Copy, RefreshCw, X } from "lucide-react";
 import { createClubUser, saveClub } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect } from "./PlanSelectField";
@@ -16,6 +17,7 @@ const COACH_CATEGORIES = ["Sub-12", "Sub-14", "Sub-16", "Juvenil", "Amateur"];
  * audience: "coach" | "player"
  */
 export default function AdminProvisionProfileModal({ audience, onClose, onCreated }) {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -28,6 +30,16 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
   });
   const [loading, setLoading] = useState(false);
   const [creds, setCreds] = useState(null);
+
+  const goNext = (userId) => {
+    onCreated?.();
+    onClose?.();
+    if (audience === "player" && userId) {
+      navigate(`/admin/plan-builder?clientId=${encodeURIComponent(userId)}`);
+    } else if (audience === "coach") {
+      navigate("/admin/club-auto");
+    }
+  };
 
   const mirrorPlayerLocal = (userId) => {
     if (!userId || audience !== "player") return;
@@ -104,6 +116,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           label: "DEPRO Coach",
           updated: !!res.updated,
           status: form.subscriptionStatus,
+          nextPath: "/admin/club-auto",
         });
         if (res.ok) onCreated?.();
       } else {
@@ -131,6 +144,8 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           label: "Jugador",
           updated: !!res.updated,
           status: form.subscriptionStatus,
+          userId: res.userId,
+          nextPath: res.userId ? `/admin/plan-builder?clientId=${encodeURIComponent(res.userId)}` : null,
         });
         if (res.ok) onCreated?.();
       }
@@ -152,7 +167,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           {creds.ok ? (
             <p className="text-sm text-depro-gray mb-4">
               Perfil guardado en estado <strong>{creds.status || "active"}</strong>.
-              No se inicia sesión automáticamente: puedes asignar rutina y seguir trabajando desde admin.
+              A continuación puedes asignar rutina/planificación de inmediato.
             </p>
           ) : (
             <p className="text-sm text-red-600 mb-4">{creds.error || "No se pudo crear la cuenta"}</p>
@@ -170,7 +185,16 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           >
             <Copy size={12} /> Copiar credenciales
           </button>
-          <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm">
+          {creds.ok && creds.nextPath ? (
+            <button
+              type="button"
+              onClick={() => goNext(creds.userId)}
+              className="w-full py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm mb-2"
+            >
+              {audience === "player" ? "Asignar plan ahora" : "Abrir motor club auto"}
+            </button>
+          ) : null}
+          <button onClick={onClose} className="w-full py-2.5 rounded-xl border border-depro-border text-depro-dark font-semibold text-sm">
             Cerrar
           </button>
         </div>

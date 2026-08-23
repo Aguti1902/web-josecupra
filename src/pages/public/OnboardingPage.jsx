@@ -35,7 +35,7 @@ const COMPETITION_DAYS = COMPETITION_DAY_OPTIONS;
 const WEEK_DAYS  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
 const STEPS_PLAYER = ["Plan", "Tu cuenta", "Tus datos", "Tu entrenamiento", "Pago"];
-const STEPS_STAFF  = ["Plan", "Tu cuenta", "Tus datos", "Pago"];
+const STEPS_STAFF  = ["Plan", "Tu cuenta", "Equipo / Microciclo", "Pago"];
 
 /* ─────────────────────────────────────────────
    COMPONENTES AUX

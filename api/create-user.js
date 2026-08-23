@@ -22,13 +22,19 @@ async function resolveCaller(req, admin) {
 
   const meta = data.user.user_metadata || {};
   const role = meta.role || (data.user.email === "jose@depro.es" ? "admin" : null);
+  const teamRole = meta.teamRole || null;
+  const clubId = meta.clubId || null;
   return {
     user: data.user,
     role,
-    teamRole: meta.teamRole || null,
-    clubId: meta.clubId || null,
+    teamRole,
+    clubId,
     isAdmin: role === "admin" || data.user.email === "jose@depro.es",
-    isCoordinator: role === "club" && meta.teamRole === "coordinador" && !!meta.clubId,
+    // Club admin o coordinador pueden crear staff de su club
+    isCoordinator:
+      role === "club"
+      && !!clubId
+      && (teamRole === "coordinador" || teamRole === "administrador"),
   };
 }
 

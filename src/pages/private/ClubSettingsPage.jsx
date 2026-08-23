@@ -105,6 +105,7 @@ function TeamModal({ team, clubId, onClose, onSave }) {
     const teamId = team?.id || genId("team");
     let userCreated = false;
     let userError = null;
+    let coachUserId = null;
 
     if (form.coachEmail && form.coachPassword) {
       const result = await createClubUser({
@@ -118,6 +119,17 @@ function TeamModal({ team, clubId, onClose, onSave }) {
       });
       userCreated = !!(result.ok || result.alreadyExists);
       userError = userCreated ? null : result.error;
+      coachUserId = result.userId || result.id || null;
+      if (!userCreated) {
+        setLoading(false);
+        setCreds({
+          email: form.coachEmail,
+          password: form.coachPassword,
+          userCreated: false,
+          userError: userError || "No se pudo crear el acceso del entrenador",
+        });
+        return;
+      }
     }
 
     onSave({
@@ -127,9 +139,25 @@ function TeamModal({ team, clubId, onClose, onSave }) {
       season: form.season,
       trainingDays: form.trainingDays,
       coach: form.coachEmail
-        ? { name: form.coachName, email: form.coachEmail, role: "entrenador", userCreated }
+        ? {
+          id: coachUserId,
+          name: form.coachName,
+          email: form.coachEmail,
+          role: "entrenador",
+          userCreated,
+        }
         : (team?.coach || null),
       squad: team?.squad || [],
+      // Señal para que el padre añada el coach a club.users (Staff)
+      _staffToAdd: form.coachEmail && userCreated
+        ? {
+          id: coachUserId || genId("user"),
+          name: form.coachName || form.coachEmail,
+          email: form.coachEmail,
+          role: "entrenador",
+          teamIds: [teamId],
+        }
+        : null,
     });
 
     if (form.coachEmail && !isEdit) {
@@ -289,7 +317,7 @@ function StaffModal({ teams, clubId, onClose, onCreate }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-depro-border">
-          <h2 className="font-bold text-depro-dark">Invitar staff</h2>
+          <h2 className="font-bold text-depro-dark">Crear staff</h2>
           <button onClick={onClose}><X size={18} className="text-depro-gray" /></button>
         </div>
         <div className="p-5 space-y-3">
@@ -311,7 +339,7 @@ function StaffModal({ teams, clubId, onClose, onCreate }) {
           <button onClick={handleCreate} disabled={!form.email || !form.teamId || form.password.length < 6 || loading}
             className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-2">
             {loading ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
-            Invitar
+            Crear
           </button>
         </div>
       </div>
@@ -408,11 +436,26 @@ export default function ClubSettingsPage() {
   };
 
   const handleAddOrUpdateTeam = async (team) => {
-    const exists = (club.teams || []).some((t) => t.id === team.id);
+    const { _staffToAdd, ...cleanTeam } = team;
+    const exists = (club.teams || []).some((t) => t.id === cleanTeam.id);
     const teams = exists
-      ? club.teams.map((t) => (t.id === team.id ? team : t))
-      : [...(club.teams || []), team];
-    await persist({ ...club, teams });
+      ? club.teams.map((t) => (t.id === cleanTeam.id ? { ...t, ...cleanTeam } : t))
+      : [...(club.teams || []), cleanTeam];
+
+    let users = [...(club.users || [])];
+    if (_staffToAdd?.email) {
+      const email = String(_staffToAdd.email).toLowerCase();
+      const idx = users.findIndex((u) => String(u.email || "").toLowerCase() === email);
+      if (idx >= 0) {
+        const prev = users[idx];
+        const teamIds = Array.from(new Set([...(prev.teamIds || []), ...(_staffToAdd.teamIds || [])]));
+        users[idx] = { ...prev, ..._staffToAdd, teamIds };
+      } else {
+        users.push(_staffToAdd);
+      }
+    }
+
+    await persist({ ...club, teams, users });
   };
 
   const handleRemoveTeam = async (tid) => {
@@ -615,7 +658,7 @@ export default function ClubSettingsPage() {
           <div className="flex justify-end">
             <button onClick={() => setShowStaffModal(true)} disabled={(club.teams || []).length === 0}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold disabled:opacity-40">
-              <UserPlus size={15} /> Invitar staff
+              <UserPlus size={15} /> Crear staff
             </button>
           </div>
           {(club.users || []).length === 0 ? (

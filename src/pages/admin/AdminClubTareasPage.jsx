@@ -4,7 +4,6 @@ import { CLUB_MAIN_TASKS } from "../../data/clubAutoCatalog";
 
 const STORAGE_KEY = "depro_club_task_overrides";
 const CUSTOM_KEY = "depro_club_custom_tasks";
-const TARGET = 45;
 
 const NIVELES = ["A", "B", "C"];
 const GRUPOS = [
@@ -12,6 +11,13 @@ const GRUPOS = [
   { id: "carga_alta", label: "Grupo 2 · carga alta", folder: "grupo_2_carga_alta" },
   { id: "prepartido", label: "Grupo 3 · prepartido / velocidad corta", folder: "grupo_3_prepartido" },
 ];
+
+const TIPOS_TAREA = [
+  "Rondo", "Posesión", "Finalización", "Oleadas", "Partido", "Circuito",
+  "Velocidad de reacción", "Transiciones",
+];
+const TIPOS_SESION = ["extensiva", "intensiva", "reactiva"];
+const BLOQUES_EDAD = ["1", "2", "3"];
 
 function readJson(key, fallback) {
   try {
@@ -65,12 +71,15 @@ export default function AdminClubTareasPage() {
     nombre: "",
     nivel: "B",
     grupo_microciclo: "regenerativo",
+    tipo_tarea: "Posesión",
+    tipo_sesion: "extensiva",
+    bloques_edad: ["1", "2", "3"],
+    video: "",
     descripcion: "",
   });
 
   const systemCount = CLUB_MAIN_TASKS.length;
   const totalCount = systemCount + custom.length;
-  const missing = Math.max(0, TARGET - totalCount);
 
   const byFolder = useMemo(() => {
     const map = {};
@@ -102,10 +111,14 @@ export default function AdminClubTareasPage() {
     const id = `custom_task_${Date.now()}`;
     const item = {
       id,
-      carpeta: `/tareas/${draft.nivel}/grupo_${draft.grupo_microciclo === "regenerativo" ? "1_regenerativo" : draft.grupo_microciclo === "carga_alta" ? "2_carga_alta" : "3_prepartido"}`,
+      carpeta: `/calentamiento_con_balon/${draft.nivel}/grupo_${draft.grupo_microciclo === "regenerativo" ? "1_regenerativo" : draft.grupo_microciclo === "carga_alta" ? "2_carga_alta" : "3_prepartido"}`,
       nombre: draft.nombre.trim(),
       nivel: draft.nivel,
       grupo_microciclo: draft.grupo_microciclo,
+      tipo_tarea: draft.tipo_tarea,
+      tipo_sesion: draft.tipo_sesion,
+      bloques_edad: draft.bloques_edad,
+      video: draft.video || "",
       intensidad: draft.grupo_microciclo === "carga_alta" ? "alta" : draft.grupo_microciclo === "prepartido" ? "media" : "baja",
       gimnasio: false,
       descripcion: draft.descripcion || "",
@@ -118,7 +131,11 @@ export default function AdminClubTareasPage() {
     const next = [item, ...custom];
     setCustom(next);
     writeJson(CUSTOM_KEY, next);
-    setDraft({ nombre: "", nivel: "B", grupo_microciclo: "regenerativo", descripcion: "" });
+    setDraft({
+      nombre: "", nivel: "B", grupo_microciclo: "regenerativo",
+      tipo_tarea: "Posesión", tipo_sesion: "extensiva", bloques_edad: ["1", "2", "3"],
+      video: "", descripcion: "",
+    });
     setAdding(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
@@ -130,10 +147,10 @@ export default function AdminClubTareasPage() {
         <div>
           <h1 className="text-2xl font-bold text-depro-dark flex items-center gap-2">
             <Layers size={22} className="text-depro-blue" />
-            Tareas club auto
+            Calentamiento con balón
           </h1>
           <p className="text-sm text-depro-gray mt-1">
-            Estructura 3×3×5 = 45 tareas base. En tareas del sistema solo puedes editar la explicación.
+            Antes «Tareas». Sin límite de cantidad. Campos: tipo de tarea, tipo de sesión, bloque de edad, explicación y vídeo.
           </p>
         </div>
         {saved && (
@@ -145,12 +162,8 @@ export default function AdminClubTareasPage() {
 
       <div className="rounded-2xl border border-depro-border bg-white p-4 flex flex-wrap gap-4 items-center justify-between">
         <div className="text-sm text-depro-dark">
-          <strong>{totalCount}</strong> / {TARGET} tareas
-          {missing > 0 ? (
-            <span className="text-amber-700 ml-2">· Faltan {missing} para el total inicial de 45</span>
-          ) : (
-            <span className="text-green-700 ml-2">· Total inicial completo</span>
-          )}
+          <strong>{totalCount}</strong> tareas
+          <span className="text-depro-gray ml-2">· catálogo abierto</span>
         </div>
         <button
           type="button"

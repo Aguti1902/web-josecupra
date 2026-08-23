@@ -7,6 +7,7 @@ import {
   generateClubAutoMicrociclo,
   generateClubAutoFourWeeks,
 } from "../../lib/clubAuto/clubAutoEngine";
+import { CLUB_TAG_VALUES } from "../../lib/clubAuto/clubExerciseTags";
 import AssignPlanModal from "../../components/admin/AssignPlanModal";
 import CoachAutoQuestionnaire from "../../components/shared/CoachAutoQuestionnaire";
 
