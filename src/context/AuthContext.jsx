@@ -2,6 +2,11 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { getCachedSubscription, isInTrial } from "../lib/subscription";
 import { clearTrialLoadLogs } from "../lib/loadLogs";
+import {
+  normalizeStringList,
+  resolveObjetivos,
+  resolveEdad,
+} from "../lib/playerTrainingProfile";
 
 const AuthContext = createContext(null);
 
@@ -165,23 +170,24 @@ function buildUser(authUser, profile) {
       clubId: meta.clubId || club?.id || null,
       clubName: meta.clubName || null,
       plan:      profile.plan      ?? meta.plan      ?? cached?.plan ?? null,
-      objetivo:  profile.objetivo  ?? meta.objetivo  ?? null,
+      objetivo:  profile.objetivo ?? profile.objective ?? meta.objetivo ?? null,
       objetivoSecundario: profile.objetivoSecundario ?? meta.objetivoSecundario ?? null,
-      objetivos: profile.objetivos ?? meta.objetivos ?? (meta.objetivoSecundario ? [meta.objetivo, meta.objetivoSecundario].filter(Boolean) : meta.objetivo ? [meta.objetivo] : []),
+      objetivos: resolveObjetivos({
+        objetivos: profile.objetivos ?? meta.objetivos,
+        objetivo: profile.objetivo ?? profile.objective ?? meta.objetivo,
+        objective: profile.objective,
+        objetivoSecundario: profile.objetivoSecundario ?? meta.objetivoSecundario,
+      }),
       deporte:   profile.deporte   ?? meta.deporte   ?? null,
       frecuencia: profile.frecuencia ?? meta.frecuencia ?? null,
-      material:  (() => {
-        const m = profile.material ?? meta.material ?? null;
-        if (typeof m === "string" && m.includes("|")) return m.split("|").filter(Boolean);
-        return m;
-      })(),
-      lesion:    profile.lesion    ?? meta.lesion    ?? [],
-      lesionSubtipo: profile.lesionSubtipo ?? meta.lesionSubtipo ?? [],
+      material:  normalizeStringList(profile.material ?? meta.material),
+      lesion:    normalizeStringList(profile.lesion ?? meta.lesion),
+      lesionSubtipo: normalizeStringList(profile.lesionSubtipo ?? meta.lesionSubtipo),
       experiencia: profile.experiencia ?? meta.experiencia ?? null,
       diaCompeticion: profile.diaCompeticion ?? meta.diaCompeticion ?? null,
-      disponibles: profile.disponibles ?? meta.disponibles ?? [],
+      disponibles: normalizeStringList(profile.disponibles ?? meta.disponibles),
       managedTeamIds: meta.managedTeamIds ?? profile.managedTeamIds ?? [],
-      edad: profile.age ?? meta.edad ?? null,
+      edad: resolveEdad({ edad: profile.edad ?? meta.edad, age: profile.age }) || null,
       phone: profile.phone ?? meta.phone ?? meta.telefono ?? null,
       telefono: profile.telefono ?? meta.telefono ?? meta.phone ?? null,
       posicion: profile.position ?? meta.posicion ?? null,
@@ -215,20 +221,16 @@ function buildUser(authUser, profile) {
     plan:      meta.plan      ?? cached?.plan ?? null,
     objetivo:  meta.objetivo  ?? null,
     objetivoSecundario: meta.objetivoSecundario ?? null,
-    objetivos: meta.objetivos ?? (meta.objetivoSecundario ? [meta.objetivo, meta.objetivoSecundario].filter(Boolean) : meta.objetivo ? [meta.objetivo] : []),
+    objetivos: resolveObjetivos(meta),
     deporte:   meta.deporte   ?? null,
     frecuencia: meta.frecuencia ?? null,
-    material:  (() => {
-      const m = meta.material ?? null;
-      if (typeof m === "string" && m.includes("|")) return m.split("|").filter(Boolean);
-      return m;
-    })(),
-    lesion:    meta.lesion    ?? [],
-    lesionSubtipo: meta.lesionSubtipo ?? [],
+    material:  normalizeStringList(meta.material),
+    lesion:    normalizeStringList(meta.lesion),
+    lesionSubtipo: normalizeStringList(meta.lesionSubtipo),
     experiencia: meta.experiencia ?? null,
     diaCompeticion: meta.diaCompeticion ?? null,
-    disponibles: meta.disponibles ?? [],
-    edad:      meta.edad      ?? null,
+    disponibles: normalizeStringList(meta.disponibles),
+    edad:      resolveEdad(meta) || null,
     phone:     meta.phone ?? meta.telefono ?? null,
     telefono:  meta.telefono ?? meta.phone ?? null,
     posicion:  meta.posicion  ?? null,

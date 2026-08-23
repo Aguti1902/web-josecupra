@@ -22,6 +22,11 @@ import {
   activateClubPlayerInSquad,
   applyClubBrandingToPlayer,
 } from "../../lib/clubPlayerRegistry";
+import {
+  trainingFieldsFromUser,
+  trainingFieldsKey,
+  normalizeStringList,
+} from "../../lib/playerTrainingProfile";
 
 const SPORTS = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const FREQUENCY = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem", "5 días / sem"];
@@ -37,40 +42,39 @@ const INJURY_SUBTYPES = {
   Pubalgia: ["Aductores", "Recto abdominal", "Mixta"],
 };
 
-function normalizeMaterialList(mat) {
-  if (Array.isArray(mat)) return mat.filter(Boolean);
-  if (!mat) return ["Sin material"];
-  return String(mat).split(",").map((s) => s.trim()).filter(Boolean);
-}
-
-function normalizeList(v) {
-  if (Array.isArray(v)) return v.filter(Boolean);
-  if (!v) return [];
-  return String(v).split(",").map((s) => s.trim()).filter(Boolean);
-}
-
 function freqNumber(freq) {
   return parseInt(String(freq || "").replace(/\D/g, ""), 10) || 3;
 }
 
-function ChipGroup({ options, selected, onToggle, multi = true }) {
-  const isSel = (opt) => (multi ? selected.includes(opt) : selected === opt);
+function ChipGroup({ options, selected, onToggle, multi = true, maxSelected }) {
+  const list = multi
+    ? (Array.isArray(selected) ? selected : normalizeStringList(selected))
+    : selected;
+  const isSel = (opt) => (multi ? list.includes(opt) : list === opt);
+  const atMax = multi && maxSelected != null && list.length >= maxSelected;
   return (
     <div className="flex flex-wrap gap-2">
-      {options.map((opt) => (
-        <button
-          key={opt}
-          type="button"
-          onClick={() => onToggle(opt)}
-          className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
-            isSel(opt)
-              ? "bg-depro-blue border-depro-blue text-white"
-              : "bg-white border-depro-border text-depro-gray hover:border-depro-blue"
-          }`}
-        >
-          {opt}
-        </button>
-      ))}
+      {options.map((opt) => {
+        const sel = isSel(opt);
+        const disabled = multi && atMax && !sel;
+        return (
+          <button
+            key={opt}
+            type="button"
+            disabled={disabled}
+            onClick={() => onToggle(opt)}
+            className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
+              sel
+                ? "bg-depro-blue border-depro-blue text-white"
+                : disabled
+                  ? "bg-gray-50 border-depro-border text-gray-300 cursor-not-allowed"
+                  : "bg-white border-depro-border text-depro-gray hover:border-depro-blue"
+            }`}
+          >
+            {opt}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -155,31 +159,27 @@ export default function ProfilePage() {
   const [currentClub, setCurrentClub] = useState(null);
   const [currentTeam, setCurrentTeam] = useState(null);
 
-  const [trainingDays, setTrainingDays] = useState(() => user?.disponibles?.length ? user.disponibles : ["Lunes", "Miércoles", "Viernes"]);
-  const [materialSel, setMaterialSel] = useState(() => normalizeMaterialList(user?.material));
-  const [experienciaSel, setExperienciaSel] = useState(() => user?.experiencia || EXPERIENCE[2]);
-  const [edadSel, setEdadSel] = useState(() => user?.edad || user?.age || "");
-  const [deporteSel, setDeporteSel] = useState(() => user?.deporte || "Fútbol");
-  const [frecuenciaSel, setFrecuenciaSel] = useState(() => user?.frecuencia || "3 días / sem");
-  const [objetivosSel, setObjetivosSel] = useState(() => {
-    if (Array.isArray(user?.objetivos) && user.objetivos.length) return user.objetivos;
-    if (user?.objetivo) return [user.objetivo];
-    return ["Fuerza"];
-  });
-  const [lesionSel, setLesionSel] = useState(() => {
-    const list = normalizeList(user?.lesion);
-    return list.length ? list : ["Ninguna"];
-  });
-  const [lesionSubtipoSel, setLesionSubtipoSel] = useState(() => normalizeList(user?.lesionSubtipo));
-  const [diaCompeticionSel, setDiaCompeticionSel] = useState(
-    () => user?.diaCompeticion || user?.dia_competicion || "Fin de semana",
-  );
+  const initialTraining = trainingFieldsFromUser(user || {});
+  const [trainingDays, setTrainingDays] = useState(() => (
+    initialTraining.disponibles.length ? initialTraining.disponibles : ["Lunes", "Miércoles", "Viernes"]
+  ));
+  const [materialSel, setMaterialSel] = useState(() => initialTraining.material);
+  const [experienciaSel, setExperienciaSel] = useState(() => initialTraining.experiencia || "");
+  const [edadSel, setEdadSel] = useState(() => initialTraining.edad);
+  const [deporteSel, setDeporteSel] = useState(() => initialTraining.deporte);
+  const [frecuenciaSel, setFrecuenciaSel] = useState(() => initialTraining.frecuencia);
+  const [objetivosSel, setObjetivosSel] = useState(() => initialTraining.objetivos);
+  const [lesionSel, setLesionSel] = useState(() => initialTraining.lesion);
+  const [lesionSubtipoSel, setLesionSubtipoSel] = useState(() => initialTraining.lesionSubtipo);
+  const [diaCompeticionSel, setDiaCompeticionSel] = useState(() => initialTraining.diaCompeticion || "Fin de semana");
   const [daysSaving, setDaysSaving] = useState(false);
   const [daysMsg, setDaysMsg] = useState("");
+  const [trainingHydratedKey, setTrainingHydratedKey] = useState(() => trainingFieldsKey(initialTraining));
   const currentPlan = user?.id ? loadPlayerPlan(user.id) : null;
   const profileRegensUsed = user?.id ? getProfileRegenCount(user.id, currentPlan) : 0;
   const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, currentPlan) : false;
   const freqN = freqNumber(frecuenciaSel);
+  const maxObjetivos = freqN <= 1 ? 1 : 2;
 
   const [accountName, setAccountName] = useState(user?.name || "");
   const [accountEmail, setAccountEmail] = useState(user?.email || "");
@@ -258,49 +258,25 @@ export default function ProfilePage() {
     if (!res.ok) showAccountMsg("error", res.error || "No se pudo abrir el portal de facturación.");
   };
 
+  // Precarga desde cuestionario: solo rehidrata cuando cambian los datos guardados
+  // (no en cada re-render / TOKEN_REFRESH, para no pisar multiselección en curso).
   useEffect(() => {
-    if (user?.disponibles?.length) setTrainingDays(user.disponibles);
-  }, [user?.disponibles]);
-
-  useEffect(() => {
-    if (user?.material != null) setMaterialSel(normalizeMaterialList(user.material));
-  }, [user?.material]);
-
-  useEffect(() => {
-    if (user?.experiencia) setExperienciaSel(user.experiencia);
-  }, [user?.experiencia]);
-
-  useEffect(() => {
-    if (user?.edad != null || user?.age != null) setEdadSel(user?.edad || user?.age || "");
-  }, [user?.edad, user?.age]);
-
-  useEffect(() => {
-    if (user?.deporte) setDeporteSel(user.deporte);
-  }, [user?.deporte]);
-
-  useEffect(() => {
-    if (user?.frecuencia) setFrecuenciaSel(user.frecuencia);
-  }, [user?.frecuencia]);
-
-  useEffect(() => {
-    if (Array.isArray(user?.objetivos) && user.objetivos.length) setObjetivosSel(user.objetivos);
-    else if (user?.objetivo) setObjetivosSel([user.objetivo]);
-  }, [user?.objetivo, user?.objetivos]);
-
-  useEffect(() => {
-    const list = normalizeList(user?.lesion);
-    if (list.length) setLesionSel(list);
-  }, [user?.lesion]);
-
-  useEffect(() => {
-    setLesionSubtipoSel(normalizeList(user?.lesionSubtipo));
-  }, [user?.lesionSubtipo]);
-
-  useEffect(() => {
-    if (user?.diaCompeticion || user?.dia_competicion) {
-      setDiaCompeticionSel(user.diaCompeticion || user.dia_competicion);
-    }
-  }, [user?.diaCompeticion, user?.dia_competicion]);
+    if (!user?.id) return;
+    const next = trainingFieldsFromUser(user);
+    const key = trainingFieldsKey(next);
+    if (key === trainingHydratedKey) return;
+    setTrainingHydratedKey(key);
+    setEdadSel(next.edad);
+    setDeporteSel(next.deporte);
+    setFrecuenciaSel(next.frecuencia);
+    setObjetivosSel(next.objetivos);
+    setMaterialSel(next.material);
+    setExperienciaSel(next.experiencia);
+    setLesionSel(next.lesion);
+    setLesionSubtipoSel(next.lesionSubtipo);
+    if (next.diaCompeticion) setDiaCompeticionSel(next.diaCompeticion);
+    if (next.disponibles.length) setTrainingDays(next.disponibles);
+  }, [user, trainingHydratedKey]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -446,12 +422,14 @@ export default function ProfilePage() {
 
   const toggleObjective = (obj) => {
     setObjetivosSel((prev) => {
-      if (prev.includes(obj)) {
-        const next = prev.filter((o) => o !== obj);
-        return next.length ? next : prev;
+      const cur = Array.isArray(prev) ? prev : normalizeStringList(prev);
+      if (cur.includes(obj)) {
+        const next = cur.filter((o) => o !== obj);
+        return next.length ? next : cur;
       }
-      if (prev.length >= 2) return [prev[0], obj];
-      return [...prev, obj];
+      if (maxObjetivos <= 1) return [obj];
+      if (cur.length >= maxObjetivos) return [cur[0], obj].slice(0, maxObjetivos);
+      return [...cur, obj];
     });
     setDaysMsg("");
   };
@@ -515,20 +493,11 @@ export default function ProfilePage() {
       return;
     }
 
+    const fromUser = trainingFieldsFromUser(user || {});
     const prevData = {
-      edad: String(user?.edad || user?.age || ""),
-      deporte: user?.deporte || "",
-      frecuencia: user?.frecuencia || "",
-      objetivos: Array.isArray(user?.objetivos) && user.objetivos.length
-        ? user.objetivos
-        : (user?.objetivo ? [user.objetivo] : []),
-      objetivo: user?.objetivo || "",
-      material: normalizeMaterialList(user?.material),
-      experiencia: user?.experiencia || "",
-      lesion: normalizeList(user?.lesion),
-      lesionSubtipo: normalizeList(user?.lesionSubtipo),
-      diaCompeticion: user?.diaCompeticion || user?.dia_competicion || "",
-      disponibles: user?.disponibles || [],
+      ...fromUser,
+      lesion: fromUser.lesion.includes("Ninguna") ? [] : fromUser.lesion,
+      lesionSubtipo: fromUser.lesion.includes("Ninguna") ? [] : fromUser.lesionSubtipo,
     };
     const changed = profileTrainingFingerprint(nextData) !== profileTrainingFingerprint(prevData);
 
@@ -551,6 +520,9 @@ export default function ProfilePage() {
           disponibles: nextData.disponibles,
         },
       });
+
+      // Evita que el sync del user pise el formulario tras guardar
+      setTrainingHydratedKey(trainingFieldsKey(nextData));
 
       if (!changed) {
         await refreshUser();
@@ -825,8 +797,27 @@ export default function ProfilePage() {
           </div>
 
           <div className="mb-5">
-            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Objetivos (máx. 2)</p>
-            <ChipGroup options={OBJECTIVES} selected={objetivosSel} onToggle={toggleObjective} multi />
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Objetivos {maxObjetivos > 1 ? "(máx. 2)" : "(1 con frecuencia de 1 día)"}</p>
+            <p className="text-xs text-depro-gray mb-2">
+              Se marcan los del cuestionario. El principal es obligatorio
+              {maxObjetivos > 1 ? "; puedes añadir un segundo si entrenas ≥2 días/sem." : "."}
+            </p>
+            <ChipGroup
+              options={OBJECTIVES}
+              selected={objetivosSel}
+              onToggle={toggleObjective}
+              multi
+              maxSelected={maxObjetivos}
+            />
+            <p className="text-xs text-depro-gray mt-2">
+              {objetivosSel.length === 0
+                ? "Selecciona al menos 1 objetivo"
+                : objetivosSel.length === 1
+                  ? maxObjetivos > 1
+                    ? "1 objetivo · puedes añadir otro"
+                    : "1 objetivo"
+                  : "2 objetivos (principal + secundario)"}
+            </p>
           </div>
 
           <div className="mb-5">
@@ -844,7 +835,12 @@ export default function ProfilePage() {
             <ChipGroup
               options={FREQUENCY}
               selected={frecuenciaSel}
-              onToggle={(f) => { setFrecuenciaSel(f); setDaysMsg(""); }}
+              onToggle={(f) => {
+                setFrecuenciaSel(f);
+                const n = freqNumber(f);
+                if (n <= 1) setObjetivosSel((prev) => (Array.isArray(prev) && prev.length ? [prev[0]] : prev));
+                setDaysMsg("");
+              }}
               multi={false}
             />
           </div>
