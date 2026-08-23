@@ -24,7 +24,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const webhookSecret = (process.env.STRIPE_WEBHOOK_SECRET || getStripeWebhookSecretFallback() || "").trim();
+  const fromEnv = (process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+  const secretIsLive = (process.env.STRIPE_SECRET_KEY || "").includes("_live_");
+  // Nunca usar whsec de test con sk_live
+  const webhookSecret = fromEnv || (secretIsLive ? "" : getStripeWebhookSecretFallback() || "");
   if (!webhookSecret) {
     console.error("stripe-webhook: falta STRIPE_WEBHOOK_SECRET");
     return res.status(500).json({ error: "Webhook no configurado" });
