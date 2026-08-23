@@ -76,7 +76,8 @@ export async function getStripe() {
 export const DEFAULT_SITE_URL = "https://www.deprotrain.com";
 
 export function getSiteUrl() {
-  const raw = process.env.SITE_URL || process.env.VERCEL_URL || DEFAULT_SITE_URL;
+  // No usar VERCEL_URL: en Production es un *.vercel.app efímero y rompe return_url / webhooks.
+  const raw = clean(process.env.SITE_URL) || DEFAULT_SITE_URL;
   if (raw.startsWith("http")) return raw.replace(/\/$/, "");
   return `https://${raw}`.replace(/\/$/, "");
 }
