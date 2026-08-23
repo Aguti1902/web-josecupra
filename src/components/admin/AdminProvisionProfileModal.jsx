@@ -1,16 +1,21 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle, Copy, RefreshCw, X } from "lucide-react";
+import { CheckCircle, Copy, RefreshCw, X, Brain } from "lucide-react";
 import { createClubUser, saveClub } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect } from "./PlanSelectField";
+import { PLAYER_ADDONS } from "../../lib/playerAddons";
 
 function generatePassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
   return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
-const PLAYER_POSITIONS = ["Portero", "Defensa", "Centrocampista", "Delantero", "Extremo"];
 const COACH_CATEGORIES = ["Sub-12", "Sub-14", "Sub-16", "Juvenil", "Amateur"];
+
+function isPremiumPlan(planId) {
+  const p = String(planId || "").toLowerCase();
+  return p === "player-pro" || p === "premium" || p === "pro";
+}
 
 /**
  * Modal admin para provisionar DEPRO Coach (solo) o Jugador con plan personalizado.
@@ -26,16 +31,26 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
     subscriptionStatus: "active",
     teamName: "Mi equipo",
     category: "Sub-16",
-    posicion: "Centrocampista",
+    selectedAddons: [],
   });
   const [loading, setLoading] = useState(false);
   const [creds, setCreds] = useState(null);
 
-  const goNext = (userId) => {
+  const premiumPlayer = audience === "player" && isPremiumPlan(form.planId);
+
+  const effectiveAddons = useMemo(() => {
+    if (audience !== "player") return [];
+    if (premiumPlayer) return PLAYER_ADDONS.map((a) => a.id);
+    return form.selectedAddons;
+  }, [audience, premiumPlayer, form.selectedAddons]);
+
+  const goToPlanMotor = (userId) => {
     onCreated?.();
     onClose?.();
     if (audience === "player" && userId) {
-      navigate(`/admin/plan-builder?clientId=${encodeURIComponent(userId)}`);
+      navigate(
+        `/admin/plan-builder?clientId=${encodeURIComponent(userId)}&name=${encodeURIComponent(form.name || "")}`,
+      );
     } else if (audience === "coach") {
       navigate("/admin/club-auto");
     }
@@ -54,14 +69,27 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
         plan: form.planId,
         subscriptionStatus: form.subscriptionStatus,
         billingSource: "manual",
-        posicion: form.posicion,
+        purchasedAddons: effectiveAddons,
       };
       const next = [entry, ...(list || []).filter((c) => c.id !== userId && c.email !== form.email)];
       localStorage.setItem("depro_admin_clients", JSON.stringify(next.slice(0, 500)));
     } catch { /* ignore */ }
   };
 
-  const handleSubmit = async () => {
+  const toggleAddon = (id) => {
+    if (premiumPlayer) return;
+    setForm((f) => ({
+      ...f,
+      selectedAddons: f.selectedAddons.includes(id)
+        ? f.selectedAddons.filter((x) => x !== id)
+        : [...f.selectedAddons, id],
+    }));
+  };
+
+  /**
+   * @param {{ goAssign?: boolean }} opts
+   */
+  const handleSubmit = async ({ goAssign = false } = {}) => {
     if (!form.email || form.password.length < 6) return;
     setLoading(true);
 
@@ -117,6 +145,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           updated: !!res.updated,
           status: form.subscriptionStatus,
           nextPath: "/admin/club-auto",
+          goAssign: false,
         });
         if (res.ok) onCreated?.();
       } else {
@@ -128,11 +157,16 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           plan: form.planId,
           subscriptionStatus: form.subscriptionStatus,
           billingSource: "manual",
-          posicion: form.posicion,
           deporte: "Fútbol",
+          purchasedAddons: effectiveAddons,
         });
 
         if (res.ok) mirrorPlayerLocal(res.userId);
+
+        if (res.ok && goAssign && res.userId) {
+          goToPlanMotor(res.userId);
+          return;
+        }
 
         setCreds({
           ok: res.ok,
@@ -144,7 +178,10 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           updated: !!res.updated,
           status: form.subscriptionStatus,
           userId: res.userId,
-          nextPath: res.userId ? `/admin/plan-builder?clientId=${encodeURIComponent(res.userId)}` : null,
+          addons: effectiveAddons,
+          nextPath: res.userId
+            ? `/admin/plan-builder?clientId=${encodeURIComponent(res.userId)}&name=${encodeURIComponent(form.name || "")}`
+            : null,
         });
         if (res.ok) onCreated?.();
       }
@@ -166,7 +203,9 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           {creds.ok ? (
             <p className="text-sm text-depro-gray mb-4">
               Perfil guardado en estado <strong>{creds.status || "active"}</strong>.
-              A continuación puedes asignar rutina/planificación de inmediato.
+              {audience === "player" && (
+                <> Puedes asignar el plan en el motor (opcional).</>
+              )}
             </p>
           ) : (
             <p className="text-sm text-red-600 mb-4">{creds.error || "No se pudo crear la cuenta"}</p>
@@ -175,6 +214,14 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
             <div><span className="text-depro-gray">Email</span><p className="font-mono font-bold">{creds.email}</p></div>
             {creds.ok && (
               <div><span className="text-depro-gray">Contraseña (opcional, para acceso posterior)</span><p className="font-mono font-bold">{creds.password}</p></div>
+            )}
+            {creds.ok && audience === "player" && Array.isArray(creds.addons) && creds.addons.length > 0 && (
+              <div>
+                <span className="text-depro-gray">Extras</span>
+                <p className="font-semibold text-depro-dark">
+                  {creds.addons.map((id) => PLAYER_ADDONS.find((a) => a.id === id)?.name || id).join(" · ")}
+                </p>
+              </div>
             )}
           </div>
           <button
@@ -187,10 +234,11 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           {creds.ok && creds.nextPath ? (
             <button
               type="button"
-              onClick={() => goNext(creds.userId)}
-              className="w-full py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm mb-2"
+              onClick={() => (audience === "player" ? goToPlanMotor(creds.userId) : goToPlanMotor())}
+              className="w-full py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm mb-2 inline-flex items-center justify-center gap-2"
             >
-              {audience === "player" ? "Asignar plan ahora" : "Abrir motor club auto"}
+              <Brain size={16} />
+              {audience === "player" ? "Asignar plan en el motor" : "Abrir motor club auto"}
             </button>
           ) : null}
           <button onClick={onClose} className="w-full py-2.5 rounded-xl border border-depro-border text-depro-dark font-semibold text-sm">
@@ -238,7 +286,15 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
               <RefreshCw size={14} />
             </button>
           </div>
-          <PlanSelectField audience={audience} value={form.planId} onChange={(v) => setForm((f) => ({ ...f, planId: v }))} />
+          <PlanSelectField
+            audience={audience}
+            value={form.planId}
+            onChange={(v) => setForm((f) => ({
+              ...f,
+              planId: v,
+              selectedAddons: isPremiumPlan(v) ? [] : f.selectedAddons,
+            }))}
+          />
           <SubscriptionStatusSelect
             value={form.subscriptionStatus}
             onChange={(v) => setForm((f) => ({ ...f, subscriptionStatus: v }))}
@@ -261,28 +317,73 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
             </>
           )}
           {audience === "player" && (
-            <select
-              className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm"
-              value={form.posicion}
-              onChange={(e) => setForm((f) => ({ ...f, posicion: e.target.value }))}
-            >
-              {PLAYER_POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
+            <div className="rounded-xl border border-depro-border p-4 space-y-3">
+              <div>
+                <p className="text-sm font-bold text-depro-dark">Extras / servicios</p>
+                <p className="text-xs text-depro-gray mt-0.5">
+                  {premiumPlayer
+                    ? "Premium incluye PDF, tests y mis cargas."
+                    : "Opcional en Standard. Márcalos para activarlos en la cuenta."}
+                </p>
+              </div>
+              <div className="space-y-2">
+                {PLAYER_ADDONS.map((addon) => {
+                  const checked = premiumPlayer || form.selectedAddons.includes(addon.id);
+                  return (
+                    <label
+                      key={addon.id}
+                      className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm cursor-pointer transition-colors ${
+                        checked ? "border-depro-blue bg-depro-blue/[0.04]" : "border-depro-border hover:border-depro-blue/40"
+                      } ${premiumPlayer ? "opacity-80 cursor-default" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={checked}
+                        disabled={premiumPlayer}
+                        onChange={() => toggleAddon(addon.id)}
+                      />
+                      <span className="min-w-0">
+                        <span className="font-semibold text-depro-dark block">{addon.name}</span>
+                        <span className="text-xs text-depro-gray">{addon.description}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
-        <div className="flex gap-3 p-6 border-t border-depro-border">
-          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray text-sm font-medium">
+        <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-depro-border">
+          <button type="button" onClick={onClose} className="sm:flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray text-sm font-medium">
             Cancelar
           </button>
+          {audience === "player" && (
+            <button
+              type="button"
+              onClick={() => handleSubmit({ goAssign: true })}
+              disabled={!form.email || form.password.length < 6 || loading}
+              className="sm:flex-1 py-2.5 rounded-xl border-2 border-depro-blue text-depro-blue font-semibold text-sm disabled:opacity-40 inline-flex items-center justify-center gap-2"
+              title="Crea el perfil y abre el motor de planes con este jugador preseleccionado"
+            >
+              <Brain size={15} />
+              {loading ? "Creando…" : "Asignar plan"}
+            </button>
+          )}
           <button
             type="button"
-            onClick={handleSubmit}
+            onClick={() => handleSubmit({ goAssign: false })}
             disabled={!form.email || form.password.length < 6 || loading}
-            className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm disabled:opacity-40"
+            className="sm:flex-1 py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm disabled:opacity-40"
           >
             {loading ? "Creando…" : "Crear perfil"}
           </button>
         </div>
+        {audience === "player" && (
+          <p className="px-6 pb-4 text-[11px] text-depro-gray -mt-2">
+            <strong>Asignar plan</strong> es opcional: crea el jugador y abre el motor para completar el cuestionario, generar la rutina y asignársela.
+          </p>
+        )}
       </div>
     </div>
   );
