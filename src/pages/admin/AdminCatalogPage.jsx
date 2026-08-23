@@ -77,29 +77,50 @@ function hasTag(e, key) {
 
 const SECTION_LABELS = [
   { key: "fuerza_tren_inferior", label: "Fuerza · Tren inferior", icon: Dumbbell, color: "#3B82F6",
-    match: (e) => e.carpeta === "fuerza_tren_inferior" || (hasTag(e, "fuerza_tren_inferior")) },
+    match: (e) => e.carpeta === "fuerza_tren_inferior" },
   { key: "fuerza_tren_superior", label: "Fuerza · Tren superior", icon: Dumbbell, color: "#8B5CF6",
-    match: (e) => e.carpeta === "fuerza_tren_superior" || hasTag(e, "fuerza_tren_superior") },
+    match: (e) => e.carpeta === "fuerza_tren_superior" },
   { key: "velocidad", label: "Velocidad", icon: Zap, color: "#F59E0B",
-    match: (e) => e.carpeta === "velocidad" || hasTag(e, "velocidad") },
+    match: (e) => e.carpeta === "velocidad" },
+  { key: "resistencia", label: "Resistencia", icon: Activity, color: "#0EA5E9",
+    match: (e) => e.carpeta === "resistencia" },
   { key: "pliometria", label: "Pliometría", icon: Flame, color: "#EF4444",
-    match: (e) => e.carpeta === "pliometria" || hasTag(e, "pliometria") },
+    match: (e) => e.carpeta === "pliometria" },
   { key: "core", label: "Core", icon: Shield, color: "#6366F1",
-    match: (e) => e.carpeta === "core" || hasTag(e, "core") },
+    match: (e) => e.carpeta === "core" },
   { key: "prevencion", label: "Prevención", icon: Shield, color: "#EC4899",
-    match: (e) => e.carpeta === "prevencion" || hasTag(e, "prevencion") },
+    match: (e) => e.carpeta === "prevencion" },
   { key: "movilidad", label: "Movilidad", icon: RefreshCw, color: "#059669",
-    match: (e) => e.carpeta === "movilidad" || hasTag(e, "movilidad") },
+    match: (e) => e.carpeta === "movilidad" },
 ];
 
 function getSection(exercise) {
+  // La carpeta es la fuente de verdad; no clasificar por grupo muscular (p. ej. "core").
   if (exercise.carpeta && SECTION_LABELS.some((s) => s.key === exercise.carpeta)) {
     return exercise.carpeta;
   }
   for (const s of SECTION_LABELS) {
     if (s.match(exercise)) return s.key;
   }
-  return "core";
+  if (hasTag(exercise, "resistencia")) return "resistencia";
+  if (hasTag(exercise, "velocidad")) return "velocidad";
+  if (hasTag(exercise, "pliometria")) return "pliometria";
+  if (hasTag(exercise, "movilidad")) return "movilidad";
+  if (hasTag(exercise, "prevencion")) return "prevencion";
+  if (hasTag(exercise, "fuerza") && hasTag(exercise, "tren_superior")) return "fuerza_tren_superior";
+  if (hasTag(exercise, "fuerza")) return "fuerza_tren_inferior";
+  return "fuerza_tren_inferior";
+}
+
+function catalogDescription(exercise, override) {
+  return override?.description || exercise.description || exercise.descripcion || "";
+}
+
+function catalogTips(exercise, override) {
+  if (override?.tips) return override.tips;
+  if (typeof exercise.tips === "string") return exercise.tips;
+  if (Array.isArray(exercise.tips)) return exercise.tips.join("\n");
+  return "";
 }
 
 /* ── Modal alta de ejercicio nuevo ───────────────────────── */
@@ -209,9 +230,9 @@ function AddExerciseModal({ onSave, onClose }) {
 /* ── Modal editor de ejercicio ────────────────────────────── */
 function ExerciseEditModal({ exercise, override, onSave, onClose }) {
   const [form, setForm] = useState({
-    videoUrl:    override?.videoUrl    || "",
-    description: override?.description || "",
-    tips:        override?.tips        || "",
+    videoUrl:    override?.videoUrl || exercise.videoUrl || "",
+    description: catalogDescription(exercise, override),
+    tips:        catalogTips(exercise, override),
   });
   const ytId = getYouTubeId(form.videoUrl);
 
@@ -413,11 +434,11 @@ export default function AdminCatalogPage({ embedded = false }) {
     if (!folderId) return true;
     // Carpetas funcionales (taxonomía actual)
     const functional = [
-      "fuerza_tren_inferior", "fuerza_tren_superior", "velocidad",
+      "fuerza_tren_inferior", "fuerza_tren_superior", "velocidad", "resistencia",
       "pliometria", "core", "prevencion", "movilidad",
     ];
     if (functional.includes(folderId)) {
-      return e.carpeta === folderId || (e.etiquetas || []).includes(folderId);
+      return e.carpeta === folderId;
     }
     if (folderId.startsWith("lesion_")) {
       return (e.etiquetas || []).includes(folderId)
@@ -452,7 +473,7 @@ export default function AdminCatalogPage({ embedded = false }) {
     filtered.forEach((e) => {
       const sec = getSection(e);
       if (map[sec]) map[sec].push(e);
-      else map["core"].push(e);
+      else map.fuerza_tren_inferior.push(e);
     });
     return map;
   }, [filtered]);
@@ -597,8 +618,10 @@ export default function AdminCatalogPage({ embedded = false }) {
                 <div className="border-t border-depro-border/50 divide-y divide-depro-border/30">
                   {exercises.map((exercise) => {
                     const ov = overrides[exercise.id] || {};
-                    const hasVideo = !!ov.videoUrl;
-                    const hasContent = hasVideo || ov.description || ov.tips;
+                    const desc = catalogDescription(exercise, ov);
+                    const tipsText = catalogTips(exercise, ov);
+                    const hasVideo = !!(ov.videoUrl || exercise.videoUrl);
+                    const hasContent = hasVideo || !!desc || !!tipsText;
 
                     return (
                       <div key={exercise.id}
@@ -616,6 +639,9 @@ export default function AdminCatalogPage({ embedded = false }) {
                               </span>
                             ))}
                           </div>
+                          {desc && (
+                            <p className="text-[11px] text-depro-gray mt-0.5 line-clamp-2">{desc}</p>
+                          )}
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             {exercise.etiquetasMulti ? (
                               <>
@@ -642,10 +668,10 @@ export default function AdminCatalogPage({ embedded = false }) {
                                 <PlayCircle size={10} /> Vídeo
                               </span>
                             )}
-                            {ov.description && (
+                            {desc && (
                               <span className="text-[10px] text-depro-blue font-medium">· Descripción</span>
                             )}
-                            {ov.tips && (
+                            {tipsText && (
                               <span className="text-[10px] text-depro-blue font-medium">· Tips</span>
                             )}
                           </div>

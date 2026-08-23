@@ -161,6 +161,7 @@ const BASE_EXERCISES = [
   { id:"m120", nombre:"Flow movilidad completa 5'",   etiquetas:["movilidad"],                      material:"sin_material", contraindicado:[] },
 ];
 
+// Fuente de verdad: catálogo V2 §9.6. EXTRA_EXERCISES queda vacío (sin genéricos inventados).
 export const EXERCISES = [...getLegacyCatalogFromV2(), ...EXTRA_EXERCISES];
 
 // ── Etiquetas oficiales ───────────────────────────────────
