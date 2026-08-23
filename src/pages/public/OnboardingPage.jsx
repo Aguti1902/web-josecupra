@@ -11,7 +11,6 @@ import {
 } from "../../lib/checkoutPlans";
 import { useAuth } from "../../context/AuthContext";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
-import StripeTestBanner from "../../components/public/StripeTestBanner";
 import TeamBrandingFields, { saveCoachBrandingDraft } from "../../components/shared/TeamBrandingFields";
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
@@ -1059,8 +1058,6 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
 
   return (
     <div>
-      <StripeTestBanner />
-
       <div className="mb-8">
         <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu suscripción</h2>
         <p className="text-depro-gray text-sm">
