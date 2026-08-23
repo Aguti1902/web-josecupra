@@ -10,6 +10,7 @@ import {
   isProCoachUser,
   serializeCoachAutoForMeta,
   parseCoachAutoFromMeta,
+  questionnaireToCoachConfig,
 } from "./clubAutoCoachBridge.js";
 import { CLUB_MAIN_TASKS, CLUB_TASK_FOLDERS } from "../../data/clubAutoCatalog.js";
 
@@ -66,6 +67,38 @@ describe("clubAutoCoachBridge", () => {
       "observaciones",
     ]);
     assert.equal(week.sessions[0].exercises.length, 6);
+    assert.equal(week.sessions[0].duration, "75 min");
+    assert.equal(week.sessions[0].duracionEstimada, "75 min");
+    assert.ok(Array.isArray(week.sessions[0].taskDesigner?.taskTypes));
+    assert.ok(week.sessions[0].taskDesigner.taskTypes.length > 0);
+  });
+
+  it("usa la duración del cuestionario en el resumen de sesión", () => {
+    const week = generateClubAutoWeekForCoach({
+      engine: "club_auto",
+      nivel: "B",
+      dias_exactos_entrenamiento: ["Lunes", "Miércoles"],
+      dia_partido: "sabado",
+      duracion_sesion: "90+",
+      num_jugadores: "14-18",
+      material: ["Gomas"],
+    }, { weekStart: "2026-08-03" });
+    assert.equal(week.sessions[0].duration, "Más de 90 min");
+  });
+
+  it("questionnaireToCoachConfig rellena engine club_auto", () => {
+    const packed = questionnaireToCoachConfig({
+      nivel: "A",
+      dias_exactos_entrenamiento: ["Martes", "Jueves"],
+      dia_partido: "sabado",
+      duracion_sesion: "60",
+      num_jugadores: "10-14",
+      material: ["Sin material"],
+      acceso_gimnasio: "no",
+    });
+    assert.equal(packed.ok, true);
+    assert.equal(packed.config.engine, "club_auto");
+    assert.equal(packed.config.duracion_sesion, "60");
   });
 
   it("mesociclo ProCoach cubre el mes calendario con sesión por día de entreno", () => {

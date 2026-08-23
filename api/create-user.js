@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     clubId, teamId, teamRole, managedTeamIds,
     plan, subscriptionStatus, billingSource,
     posicion, deporte, objetivo, edad, frecuencia, material, experiencia, disponibles, lesion,
-    clubName, clubCode, purchasedAddons, manualPrice,
+    clubName, clubCode, purchasedAddons, manualPrice, isSoloCoach,
   } = req.body || {};
 
   if (!email || !password) {
@@ -104,6 +104,7 @@ export default async function handler(req, res) {
     clubName: clubName || undefined,
     clubCode: clubCode || undefined,
     purchasedAddons: Array.isArray(purchasedAddons) ? purchasedAddons : undefined,
+    isSoloCoach: isSoloCoach === true ? true : undefined,
     ...(manualPrice !== undefined && manualPrice !== ""
       ? { manualPrice: parseManualPrice(manualPrice) }
       : {}),

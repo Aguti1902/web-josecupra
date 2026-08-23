@@ -15,6 +15,7 @@ import {
   startOfIsoWeek,
   addDaysIso,
 } from "./clubAutoEngine.js";
+import { createDefaultTaskDesigner } from "../taskDesigner.js";
 
 export {
   TRAIN_DAYS,
@@ -187,8 +188,46 @@ export function coachConfigFingerprint(config = {}) {
     match: q.dia_partido,
     gym: q.acceso_gimnasio === true || q.acceso_gimnasio === "si" ? "si" : "no",
     material: [...(q.material || [])].map(String).sort(),
+    duration: q.duracion_sesion || "",
+    jugadores: q.num_jugadores || "",
     monthKey,
   });
+}
+
+/** Duración de sesión para el resumen (igual que planificación manual). */
+export function durationLabelFromQuestionnaire(q = {}) {
+  const id = String(q.duracion_sesion || "75");
+  const found = CLUB_AUTO_DURATIONS.find((d) => d.id === id);
+  if (found) return found.label;
+  if (/min/i.test(id)) return id;
+  return `${id} min`;
+}
+
+/** cuestionario → coachConfig (misma forma que el onboarding / perfil). */
+export function questionnaireToCoachConfig(q) {
+  const v = validateCoachQuestionnaire(q);
+  if (!v.ok) return { ok: false, errors: v.errors, config: null };
+  const n = v.normalized;
+  return {
+    ok: true,
+    errors: [],
+    config: {
+      engine: "club_auto",
+      nivel: n.nivel,
+      dias_entrenamiento_semana: n.dias_entrenamiento_semana,
+      dias_exactos_entrenamiento: n.dias_exactos_entrenamiento,
+      dia_partido: q.dia_partido || "sabado",
+      duracion_sesion: n.duracion_sesion,
+      num_jugadores: n.num_jugadores,
+      material: n.material,
+      acceso_gimnasio: n.acceso_gimnasio ? "si" : "no",
+      gymAccess: n.acceso_gimnasio,
+      trainingsPerWeek: n.dias_entrenamiento_semana,
+      trainingDays: n.dias_exactos_entrenamiento,
+      matchDay: q.dia_partido || "sabado",
+      mode: "depro",
+    },
+  };
 }
 
 /** coachConfig → cuestionario del motor */
@@ -244,6 +283,7 @@ export function adaptClubAutoWeek(result, weekStart) {
       questionnaire: result?.questionnaire || null,
     };
   }
+  const duration = durationLabelFromQuestionnaire(result.questionnaire || {});
   return {
     engine: "club_auto",
     weekStart,
@@ -257,10 +297,12 @@ export function adaptClubAutoWeek(result, weekStart) {
       framework: s.protocol,
       templateKey: `${s.protocol || "A"}${s.sessionVariant || 1}`,
       intensity: s.protocol === "A" ? "Media" : s.protocol === "B" ? "Alta" : "Máxima",
+      duration,
+      duracionEstimada: duration,
       exercises: flattenProtocolExercises(s),
-      duracionEstimada: "75–90 min",
       observaciones: s.structure?.find((b) => b.type === "observaciones")?.item?.observaciones || "",
       objetivos: [s.protocolLabel].filter(Boolean),
+      taskDesigner: createDefaultTaskDesigner(),
     })),
   };
 }

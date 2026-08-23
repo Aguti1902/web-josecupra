@@ -45,7 +45,17 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
     return form.selectedAddons;
   }, [audience, premiumPlayer, form.selectedAddons]);
 
-  const goToPlanMotor = (userId) => {
+  const coachMotorPath = (userId, clubId, teamId) => {
+    const params = new URLSearchParams();
+    if (clubId) params.set("clubId", clubId);
+    if (teamId) params.set("teamId", teamId);
+    if (userId) params.set("userId", userId);
+    if (form.name) params.set("name", form.name);
+    params.set("assign", "1");
+    return `/admin/club-auto?${params.toString()}`;
+  };
+
+  const goToPlanMotor = ({ userId, clubId, teamId } = {}) => {
     onCreated?.();
     onClose?.();
     if (audience === "player" && userId) {
@@ -53,7 +63,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
         `/admin/plan-builder?clientId=${encodeURIComponent(userId)}&name=${encodeURIComponent(form.name || "")}`,
       );
     } else if (audience === "coach") {
-      navigate("/admin/club-auto");
+      navigate(coachMotorPath(userId, clubId, teamId));
     }
   };
 
@@ -71,6 +81,30 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
         subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
         billingSource: "manual",
         purchasedAddons: effectiveAddons,
+      };
+      const next = [entry, ...(list || []).filter((c) => c.id !== userId && c.email !== form.email)];
+      localStorage.setItem("depro_admin_clients", JSON.stringify(next.slice(0, 500)));
+    } catch { /* ignore */ }
+  };
+
+  const mirrorCoachLocal = (userId, clubId, teamId) => {
+    if (!userId || audience !== "coach") return;
+    try {
+      const raw = localStorage.getItem("depro_admin_clients");
+      const list = raw ? JSON.parse(raw) : [];
+      const entry = {
+        id: userId,
+        name: form.name,
+        email: form.email,
+        role: "club",
+        type: "coach",
+        teamRole: "entrenador",
+        isSoloCoach: true,
+        clubId,
+        teamId,
+        plan: form.planId,
+        subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
+        billingSource: "manual",
       };
       const next = [entry, ...(list || []).filter((c) => c.id !== userId && c.email !== form.email)];
       localStorage.setItem("depro_admin_clients", JSON.stringify(next.slice(0, 500)));
@@ -135,7 +169,15 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           plan: form.planId,
           subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
           billingSource: "manual",
+          isSoloCoach: true,
         });
+
+        if (res.ok && res.userId) mirrorCoachLocal(res.userId, clubId, teamId);
+
+        if (res.ok && goAssign) {
+          goToPlanMotor({ userId: res.userId, clubId, teamId });
+          return;
+        }
 
         setCreds({
           ok: res.ok,
@@ -146,8 +188,10 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           label: "DEPRO Coach",
           updated: !!res.updated,
           status: normalizeAdminStatus(form.subscriptionStatus),
-          nextPath: "/admin/club-auto",
-          goAssign: false,
+          userId: res.userId,
+          clubId,
+          teamId,
+          nextPath: coachMotorPath(res.userId, clubId, teamId),
         });
         if (res.ok) onCreated?.();
       } else {
@@ -166,7 +210,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
         if (res.ok) mirrorPlayerLocal(res.userId);
 
         if (res.ok && goAssign && res.userId) {
-          goToPlanMotor(res.userId);
+          goToPlanMotor({ userId: res.userId });
           return;
         }
 
@@ -205,7 +249,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           {creds.ok ? (
             <p className="text-sm text-depro-gray mb-4">
               Perfil guardado en estado <strong>{adminStatusLabel(creds.status)}</strong>.
-              {audience === "player" && (
+              {(audience === "player" || audience === "coach") && (
                 <> Puedes asignar el plan en el motor (opcional).</>
               )}
             </p>
@@ -236,11 +280,15 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           {creds.ok && creds.nextPath ? (
             <button
               type="button"
-              onClick={() => (audience === "player" ? goToPlanMotor(creds.userId) : goToPlanMotor())}
+              onClick={() => goToPlanMotor({
+                userId: creds.userId,
+                clubId: creds.clubId,
+                teamId: creds.teamId,
+              })}
               className="w-full py-2.5 rounded-xl bg-depro-blue text-white font-semibold text-sm mb-2 inline-flex items-center justify-center gap-2"
             >
               <Brain size={16} />
-              {audience === "player" ? "Asignar plan en el motor" : "Abrir motor club auto"}
+              {audience === "player" ? "Asignar plan en el motor" : "Asignar plan en el motor club auto"}
             </button>
           ) : null}
           <button onClick={onClose} className="w-full py-2.5 rounded-xl border border-depro-border text-depro-dark font-semibold text-sm">
@@ -360,13 +408,15 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           <button type="button" onClick={onClose} className="sm:flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray text-sm font-medium">
             Cancelar
           </button>
-          {audience === "player" && (
+          {(audience === "player" || audience === "coach") && (
             <button
               type="button"
               onClick={() => handleSubmit({ goAssign: true })}
               disabled={!form.email || form.password.length < 6 || loading}
               className="sm:flex-1 py-2.5 rounded-xl border-2 border-depro-blue text-depro-blue font-semibold text-sm disabled:opacity-40 inline-flex items-center justify-center gap-2"
-              title="Crea el perfil y abre el motor de planes con este jugador preseleccionado"
+              title={audience === "coach"
+                ? "Crea el perfil y abre el motor club auto con este entrenador preseleccionado"
+                : "Crea el perfil y abre el motor de planes con este jugador preseleccionado"}
             >
               <Brain size={15} />
               {loading ? "Creando…" : "Asignar plan"}
@@ -381,9 +431,9 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
             {loading ? "Creando…" : "Crear perfil"}
           </button>
         </div>
-        {audience === "player" && (
+        {(audience === "player" || audience === "coach") && (
           <p className="px-6 pb-4 text-[11px] text-depro-gray -mt-2">
-            <strong>Asignar plan</strong> es opcional: crea el jugador y abre el motor para completar el cuestionario, generar la rutina y asignársela.
+            <strong>Asignar plan</strong> es opcional: crea el {audience === "coach" ? "entrenador" : "jugador"} y abre el motor para completar el cuestionario, generar la rutina y asignársela.
           </p>
         )}
       </div>

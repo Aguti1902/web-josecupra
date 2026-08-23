@@ -36,7 +36,7 @@ export default async function handler(req, res) {
   if (caller.error) return res.status(caller.status).json({ error: caller.error });
   if (!caller.isAdmin) return res.status(403).json({ error: "Solo administradores" });
 
-  const { email, password, name, teamRole, clubId, teamId, managedTeamIds, plan, subscriptionStatus, billingSource, purchasedAddons, manualPrice } = req.body || {};
+  const { email, password, name, teamRole, clubId, teamId, managedTeamIds, plan, subscriptionStatus, billingSource, purchasedAddons, manualPrice, isSoloCoach } = req.body || {};
   if (!email) return res.status(400).json({ error: "email requerido" });
 
   try {
@@ -61,6 +61,7 @@ export default async function handler(req, res) {
         purchasedAddons: Array.isArray(purchasedAddons) ? purchasedAddons : [],
       }),
       ...(manualPrice !== undefined && { manualPrice: parseManualPrice(manualPrice) }),
+      ...(isSoloCoach !== undefined && { isSoloCoach: !!isSoloCoach }),
     };
 
     const payload = { user_metadata: meta };

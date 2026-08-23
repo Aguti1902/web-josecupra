@@ -21,8 +21,17 @@ import {
   isProCoachUser,
   parseCoachAutoFromMeta,
   loadCoachAutoDraftFromStorage,
+  coachConfigFingerprint,
+  monthKeyFromDate,
 } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { markQuestionnaireCompleted } from "../../lib/questionnaireState";
+import {
+  canRegenerateFromProfile,
+  recordProfileRegen,
+  getProfileRegenCount,
+  MAX_PROFILE_REGENS_PER_CYCLE,
+  PLAN_CYCLE_DAYS,
+} from "../../lib/planSwapLimits";
 
 // Comprime imagen de perfil a 200×200
 function compressAvatar(file) {
@@ -98,6 +107,13 @@ export default function ClubProfilePage() {
   const photoRef = useRef();
   const isSoloCoach = isProCoachUser(user);
   const showBilling = canManageClubBilling(user) && canSeeClubPricing(user);
+  const cyclePlan = {
+    startDate: user?.club?.coachMesociclo?.[user?.teamId]?.startDate
+      || `${monthKeyFromDate(new Date())}-01`,
+  };
+  const profileRegensUsed = user?.id ? getProfileRegenCount(user.id, cyclePlan) : 0;
+  const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, cyclePlan) : false;
+  const hadAutoConfig = !!(user?.club?.coachConfig?.nivel);
 
   const showMsg = (type, text) => {
     setMsg({ type, text });
@@ -152,10 +168,23 @@ export default function ClubProfilePage() {
       showMsg("error", packed.errors.join(" "));
       return;
     }
+    const cfg = { ...packed.config, mode: "depro", engine: "club_auto" };
+    const prevFp = coachConfigFingerprint(user?.club?.coachConfig || {});
+    const nextFp = coachConfigFingerprint(cfg);
+    const fingerprintChanged = prevFp !== nextFp;
+    const willRegen = !hadAutoConfig || fingerprintChanged;
+
+    if (hadAutoConfig && fingerprintChanged && !canProfileRegen) {
+      showMsg(
+        "error",
+        `Ya usaste tu cambio de plan este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos no se regeneran.`,
+      );
+      return;
+    }
+
     setSavingAutoQ(true);
     try {
       let clubId = user?.club?.id;
-      const cfg = { ...packed.config, mode: "depro", engine: "club_auto" };
       const category = categoryForNivel(cfg.nivel);
 
       if (!clubId) {
@@ -218,11 +247,21 @@ export default function ClubProfilePage() {
           coachConfig: { ...(detail.coachConfig || {}), ...cfg },
           teams,
         });
-        clearCoachGeneratedPlans(clubId, user.teamId);
+        if (willRegen) {
+          clearCoachGeneratedPlans(clubId, user.teamId);
+          if (hadAutoConfig && fingerprintChanged && user?.id) {
+            recordProfileRegen(user.id, { ...cyclePlan, source: "profile_regen", profileRegenAt: new Date().toISOString() });
+          }
+        }
       }
       setMode("depro");
       await refreshUser();
-      showMsg("ok", "Cuestionario guardado. Se regenerará el microciclo automático.");
+      showMsg(
+        "ok",
+        willRegen
+          ? (hadAutoConfig ? "Cuestionario actualizado. Se regenerará el microciclo automático." : "Cuestionario guardado. Se generará el microciclo automático.")
+          : "Cuestionario guardado.",
+      );
     } catch (e) {
       showMsg("error", e.message || "No se pudo guardar el cuestionario.");
     } finally {
@@ -383,18 +422,34 @@ export default function ClubProfilePage() {
               <Sparkles size={16} className="text-depro-blue" /> Cuestionario del entrenador
             </h3>
             <p className="text-xs text-depro-gray">
-              Nivel, días de entreno, día de partido, material y gimnasio. Al guardar se genera (o regenera) la rutina automática.
+              Nivel, días de entreno, día de partido, material y gimnasio.
+              {hadAutoConfig
+                ? ` Puedes actualizar el cuestionario y regenerar el plan una vez cada ~${PLAN_CYCLE_DAYS} días.`
+                : " La primera vez genera la rutina automática (no consume el cupo)."}
               {mode === "personalizado" ? " Si estás en «Llevado por mí», guardar el cuestionario vuelve al modo automático." : ""}
             </p>
+            {hadAutoConfig && (
+              <p className={`text-xs font-bold mt-2 ${canProfileRegen ? "text-depro-blue" : "text-amber-700"}`}>
+                Actualizaciones este mesociclo: {Math.min(profileRegensUsed, MAX_PROFILE_REGENS_PER_CYCLE)}/{MAX_PROFILE_REGENS_PER_CYCLE}
+                {!canProfileRegen && " · cupo agotado"}
+              </p>
+            )}
           </div>
           <CoachAutoQuestionnaire value={autoQ} onChange={setAutoQ} />
           <button
             type="button"
             onClick={handleSaveAutoQuestionnaire}
-            disabled={savingAutoQ}
+            disabled={savingAutoQ || (hadAutoConfig && !canProfileRegen)}
             className="btn-primary flex items-center gap-2 disabled:opacity-50"
           >
-            <Save size={15} /> {savingAutoQ ? "Guardando…" : "Guardar y regenerar microciclo"}
+            <Save size={15} />{" "}
+            {savingAutoQ
+              ? "Guardando…"
+              : hadAutoConfig && !canProfileRegen
+                ? "Cupo de actualización agotado"
+                : hadAutoConfig
+                  ? "Guardar y regenerar microciclo"
+                  : "Guardar y generar microciclo"}
           </button>
         </div>
       )}

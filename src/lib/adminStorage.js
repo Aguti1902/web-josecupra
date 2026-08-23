@@ -6,7 +6,7 @@
  *  2. Supabase se usa como sincronización en segundo plano
  *  3. Si localStorage está vacío se intenta Supabase como seed inicial
  */
-import { supabase } from "./supabase";
+import { supabase } from "./supabase.js";
 
 
 /**
@@ -41,13 +41,13 @@ export async function createClubUser({
   email, password, name, role = "club", clubId, teamId, teamRole, managedTeamIds,
   plan, subscriptionStatus, billingSource, posicion, deporte, objetivo, edad,
   frecuencia, material, experiencia, disponibles, lesion, clubName, clubCode,
-  purchasedAddons, manualPrice,
+  purchasedAddons, manualPrice, isSoloCoach,
 }) {
   const payload = {
     email, password, name, role, clubId, teamId, teamRole, managedTeamIds,
     plan, subscriptionStatus, billingSource, posicion, deporte, objetivo, edad,
     frecuencia, material, experiencia, disponibles, lesion, clubName, clubCode,
-    purchasedAddons, manualPrice,
+    purchasedAddons, manualPrice, isSoloCoach,
   };
 
   // 1. Endpoint serverless (cuenta confirmada, sin email de verificación)
@@ -81,6 +81,7 @@ export async function createClubUser({
         billingSource,
         purchasedAddons,
         manualPrice,
+        isSoloCoach,
       });
       if (upd.ok) return { ok: true, userId: upd.userId, updated: true };
       return { ok: false, error: upd.error || data.error, alreadyExists: true };
@@ -111,6 +112,7 @@ export async function createClubUser({
           objetivo,
           purchasedAddons: Array.isArray(purchasedAddons) ? purchasedAddons : undefined,
           manualPrice,
+          isSoloCoach: isSoloCoach || undefined,
         },
         emailRedirectTo: undefined,
       },

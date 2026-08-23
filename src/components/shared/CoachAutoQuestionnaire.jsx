@@ -194,30 +194,4 @@ export default function CoachAutoQuestionnaire({ value, onChange, showErrors = t
   );
 }
 
-export function questionnaireToCoachConfig(q) {
-  const v = validateCoachQuestionnaire(q);
-  if (!v.ok) return { ok: false, errors: v.errors, config: null };
-  const n = v.normalized;
-  return {
-    ok: true,
-    errors: [],
-    config: {
-      engine: "club_auto",
-      nivel: n.nivel,
-      dias_entrenamiento_semana: n.dias_entrenamiento_semana,
-      dias_exactos_entrenamiento: n.dias_exactos_entrenamiento,
-      dia_partido: q.dia_partido || "sabado",
-      duracion_sesion: n.duracion_sesion,
-      num_jugadores: n.num_jugadores,
-      material: n.material,
-      acceso_gimnasio: n.acceso_gimnasio ? "si" : "no",
-      gymAccess: n.acceso_gimnasio,
-      trainingsPerWeek: n.dias_entrenamiento_semana,
-      trainingDays: n.dias_exactos_entrenamiento,
-      matchDay: q.dia_partido || "sabado",
-      mode: "depro",
-    },
-  };
-}
-
-export { validateCoachQuestionnaire };
+export { questionnaireToCoachConfig, validateCoachQuestionnaire } from "../../lib/clubAuto/clubAutoCoachBridge";
