@@ -22,6 +22,7 @@ const BLOCK_CONFIG = {
   calentamiento:  { label: "Calentamiento",     Icon: Flame,    color: "#F59E0B" },
   principal:      { label: "Bloque principal",  Icon: Dumbbell, color: "#3B82F6" },
   complementario: { label: "Complementario",    Icon: Target,   color: "#8B5CF6" },
+  core:           { label: "Core",              Icon: Gauge,    color: "#EC4899" },
   vuelta_calma:   { label: "Vuelta a la calma", Icon: Wind,     color: "#10B981" },
 };
 

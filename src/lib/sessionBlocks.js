@@ -1,14 +1,16 @@
-/** Utilidades compartidas para bloques de sesión (admin ↔ entrenador) */
+/** Utilidades compartidas para bloques de sesión (admin ↔ entrenador / jugador) */
 
-export const BLOCK_TYPES = ["calentamiento", "principal", "complementario", "vuelta_calma"];
+/** Orden de render del jugador (incluye core del motor V2). */
+export const BLOCK_TYPES = ["calentamiento", "principal", "complementario", "core", "vuelta_calma"];
 
-/** Bloques editables en el panel admin (sin complementario ni vuelta a la calma) */
+/** Bloques editables en el panel admin club (sin complementario/core/vuelta). */
 export const ADMIN_BLOCK_TYPES = ["calentamiento", "principal"];
 
 export const BLOCK_LABELS = {
   calentamiento:  "Calentamiento",
   principal:      "Principal",
   complementario: "Complementario",
+  core:           "Core",
   vuelta_calma:   "Vuelta a la calma",
 };
 
@@ -16,6 +18,7 @@ export const BLOCK_COLORS = {
   calentamiento:  "#F59E0B",
   principal:      "#3B82F6",
   complementario: "#8B5CF6",
+  core:           "#EC4899",
   vuelta_calma:   "#10B981",
 };
 
@@ -23,6 +26,7 @@ const DEFAULT_DURATIONS = {
   calentamiento:  "10 min",
   principal:      "30 min",
   complementario: "15 min",
+  core:           "6 min",
   vuelta_calma:   "5 min",
 };
 
@@ -96,23 +100,36 @@ export function adminSessionBlocks(existingBlocks) {
   });
 }
 
-/** Obtiene bloques de una sesión guardada (blocks o legacy exercises) */
+/** Obtiene bloques de una sesión guardada (blocks o legacy exercises).
+ *  Incluye tipos conocidos + cualquier bloque extra con ejercicios (p. ej. futuros).
+ */
 export function getSessionBlocks(session) {
   if (session?.blocks?.length) {
-    return BLOCK_TYPES.map((type) => {
+    const known = BLOCK_TYPES.map((type) => {
       const found = session.blocks.find((b) => b.type === type);
       return found ? normalizeBlock(found) : normalizeBlock({ type, exercises: [] });
     });
+    const extras = session.blocks
+      .filter((b) => b?.type && !BLOCK_TYPES.includes(b.type) && (b.exercises?.length || b.subSessions?.length))
+      .map((b) => normalizeBlock(b));
+    return [...known, ...extras];
   }
   const all = session?.exercises || [];
   if (all.some((ex) => ex.blockType)) {
-    return BLOCK_TYPES.map((type) => normalizeBlock({
+    const known = BLOCK_TYPES.map((type) => normalizeBlock({
       type,
       exercises: all.filter((ex) => ex.blockType === type),
     }));
+    const knownSet = new Set(BLOCK_TYPES);
+    const extraTypes = [...new Set(all.map((ex) => ex.blockType).filter((t) => t && !knownSet.has(t)))];
+    const extras = extraTypes.map((type) => normalizeBlock({
+      type,
+      exercises: all.filter((ex) => ex.blockType === type),
+    }));
+    return [...known, ...extras];
   }
-  // Legacy sin blockType: reparto aproximado
-  return BLOCK_TYPES.map((type, i) => normalizeBlock({
+  // Legacy sin blockType: reparto aproximado (sin inventar core vacío)
+  return ["calentamiento", "principal", "complementario", "vuelta_calma"].map((type, i) => normalizeBlock({
     type,
     exercises: i === 0 ? all.slice(0, 2) : i === 1 ? all.slice(2, 6) : i === 2 ? all.slice(6, 8) : all.slice(8, 10),
   }));
