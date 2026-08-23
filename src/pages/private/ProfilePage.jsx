@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { WEEK_DAYS } from "../../lib/sessionBlocks";
-import { ensurePlayerPlan } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan } from "../../lib/playerPlanEngine";
 import {
   canRegenerateFromProfile,
   recordProfileRegen,
@@ -13,6 +13,8 @@ import {
   getProfileRegenCount,
   MAX_PROFILE_REGENS_PER_CYCLE,
   resetCycleCounters,
+  PLAN_CYCLE_DAYS,
+  isSuccessfulGeneratedPlan,
 } from "../../lib/planSwapLimits";
 import { loadPlayerPlan, fetchPlayerPlan, savePlayerPlan, persistPlayerPlanRemote } from "../../lib/playerPlanStorage";
 import { openBillingPortal, isSubscriptionActive } from "../../lib/subscription";
@@ -49,6 +51,26 @@ const INJURY_SUBTYPES = {
 
 function freqNumber(freq) {
   return parseInt(String(freq || "").replace(/\D/g, ""), 10) || 3;
+}
+
+function validateTrainingComplete(nextData, trainingDays, objetivosSel) {
+  const n = freqNumber(nextData.frecuencia);
+  if (!nextData.edad || Number(nextData.edad) < 10 || Number(nextData.edad) > 80) {
+    return "Indica una edad válida (10–80) antes de regenerar.";
+  }
+  if (!nextData.objetivos?.length) return "Selecciona al menos un objetivo.";
+  if (n <= 1 && filterCatalogObjetivos(objetivosSel).length > 1) {
+    return "Con 1 día/sem solo puedes tener 1 objetivo. Quita el secundario o sube la frecuencia.";
+  }
+  if (!nextData.deporte) return "Selecciona un deporte.";
+  if (!nextData.frecuencia) return "Selecciona la frecuencia semanal.";
+  if (!nextData.experiencia) return "Indica el tiempo que llevas entrenando.";
+  if (!nextData.diaCompeticion) return "Selecciona el día de competición.";
+  if (trainingDays.length < n) {
+    return `Con frecuencia ${n} días/sem, selecciona al menos ${n} días disponibles.`;
+  }
+  if (!nextData.material?.length) return "Selecciona al menos un material disponible.";
+  return "";
 }
 
 function ChipGroup({ options, selected, onToggle, multi = true, maxSelected }) {
@@ -180,6 +202,8 @@ export default function ProfilePage() {
   const [diaCompeticionSel, setDiaCompeticionSel] = useState(() => initialTraining.diaCompeticion || "Fin de semana");
   const [daysSaving, setDaysSaving] = useState(false);
   const [daysMsg, setDaysMsg] = useState("");
+  const [regenConfirmOpen, setRegenConfirmOpen] = useState(false);
+  const [pendingRegenData, setPendingRegenData] = useState(null);
   const [trainingHydratedKey, setTrainingHydratedKey] = useState(() => trainingFieldsKey(initialTraining));
   const trainingDirtyRef = useRef(false);
   const trainingHydratedKeyRef = useRef(trainingHydratedKey);
@@ -514,27 +538,63 @@ export default function ProfilePage() {
     };
   };
 
+  const persistTrainingMetadata = async (nextData) => {
+    const metaPayload = trainingFieldsToAuthMetadata(nextData);
+    await supabase.auth.updateUser({ data: metaPayload });
+
+    const existingPlan = planForProfile || loadPlayerPlan(user.id);
+    if (existingPlan) {
+      const snap = trainingProfileSnapshotFromAny(nextData);
+      existingPlan.profileSnapshot = snap;
+      savePlayerPlan(user.id, existingPlan);
+      setPlanForProfile(existingPlan);
+      if (existingPlan.weeks) {
+        await persistPlayerPlanRemote(user.id, {
+          weeks: existingPlan.weeks,
+          profileSnapshot: snap,
+          assignment: existingPlan.assignment || null,
+          source: existingPlan.source || "admin_manual",
+          startDate: existingPlan.startDate || null,
+          assignedTo: user.id,
+        });
+      }
+    }
+
+    trainingDirtyRef.current = false;
+    const key = trainingFieldsKey(nextData);
+    trainingHydratedKeyRef.current = key;
+    setTrainingHydratedKey(key);
+  };
+
+  const runSuccessfulRegen = async (nextData) => {
+    const newUser = { ...user, ...nextData };
+    // Generar SIN borrar el plan actual hasta confirmar éxito (no gasta cupo si falla).
+    const newPlan = buildPlayerPlan(newUser);
+    if (!isSuccessfulGeneratedPlan(newPlan)) {
+      const msg = newPlan?.planError
+        || "No se pudo generar la rutina con esos datos. Revisa los campos e inténtalo de nuevo (no se ha gastado el cupo).";
+      setDaysMsg(msg);
+      return false;
+    }
+
+    newPlan.profileSnapshot = trainingProfileSnapshotFromAny(nextData);
+    newPlan.source = "profile_regen";
+    resetCycleCounters(user.id, newPlan.startDate);
+    recordProfileRegen(user.id, newPlan);
+    savePlayerPlan(user.id, newPlan);
+    setPlanForProfile(newPlan);
+    await persistTrainingMetadata(nextData);
+    await refreshUser();
+    setDaysMsg("Perfil actualizado · rutina regenerada correctamente (1 cambio este mesociclo) ✓");
+    setTimeout(() => setDaysMsg(""), 5000);
+    return true;
+  };
+
   const handleSaveTrainingProfile = async () => {
     const nextData = buildTrainingPayload();
-    const n = freqNumber(nextData.frecuencia);
-    if (!nextData.edad || Number(nextData.edad) < 10 || Number(nextData.edad) > 80) {
-      setDaysMsg("Indica una edad válida (10–80).");
-      return;
-    }
-    if (!nextData.objetivos?.length) {
-      setDaysMsg("Selecciona al menos un objetivo.");
-      return;
-    }
-    if (n <= 1 && filterCatalogObjetivos(objetivosSel).length > 1) {
-      setDaysMsg("Con 1 día/sem solo puedes tener 1 objetivo. Quita el secundario o sube la frecuencia.");
-      return;
-    }
-    if (trainingDays.length < n) {
-      setDaysMsg(`Con frecuencia ${n} días/sem, selecciona al menos ${n} días disponibles.`);
-      return;
-    }
-    if (!materialSel.length) {
-      setDaysMsg("Selecciona al menos un material disponible.");
+    const validationError = validateTrainingComplete(nextData, trainingDays, objetivosSel);
+    if (validationError) {
+      setDaysMsg(validationError);
       return;
     }
 
@@ -545,88 +605,83 @@ export default function ProfilePage() {
       lesionSubtipo: prevMerged.lesion.includes("Ninguna") ? [] : prevMerged.lesionSubtipo,
     };
     const changed = profileTrainingFingerprint(nextData) !== profileTrainingFingerprint(prevData);
-    const metaPayload = trainingFieldsToAuthMetadata(nextData);
 
-    setDaysSaving(true);
-    setDaysMsg("");
-    try {
-      await supabase.auth.updateUser({ data: metaPayload });
-
-      // Mantener snapshot en el plan asignado (motor ↔ perfil)
-      const existingPlan = planForProfile || loadPlayerPlan(user.id);
-      if (existingPlan) {
-        const snap = trainingProfileSnapshotFromAny(nextData);
-        existingPlan.profileSnapshot = snap;
-        savePlayerPlan(user.id, existingPlan);
-        setPlanForProfile(existingPlan);
-        // Persistir en servidor sin regenerar semanas
-        const remotePayload = {
-          ...(existingPlan.weeks ? { weeks: existingPlan.weeks } : {}),
-          profileSnapshot: snap,
-          assignment: existingPlan.assignment || null,
-          source: existingPlan.source || "admin_manual",
-          startDate: existingPlan.startDate || null,
-          assignedTo: user.id,
-        };
-        if (!remotePayload.weeks && Array.isArray(existingPlan)) {
-          // Plan normalizado día-array: reenviar lo cacheado vía fetch no siempre tiene weeks;
-          // al menos actualizamos metadata del jugador (ya hecho) y snapshot local.
-        } else {
-          await persistPlayerPlanRemote(user.id, {
-            ...remotePayload,
-            weeks: remotePayload.weeks || existingPlan.weeks,
-          });
-        }
-      }
-
-      trainingDirtyRef.current = false;
-      const key = trainingFieldsKey(nextData);
-      trainingHydratedKeyRef.current = key;
-      setTrainingHydratedKey(key);
-
-      if (!changed) {
+    if (!changed) {
+      setDaysSaving(true);
+      setDaysMsg("");
+      try {
+        await persistTrainingMetadata(nextData);
         await refreshUser();
         setDaysMsg("Perfil de entrenamiento guardado (sin cambios en la rutina).");
         setTimeout(() => setDaysMsg(""), 4000);
-        return;
+      } catch {
+        setDaysMsg("No se pudo guardar. Inténtalo de nuevo.");
+      } finally {
+        setDaysSaving(false);
       }
+      return;
+    }
 
-      const plan = loadPlayerPlan(user.id);
-      if (!canRegenerateFromProfile(user.id, plan)) {
-        await refreshUser();
-        setDaysMsg(`Ya usaste tu cambio de rutina este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos se guardaron, pero la rutina no se regeneró.`);
-        return;
-      }
+    const plan = planForProfile || loadPlayerPlan(user.id);
 
-      // No borrar plan admin_manual: solo regenera essential auto
-      if (plan?.source === "admin_manual") {
+    // Plan del preparador: solo guardar datos, no regenerar
+    if (plan?.source === "admin_manual") {
+      setDaysSaving(true);
+      setDaysMsg("");
+      try {
+        await persistTrainingMetadata(nextData);
         await refreshUser();
         setDaysMsg("Perfil actualizado. Tu plan asignado por el preparador se mantiene ✓");
         setTimeout(() => setDaysMsg(""), 5000);
-        return;
+      } catch {
+        setDaysMsg("No se pudo guardar. Inténtalo de nuevo.");
+      } finally {
+        setDaysSaving(false);
       }
+      return;
+    }
 
-      localStorage.removeItem(`depro_plan_${user.id}`);
-      const newUser = { ...user, ...nextData };
-      const newPlan = ensurePlayerPlan(newUser);
-      if (newPlan && !newPlan.planError) {
-        newPlan.profileSnapshot = trainingProfileSnapshotFromAny(nextData);
-        resetCycleCounters(user.id, newPlan.startDate);
-        recordProfileRegen(user.id, newPlan);
-        localStorage.setItem(`depro_plan_${user.id}`, JSON.stringify(newPlan));
-        setPlanForProfile(newPlan);
+    if (!canRegenerateFromProfile(user.id, plan)) {
+      setDaysSaving(true);
+      setDaysMsg("");
+      try {
+        await persistTrainingMetadata(nextData);
         await refreshUser();
-        setDaysMsg("Perfil actualizado · rutina regenerada (1 cambio este mesociclo) ✓");
-        setTimeout(() => setDaysMsg(""), 5000);
-      } else if (newPlan?.planError) {
-        await refreshUser();
-        setDaysMsg(newPlan.planError);
-      } else {
-        await refreshUser();
-        setDaysMsg("Perfil guardado.");
+        setDaysMsg(`Ya usaste tu cambio de rutina este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos se guardaron, pero la rutina no se regeneró.`);
+      } catch {
+        setDaysMsg("No se pudo guardar. Inténtalo de nuevo.");
+      } finally {
+        setDaysSaving(false);
       }
+      return;
+    }
+
+    // Paso intermedio: confirmar antes de gastar el cupo
+    setPendingRegenData(nextData);
+    setRegenConfirmOpen(true);
+    setDaysMsg("");
+  };
+
+  const handleCancelRegenConfirm = () => {
+    setRegenConfirmOpen(false);
+    setPendingRegenData(null);
+    setDaysMsg("Regeneración cancelada. No se ha gastado el cupo ni se ha cambiado la rutina.");
+    setTimeout(() => setDaysMsg(""), 4000);
+  };
+
+  const handleConfirmRegen = async () => {
+    if (!pendingRegenData) return;
+    setDaysSaving(true);
+    setDaysMsg("");
+    try {
+      const ok = await runSuccessfulRegen(pendingRegenData);
+      if (ok) {
+        setRegenConfirmOpen(false);
+        setPendingRegenData(null);
+      }
+      // Si falla la generación, el modal sigue abierto y el cupo no se gasta
     } catch {
-      setDaysMsg("No se pudo guardar. Inténtalo de nuevo.");
+      setDaysMsg("No se pudo regenerar. Inténtalo de nuevo (no se ha gastado el cupo).");
     } finally {
       setDaysSaving(false);
     }
@@ -845,8 +900,9 @@ export default function ProfilePage() {
           </h2>
           <p className="text-sm text-depro-gray mb-2">
             Edita los mismos datos del onboarding (edad, objetivos, deporte, frecuencia, material, lesiones, días…).
-            Si cambian, la rutina se regenera igual que al crear el plan
-            {" "}(máximo {MAX_PROFILE_REGENS_PER_CYCLE} vez por mesociclo).
+            Si cambian y la rutina se genera bien, cuenta como regeneración
+            {" "}(máximo {MAX_PROFILE_REGENS_PER_CYCLE} vez cada ~{PLAN_CYCLE_DAYS} días).
+            Te pediremos confirmación antes de regenerar.
           </p>
           <p className={`text-xs font-bold mb-4 ${canProfileRegen ? "text-depro-blue" : "text-amber-700"}`}>
             Regeneraciones este mesociclo: {Math.min(profileRegensUsed, MAX_PROFILE_REGENS_PER_CYCLE)}/{MAX_PROFILE_REGENS_PER_CYCLE}
@@ -986,8 +1042,53 @@ export default function ProfilePage() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
           >
             {daysSaving ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-            Guardar y regenerar rutina (si hay cambios)
+            Guardar cambios de entrenamiento
           </button>
+        </div>
+      )}
+
+      {regenConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-depro w-full max-w-md p-6 border border-depro-border">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <AlertCircle size={20} className="text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-depro-dark text-lg">¿Regenerar la rutina?</h3>
+                <p className="text-sm text-depro-gray mt-1">
+                  Vas a generar un plan nuevo con los datos del perfil. Solo puedes hacerlo
+                  {" "}<strong className="text-depro-dark">1 vez cada mesociclo (~{PLAN_CYCLE_DAYS} días)</strong>.
+                  Después no podrás volver a regenerarla hasta el siguiente ciclo.
+                </p>
+                <p className="text-sm text-depro-gray mt-2">
+                  El cupo solo se gasta si la rutina se genera correctamente. Si falta algún dato o falla, podrás corregirlo e intentarlo de nuevo.
+                </p>
+              </div>
+            </div>
+            {daysMsg && !daysMsg.includes("✓") && (
+              <p className="text-xs text-amber-700 mb-3">{daysMsg}</p>
+            )}
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={handleCancelRegenConfirm}
+                disabled={daysSaving}
+                className="px-4 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-dark hover:bg-depro-gray-light transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRegen}
+                disabled={daysSaving}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
+              >
+                {daysSaving ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                Sí, regenerar rutina
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

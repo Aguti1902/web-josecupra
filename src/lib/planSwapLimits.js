@@ -202,3 +202,27 @@ export function resetCycleCounters(userId, newStartDate) {
   resetSwapsForCycle(userId, key);
   resetProfileRegenForCycle(userId, key);
 }
+
+/** True solo si el plan generado es usable (cupo de regeneración). */
+export function isSuccessfulGeneratedPlan(plan) {
+  if (!plan || plan.planError || plan.hardBlock || plan.premiumPending || plan.planPendingManual) {
+    return false;
+  }
+  const dayList = Array.isArray(plan) ? plan : (Array.isArray(plan.days) ? plan.days : []);
+  const dayHasWork = (d) =>
+    (d.sessions || []).some((s) =>
+      (s.exercises || []).length > 0
+      || (s.blocks || []).some((b) => (b.exercises || []).length > 0),
+    );
+  if (dayList.some(dayHasWork)) return true;
+  if (Array.isArray(plan.weeks)) {
+    return plan.weeks.some((w) => {
+      if (Array.isArray(w.days) && w.days.some(dayHasWork)) return true;
+      return (w.sessions || []).some((s) =>
+        (s.exercises || []).length > 0
+        || (s.blocks || []).some((b) => (b.exercises || []).length > 0),
+      );
+    });
+  }
+  return false;
+}
