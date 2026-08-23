@@ -4,7 +4,6 @@
  */
 import { savePlayerPlan, loadPlayerPlan, normalizePlayerPlan, persistPlayerPlanRemote } from "./playerPlanStorage.js";
 import { buildFourWeekPlan, buildPlayerPlan } from "./playerPlanEngine.js";
-import { generateClubAutoFourWeeks } from "./clubAuto/clubAutoEngine.js";
 import {
   questionnaireToCoachConfig,
   generateClubAutoWeekForCoach,
@@ -29,7 +28,15 @@ function readJson(key, fallback) {
 }
 
 function writeJson(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    const msg = String(e?.message || e || "");
+    if (e?.name === "QuotaExceededError" || /quota/i.test(msg)) {
+      throw new Error("No se pudo guardar el plan: el almacenamiento del navegador está lleno. Reintenta; el plan se guarda compacto en el servidor.");
+    }
+    throw e;
+  }
 }
 
 function mapPlayerRow(u) {
@@ -364,27 +371,6 @@ function persistAssignedWeeksToCoachPanel({
   const fp = coachConfigFingerprint(config);
   const monday = startOfIsoWeek(startDate);
   const nWeeks = Math.max(1, cycles) * 4;
-  const coachWeeks = { ...(detail.coachWeeks || {}) };
-  const prefix = `${teamId}_`;
-  Object.keys(coachWeeks).forEach((k) => {
-    if (k.startsWith(prefix)) delete coachWeeks[k];
-  });
-
-  for (let i = 0; i < nWeeks; i++) {
-    const weekStart = addDaysIso(monday, i * 7);
-    const week = generateClubAutoWeekForCoach(config, { weekStart, weekOffset: i });
-    const data = { ...week, configFingerprint: fp, assignment: meta };
-    writeJson(`depro_coach_week_${clubId}_${teamId}_${weekStart}`, data);
-    coachWeeks[`${teamId}_${weekStart}`] = data;
-  }
-
-  const meso = generateClubAutoMesocicloForCoach(config, {
-    startDate: monday,
-    numWeeks: nWeeks,
-  });
-  const mesoData = { ...meso, configFingerprint: fp, assignment: meta };
-  writeJson(`depro_coach_meso_${clubId}_${teamId}`, mesoData);
-
   const nextDetail = {
     ...detail,
     id: clubId,
@@ -392,14 +378,39 @@ function persistAssignedWeeksToCoachPanel({
     planningMode: "auto",
     mode: "depro",
     origen: detail.origen || "automatico",
-    coachWeeks,
-    coachMesociclo: { ...(detail.coachMesociclo || {}), [teamId]: mesoData },
+    isSoloCoach: detail.isSoloCoach !== false,
   };
+  delete nextDetail.coachWeeks;
+  delete nextDetail.coachMesociclo;
+
+  for (let i = 0; i < nWeeks; i++) {
+    const weekStart = addDaysIso(monday, i * 7);
+    const week = generateClubAutoWeekForCoach(config, { weekStart, weekOffset: i });
+    const data = { ...week, configFingerprint: fp, assignment: meta };
+    try {
+      writeJson(`depro_coach_week_${clubId}_${teamId}_${weekStart}`, data);
+    } catch {
+      /* cupo: la semana se regenera desde coachConfig */
+    }
+  }
+
+  const meso = generateClubAutoMesocicloForCoach(config, {
+    startDate: monday,
+    numWeeks: nWeeks,
+  });
+  const mesoData = { ...meso, configFingerprint: fp, assignment: meta };
+  try {
+    writeJson(`depro_coach_meso_${clubId}_${teamId}`, mesoData);
+  } catch { /* ignore */ }
+
   writeJson(`depro_club_${clubId}`, nextDetail);
   const clubs = readJson("depro_clubs", []);
   const idx = clubs.findIndex((c) => c.id === clubId);
   if (idx >= 0) {
-    clubs[idx] = { ...clubs[idx], ...nextDetail };
+    const summary = { ...clubs[idx], ...nextDetail };
+    delete summary.coachWeeks;
+    delete summary.coachMesociclo;
+    clubs[idx] = summary;
     writeJson("depro_clubs", clubs);
   }
   import("./adminStorage.js").then(({ saveClubDetail }) => {
@@ -430,8 +441,6 @@ export function assignClubAutoPlan({
   }
 
   const n = Math.max(1, Math.min(6, Number(cycles) || 1));
-  const generated = generateClubAutoFourWeeks(questionnaire, { cycles: n });
-  const weeks = Array.isArray(generated) ? generated : generated?.weeks || [];
   const resolved = resolveClubAutoAssignIds({ kind, clubId, teamId, targetId });
 
   const meta = {
@@ -449,24 +458,11 @@ export function assignClubAutoPlan({
   const payload = {
     engine: "club_auto",
     questionnaire,
-    weeks,
     assignment: meta,
   };
 
   const key = `depro_club_auto_plan_${targetId}`;
   writeJson(key, payload);
-
-  try {
-    const existing = readJson(`depro_coach_sessions_${targetId}`, null);
-    const sessions = weeks.flatMap((w) => w.sessions || w.days || []);
-    writeJson(`depro_coach_assigned_plan_${targetId}`, {
-      ...payload,
-      sessions,
-      previous: existing ? "kept" : null,
-    });
-  } catch {
-    /* ignore */
-  }
 
   persistAssignedWeeksToCoachPanel({
     clubId: meta.clubId,

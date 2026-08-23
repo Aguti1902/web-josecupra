@@ -508,9 +508,9 @@ export default function ClubOnboardingPage() {
                   </span>
                 </div>
                 <div className="p-4 flex justify-between gap-4">
-                  <span className="text-xs font-bold text-depro-gray uppercase">Partido / gym</span>
+                  <span className="text-xs font-bold text-depro-gray uppercase">Partido / material</span>
                   <span className="text-sm font-medium text-depro-dark text-right">
-                    {matchLabel} · gym {autoQ.acceso_gimnasio === "si" ? "sí" : "no"}
+                    {matchLabel} · {(autoQ.material || []).join(", ") || "sin material"}
                   </span>
                 </div>
               </div>

@@ -77,9 +77,6 @@ export function loadOrGenerateWeek({ clubId, teamId, weekStart, config, library 
 
 export function saveWeek({ clubId, teamId, weekStart, data }) {
   lsSet(weekKeyFor(clubId, teamId, weekStart), data);
-  const detail = loadClubDetail(clubId) || { id: clubId };
-  const coachWeeks = { ...(detail.coachWeeks || {}), [`${teamId}_${weekStart}`]: data };
-  saveClubDetail(clubId, { ...detail, coachWeeks }).catch(() => {});
 }
 
 export function updateSessionInWeek({ clubId, teamId, weekStart, sessionId, updater }) {
@@ -140,9 +137,6 @@ export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, end
 
 export function saveMesociclo({ clubId, teamId, data }) {
   lsSet(mesoKeyFor(clubId, teamId), data);
-  const detail = loadClubDetail(clubId) || { id: clubId };
-  const coachMesociclo = { ...(detail.coachMesociclo || {}), [teamId]: data };
-  saveClubDetail(clubId, { ...detail, coachMesociclo }).catch(() => {});
 }
 
 function listLocalStorageKeys() {
@@ -180,16 +174,8 @@ export function clearCoachGeneratedPlans(clubId, teamId) {
 
   const detail = loadClubDetail(clubId);
   if (!detail) return;
-  const coachWeeks = { ...(detail.coachWeeks || {}) };
-  const coachMesociclo = { ...(detail.coachMesociclo || {}) };
-  if (teamId) {
-    Object.keys(coachWeeks).forEach((k) => {
-      if (k.startsWith(`${teamId}_`)) delete coachWeeks[k];
-    });
-    delete coachMesociclo[teamId];
-  } else {
-    Object.keys(coachWeeks).forEach((k) => delete coachWeeks[k]);
-    Object.keys(coachMesociclo).forEach((k) => delete coachMesociclo[k]);
-  }
-  saveClubDetail(clubId, { ...detail, coachWeeks, coachMesociclo }).catch(() => {});
+  const next = { ...detail };
+  delete next.coachWeeks;
+  delete next.coachMesociclo;
+  saveClubDetail(clubId, next).catch(() => {});
 }

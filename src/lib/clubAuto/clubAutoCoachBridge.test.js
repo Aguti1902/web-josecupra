@@ -11,6 +11,7 @@ import {
   serializeCoachAutoForMeta,
   parseCoachAutoFromMeta,
   questionnaireToCoachConfig,
+  isManualPlanningClub,
 } from "./clubAutoCoachBridge.js";
 import { CLUB_MAIN_TASKS, CLUB_TASK_FOLDERS } from "../../data/clubAutoCatalog.js";
 
@@ -42,6 +43,13 @@ describe("clubAutoCoachBridge", () => {
     }), true);
   });
 
+  it("isManualPlanningClub detecta clubs llevados por mí", () => {
+    assert.equal(isManualPlanningClub({ planningMode: "manual" }), true);
+    assert.equal(isManualPlanningClub({ origen: "manual" }), true);
+    assert.equal(isManualPlanningClub({ mode: "personalizado" }), true);
+    assert.equal(isManualPlanningClub({ planningMode: "auto", origen: "automatico" }), false);
+  });
+
   it("mapea cuestionario corto y genera semana con estructura 5 bloques", () => {
     const config = {
       engine: "club_auto",
@@ -69,8 +77,7 @@ describe("clubAutoCoachBridge", () => {
     assert.equal(week.sessions[0].exercises.length, 6);
     assert.equal(week.sessions[0].duration, "75 min");
     assert.equal(week.sessions[0].duracionEstimada, "75 min");
-    assert.ok(Array.isArray(week.sessions[0].taskDesigner?.taskTypes));
-    assert.ok(week.sessions[0].taskDesigner.taskTypes.length > 0);
+    assert.equal(week.sessions[0].taskDesigner, undefined);
   });
 
   it("usa la duración del cuestionario en el resumen de sesión", () => {

@@ -23,6 +23,7 @@ import {
   loadCoachAutoDraftFromStorage,
   coachConfigFingerprint,
   monthKeyFromDate,
+  serializeCoachAutoForMeta,
 } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { markQuestionnaireCompleted } from "../../lib/questionnaireState";
 import {
@@ -255,6 +256,9 @@ export default function ClubProfilePage() {
         }
       }
       setMode("depro");
+      await supabase.auth.updateUser({
+        data: { coachAuto: serializeCoachAutoForMeta(autoQ) },
+      });
       await refreshUser();
       showMsg(
         "ok",
@@ -422,7 +426,7 @@ export default function ClubProfilePage() {
               <Sparkles size={16} className="text-depro-blue" /> Cuestionario del entrenador
             </h3>
             <p className="text-xs text-depro-gray">
-              Nivel, días de entreno, día de partido, material y gimnasio.
+              Nivel, días de entreno, día de partido, material y duración.
               {hadAutoConfig
                 ? ` Puedes actualizar el cuestionario y regenerar el plan una vez cada ~${PLAN_CYCLE_DAYS} días.`
                 : " La primera vez genera la rutina automática (no consume el cupo)."}

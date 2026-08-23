@@ -158,6 +158,41 @@ function lsGet(key, fallback = []) {
 function lsSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
+
+/** Las semanas van en depro_coach_week_*; no caben en el blob del club. */
+function withoutHeavyCoachPayload(club) {
+  if (!club || typeof club !== "object") return club;
+  const next = { ...club };
+  delete next.coachWeeks;
+  delete next.coachMesociclo;
+  return next;
+}
+
+function mergeClubRecord(localClub, remote) {
+  const local = localClub && typeof localClub === "object" ? localClub : {};
+  const src = remote && typeof remote === "object" ? remote : {};
+  return withoutHeavyCoachPayload({
+    ...local,
+    ...src,
+    id: src.id || local.id,
+    logo: src.logo ?? local.logo ?? null,
+    banner: src.banner ?? local.banner ?? null,
+    primaryColor: src.primaryColor ?? local.primaryColor ?? null,
+    secondaryColor: src.secondaryColor ?? local.secondaryColor ?? null,
+    slogan: src.slogan ?? local.slogan ?? null,
+    teams: (src.teams?.length > 0 ? src.teams : null) ?? local.teams ?? [],
+    users: (src.users?.length > 0 ? src.users : null) ?? local.users ?? [],
+    plans: (src.plans?.length > 0 ? src.plans : null) ?? local.plans ?? [],
+    coachConfig: (src.coachConfig?.nivel || src.coachConfig?.engine)
+      ? src.coachConfig
+      : (local.coachConfig || src.coachConfig || null),
+    planningMode: src.planningMode || local.planningMode || null,
+    origen: src.origen || local.origen || null,
+    mode: src.mode || local.mode || null,
+    isSoloCoach: src.isSoloCoach ?? local.isSoloCoach ?? false,
+    manualPrice: src.manualPrice ?? local.manualPrice ?? null,
+  });
+}
 function genId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   return `id_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -188,23 +223,15 @@ export async function loadClubs() {
       const local = lsGet("depro_clubs", []);
       const merged = data.clubs.map((remote) => {
         const localClub = local.find((c) => c.id === remote.id);
-        // Prioridad: API (fuente de verdad), pero preservar logo/banner/colores locales si API no los tiene
-        if (localClub) {
-          return {
-            ...localClub,
-            ...remote,
-            logo:           remote.logo           ?? localClub.logo           ?? null,
-            banner:         remote.banner         ?? localClub.banner         ?? null,
-            primaryColor:   remote.primaryColor   ?? localClub.primaryColor   ?? null,
-            secondaryColor: remote.secondaryColor ?? localClub.secondaryColor ?? null,
-            slogan:         remote.slogan         ?? localClub.slogan         ?? null,
-            teams:          (remote.teams?.length > 0 ? remote.teams : null)  ?? localClub.teams ?? [],
-          };
-        }
-        return remote;
+        const localDetail = remote?.id ? lsGet(`depro_club_${remote.id}`, null) : null;
+        return mergeClubRecord(localDetail || localClub, remote);
       });
-      lsSet("depro_clubs", merged);
-      merged.forEach((c) => { if (c.id) lsSet(`depro_club_${c.id}`, c); });
+      lsSet("depro_clubs", merged.map((c) => withoutHeavyCoachPayload(c)));
+      merged.forEach((c) => {
+        if (!c?.id) return;
+        const prevDetail = lsGet(`depro_club_${c.id}`, null);
+        lsSet(`depro_club_${c.id}`, mergeClubRecord(prevDetail, c));
+      });
       return merged;
     }
     // API disponible pero sin clubs → NO borrar localStorage (puede haber datos locales no sincronizados aún)
@@ -225,15 +252,20 @@ export async function saveClub(clubData) {
   }
   const { id } = clubData;
 
+  const compact = withoutHeavyCoachPayload(clubData);
+
   // 1. Actualizar caché local inmediatamente (offline-first)
   const clubs = lsGet("depro_clubs", []);
   const idx = clubs.findIndex((c) => c.id === id);
-  if (idx >= 0) clubs[idx] = clubData; else clubs.unshift(clubData);
+  const prevDetail = lsGet(`depro_club_${id}`, null) || {};
+  const localDetail = mergeClubRecord(prevDetail, compact);
+  if (idx >= 0) clubs[idx] = withoutHeavyCoachPayload({ ...clubs[idx], ...compact, id });
+  else clubs.unshift(withoutHeavyCoachPayload({ ...compact, id }));
   lsSet("depro_clubs", clubs);
-  lsSet(`depro_club_${id}`, clubData);
+  lsSet(`depro_club_${id}`, localDetail);
 
   // 2. Guardar en Supabase (fuente de verdad)
-  const { ok, data } = await apiClubs("POST", { club: clubData });
+  const { ok, data } = await apiClubs("POST", { club: compact });
   if (!ok) {
     console.error("[adminStorage] saveClub falló en Supabase:", data?.error);
     // Marcar que este club tiene cambios pendientes de sincronizar
@@ -266,28 +298,36 @@ export function loadClubDetail(clubId) {
 }
 
 export async function saveClubDetail(clubId, data) {
-  // 1. localStorage — caché local inmediata (siempre funciona, offline-first)
-  lsSet(`depro_club_${clubId}`, data);
+  const prev = lsGet(`depro_club_${clubId}`, null) || {};
+  const localMerged = withoutHeavyCoachPayload({ id: clubId, ...prev, ...data });
 
-  // 2. Actualizar caché de lista principal
+  // 1. localStorage — caché local inmediata (offline-first)
+  lsSet(`depro_club_${clubId}`, localMerged);
+
+  // 2. Actualizar caché de lista principal (sin semanas completas)
   const clubs = lsGet("depro_clubs", []);
   const idx = clubs.findIndex((c) => c.id === clubId);
-  let merged = { id: clubId, ...data };
+  const listPatch = withoutHeavyCoachPayload({
+    ...((idx >= 0 ? clubs[idx] : {}) || {}),
+    ...data,
+    id: clubId,
+  });
   if (idx >= 0) {
-    clubs[idx] = { ...clubs[idx], ...data };
-    merged = { ...clubs[idx], id: clubId };
+    clubs[idx] = listPatch;
+    lsSet("depro_clubs", clubs);
+  } else {
+    clubs.unshift(listPatch);
     lsSet("depro_clubs", clubs);
   }
 
-  // 3. Persistir en Supabase via API (fuente de verdad)
-  const { ok, data: apiResult } = await apiClubs("POST", { club: merged });
+  // 3. Persistir en Supabase sin semanas (el cuestionario sí viaja).
+  const { ok, data: apiResult } = await apiClubs("POST", { club: localMerged });
   if (!ok) {
     console.warn("[adminStorage] saveClubDetail falló en Supabase:", apiResult?.error);
     const pending = lsGet("depro_sync_pending", []);
     if (!pending.includes(clubId)) { pending.push(clubId); lsSet("depro_sync_pending", pending); }
     return { ok: false, error: apiResult?.error, hint: apiResult?.hint };
   }
-  // Sincronización exitosa
   const pending = lsGet("depro_sync_pending", []).filter((x) => x !== clubId);
   lsSet("depro_sync_pending", pending);
   return { ok: true };

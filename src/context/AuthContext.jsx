@@ -69,15 +69,23 @@ function loadClubDataFromStorage(meta, userEmail) {
 
     const club = {
       ...effectiveBase,
+      ...(clubDetail || {}),
+      id: effectiveBase.id,
       // Identidad visual — siempre prioriza el detalle (más actualizado)
       logo:           clubDetail?.logo           ?? effectiveBase.logo           ?? null,
       banner:         clubDetail?.banner         ?? effectiveBase.banner         ?? null,
       primaryColor:   clubDetail?.primaryColor   ?? effectiveBase.primaryColor   ?? "#0A36F7",
       secondaryColor: clubDetail?.secondaryColor ?? effectiveBase.secondaryColor ?? "#ffffff",
       slogan:         clubDetail?.slogan         ?? effectiveBase.slogan         ?? null,
-      plans:          clubDetail?.plans          ?? [],
+      plans:          clubDetail?.plans          ?? effectiveBase.plans          ?? [],
       teams:          clubDetail?.teams          ?? effectiveBase.teams          ?? [],
       status:         clubDetail?.status         ?? effectiveBase.status         ?? "activo",
+      coachConfig:    clubDetail?.coachConfig    ?? effectiveBase.coachConfig    ?? null,
+      planningMode:   clubDetail?.planningMode   ?? effectiveBase.planningMode   ?? null,
+      origen:         clubDetail?.origen         ?? effectiveBase.origen         ?? null,
+      mode:           clubDetail?.mode           ?? effectiveBase.mode           ?? null,
+      isSoloCoach:    clubDetail?.isSoloCoach    ?? effectiveBase.isSoloCoach    ?? false,
+      manualPrice:    clubDetail?.manualPrice    ?? effectiveBase.manualPrice    ?? null,
     };
 
     // Buscar el equipo dentro de los datos combinados
@@ -425,6 +433,12 @@ export function AuthProvider({ children }) {
                         login_code: base.login_code, coordinator: base.coordinator,
                         status: base.status, plan: base.plan, city: base.city,
                         country: base.country,
+                        isSoloCoach: remote.isSoloCoach ?? local?.isSoloCoach ?? false,
+                        planningMode: remote.planningMode || local?.planningMode || null,
+                        origen: remote.origen || local?.origen || null,
+                        mode: remote.mode || local?.mode || null,
+                        manualPrice: remote.manualPrice ?? local?.manualPrice ?? null,
+                        coachConfig: remote.coachConfig || local?.coachConfig || null,
                         primaryColor:   remote.primaryColor   ?? local?.primaryColor   ?? null,
                         secondaryColor: remote.secondaryColor ?? local?.secondaryColor ?? null,
                         slogan:         remote.slogan         ?? local?.slogan         ?? null,
@@ -432,7 +446,9 @@ export function AuthProvider({ children }) {
                         banner:         remote.banner         ?? local?.banner         ?? null,
                       };
                     });
-                    localStorage.setItem("depro_clubs", JSON.stringify(mergedSummaries));
+                    try {
+                      localStorage.setItem("depro_clubs", JSON.stringify(mergedSummaries));
+                    } catch { /* cupo */ }
                     for (const c of clubs) {
                       const localDetail = JSON.parse(localStorage.getItem(`depro_club_${c.id}`) || "null");
                       // Fusionar: la API es fuente de verdad, pero preservar logo/banner/colores locales
@@ -445,9 +461,21 @@ export function AuthProvider({ children }) {
                             secondaryColor: c.secondaryColor ?? localDetail.secondaryColor ?? null,
                             slogan:         c.slogan         ?? localDetail.slogan         ?? null,
                             teams:          (c.teams?.length > 0 ? c.teams : null) ?? localDetail.teams ?? [],
+                            coachConfig:    (c.coachConfig?.nivel || c.coachConfig?.engine)
+                              ? c.coachConfig
+                              : (localDetail.coachConfig || c.coachConfig || null),
+                            planningMode:   c.planningMode || localDetail.planningMode || null,
+                            origen:         c.origen || localDetail.origen || null,
+                            mode:           c.mode || localDetail.mode || null,
+                            isSoloCoach:    c.isSoloCoach ?? localDetail.isSoloCoach ?? false,
+                            manualPrice:    c.manualPrice ?? localDetail.manualPrice ?? null,
                           }
                         : c;
-                      localStorage.setItem(`depro_club_${c.id}`, JSON.stringify(merged));
+                      delete merged.coachWeeks;
+                      delete merged.coachMesociclo;
+                      try {
+                        localStorage.setItem(`depro_club_${c.id}`, JSON.stringify(merged));
+                      } catch { /* cupo: no tumbar el login */ }
                     }
                     const freshUser = withImpersonation(buildUser(session.user, profile || null));
                     if (!freshUser?.impersonating && sessionIsDraftBlocked(session.user)) {

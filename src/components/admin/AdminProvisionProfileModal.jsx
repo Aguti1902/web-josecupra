@@ -4,6 +4,7 @@ import { CheckCircle, Copy, RefreshCw, X, Brain } from "lucide-react";
 import { createClubUser, saveClub } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect } from "./PlanSelectField";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
+import { COACH_ADDONS } from "../../lib/coachAddons";
 import { adminStatusLabel, normalizeAdminStatus } from "../../lib/adminAccountStatus";
 
 function generatePassword() {
@@ -15,7 +16,7 @@ const COACH_CATEGORIES = ["Sub-12", "Sub-14", "Sub-16", "Juvenil", "Amateur"];
 
 function isPremiumPlan(planId) {
   const p = String(planId || "").toLowerCase();
-  return p === "player-pro" || p === "premium" || p === "pro";
+  return p === "player-pro" || p === "premium" || p === "pro" || p === "coach-premium";
 }
 
 /**
@@ -37,13 +38,14 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
   const [loading, setLoading] = useState(false);
   const [creds, setCreds] = useState(null);
 
-  const premiumPlayer = audience === "player" && isPremiumPlan(form.planId);
+  const premiumLocked = isPremiumPlan(form.planId);
+  const cartAddons = audience === "coach" ? COACH_ADDONS : PLAYER_ADDONS;
 
   const effectiveAddons = useMemo(() => {
-    if (audience !== "player") return [];
-    if (premiumPlayer) return PLAYER_ADDONS.map((a) => a.id);
+    if (audience !== "player" && audience !== "coach") return [];
+    if (premiumLocked) return cartAddons.map((a) => a.id);
     return form.selectedAddons;
-  }, [audience, premiumPlayer, form.selectedAddons]);
+  }, [audience, premiumLocked, form.selectedAddons, cartAddons]);
 
   const coachMotorPath = (userId, clubId, teamId) => {
     const params = new URLSearchParams();
@@ -105,6 +107,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
         plan: form.planId,
         subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
         billingSource: "manual",
+        purchasedAddons: effectiveAddons,
       };
       const next = [entry, ...(list || []).filter((c) => c.id !== userId && c.email !== form.email)];
       localStorage.setItem("depro_admin_clients", JSON.stringify(next.slice(0, 500)));
@@ -112,7 +115,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
   };
 
   const toggleAddon = (id) => {
-    if (premiumPlayer) return;
+    if (premiumLocked) return;
     setForm((f) => ({
       ...f,
       selectedAddons: f.selectedAddons.includes(id)
@@ -169,6 +172,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           plan: form.planId,
           subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
           billingSource: "manual",
+          purchasedAddons: effectiveAddons,
           isSoloCoach: true,
         });
 
@@ -191,6 +195,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           userId: res.userId,
           clubId,
           teamId,
+          addons: effectiveAddons,
           nextPath: coachMotorPath(res.userId, clubId, teamId),
         });
         if (res.ok) onCreated?.();
@@ -261,11 +266,11 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
             {creds.ok && (
               <div><span className="text-depro-gray">Contraseña (opcional, para acceso posterior)</span><p className="font-mono font-bold">{creds.password}</p></div>
             )}
-            {creds.ok && audience === "player" && Array.isArray(creds.addons) && creds.addons.length > 0 && (
+            {creds.ok && (audience === "player" || audience === "coach") && Array.isArray(creds.addons) && creds.addons.length > 0 && (
               <div>
                 <span className="text-depro-gray">Extras</span>
                 <p className="font-semibold text-depro-dark">
-                  {creds.addons.map((id) => PLAYER_ADDONS.find((a) => a.id === id)?.name || id).join(" · ")}
+                  {creds.addons.map((id) => cartAddons.find((a) => a.id === id)?.name || PLAYER_ADDONS.find((a) => a.id === id)?.name || id).join(" · ")}
                 </p>
               </div>
             )}
@@ -301,14 +306,14 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overflow-y-auto p-4">
-      <div className="bg-white rounded-2xl shadow-depro w-full max-w-lg my-auto">
-        <div className="flex items-center justify-between p-6 border-b border-depro-border">
+      <div className="bg-white rounded-2xl shadow-depro w-full max-w-lg my-auto max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-depro-border shrink-0">
           <h2 className="font-bold text-depro-dark text-lg">
             Crear {audience === "coach" ? "DEPRO Coach" : "jugador"}
           </h2>
           <button type="button" onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
         </div>
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 space-y-4 overflow-y-auto min-h-0 flex-1">
           <input
             className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm"
             placeholder="Nombre completo *"
@@ -366,31 +371,33 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
               </select>
             </>
           )}
-          {audience === "player" && (
+          {(audience === "player" || audience === "coach") && (
             <div className="rounded-xl border border-depro-border p-4 space-y-3">
               <div>
                 <p className="text-sm font-bold text-depro-dark">Extras / servicios</p>
                 <p className="text-xs text-depro-gray mt-0.5">
-                  {premiumPlayer
-                    ? "Premium incluye PDF, tests y mis cargas."
-                    : "Opcional en Standard. Márcalos para activarlos en la cuenta."}
+                  {premiumLocked
+                    ? audience === "coach"
+                      ? "Premium incluye refresco con balón, tests, cargas y equipos extra."
+                      : "Premium incluye PDF, tests y mis cargas."
+                    : "Opcional. Márcalos para activarlos en la cuenta, igual que en el carrito."}
                 </p>
               </div>
               <div className="space-y-2">
-                {PLAYER_ADDONS.map((addon) => {
-                  const checked = premiumPlayer || form.selectedAddons.includes(addon.id);
+                {cartAddons.map((addon) => {
+                  const checked = premiumLocked || form.selectedAddons.includes(addon.id);
                   return (
                     <label
                       key={addon.id}
                       className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm cursor-pointer transition-colors ${
                         checked ? "border-depro-blue bg-depro-blue/[0.04]" : "border-depro-border hover:border-depro-blue/40"
-                      } ${premiumPlayer ? "opacity-80 cursor-default" : ""}`}
+                      } ${premiumLocked ? "opacity-80 cursor-default" : ""}`}
                     >
                       <input
                         type="checkbox"
                         className="mt-1"
                         checked={checked}
-                        disabled={premiumPlayer}
+                        disabled={premiumLocked}
                         onChange={() => toggleAddon(addon.id)}
                       />
                       <span className="min-w-0">
@@ -404,7 +411,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
             </div>
           )}
         </div>
-        <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-depro-border">
+        <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-depro-border shrink-0">
           <button type="button" onClick={onClose} className="sm:flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray text-sm font-medium">
             Cancelar
           </button>

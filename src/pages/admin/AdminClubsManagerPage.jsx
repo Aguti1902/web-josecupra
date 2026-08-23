@@ -115,7 +115,7 @@ function NewClubModal({ onClose, onCreate }) {
         role: "club",
         clubId,
         teamRole: "coordinador",
-        plan: form.planId,
+        plan: form.planningMode === "manual" ? null : form.planId,
         subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
         billingSource: "manual",
         manualPrice: parseManualPrice(form.manualPrice),
@@ -132,7 +132,7 @@ function NewClubModal({ onClose, onCreate }) {
       country: form.country,
       founded: new Date().getFullYear(),
       status: normalizeAdminStatus(form.subscriptionStatus),
-      plan: form.planId,
+      plan: form.planningMode === "manual" ? null : form.planId,
       subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
       manualPrice: parseManualPrice(form.manualPrice),
       origen: form.planningMode === "manual" ? "manual" : "automatico",
@@ -243,15 +243,15 @@ function NewClubModal({ onClose, onCreate }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overflow-y-auto p-4">
-      <div className="bg-white rounded-2xl shadow-depro w-full max-w-lg my-auto">
-        <div className="flex items-center justify-between p-6 border-b border-depro-border">
+      <div className="bg-white rounded-2xl shadow-depro w-full max-w-lg my-auto max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-depro-border shrink-0">
           <h2 className="font-bold text-depro-dark text-lg">Crear nuevo club</h2>
           <button onClick={onClose} className="text-depro-gray hover:text-depro-dark">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 space-y-4 overflow-y-auto min-h-0 flex-1">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-depro-dark mb-1">Nombre del club *</label>
@@ -366,11 +366,13 @@ function NewClubModal({ onClose, onCreate }) {
               ))}
             </div>
             <p className="text-sm font-semibold text-depro-dark">Plan personalizado</p>
-            <PlanSelectField
-              audience="club"
-              value={form.planId}
-              onChange={(v) => setForm((f) => ({ ...f, planId: v }))}
-            />
+            {form.planningMode !== "manual" && (
+              <PlanSelectField
+                audience="club"
+                value={form.planId}
+                onChange={(v) => setForm((f) => ({ ...f, planId: v }))}
+              />
+            )}
             <SubscriptionStatusSelect
               value={form.subscriptionStatus}
               onChange={(v) => setForm((f) => ({ ...f, subscriptionStatus: v }))}
@@ -379,6 +381,11 @@ function NewClubModal({ onClose, onCreate }) {
               value={form.manualPrice}
               onChange={(v) => setForm((f) => ({ ...f, manualPrice: v }))}
             />
+            {form.planningMode === "manual" && (
+              <p className="text-xs text-depro-gray -mt-2">
+                El administrador del club verá solo este precio. No se asigna Elite ni ninguna cuota de catálogo (699 €).
+              </p>
+            )}
             <div className="rounded-xl border border-depro-border bg-depro-gray-light/40 p-4">
               <p className="text-sm font-semibold text-depro-dark mb-3">Código de descuento y transferencia</p>
               <ClubEconomyFields
@@ -392,7 +399,7 @@ function NewClubModal({ onClose, onCreate }) {
           </div>
         </div>
 
-        <div className="flex gap-3 p-6 border-t border-depro-border">
+        <div className="flex gap-3 p-6 border-t border-depro-border shrink-0">
           <button
             onClick={onClose}
             className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors"

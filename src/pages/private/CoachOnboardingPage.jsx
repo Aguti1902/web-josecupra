@@ -328,7 +328,7 @@ export default function CoachOnboardingPage() {
                 <div className="flex justify-between"><span className="text-depro-gray">Entrenamientos/semana</span><span className="font-bold text-depro-dark">{autoQ.dias_entrenamiento_semana}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-depro-gray shrink-0">Días</span><span className="font-bold text-depro-dark text-right">{(autoQ.dias_exactos_entrenamiento || []).join(", ")}</span></div>
                 <div className="flex justify-between"><span className="text-depro-gray">Partido</span><span className="font-bold text-depro-dark">{matchLabel}</span></div>
-                <div className="flex justify-between"><span className="text-depro-gray">Gimnasio</span><span className="font-bold text-depro-dark">{autoQ.acceso_gimnasio === "si" ? "Sí" : "No"}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-depro-gray shrink-0">Material</span><span className="font-bold text-depro-dark text-right">{(autoQ.material || []).join(", ") || "—"}</span></div>
                 <div className="flex justify-between"><span className="text-depro-gray">Modo</span><span className="font-bold text-depro-blue">Automático</span></div>
               </div>
               {error && (
