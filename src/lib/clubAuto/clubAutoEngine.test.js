@@ -8,6 +8,7 @@ import {
   weekIndexInMonth,
   startOfIsoWeek,
   monthBounds,
+  gymAccessFromMaterials,
 } from "./clubAutoEngine.js";
 
 function protoMap(plan) {
@@ -15,6 +16,13 @@ function protoMap(plan) {
 }
 
 describe("clubAutoEngine — cuestionario", () => {
+  it("deriva gimnasio del material", () => {
+    assert.equal(gymAccessFromMaterials(["Gimnasio completo"]), true);
+    assert.equal(gymAccessFromMaterials(["gym_completo"]), true);
+    assert.equal(gymAccessFromMaterials(["Mancuernas"]), false);
+    assert.equal(gymAccessFromMaterials(["Gomas", "Barra"]), false);
+  });
+
   it("exige días + material + campos clave", () => {
     const bad = validateCoachQuestionnaire({
       nivel: "B",
@@ -123,7 +131,6 @@ describe("clubAutoEngine — generación sesión completa", () => {
       dias_entrenamiento_semana: 2,
       dias_exactos_entrenamiento: ["Martes", "Jueves"],
       dia_partido: "sabado",
-      acceso_gimnasio: "si",
       duracion_sesion: "90",
       num_jugadores: "18-24",
       material: ["Gomas", "Gimnasio completo"],
@@ -131,6 +138,36 @@ describe("clubAutoEngine — generación sesión completa", () => {
     assert.equal(result.ok, true);
     const proto = result.sessions[0].structure.find((b) => b.type === "protocolo");
     assert.match(proto.template.id, /^gym_/);
+  });
+
+  it("gimnasio completo en material implica gym aunque no se pregunte acceso", () => {
+    const result = generateClubAutoMicrociclo({
+      nivel: "C",
+      dias_exactos_entrenamiento: ["Martes", "Jueves"],
+      dia_partido: "sabado",
+      duracion_sesion: "90",
+      num_jugadores: "18-24",
+      material: ["Gimnasio completo"],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.questionnaire.acceso_gimnasio, true);
+    const proto = result.sessions[0].structure.find((b) => b.type === "protocolo");
+    assert.match(proto.template.id, /^gym_/);
+  });
+
+  it("mancuernas no activan plantilla gym", () => {
+    const result = generateClubAutoMicrociclo({
+      nivel: "B",
+      dias_exactos_entrenamiento: ["Lunes", "Miércoles"],
+      dia_partido: "sabado",
+      duracion_sesion: "75",
+      num_jugadores: "14-18",
+      material: ["Mancuernas"],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.questionnaire.acceso_gimnasio, false);
+    const proto = result.sessions[0].structure.find((b) => b.type === "protocolo");
+    assert.doesNotMatch(proto.template.id, /^gym_/);
   });
 
   it("ejemplo real documento: M+J+V · sábado · 16 jugadores · 75 min", () => {

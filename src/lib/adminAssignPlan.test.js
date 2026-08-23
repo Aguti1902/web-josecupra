@@ -102,7 +102,9 @@ describe("assignClubAutoPlan → panel ProCoach", () => {
     assert.equal(week.engine, "club_auto");
     assert.ok((week.sessions || []).length >= 1);
     assert.equal(week.sessions[0].duration, "75 min");
-    assert.ok(week.sessions[0].taskDesigner?.taskTypes?.length > 0);
+    assert.equal(week.sessions[0].taskDesigner, undefined);
+
+    assert.equal(detail.coachWeeks, undefined);
 
     const meso = JSON.parse(localStorage.getItem("depro_coach_meso_coach_1_team_1"));
     assert.equal(meso.engine, "club_auto");

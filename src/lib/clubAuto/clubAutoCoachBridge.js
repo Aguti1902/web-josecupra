@@ -14,12 +14,13 @@ import {
   isoWeekStartsInMonth,
   startOfIsoWeek,
   addDaysIso,
+  gymAccessFromMaterials,
 } from "./clubAutoEngine.js";
-import { createDefaultTaskDesigner } from "../taskDesigner.js";
 
 export {
   TRAIN_DAYS,
   validateCoachQuestionnaire,
+  gymAccessFromMaterials,
   monthKeyFromDate,
   weekOffsetInMonth,
   weekIndexInMonth,
@@ -65,6 +66,16 @@ export const CLUB_AUTO_MATERIALS = [
   "Barra",
   "Gimnasio completo",
 ];
+
+/** Club o ProCoach con planificación manual («Llevado por mí»). */
+export function isManualPlanningClub(club) {
+  if (!club || typeof club !== "object") return false;
+  return club.planningMode === "manual"
+    || club.origen === "manual"
+    || club.mode === "personalizado"
+    || club.coachConfig?.engine === "manual"
+    || club.coachConfig?.mode === "personalizado";
+}
 
 /**
  * True si este club/entrenador usa el motor automático del documento.
@@ -132,7 +143,11 @@ export function serializeCoachAutoForMeta(q = {}) {
       nivel: q.nivel || "",
       dias: Array.isArray(q.dias_exactos_entrenamiento) ? q.dias_exactos_entrenamiento.join(",") : "",
       partido: q.dia_partido || "",
-      gym: q.acceso_gimnasio === true || q.acceso_gimnasio === "si" ? "si" : "no",
+      gym: gymAccessFromMaterials(q.material)
+        || q.acceso_gimnasio === true
+        || q.acceso_gimnasio === "si"
+        ? "si"
+        : "no",
       material: Array.isArray(q.material) ? q.material.join(",") : "",
       duracion: q.duracion_sesion || "",
       jugadores: q.num_jugadores || "",
@@ -220,8 +235,8 @@ export function questionnaireToCoachConfig(q) {
       duracion_sesion: n.duracion_sesion,
       num_jugadores: n.num_jugadores,
       material: n.material,
-      acceso_gimnasio: n.acceso_gimnasio ? "si" : "no",
-      gymAccess: n.acceso_gimnasio,
+      gymAccess: gymAccessFromMaterials(n.material) || !!n.acceso_gimnasio,
+      acceso_gimnasio: (gymAccessFromMaterials(n.material) || n.acceso_gimnasio) ? "si" : "no",
       trainingsPerWeek: n.dias_entrenamiento_semana,
       trainingDays: n.dias_exactos_entrenamiento,
       matchDay: q.dia_partido || "sabado",
@@ -242,7 +257,10 @@ export function coachConfigToQuestionnaire(config = {}) {
     num_jugadores: config.num_jugadores || "14-18",
     material: Array.isArray(config.material) ? config.material : [],
     acceso_gimnasio: config.acceso_gimnasio ?? (config.gymAccess ? "si" : "no"),
-    gymAccess: config.gymAccess === true || config.acceso_gimnasio === "si" || config.acceso_gimnasio === true,
+    gymAccess: gymAccessFromMaterials(config.material)
+      || config.gymAccess === true
+      || config.acceso_gimnasio === "si"
+      || config.acceso_gimnasio === true,
   };
 }
 
@@ -302,7 +320,6 @@ export function adaptClubAutoWeek(result, weekStart) {
       exercises: flattenProtocolExercises(s),
       observaciones: s.structure?.find((b) => b.type === "observaciones")?.item?.observaciones || "",
       objetivos: [s.protocolLabel].filter(Boolean),
-      taskDesigner: createDefaultTaskDesigner(),
     })),
   };
 }

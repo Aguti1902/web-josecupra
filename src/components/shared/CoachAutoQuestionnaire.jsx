@@ -1,9 +1,9 @@
 /**
  * Cuestionario clave entrenador/club (tras «Tus datos»).
- * Campos: nivel (indispensable) · días · partido · duración · jugadores · material · gimnasio (protocolos).
+ * Campos: nivel (indispensable) · días · partido · duración · jugadores · material.
  */
 import { useMemo } from "react";
-import { AlertCircle, Calendar, Clock, Dumbbell, Package, Trophy, Users } from "lucide-react";
+import { AlertCircle, Calendar, Clock, Package, Trophy, Users } from "lucide-react";
 import {
   validateCoachQuestionnaire,
   TRAIN_DAYS,
@@ -12,6 +12,7 @@ import {
   CLUB_AUTO_DURATIONS,
   CLUB_AUTO_PLAYER_COUNTS,
   CLUB_AUTO_MATERIALS,
+  gymAccessFromMaterials,
 } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 function Chip({ active, onClick, children, disabled }) {
@@ -74,7 +75,7 @@ export default function CoachAutoQuestionnaire({ value, onChange, showErrors = t
   const toggleMaterial = (item) => {
     const cur = form.material;
     const next = cur.includes(item) ? cur.filter((m) => m !== item) : [...cur, item];
-    patch({ material: next });
+    patch({ material: next, acceso_gimnasio: gymAccessFromMaterials(next) ? "si" : "no" });
   };
 
   return (
@@ -157,26 +158,12 @@ export default function CoachAutoQuestionnaire({ value, onChange, showErrors = t
           <Package size={12} /> ¿Qué material tenéis para los ejercicios? *
         </label>
         <p className="text-xs text-depro-gray mb-2">
-          Igual que en las planificaciones individuales: sirve para elegir ejercicios (gimnasio, gomas, mancuernas…). No se usan conos ni vallas.
+          Si marcas gimnasio completo se usan protocolos de gym; si marcas mancuernas, gomas o barra, esos ejercicios. No se usan conos ni vallas.
         </p>
         <div className="flex flex-wrap gap-2">
           {CLUB_AUTO_MATERIALS.map((m) => (
             <Chip key={m} active={form.material.includes(m)} onClick={() => toggleMaterial(m)}>
               {m}
-            </Chip>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-          <Dumbbell size={12} /> Acceso a gimnasio *
-        </label>
-        <p className="text-xs text-depro-gray mb-2">Indispensable para elegir protocolos de campo o gym.</p>
-        <div className="flex flex-wrap gap-2">
-          {[{ id: "si", label: "Sí" }, { id: "no", label: "No" }].map((o) => (
-            <Chip key={o.id} active={form.acceso_gimnasio === o.id} onClick={() => patch({ acceso_gimnasio: o.id })}>
-              {o.label}
             </Chip>
           ))}
         </div>

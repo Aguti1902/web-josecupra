@@ -20,6 +20,14 @@ const MATCH_DAY_MAP = {
   no_compite: "Sábado", // sin partido: ancla semanal neutra
 };
 
+export function gymAccessFromMaterials(material = []) {
+  const mats = Array.isArray(material) ? material : [];
+  return mats.some((m) => {
+    const s = String(m).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return s.includes("gimnasio completo") || s.includes("gym_completo");
+  });
+}
+
 export function normalizeNivel(nivel) {
   const n = String(nivel || "B").toUpperCase();
   if (n === "A" || n === "B" || n === "C") return n;
@@ -60,10 +68,13 @@ export function validateCoachQuestionnaire(q = {}) {
   const days = normalizeTrainDays(q.dias_exactos_entrenamiento || q.trainingDays || []);
   const n = days.length || Number(q.dias_entrenamiento_semana || q.trainingsPerWeek) || 0;
   const matchDay = normalizeMatchDay(q.dia_partido || q.matchDay);
-  const gymAccess = q.acceso_gimnasio === true || q.acceso_gimnasio === "si" || q.gymAccess === true;
+  const material = Array.isArray(q.material) ? q.material.filter(Boolean) : [];
+  const gymAccess = gymAccessFromMaterials(material)
+    || q.acceso_gimnasio === true
+    || q.acceso_gimnasio === "si"
+    || q.gymAccess === true;
   const duracion = String(q.duracion_sesion || "75");
   const numJugadores = String(q.num_jugadores || "14-18");
-  const material = Array.isArray(q.material) ? q.material.filter(Boolean) : [];
 
   if (!["A", "B", "C"].includes(nivel)) errors.push("Nivel de equipo inválido (A/B/C).");
   if (days.length < 1) errors.push("Selecciona al menos un día de entrenamiento.");

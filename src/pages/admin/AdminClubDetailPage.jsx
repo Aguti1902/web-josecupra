@@ -59,6 +59,7 @@ import {
   normalizeAdminStatus,
   parseManualPrice,
   canUserLogin,
+  formatManualPrice,
 } from "../../lib/adminAccountStatus";
 import {
   clubDiscountCode,
@@ -66,6 +67,7 @@ import {
   withSyncedDiscountCode,
 } from "../../lib/clubEconomy";
 import { isWideClubRole } from "../../lib/clubRoles";
+import { isManualPlanningClub } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { normalizeBlock, adminDefaultBlocks, adminSessionBlocks, flattenBlocksToExercises, ADMIN_BLOCK_TYPES } from "../../lib/sessionBlocks";
 import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
 import CoachAutoQuestionnaire, {
@@ -718,13 +720,13 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, onClose, onCreate, 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-depro-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overflow-y-auto p-4">
+      <div className="bg-white rounded-2xl shadow-depro w-full max-w-md max-h-[90vh] flex flex-col my-auto">
+        <div className="flex items-center justify-between p-6 border-b border-depro-border shrink-0">
           <h2 className="font-bold text-depro-dark text-lg">Añadir usuario</h2>
           <button onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 overflow-y-auto min-h-0 flex-1">
           <div>
             <label className="block text-sm font-medium text-depro-dark mb-1">Nombre completo</label>
             <input
@@ -768,17 +770,37 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, onClose, onCreate, 
           </div>
           {form.role === "administrador" && (
             <p className="text-xs text-depro-gray -mt-2">
-              Ve la cuota del club, el código de descuento y lo generado con las planificaciones individuales.
+              Ve la cuota del club, el código de descuento y lo generado con las planificaciones individuales. Los equipos son opcionales.
             </p>
           )}
           {/* Equipo(s) asignado(s) */}
-          {teams.length > 0 && (
-            isWideClubRole(form.role) ? (
+          {teams.length > 0 && form.role === "administrador" && (
+            <div>
+              <label className="block text-sm font-medium text-depro-dark mb-1">
+                Equipos <span className="text-depro-gray font-normal text-xs">(opcional)</span>
+              </label>
+              <p className="text-xs text-depro-gray mb-2">
+                Asigna equipos si quieres. Si no marcas ninguno, el administrador no queda vinculado a un equipo concreto.
+              </p>
+              <div className="space-y-1.5 max-h-32 overflow-y-auto border border-depro-border rounded-lg p-2">
+                {teams.map((t) => (
+                  <label key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-depro-gray-light/50 cursor-pointer">
+                    <input type="checkbox" className="accent-depro-blue"
+                      checked={form.managedTeamIds.includes(t.id)}
+                      onChange={() => toggleManagedTeam(t.id)} />
+                    <span className="text-sm text-depro-dark">{t.name}</span>
+                    <span className="text-xs text-depro-gray ml-auto">{t.category}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          {teams.length > 0 && form.role === "coordinador" && (
               <div>
                 <label className="block text-sm font-medium text-depro-dark mb-1">
-                  Equipos que coordina <span className="text-depro-gray font-normal text-xs">(multiselección)</span>
+                  Equipos que coordina <span className="text-depro-gray font-normal text-xs">(opcional)</span>
                 </label>
-                <div className="space-y-1.5 max-h-40 overflow-y-auto border border-depro-border rounded-lg p-2">
+                <div className="space-y-1.5 max-h-32 overflow-y-auto border border-depro-border rounded-lg p-2">
                   {teams.map((t) => (
                     <label key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-depro-gray-light/50 cursor-pointer">
                       <input type="checkbox" className="accent-depro-blue"
@@ -793,9 +815,10 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, onClose, onCreate, 
                   <p className="text-xs text-depro-gray mt-1">Si no seleccionas ninguno, verá todos los equipos del club.</p>
                 )}
               </div>
-            ) : (
+          )}
+          {teams.length > 0 && !isWideClubRole(form.role) && (
               <div>
-                <label className="block text-sm font-medium text-depro-dark mb-1">Equipo asignado</label>
+                <label className="block text-sm font-medium text-depro-dark mb-1">Equipo asignado <span className="text-depro-gray font-normal text-xs">(opcional)</span></label>
                 <select
                   className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
                   value={form.teamId}
@@ -805,7 +828,6 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, onClose, onCreate, 
                   {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
-            )
           )}
           <div>
             <label className="block text-sm font-medium text-depro-dark mb-1 flex items-center gap-1">
@@ -840,7 +862,7 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, onClose, onCreate, 
             onChange={(v) => setForm((f) => ({ ...f, subscriptionStatus: v }))}
           />
         </div>
-        <div className="flex gap-3 p-6 border-t border-depro-border">
+        <div className="flex gap-3 p-6 border-t border-depro-border shrink-0 bg-white rounded-b-2xl">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">Cancelar</button>
           <button
             onClick={handleCreate}
@@ -2052,6 +2074,10 @@ export default function AdminClubDetailPage() {
         setCommissionPct(String(clubCommissionPct(merged)));
         setPayoutIban(merged.payoutIban || "");
         setPayoutAccountName(merged.payoutAccountName || "");
+        if (isManualPlanningClub(merged)) {
+          setContenidoMode("manual");
+          setContenidoPanel("planificacion");
+        }
       } else {
         setClub(null);
       }
@@ -2236,7 +2262,10 @@ export default function AdminClubDetailPage() {
     { id: "comisiones", label: "Transferencias", icon: Wallet },
   ];
 
-  const planLabel = CHECKOUT_PLANS[club.plan]?.name || club.plan || "Personalizado";
+  const planLabel = isManualPlanningClub(club)
+    ? (formatManualPrice(club.manualPrice) || "Personalizado")
+    : (CHECKOUT_PLANS[club.plan]?.name || club.plan || "Personalizado");
+  const clubIsManual = isManualPlanningClub(club);
 
   const handleSavePlan = async () => {
     setPlanSaving(true);
@@ -2245,7 +2274,7 @@ export default function AdminClubDetailPage() {
     const price = parseManualPrice(manualPrice);
     const updated = withSyncedDiscountCode({
       ...club,
-      plan: planId,
+      plan: clubIsManual ? null : planId,
       subscriptionStatus: status,
       status,
       manualPrice: price,
@@ -2261,7 +2290,7 @@ export default function AdminClubDetailPage() {
     if (club.coordinator?.email) {
       const res = await updateUserByEmail({
         email: club.coordinator.email,
-        plan: planId,
+        plan: isManualPlanningClub(club) ? null : planId,
         subscriptionStatus: status,
         billingSource: "manual",
         manualPrice: price,
@@ -2508,6 +2537,11 @@ export default function AdminClubDetailPage() {
           <h3 className="font-semibold text-depro-dark">Plan personalizado</h3>
           <div>
             <p className="text-xs font-bold uppercase text-depro-gray mb-2">Modo de planificación</p>
+            {clubIsManual ? (
+              <p className="text-sm text-depro-gray rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2.5">
+                Este club está <strong className="text-amber-900">llevado por ti</strong>: la planificación es manual. No hace falta elegir automático/manual ni rellenar el cuestionario del motor.
+              </p>
+            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { id: "auto", label: "Automático", hint: "Usa el motor club auto" },
@@ -2554,8 +2588,9 @@ export default function AdminClubDetailPage() {
                 );
               })}
             </div>
+            )}
           </div>
-          {(club.planningMode || "auto") !== "manual" && (
+          {!clubIsManual && (club.planningMode || "auto") !== "manual" && (
             <AdminClubAutoQuestionnaireEditor
               club={club}
               onSave={async (nextClub) => {
@@ -2567,7 +2602,9 @@ export default function AdminClubDetailPage() {
             />
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <PlanSelectField audience="club" value={planId} onChange={setPlanId} />
+            {!clubIsManual && (
+              <PlanSelectField audience="club" value={planId} onChange={setPlanId} />
+            )}
             <SubscriptionStatusSelect value={subscriptionStatus} onChange={setSubscriptionStatus} />
             <ManualPriceField value={manualPrice} onChange={setManualPrice} />
           </div>
@@ -2614,7 +2651,32 @@ export default function AdminClubDetailPage() {
       {activeTab === "contenido" && (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            {[
+            {clubIsManual ? (
+              [
+                { id: "planificacion", label: "Planificación", icon: ClipboardList },
+                { id: "tests", label: "Tests físicos", icon: BarChart2 },
+              ].map((p) => {
+                const Icon = p.icon;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setContenidoMode("manual");
+                      setContenidoPanel(p.id);
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border ${
+                      contenidoPanel === p.id
+                        ? "bg-depro-blue text-white border-depro-blue"
+                        : "bg-white text-depro-dark border-depro-border"
+                    }`}
+                  >
+                    <Icon size={12} /> {p.label}
+                  </button>
+                );
+              })
+            ) : (
+            [
               { id: "automatico", label: "A) Automático", hint: "Protocolos, calentamientos, tareas, ejercicios, motor" },
               { id: "manual", label: "B) Manual", hint: "Planificación del club + tests físicos" },
             ].map((m) => (
@@ -2632,10 +2694,11 @@ export default function AdminClubDetailPage() {
                 <p className="text-sm font-bold text-depro-dark">{m.label}</p>
                 <p className="text-[11px] text-depro-gray mt-0.5">{m.hint}</p>
               </button>
-            ))}
+            ))
+            )}
           </div>
 
-          {contenidoMode === "automatico" && (
+          {contenidoMode === "automatico" && !clubIsManual && (
             <div className="flex flex-wrap gap-2">
               {[
                 { id: "plantillas", label: "Plantillas de protocolos", icon: Layers },
@@ -2663,7 +2726,7 @@ export default function AdminClubDetailPage() {
             </div>
           )}
 
-          {contenidoMode === "manual" && (
+          {contenidoMode === "manual" && !clubIsManual && (
             <div className="flex flex-wrap gap-2">
               {[
                 { id: "planificacion", label: "Planificación", icon: ClipboardList },
@@ -2689,14 +2752,14 @@ export default function AdminClubDetailPage() {
           )}
 
           <div className="bg-white border border-depro-border rounded-2xl p-4 md:p-6">
-            {contenidoMode === "automatico" && contenidoPanel === "plantillas" && <AdminClubPlantillasPage />}
-            {contenidoMode === "automatico" && contenidoPanel === "sin_balon" && <AdminClubCalentamientosPage embedded />}
-            {contenidoMode === "automatico" && contenidoPanel === "con_balon" && <AdminClubTareasPage embedded />}
-            {contenidoMode === "automatico" && contenidoPanel === "ejercicios" && (
+            {contenidoMode === "automatico" && !clubIsManual && contenidoPanel === "plantillas" && <AdminClubPlantillasPage />}
+            {contenidoMode === "automatico" && !clubIsManual && contenidoPanel === "sin_balon" && <AdminClubCalentamientosPage embedded />}
+            {contenidoMode === "automatico" && !clubIsManual && contenidoPanel === "con_balon" && <AdminClubTareasPage embedded />}
+            {contenidoMode === "automatico" && !clubIsManual && contenidoPanel === "ejercicios" && (
               <AdminClubExercisesPage />
             )}
-            {contenidoMode === "automatico" && contenidoPanel === "motor" && <AdminClubAutoMotorPage />}
-            {contenidoMode === "manual" && contenidoPanel === "planificacion" && (
+            {contenidoMode === "automatico" && !clubIsManual && contenidoPanel === "motor" && <AdminClubAutoMotorPage />}
+            {(contenidoMode === "manual" || clubIsManual) && contenidoPanel === "planificacion" && (
               <PlanificacionSection
                 plans={plans}
                 teams={club.teams || []}
@@ -2706,7 +2769,7 @@ export default function AdminClubDetailPage() {
                 onCreateMicrocycle={addMicrocycle}
               />
             )}
-            {contenidoMode === "manual" && contenidoPanel === "tests" && (
+            {(contenidoMode === "manual" || clubIsManual) && contenidoPanel === "tests" && (
               <div className="space-y-3">
                 <p className="text-sm text-depro-gray">Tests físicos compartidos entre modo manual y automático.</p>
                 <AdminTestsPage />

@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Wallet, Percent, Landmark, Copy, CheckCircle, CreditCard } from "lucide-react";
 import ClubReferralPanel from "./ClubReferralPanel";
-import { formatManualPrice } from "../../lib/adminAccountStatus";
+import { formatManualPrice, adminStatusLabel, normalizeAdminStatus } from "../../lib/adminAccountStatus";
 import { clubDiscountCode, clubCommissionPct, clubPayoutAccount } from "../../lib/clubEconomy";
-import { PLANS, formatPrice } from "../../lib/checkoutPlans";
-import { adminStatusLabel, normalizeAdminStatus } from "../../lib/adminAccountStatus";
 
 function CopyChip({ value, label }) {
   const [copied, setCopied] = useState(false);
@@ -32,7 +30,6 @@ export default function ClubEconomyPanel({ club, compact = false }) {
   const pct = clubCommissionPct(club);
   const { iban, accountName } = clubPayoutAccount(club);
   const fee = formatManualPrice(club?.manualPrice);
-  const plan = PLANS[club?.plan];
   const status = club?.subscriptionStatus || club?.status;
 
   return (
@@ -51,7 +48,7 @@ export default function ClubEconomyPanel({ club, compact = false }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="rounded-xl border border-depro-border bg-white p-3">
             <CreditCard size={14} className="text-depro-blue mb-1" />
-            <p className="text-lg font-black text-depro-dark">{fee || (plan ? `${formatPrice(plan.price)}/mes` : "—")}</p>
+            <p className="text-lg font-black text-depro-dark">{fee || "—"}</p>
             <p className="text-[10px] font-bold uppercase text-depro-gray tracking-wide">
               Cuota del club{status ? ` · ${adminStatusLabel(normalizeAdminStatus(status))}` : ""}
             </p>

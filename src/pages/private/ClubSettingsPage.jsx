@@ -639,7 +639,7 @@ export default function ClubSettingsPage() {
                   <Sparkles size={16} className="text-depro-blue" /> Cuestionario del motor automático
                 </h3>
                 <p className="text-xs text-depro-gray mt-1">
-                  Nivel A/B/C, días de entrenamiento, partido y gimnasio. Sin metodología ni nº de jugadores.
+                  Nivel A/B/C, días de entrenamiento, partido y material.
                 </p>
               </div>
               <CoachAutoQuestionnaire value={autoQ} onChange={setAutoQ} />
