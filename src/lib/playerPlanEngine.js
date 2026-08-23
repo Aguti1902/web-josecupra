@@ -371,10 +371,36 @@ function emptyWeek(planError) {
   return week;
 }
 
+/** Lunes ISO (YYYY-MM-DD) de la semana de `date`. */
+export function mondayOfDate(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(12, 0, 0, 0);
+  const diff = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - diff);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Fecha de inicio del mesociclo del plan (lunes).
+ * Si no hay startDate guardado, ancla en el lunes de la semana actual
+ * restando (semana_actual - 1) semanas.
+ */
+export function resolvePlayerPlanStartDate(plan, fallbackDate = new Date()) {
+  if (plan?.startDate) return plan.startDate;
+  if (plan?._meta?.startDate) return plan._meta.startDate;
+  const thisMonday = mondayOfDate(fallbackDate);
+  const semana = Math.max(1, Number(plan?.semana_actual) || 1);
+  if (semana <= 1) return thisMonday;
+  const d = new Date(`${thisMonday}T12:00:00`);
+  d.setDate(d.getDate() - (semana - 1) * 7);
+  return d.toISOString().slice(0, 10);
+}
+
 function attachPlanMeta(weekPlan, meta) {
   weekPlan.userId = meta.userId || null;
   weekPlan.semana_actual = meta.week || 1;
   weekPlan.mesociclo_id = meta.mesocicloId || `meso_${meta.userId || "anon"}`;
+  weekPlan.startDate = meta.startDate || mondayOfDate();
   weekPlan.sesiones_semana = meta.sesionesSemana || [];
   weekPlan.sesiones_pendientes_compensar = meta.pendingCompensate || {
     fuerza: 0,
@@ -532,6 +558,7 @@ export function buildPlayerPlan(user, options = {}) {
   return attachPlanMeta(weekPlan, {
     userId: user?.id,
     week,
+    startDate: mondayOfDate(),
     pendingCompensate: {
       fuerza: pending.fuerza || 0,
       velocidad: pending.velocidad || 0,
@@ -649,6 +676,11 @@ export function ensurePlayerPlan(user) {
       } else {
         // Normalizar weeks→días por si se asignó desde admin en este mismo navegador
         const normalized = normalizePlayerPlan(parsed);
+        if (normalized && Array.isArray(normalized) && !normalized.startDate) {
+          normalized.startDate = resolvePlayerPlanStartDate(normalized);
+          savePlanLocal(user.id, normalized);
+          return normalized;
+        }
         if (normalized && normalized !== parsed) {
           savePlanLocal(user.id, normalized);
           return normalized;
@@ -690,6 +722,9 @@ export async function hydratePlayerPlan(user) {
     const remote = await fetchPlayerPlan(user.id);
     if (remote && !remote.premiumPending && !remote.planError) {
       const normalized = normalizePlayerPlan(remote);
+      if (normalized && Array.isArray(normalized) && !normalized.startDate) {
+        normalized.startDate = resolvePlayerPlanStartDate(normalized);
+      }
       savePlanLocal(user.id, normalized);
       return normalized;
     }
@@ -736,15 +771,84 @@ export function buildPlanAIPayload(user) {
   };
 }
 
-export function buildMesoPlayerPlan(user, weeks = 4) {
-  const baseWeek = buildPlayerPlan(user, { weekOffset: 0 });
-  const baseSessions = baseWeek
-    .filter((d) => d.sessions.length)
+/** Extrae sesiones de un plan día-array (microciclo guardado). */
+export function extractSessionsFromWeekPlan(weekPlan) {
+  if (!Array.isArray(weekPlan)) return [];
+  return weekPlan
+    .filter((d) => d?.sessions?.length)
     .map((d, i) => ({
       day: d.day,
       session: d.sessions[0],
       sessionNumber: i + 1,
     }));
+}
+
+/** Normaliza weeks[] (admin / motor) al formato del calendario mensual. */
+export function mesoWeeksFromStoredWeeks(storedWeeks) {
+  if (!Array.isArray(storedWeeks) || !storedWeeks.length) return [];
+  return storedWeeks.map((w, i) => {
+    const weekNum = w.week || i + 1;
+    if (Array.isArray(w.sessions) && w.sessions.length) {
+      return {
+        week: weekNum,
+        label: w.label || `Semana ${weekNum}`,
+        sessions: w.sessions.map((s, si) => ({
+          ...s,
+          dayName: s.dayName || s.day || s.assignedDay,
+          weekNumber: weekNum,
+          sessionNumber: s.sessionNumber || si + 1,
+        })),
+      };
+    }
+    const sessions = (w.days || [])
+      .filter((d) => d?.sessions?.length)
+      .map((d, si) => ({
+        ...d.sessions[0],
+        dayName: d.day,
+        weekNumber: weekNum,
+        sessionNumber: si + 1,
+      }));
+    return {
+      week: weekNum,
+      label: w.label || `Semana ${weekNum}`,
+      sessions,
+    };
+  });
+}
+
+/**
+ * Mesociclo (4 semanas) para planificaciones individuales.
+ * Prioridad: weeks del plan guardado → clonar sesiones del microciclo → regenerar.
+ * Así el calendario no queda vacío cuando el perfil (disponibles) no regenera bien.
+ */
+export function buildMesoPlayerPlan(user, weeks = 4, weekPlan = null) {
+  const fromStored = mesoWeeksFromStoredWeeks(weekPlan?.weeks);
+  if (fromStored.some((w) => w.sessions.length)) {
+    return fromStored.slice(0, weeks);
+  }
+
+  let baseSessions = extractSessionsFromWeekPlan(weekPlan);
+  if (!baseSessions.length) {
+    try {
+      const four = buildFourWeekPlan(user);
+      if (four.some((w) => w.sessions?.length)) {
+        return four.slice(0, weeks).map((w) => ({
+          week: w.week,
+          label: w.label || `Semana ${w.week}`,
+          sessions: (w.sessions || []).map((s, si) => ({
+            ...s,
+            dayName: s.dayName || s.day || s.assignedDay,
+            weekNumber: w.week,
+            sessionNumber: s.sessionNumber || si + 1,
+            templateVariant: s.templateVariant || `S${w.week}`,
+          })),
+        }));
+      }
+    } catch { /* fallback abajo */ }
+
+    const baseWeek = buildPlayerPlan(user, { weekOffset: 0 });
+    baseSessions = extractSessionsFromWeekPlan(baseWeek);
+  }
 
   const result = [];
   for (let w = 0; w < weeks; w++) {

@@ -17,6 +17,9 @@ export function normalizePlayerPlan(raw) {
 
   // Ya es semana día-array
   if (Array.isArray(raw) && (raw.length === 0 || raw[0]?.day != null || raw[0]?.sessions != null)) {
+    if (raw.startDate == null && raw._meta?.startDate) {
+      raw.startDate = raw._meta.startDate;
+    }
     return raw;
   }
 
@@ -39,6 +42,7 @@ export function normalizePlayerPlan(raw) {
       view.assignedTo = raw.assignedTo || null;
       view.sesiones = raw.sesiones || null;
       view.semana_actual = weekIdx + 1;
+      view.startDate = raw.startDate || current?.startDate || weeks[0]?.startDate || null;
       view.premiumPending = false;
       view.planPendingManual = false;
       view.userId = raw.userId || raw.assignedTo || null;
@@ -68,6 +72,7 @@ export function normalizePlayerPlan(raw) {
       view.source = raw.source || "admin_manual";
       view.assignedTo = raw.assignedTo || null;
       view.semana_actual = weekIdx + 1;
+      view.startDate = raw.startDate || current?.startDate || weeks[0]?.startDate || null;
       view.premiumPending = false;
       view.planPendingManual = false;
       return view;

@@ -285,7 +285,7 @@ function MonthlyPlanTab({ client, clientId }) {
     if (stored?.premiumPending || stored?.planPendingManual) return [];
     if (isPremium && !stored?.assignment && !stored?.source) return [];
     try {
-      return buildMesoPlayerPlan(client, 4);
+      return buildMesoPlayerPlan(client, 4, stored);
     } catch {
       return [];
     }
