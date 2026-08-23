@@ -20,6 +20,7 @@ import {
   ensureSessionTemplateFields, filterSessionsByFramework,
 } from "../../lib/mesocycleTemplates";
 import { persistGlobalPlans } from "../../lib/adminStorage";
+import { describeCloudSaveError } from "../../lib/adminGlobalBlobs";
 
 /* ── Constantes globales ─────────────────────────────────── */
 const AGE_BLOCKS = [
@@ -58,21 +59,17 @@ function loadGlobalPlans() {
 }
 
 async function saveGlobalPlans(plans) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
   try {
-    const { ok, data } = await persistGlobalPlans(plans);
-    if (!ok) console.warn("[DEPRO] saveGlobalPlans API error", data?.error);
-  } catch (e) { console.warn("[DEPRO] saveGlobalPlans fetch error", e); }
-}
-
-async function fetchGlobalPlansFromAPI() {
-  try {
-    const r = await fetch("/api/admin-clubs");
-    if (!r.ok) return null;
-    const data = await r.json();
-    const global = (data.clubs || []).find((c) => c.id === GLOBAL_CLUB_ID);
-    return global?.plans ?? null;
-  } catch { return null; }
+    const result = await persistGlobalPlans(plans);
+    if (!result.ok) {
+      console.warn("[DEPRO] saveGlobalPlans API error", result.data?.error);
+      return { ok: false, error: describeCloudSaveError(result) };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.warn("[DEPRO] saveGlobalPlans fetch error", e);
+    return { ok: false, error: e?.message || "No se pudo guardar en la nube." };
+  }
 }
 
 /* ── Modal editor de sesión ──────────────────────────────── */
@@ -667,12 +664,14 @@ export default function AdminPlanificacionPage() {
   const [plans, setPlans] = useState(() => loadGlobalPlans());
   const [activeMcModal, setActiveMcModal] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncSaved, setSyncSaved] = useState(false);
+  const [syncError, setSyncError] = useState("");
 
   // Cargar desde API al montar (cross-device) — Supabase es fuente de verdad
   useEffect(() => {
     async function loadFromCloud() {
       try {
-        const r = await fetch("/api/admin-clubs");
+        const r = await fetch(`/api/admin-clubs?id=${encodeURIComponent(GLOBAL_CLUB_ID)}`);
         if (!r.ok) return;
         const data = await r.json();
         const clubs = data.clubs || [];
@@ -681,7 +680,7 @@ export default function AdminPlanificacionPage() {
         const globalEntry = clubs.find((c) => c.id === GLOBAL_CLUB_ID);
         if (globalEntry?.plans && globalEntry.plans.length > 0) {
           setPlans(globalEntry.plans);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(globalEntry.plans));
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(globalEntry.plans)); } catch { /* cuota */ }
         }
       } catch (e) { console.warn("[DEPRO] loadFromCloud error", e); }
     }
@@ -728,8 +727,19 @@ export default function AdminPlanificacionPage() {
 
   const handleSyncNow = async () => {
     setSyncing(true);
-    await saveGlobalPlans(plans);
-    setSyncing(false);
+    setSyncError("");
+    setSyncSaved(false);
+    try {
+      const result = await saveGlobalPlans(plans);
+      if (result.ok) {
+        setSyncSaved(true);
+        setTimeout(() => setSyncSaved(false), 2500);
+      } else {
+        setSyncError(result.error || "No se pudo guardar en la nube.");
+      }
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -742,16 +752,21 @@ export default function AdminPlanificacionPage() {
             Las sesiones de cada bloque salen en todos los clubs llevados por mí cuya categoría coincida (Bloque 1, 2 o 3).
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-50 border border-green-200">
-            <CheckCircle size={12} className="text-green-600" />
-            <span className="text-xs font-bold text-green-700">Auto-asignación activa</span>
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-50 border border-green-200">
+              <CheckCircle size={12} className="text-green-600" />
+              <span className="text-xs font-bold text-green-700">Auto-asignación activa</span>
+            </div>
+            <button onClick={handleSyncNow} disabled={syncing}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-depro-border text-xs font-bold text-depro-gray hover:text-depro-dark hover:border-depro-dark transition-colors disabled:opacity-50">
+              <RefreshCw size={12} className={syncing ? "animate-spin" : ""} />
+              {syncing ? "Guardando…" : syncSaved ? "¡Guardado!" : "Guardar en nube"}
+            </button>
           </div>
-          <button onClick={handleSyncNow} disabled={syncing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-depro-border text-xs font-bold text-depro-gray hover:text-depro-dark hover:border-depro-dark transition-colors disabled:opacity-50">
-            <RefreshCw size={12} className={syncing ? "animate-spin" : ""} />
-            {syncing ? "Guardando…" : "Guardar en nube"}
-          </button>
+          {syncError && (
+            <p className="text-[11px] font-bold text-red-600 max-w-xs text-right">{syncError}</p>
+          )}
         </div>
       </div>
 
