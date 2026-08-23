@@ -284,13 +284,10 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
   if (!candidates.length) return null;
   const ranked = rankByMaterialPreference(candidates, userProfile);
   // Preferir material del perfil: tomar el top score band primero
-  const top = ranked.length ? (() => {
-    const best = ranked[0];
-    const mats = normalizeMaterialList(userProfile.material);
-    const preferMatched = ranked.filter((ex) => materialMatches(tagsOf(ex).material, mats));
-    return preferMatched.length ? preferMatched : ranked;
-  })() : [];
-  return pickFrom(top.length ? top : ranked, userProfile, slot, usedExerciseIds, seedExtra);
+  const mats = normalizeMaterialList(userProfile.material);
+  const preferMatched = ranked.filter((ex) => materialMatches(tagsOf(ex).material, mats));
+  const pool = preferMatched.length ? preferMatched : ranked;
+  return pickFrom(pool, userProfile, slot, usedExerciseIds, seedExtra);
 }
 
 function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensity = null) {

@@ -86,6 +86,7 @@ function TeamModal({ team, clubId, onClose, onSave }) {
     coachName: team?.coach?.name || "",
     coachEmail: team?.coach?.email || "",
     coachPassword: generatePassword(),
+    questionnaireBy: "club", // club | coach — Depro 2.0 §5.2
   });
   const [loading, setLoading] = useState(false);
   const [creds, setCreds] = useState(null);
@@ -233,6 +234,37 @@ function TeamModal({ team, clubId, onClose, onSave }) {
           </div>
           {!isEdit && (
             <div className="pt-2 border-t border-depro-border space-y-3">
+              <div>
+                <p className="text-sm font-medium text-depro-dark mb-2">¿Quién rellena el cuestionario del equipo?</p>
+                <div className="space-y-2">
+                  <label className={`flex gap-3 p-3 rounded-xl border cursor-pointer ${form.questionnaireBy === "club" ? "border-depro-blue bg-depro-blue/5" : "border-depro-border"}`}>
+                    <input
+                      type="radio"
+                      name="questionnaireBy"
+                      checked={form.questionnaireBy === "club"}
+                      onChange={() => setForm((f) => ({ ...f, questionnaireBy: "club" }))}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block text-sm font-bold text-depro-dark">Opción A — Lo rellena el club/administrador</span>
+                      <span className="block text-xs text-depro-gray mt-0.5">Tú completas el cuestionario de este equipo desde el panel del club.</span>
+                    </span>
+                  </label>
+                  <label className={`flex gap-3 p-3 rounded-xl border cursor-pointer ${form.questionnaireBy === "coach" ? "border-depro-blue bg-depro-blue/5" : "border-depro-border"}`}>
+                    <input
+                      type="radio"
+                      name="questionnaireBy"
+                      checked={form.questionnaireBy === "coach"}
+                      onChange={() => setForm((f) => ({ ...f, questionnaireBy: "coach" }))}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block text-sm font-bold text-depro-dark">Opción B — Lo rellena el entrenador</span>
+                      <span className="block text-xs text-depro-gray mt-0.5">Al entrar por primera vez con su usuario, verá el cuestionario y se generará su planificación.</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
               <p className="text-sm font-medium text-depro-dark">Entrenador (opcional)</p>
               <input className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm" placeholder="Nombre" value={form.coachName} onChange={(e) => setForm((f) => ({ ...f, coachName: e.target.value }))} />
               <input type="email" className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm" placeholder="Email de acceso" value={form.coachEmail} onChange={(e) => setForm((f) => ({ ...f, coachEmail: e.target.value }))} />
