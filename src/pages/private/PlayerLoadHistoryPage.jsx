@@ -53,8 +53,8 @@ function formatSec(sec) {
   if (sec == null) return "—";
   if (sec >= 60) {
     const m = Math.floor(sec / 60);
-    const s = +(sec % 60).toFixed(sec % 60 >= 10 ? 1 : 2);
-    return `${m}:${String(s).padStart(4, "0")}`;
+    const s = (sec % 60).toFixed(1);
+    return `${m}:${s.padStart(4, "0")}`;
   }
   return `${Number(sec).toFixed(2)} s`;
 }
