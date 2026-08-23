@@ -25,17 +25,24 @@ export default function ParaClubsPage() {
           { val: "100%", label: "Datos centralizados" },
           { val: "24/7", label: "Acceso en la nube" },
         ]}
-        primaryCta={{ label: "Probar DEPRO Club", to: "/comprar?audience=club" }}
-        secondaryCta={{ label: "Solicitar demo", to: "/recursos#contacto" }}
+        primaryCta={{ label: "Próximamente", disabled: true }}
+        secondaryCta={{ label: "Ver DEPRO Coach", to: "/para-entrenadores" }}
       />
+      <section className="bg-amber-50 border-y border-amber-100">
+        <p className="max-w-3xl mx-auto px-4 py-4 text-center text-sm text-amber-950">
+          <strong>Próximamente.</strong> La contratación pública de DEPRO Club está cerrada por ahora.
+          El panel, el motor y el alta desde admin se conservan para acabarlo más adelante.
+        </p>
+      </section>
       <HoldedFeatureSection
         label="Panel coordinador"
         title="Visibilidad total sin microgestión"
         desc="El coordinador ve cargas, tests y planificación de todos los equipos sin crear sesiones manualmente."
         bullets={["Dashboard multi-equipo", "Alertas de carga global", "KPIs de departamento físico", "Informes para junta directiva"]}
         mockup={<ClubOverviewMockup />}
-        ctaLink="/comprar?audience=club"
-        ctaText="Empezar con mi club"
+        ctaLink="/para-entrenadores"
+        ctaText="Próximamente · ver DEPRO Coach"
+        ctaDisabled
       />
       <PageBenefitsGrid
         dark={false}

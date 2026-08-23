@@ -127,7 +127,8 @@ export function isProCoachUser(user) {
   if (!user) return false;
   const club = user.club;
   return !!(
-    club?.isSoloCoach
+    user.isSoloCoach
+    || club?.isSoloCoach
     || club?.metadata?.isSoloCoach
     || user.role === "coach"
     || String(user.clubId || club?.id || "").startsWith("coach_")

@@ -5,6 +5,7 @@ import { getStripe, getSiteUrl } from "./_stripeClient.js";
 import { SUPABASE_SERVICE_ROLE_FALLBACK } from "./_serviceRoleKey.js";
 import { clubMatchesDiscountCode } from "../src/lib/clubEconomy.js";
 import { serializeCoachAutoForMeta } from "../src/lib/clubAuto/clubAutoCoachBridge.js";
+import { isClubSelfServeOpen, isClubCheckoutPlan, CLUB_COMING_SOON_COPY } from "../src/lib/productAvailability.js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_ROLE_FALLBACK;
@@ -150,6 +151,9 @@ export default async function handler(req, res) {
   }
 
   const audience = formData?.audience || planId.split("-")[0] || "player";
+  if (!isClubSelfServeOpen() && isClubCheckoutPlan(planId, audience)) {
+    return res.status(403).json({ error: CLUB_COMING_SOON_COPY });
+  }
   const clubCode = (formData?.clubCode || "").trim().toUpperCase();
   let clubId = "";
   let hasDiscount = false;

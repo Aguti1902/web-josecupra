@@ -326,7 +326,7 @@ export function HoldedCheckItem({ children, light = false }) {
   );
 }
 
-export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reverse = false, dark = true, ctaLink = "/funcionalidades", ctaText = "Explorar funcionalidad", compact = false }) {
+export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reverse = false, dark = true, ctaLink = "/funcionalidades", ctaText = "Explorar funcionalidad", compact = false, ctaDisabled = false }) {
   const bg = dark ? "bg-holded-dark" : "bg-white";
   const titleColor = dark ? "text-white" : "text-gray-900";
   const descColor = dark ? "text-holded-muted" : "text-gray-500";
@@ -354,7 +354,9 @@ export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reve
                 <h2 className={`text-3xl md:text-[2.5rem] font-black tracking-tight mb-5 leading-tight ${titleColor}`}>{title}</h2>
                 <p className={`leading-relaxed mb-6 ${descColor}`}>{desc}</p>
                 <ul className="space-y-4 mb-8">{bullets.map((b) => <HoldedCheckItem key={b} light={!dark}>{b}</HoldedCheckItem>)}</ul>
-                <Link to={ctaLink} className={btnClass}>{ctaText} →</Link>
+                {ctaDisabled
+                  ? <span className={`${btnClass} opacity-70 cursor-not-allowed`}>{ctaText}</span>
+                  : <Link to={ctaLink} className={btnClass}>{ctaText} →</Link>}
               </div>
             </>
           ) : (
@@ -365,7 +367,9 @@ export function HoldedFeatureSection({ label, title, desc, bullets, mockup, reve
                 <h2 className={`text-3xl md:text-[2.5rem] font-black tracking-tight mb-5 leading-tight ${titleColor}`}>{title}</h2>
                 <p className={`leading-relaxed mb-6 ${descColor}`}>{desc}</p>
                 <ul className="space-y-4 mb-8">{bullets.map((b) => <HoldedCheckItem key={b} light={!dark}>{b}</HoldedCheckItem>)}</ul>
-                <Link to={ctaLink} className={btnClass}>{ctaText} →</Link>
+                {ctaDisabled
+                  ? <span className={`${btnClass} opacity-70 cursor-not-allowed`}>{ctaText}</span>
+                  : <Link to={ctaLink} className={btnClass}>{ctaText} →</Link>}
               </div>
             </>
           )}

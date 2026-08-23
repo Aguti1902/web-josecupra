@@ -11,7 +11,7 @@ import {
   normalizeFrecuencia,
 } from "../lib/playerTrainingProfile";
 import { getImpersonationSnapshot, stopImpersonation, isRealAdminUser } from "../lib/adminImpersonation";
-import { parseCoachAutoFromMeta } from "../lib/clubAuto/clubAutoCoachBridge";
+import { parseCoachAutoFromMeta, isProCoachUser } from "../lib/clubAuto/clubAutoCoachBridge";
 
 const AuthContext = createContext(null);
 
@@ -84,7 +84,12 @@ function loadClubDataFromStorage(meta, userEmail) {
       planningMode:   clubDetail?.planningMode   ?? effectiveBase.planningMode   ?? null,
       origen:         clubDetail?.origen         ?? effectiveBase.origen         ?? null,
       mode:           clubDetail?.mode           ?? effectiveBase.mode           ?? null,
-      isSoloCoach:    clubDetail?.isSoloCoach    ?? effectiveBase.isSoloCoach    ?? false,
+      isSoloCoach: !!(
+        clubDetail?.isSoloCoach
+        || effectiveBase.isSoloCoach
+        || meta?.isSoloCoach
+        || String(effectiveClubId || "").startsWith("coach_")
+      ),
       manualPrice:    clubDetail?.manualPrice    ?? effectiveBase.manualPrice    ?? null,
     };
 
@@ -220,6 +225,14 @@ function buildUser(authUser, profile) {
       pendingPayment: meta.pendingPayment === true,
       manualPrice: meta.manualPrice ?? cached?.manualPrice ?? null,
       coachAuto: parseCoachAutoFromMeta(meta.coachAuto),
+      isSoloCoach: isProCoachUser({
+        ...profile,
+        role: resolvedRole,
+        club,
+        clubId: meta.clubId || club?.id || null,
+        plan: profile.plan ?? meta.plan ?? cached?.plan ?? null,
+        isSoloCoach: meta.isSoloCoach || club?.isSoloCoach,
+      }),
     };
   }
 
@@ -272,6 +285,13 @@ function buildUser(authUser, profile) {
     pendingPayment: meta.pendingPayment === true,
     manualPrice: meta.manualPrice ?? cached?.manualPrice ?? null,
     coachAuto: parseCoachAutoFromMeta(meta.coachAuto),
+    isSoloCoach: isProCoachUser({
+      role: detectedRole,
+      club,
+      clubId: meta.clubId || club?.id || playerClub?.id || null,
+      plan: meta.plan ?? cached?.plan ?? null,
+      isSoloCoach: meta.isSoloCoach || club?.isSoloCoach,
+    }),
   };
 }
 

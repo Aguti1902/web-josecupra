@@ -515,7 +515,7 @@
         "price": "199€",
         "subtext": "Hasta 3 equipos · 80 jugadores",
         "features": ["Panel centralizado del club", "Periodización IA por categoría", "White-label (logo y colores)", "Programa de referidos", "2 cuentas staff incluidas"],
-        "ctaLink": "/comprar?audience=club&plan=inicial"
+        "ctaLink": "/para-clubs"
       },
       {
         "id": "club-pro",
@@ -525,7 +525,7 @@
         "badge": "Recomendado",
         "highlighted": true,
         "features": ["Todo Inicial +", "Import GPS multi-equipo", "Módulo médico y readaptación", "KPIs dirección deportiva", "5 cuentas staff incluidas"],
-        "ctaLink": "/comprar?audience=club&plan=pro"
+        "ctaLink": "/para-clubs"
       },
       {
         "id": "club-elite",
@@ -533,7 +533,7 @@
         "price": "699€",
         "subtext": "Equipos ilimitados · jugadores ilimitados",
         "features": ["Todo Profesional +", "API e integraciones", "Scouting y cantera", "SLA dedicado", "Cuentas staff ilimitadas"],
-        "ctaLink": "/comprar?audience=club&plan=elite"
+        "ctaLink": "/para-clubs"
       }
     ],
     "pricing_player": [

@@ -378,7 +378,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
                 <p className="text-xs text-depro-gray mt-0.5">
                   {premiumLocked
                     ? audience === "coach"
-                      ? "Premium incluye refresco con balón, tests, cargas y equipos extra."
+                      ? "Premium incluye refresco con balón, PDF de sesiones, cargas y equipos extra. Los tests van incluidos en todos los planes."
                       : "Premium incluye PDF, tests y mis cargas."
                     : "Opcional. Márcalos para activarlos en la cuenta, igual que en el carrito."}
                 </p>

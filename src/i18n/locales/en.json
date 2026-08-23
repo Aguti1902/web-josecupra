@@ -468,9 +468,9 @@
       {"id": "coach-premium", "name": "Premium", "price": "€49.99", "subtext": "Unlimited teams · unlimited players", "features": ["Everything in Pro +", "GPS import (Catapult, STATSports)", "AI load classification", "AI tactical diagrams", "Priority support"], "ctaLink": "/comprar?audience=coach&plan=premium"}
     ],
     "pricing_club": [
-      {"id": "club-inicial", "name": "Starter", "price": "€199", "subtext": "Up to 3 teams · 80 players", "features": ["Centralized club dashboard", "AI periodization per category", "White-label (logo & colors)", "Referral program", "2 staff accounts included"], "ctaLink": "/comprar?audience=club&plan=inicial"},
-      {"id": "club-pro", "name": "Professional", "price": "€399", "subtext": "Up to 8 teams · 200 players", "badge": "Recommended", "highlighted": true, "features": ["Everything in Starter +", "Multi-team GPS import", "Medical & rehab module", "Sporting director KPIs", "5 staff accounts included"], "ctaLink": "/comprar?audience=club&plan=pro"},
-      {"id": "club-elite", "name": "Elite", "price": "€699", "subtext": "Unlimited teams · unlimited players", "features": ["Everything in Professional +", "API & integrations", "Scouting & academy", "Dedicated SLA", "Unlimited staff accounts"], "ctaLink": "/comprar?audience=club&plan=elite"}
+      {"id": "club-inicial", "name": "Starter", "price": "€199", "subtext": "Up to 3 teams · 80 players", "features": ["Centralized club dashboard", "AI periodization per category", "White-label (logo & colors)", "Referral program", "2 staff accounts included"], "ctaLink": "/para-clubs"},
+      {"id": "club-pro", "name": "Professional", "price": "€399", "subtext": "Up to 8 teams · 200 players", "badge": "Recommended", "highlighted": true, "features": ["Everything in Starter +", "Multi-team GPS import", "Medical & rehab module", "Sporting director KPIs", "5 staff accounts included"], "ctaLink": "/para-clubs"},
+      {"id": "club-elite", "name": "Elite", "price": "€699", "subtext": "Unlimited teams · unlimited players", "features": ["Everything in Professional +", "API & integrations", "Scouting & academy", "Dedicated SLA", "Unlimited staff accounts"], "ctaLink": "/para-clubs"}
     ],
     "pricing_player": [
       {"id": "player-essential", "name": "Essential", "price": "€19.99", "subtext": "Monthly AI plan · private dashboard", "features": ["Monthly physical preparation plan", "Adapted to position and level", "Sessions with load iconography", "PDF download", "Club referral code applicable"], "ctaLink": "/comprar?audience=player&plan=essential"},

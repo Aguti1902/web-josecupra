@@ -814,7 +814,7 @@ function PlayerWeeklyPlan({ accent }) {
         onClose={closeSession}
         onComplete={() => handleSessionComplete(microRef.id, microRef.dayName)}
         onUncomplete={() => handleSessionToggle(microRef.id, microRef.dayName)}
-        onDownloadPdf={() => {
+        onDownloadPdf={(isInTrial(user) || hasFeatureAccess(user, "pdf_export")) ? () => {
           if (isInTrial(user)) {
             if (!canDownloadTrialPdf(user?.id)) {
               alert(trialPdfLimitMessage());
@@ -826,7 +826,7 @@ function PlayerWeeklyPlan({ accent }) {
           }
           if (!hasFeatureAccess(user, "pdf_export")) return;
           sessionPdf(activeSession);
-        }}
+        } : undefined}
         onSwapExercise={(exerciseId) => handleExerciseSwap(activeSession.id, exerciseId)}
         canSwap={canSwapExercise(user, plan)}
         swapMessage={MAINTENANCE_MESSAGE}
@@ -1052,6 +1052,7 @@ function ClubSessionCard({
   session, accentColor, sessionNumber, readOnly = false, taskStorageKey,
   initialExpanded = false, initialTab = "resumen", cardRef,
   clubName = "", teamName = "", clubLogo = "", secondaryColor = "",
+  canDownloadPdf = false,
 }) {
   const safeInitialTab = CLUB_VISIBLE_TABS.includes(initialTab) ? initialTab : "resumen";
   const [expanded, setExpanded]       = useState(initialExpanded);
@@ -1218,6 +1219,7 @@ function ClubSessionCard({
                     accentColor={accentColor}
                   />
                 )}
+                {canDownloadPdf && (
                 <button type="button"
                   onClick={() => {
                     void downloadSessionPdf(buildClubSessionPdfPayload({
@@ -1235,6 +1237,7 @@ function ClubSessionCard({
                   className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
                   <FileText size={14} /> Descargar PDF
                 </button>
+                )}
               </div>
             )}
 
@@ -1597,6 +1600,7 @@ function ClubMicrocycles({ accent }) {
                 teamName={activeTeam?.name || ""}
                 clubLogo={user?.club?.logo || ""}
                 secondaryColor={user?.club?.secondaryColor || ""}
+                canDownloadPdf={isInTrial(user) || hasFeatureAccess(user, "pdf_export")}
                 initialExpanded={matchesTarget}
                 initialTab={matchesTarget ? targetTab : "resumen"}
                 cardRef={(el) => {

@@ -116,9 +116,15 @@ export default function PageHero({
               </div>
             )}
             <div className={`flex flex-col sm:flex-row gap-3 ${variant === "centered" ? "justify-center" : ""}`}>
-              <Link to={primaryCta.to} className={`inline-flex items-center justify-center gap-2 font-bold px-7 py-3.5 rounded-full transition-colors shadow-sm ${t.primary}`}>
-                {primaryCta.label} <ArrowRight size={16} />
-              </Link>
+              {primaryCta.disabled || !primaryCta.to ? (
+                <span className={`inline-flex items-center justify-center gap-2 font-bold px-7 py-3.5 rounded-full opacity-70 cursor-not-allowed ${t.primary}`}>
+                  {primaryCta.label}
+                </span>
+              ) : (
+                <Link to={primaryCta.to} className={`inline-flex items-center justify-center gap-2 font-bold px-7 py-3.5 rounded-full transition-colors shadow-sm ${t.primary}`}>
+                  {primaryCta.label} <ArrowRight size={16} />
+                </Link>
+              )}
               {secondaryCta && (
                 <Link to={secondaryCta.to} className={`inline-flex items-center justify-center gap-2 font-bold px-7 py-3.5 rounded-full transition-colors ${t.secondary}`}>
                   {secondaryCta.label}

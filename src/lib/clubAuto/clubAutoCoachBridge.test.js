@@ -151,6 +151,7 @@ describe("clubAutoCoachBridge", () => {
     assert.equal(isProCoachUser({ role: "coach" }), true);
     assert.equal(isProCoachUser({ role: "club", club: { isSoloCoach: true } }), true);
     assert.equal(isProCoachUser({ role: "club", clubId: "coach_abc" }), true);
+    assert.equal(isProCoachUser({ role: "club", isSoloCoach: true }), true);
     assert.equal(isProCoachUser({ role: "player", plan: "player-essential" }), false);
   });
 

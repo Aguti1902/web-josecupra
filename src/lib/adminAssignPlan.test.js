@@ -108,6 +108,6 @@ describe("assignClubAutoPlan → panel ProCoach", () => {
 
     const meso = JSON.parse(localStorage.getItem("depro_coach_meso_coach_1_team_1"));
     assert.equal(meso.engine, "club_auto");
-    assert.ok((meso.weeks || []).length >= 1);
+    assert.ok(Number(meso.numWeeks) >= 1);
   });
 });

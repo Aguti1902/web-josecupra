@@ -13,7 +13,7 @@ import LanguageSwitcher from "../shared/LanguageSwitcher";
 import { TutorialProvider, useTutorial } from "./DashboardTutorial";
 import AiAssistantWidget from "./AiAssistantWidget";
 import PanelSearch from "../shared/PanelSearch";
-import { getPlanLabel, isInTrial, mustPayToContinue, getTrialDaysLeft } from "../../lib/subscription";
+import { getPlanLabel, isInTrial, mustPayToContinue, getTrialDaysLeft, hasFeatureAccess } from "../../lib/subscription";
 import { isClubAdmin, isClubGlobalView, canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
@@ -261,8 +261,8 @@ function AppLayoutInner({ children }) {
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/dashboard/plan", icon: Calendar, label: t("nav.weekly_plan") },
     { to: "/dashboard/wellness", icon: HeartPulse, label: "Wellness" },
-    { to: "/dashboard/mis-cargas", icon: TrendingUp, label: "Mis cargas" },
-    { to: "/dashboard/physical", icon: Activity, label: t("nav.tests") },
+    ...(hasFeatureAccess(user, "cargas") ? [{ to: "/dashboard/mis-cargas", icon: TrendingUp, label: "Mis cargas" }] : []),
+    ...(hasFeatureAccess(user, "physical_tests") ? [{ to: "/dashboard/physical", icon: Activity, label: t("nav.tests") }] : []),
     { to: "/dashboard/feedback", icon: MessageSquare, label: t("nav.feedback") },
     { to: "/dashboard/ranking", icon: Trophy, label: t("nav.ranking") },
     subscriptionNav,
@@ -288,8 +288,8 @@ function AppLayoutInner({ children }) {
     { to: "/dashboard/plan", icon: Calendar, label: t("nav.microcycle") },
     { to: "/dashboard/mesocycle", icon: ClipboardList, label: t("nav.mesocycle") },
     { to: "/dashboard/squad", icon: UsersIcon, label: t("nav.squad") },
-    { to: "/dashboard/team-tests", icon: Activity, label: t("nav.tests") },
-    ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Cargas" }] : []),
+    ...(hasFeatureAccess(user, "team_tests") ? [{ to: "/dashboard/team-tests", icon: Activity, label: t("nav.tests") }] : []),
+    ...(isBlock2or3 && hasFeatureAccess(user, "cargas") ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Cargas" }] : []),
     { to: "/dashboard/club-profile", icon: User, label: t("nav.my_profile") },
   ];
 
@@ -301,8 +301,8 @@ function AppLayoutInner({ children }) {
     { to: "/dashboard/plan", icon: Calendar, label: "Microciclo" },
     { to: "/dashboard/mesocycle", icon: ClipboardList, label: "Mesociclo" },
     { to: "/dashboard/squad", icon: UsersIcon, label: "Plantilla" },
-    { to: "/dashboard/team-tests", icon: Activity, label: "Tests" },
-    ...(isBlock2or3 ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Cargas" }] : []),
+    ...(hasFeatureAccess(user, "team_tests") ? [{ to: "/dashboard/team-tests", icon: Activity, label: "Tests" }] : []),
+    ...(isBlock2or3 && hasFeatureAccess(user, "cargas") ? [{ to: "/dashboard/cargas", icon: TrendingUp, label: "Cargas" }] : []),
     subscriptionNav,
     { to: "/dashboard/club-profile", icon: User, label: "Mi perfil" },
   ];
