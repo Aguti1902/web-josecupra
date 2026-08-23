@@ -20,10 +20,12 @@ export async function fetchClubReferrals(clubId) {
   }
 }
 
-export async function requestClubPayout({ clubId, amount, month, note, iban, markPaid = false }) {
+export async function requestClubPayout({ clubId, amount, month, note, iban, markPaid = false, accessToken }) {
+  const headers = { "Content-Type": "application/json" };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   const res = await fetch("/api/club-referrals", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({
       action: markPaid ? "mark_paid" : "request_payout",
       clubId,

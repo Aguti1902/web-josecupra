@@ -51,6 +51,7 @@ import AdminTestsPage from "./AdminTestsPage";
 import { loadClubs, saveClub, saveClubDetail, loadClubDetail, createClubUser, updateUserByEmail } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect, ManualPriceField } from "../../components/admin/PlanSelectField";
 import ClubEconomyFields from "../../components/admin/ClubEconomyFields";
+import AdminClubCommissionPanel from "../../components/admin/AdminClubCommissionPanel";
 import { PLANS as CHECKOUT_PLANS } from "../../lib/checkoutPlans";
 import {
   ADMIN_STATUS_STYLES,
@@ -2232,6 +2233,7 @@ export default function AdminClubDetailPage() {
       (club.teams || []).forEach((t) => { if (t.coach?.email) n++; });
       return n;
     })() },
+    { id: "comisiones", label: "Transferencias", icon: Wallet },
   ];
 
   const planLabel = CHECKOUT_PLANS[club.plan]?.name || club.plan || "Personalizado";
@@ -2475,7 +2477,7 @@ export default function AdminClubDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-depro-gray-light p-1 rounded-xl w-fit">
+      <div className="flex flex-wrap gap-1 bg-depro-gray-light p-1 rounded-xl w-fit">
         {TABS.map(({ id: tid, label, icon: Icon, count }) => (
           <button
             key={tid}
@@ -2488,11 +2490,13 @@ export default function AdminClubDetailPage() {
           >
             <Icon size={14} />
             {label}
-            <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-              activeTab === tid ? "bg-depro-blue/10 text-depro-blue" : "bg-white text-depro-gray"
-            }`}>
-              {count}
-            </span>
+            {count != null && (
+              <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+                activeTab === tid ? "bg-depro-blue/10 text-depro-blue" : "bg-white text-depro-gray"
+              }`}>
+                {count}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -2942,6 +2946,9 @@ export default function AdminClubDetailPage() {
         </div>
       )}
 
+      {activeTab === "comisiones" && (
+        <AdminClubCommissionPanel club={club} />
+      )}
 
       {showNewTeam && (
         <NewTeamModal

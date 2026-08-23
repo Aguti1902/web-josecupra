@@ -12,6 +12,16 @@ import {
   clubPayoutAccount,
 } from "../src/lib/clubEconomy.js";
 
+async function isDeproAdmin(req, admin) {
+  const auth = req.headers.authorization || req.headers.Authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return false;
+  const { data, error } = await admin.auth.getUser(token);
+  if (error || !data?.user) return false;
+  const meta = data.user.user_metadata || {};
+  return meta.role === "admin" || data.user.email === "jose@depro.es";
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -56,6 +66,10 @@ export default async function handler(req, res) {
       if (!clubId) return res.status(400).json({ error: "clubId required" });
 
       if (action === "request_payout" || action === "mark_paid") {
+        if (action === "mark_paid") {
+          const okAdmin = await isDeproAdmin(req, admin);
+          if (!okAdmin) return res.status(403).json({ error: "Solo el admin DEPRO puede marcar una transferencia como hecha" });
+        }
         const result = await markReferralPayout(admin, clubId, {
           amount,
           month,
