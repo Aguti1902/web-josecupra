@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, RefreshCw, ChevronUp, ChevronDown,
   Clock, Dumbbell, StickyNote, Target, Calendar, Info, Star,
@@ -218,6 +218,7 @@ export default function CoachSessions({ club, team, user }) {
   const [favorites, setFavorites] = useState(() => loadFavorites(clubId));
   const [showBuilder, setShowBuilder] = useState(false);
   const [showExerciseModal, setShowExerciseModal] = useState(false);
+  const [genError, setGenError] = useState(null);
 
   useEffect(() => { loadCoachLibrary().then(() => setLibraryReady(true)); }, []);
   useEffect(() => { prefetchCatalogMedia().catch(() => {}); }, []);
@@ -236,14 +237,21 @@ export default function CoachSessions({ club, team, user }) {
 
   useEffect(() => {
     if (!clubId || !teamId) return;
-    const library = getCachedCoachLibrary();
-    const w = loadOrGenerateWeek({ clubId, teamId, weekStart, config, library });
-    setWeek(w);
-    setActiveSessionId((prev) => {
-      if (targetSessionId && w.sessions.some((s) => s.id === targetSessionId)) return targetSessionId;
-      if (prev && w.sessions.some((s) => s.id === prev)) return prev;
-      return w.sessions[0]?.id || null;
-    });
+    try {
+      const library = getCachedCoachLibrary();
+      const w = loadOrGenerateWeek({ clubId, teamId, weekStart, config, library });
+      setWeek(w);
+      setGenError(null);
+      setActiveSessionId((prev) => {
+        if (targetSessionId && (w.sessions || []).some((s) => s.id === targetSessionId)) return targetSessionId;
+        if (prev && (w.sessions || []).some((s) => s.id === prev)) return prev;
+        return w.sessions?.[0]?.id || null;
+      });
+    } catch (err) {
+      console.warn("[DEPRO] no se pudo generar el microciclo", err);
+      setWeek({ sessions: [] });
+      setGenError(err?.message || "No se pudo generar el microciclo.");
+    }
   }, [clubId, teamId, weekStart, config, libraryReady, targetSessionId]);
 
   const flashSaved = useCallback(() => {
@@ -337,7 +345,25 @@ export default function CoachSessions({ club, team, user }) {
     flashSaved();
   }
 
-  if (!clubId || !teamId) return null;
+  if (!clubId || !teamId) {
+    return (
+      <div className="bg-white border border-depro-border rounded-2xl p-8 text-center space-y-3">
+        <Calendar size={28} className="mx-auto text-depro-gray/40" />
+        <h1 className="text-xl font-black text-depro-dark">Microciclo</h1>
+        <p className="text-sm text-depro-gray">
+          {!clubId
+            ? "Guarda el cuestionario en Mi perfil para crear tu club y generar el microciclo."
+            : "Elige un equipo desde el dashboard para ver su microciclo."}
+        </p>
+        <Link
+          to={!clubId ? "/dashboard/club-profile" : "/dashboard"}
+          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-depro-blue text-white text-sm font-bold"
+        >
+          {!clubId ? "Ir a Mi perfil" : "Ver equipos"}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -412,7 +438,11 @@ export default function CoachSessions({ club, team, user }) {
       {!week?.sessions?.length ? (
         <div className="bg-white border border-depro-border rounded-2xl p-10 text-center">
           <Calendar size={28} className="mx-auto mb-2 text-depro-gray/40" />
-          <p className="text-depro-gray text-sm">No hay sesiones configuradas todavía. Revisa tu frecuencia de entrenamiento en tu perfil.</p>
+          <p className="text-depro-gray text-sm">
+            {genError
+              ? `No se pudo generar el microciclo. ${genError}`
+              : "No hay sesiones configuradas todavía. Revisa tu frecuencia de entrenamiento en tu perfil."}
+          </p>
         </div>
       ) : (
         <>

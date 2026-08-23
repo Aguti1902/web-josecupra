@@ -19,6 +19,7 @@ import {
   intensityFromFramework, buildTemplateKeyOptions,
   ensureSessionTemplateFields, filterSessionsByFramework,
 } from "../../lib/mesocycleTemplates";
+import { broadcastGlobalPlansToManualClubs } from "../../lib/clubManualPlans";
 
 /* ── Constantes globales ─────────────────────────────────── */
 const AGE_BLOCKS = [
@@ -69,6 +70,11 @@ async function saveGlobalPlans(plans) {
     });
     if (!res.ok) console.warn("[DEPRO] saveGlobalPlans API error", await res.text());
   } catch (e) { console.warn("[DEPRO] saveGlobalPlans fetch error", e); }
+  try {
+    await broadcastGlobalPlansToManualClubs(plans);
+  } catch (e) {
+    console.warn("[DEPRO] broadcast a clubs manuales falló", e);
+  }
 }
 
 async function fetchGlobalPlansFromAPI() {
@@ -745,7 +751,7 @@ export default function AdminPlanificacionPage() {
         <div>
           <h1 className="text-2xl font-black text-depro-dark">Planificación global</h1>
           <p className="text-depro-gray text-sm mt-1">
-            Crea los microciclos de cada bloque. Todos los equipos del mismo bloque los recibirán automáticamente.
+            Crea los microciclos de cada bloque. Se asignan a todos los clubs llevados por mí; si editas la planificación dentro de un club, solo cambia ese club.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">

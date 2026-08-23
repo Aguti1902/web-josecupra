@@ -65,12 +65,17 @@ export function loadOrGenerateWeek({ clubId, teamId, weekStart, config, library 
 
   const offset = weekIndexInMonth(weekStart);
   const monthKey = monthKeyFromDate(weekStart);
-  const generated = withFingerprint(
-    usesClubAutoEngine(config)
-      ? generateClubAutoWeekForCoach(config, { weekStart, weekOffset: offset, monthKey })
-      : generateMicrociclo({ config, weekStart, library }),
-    config,
-  );
+  let generated;
+  try {
+    generated = withFingerprint(
+      usesClubAutoEngine(config)
+        ? generateClubAutoWeekForCoach(config, { weekStart, weekOffset: offset, monthKey })
+        : generateMicrociclo({ config, weekStart, library }),
+      config,
+    );
+  } catch {
+    generated = withFingerprint({ sessions: [], weekStart, engine: usesClubAutoEngine(config) ? "club_auto" : "depro" }, config);
+  }
   saveWeek({ clubId, teamId, weekStart, data: generated });
   return generated;
 }
@@ -125,12 +130,24 @@ export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, end
     }
   }
 
-  const generated = withFingerprint(
-    usesClubAutoEngine(config)
-      ? generateClubAutoMesocicloForCoach(config, { startDate: start, endDate: end, numWeeks })
-      : generateMesociclo({ config, startDate: start, numWeeks: numWeeks || 4, library }),
-    config,
-  );
+  let generated;
+  try {
+    generated = withFingerprint(
+      usesClubAutoEngine(config)
+        ? generateClubAutoMesocicloForCoach(config, { startDate: start, endDate: end, numWeeks })
+        : generateMesociclo({ config, startDate: start, numWeeks: numWeeks || 4, library }),
+      config,
+    );
+  } catch {
+    generated = withFingerprint({
+      startDate: start,
+      endDate: end,
+      weeks: [],
+      objetivoLabel: "Mesociclo",
+      numWeeks: numWeeks || 4,
+      engine: usesClubAutoEngine(config) ? "club_auto" : "depro",
+    }, config);
+  }
   saveMesociclo({ clubId, teamId, data: generated });
   return generated;
 }

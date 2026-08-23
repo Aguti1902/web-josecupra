@@ -18,6 +18,7 @@ import { getSessionDisplayKey } from "../../lib/mesocycleTemplates";
 import CoachPlanning from "../../components/private/CoachPlanning";
 import MesocycleCalendar from "../../components/private/MesocycleCalendar";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans } from "../../lib/clubManualPlans";
 
 /* ── Contraste seguro ───────────────────────────────────── */
 function lum(hex) {
@@ -184,12 +185,15 @@ export default function MesocyclePage() {
   const userAgeBlock = getAgeBlock(teamCategory);
 
   const [allPlans, setAllPlans] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("depro_global_plans") || "[]"); }
-    catch { return []; }
+    try {
+      const global = JSON.parse(localStorage.getItem("depro_global_plans") || "[]");
+      return resolveClubPanelPlans(user?.club, global);
+    } catch { return []; }
   });
   const [viewMode, setViewMode] = useState("calendar"); // "calendar" | "list"
 
   useEffect(() => {
+    if (isProCoachUser(user)) return;
     fetch("/api/admin-clubs")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
@@ -197,12 +201,14 @@ export default function MesocyclePage() {
         const globalEntry = (data.clubs || []).find((c) => c.id === "GLOBAL_PLANS");
         if (globalEntry?.plans?.length > 0) {
           try { localStorage.setItem("depro_global_plans", JSON.stringify(globalEntry.plans)); } catch {}
-          setAllPlans(globalEntry.plans);
         }
+        const picked = pickPlansFromAdminClubsResponse(data.clubs, user?.club, globalEntry?.plans || []);
+        if (picked.length) setAllPlans(picked);
       })
       .catch(() => {});
-  }, []);
+  }, [user?.club?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const isCoach = isProCoachUser(user);
   const blockPlans = allPlans.filter((p) => {
     if (p.ageBlock && userAgeBlock) return p.ageBlock === userAgeBlock;
     return true;
@@ -217,12 +223,11 @@ export default function MesocyclePage() {
   const mesocicloActive = isMesocicloActive(activePlan?.startDate, activePlan?.endDate);
   const totalCalendarWeeks = getMesocicloWeeks(activePlan?.startDate, activePlan?.endDate);
 
-  // Pasar totalCalendarWeeks para que las sesiones plantilla se repitan cada semana
-  const { weeks, totalSessions, sessionsPerWeek } = distributeMesocycleForTeam(
-    activePlan, trainingDays, 3, totalCalendarWeeks
-  );
+  const { weeks, totalSessions, sessionsPerWeek } = isCoach
+    ? { weeks: [], totalSessions: 0, sessionsPerWeek: 0 }
+    : distributeMesocycleForTeam(activePlan, trainingDays, 3, totalCalendarWeeks);
 
-  if (isProCoachUser(user)) {
+  if (isCoach) {
     return (
       <FeatureGate user={user} feature="mesocycle">
       <div className="dash-page">

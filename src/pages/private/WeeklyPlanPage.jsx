@@ -28,6 +28,7 @@ import { canDownloadTrialPdf, recordTrialPdfDownload, trialPdfLimitMessage } fro
 import { savePlayerPlan } from "../../lib/playerPlanStorage";
 import CoachSessions from "../../components/private/CoachSessions";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans } from "../../lib/clubManualPlans";
 import DisenarTareas from "../../components/shared/DisenarTareas";
 import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
@@ -1299,10 +1300,12 @@ function ClubMicrocycles({ accent }) {
   const trainingDays = activeTeam?.trainingDays || []; // días del equipo
   const clubId = user?.club?.id ?? null;
 
-  // Cargar planes globales: localStorage primero, luego API (cross-device)
+  // Manual: club.plans. Automático: GLOBAL_PLANS. Fallback local.
   const [allPlans, setAllPlans] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("depro_global_plans") || "[]").map(normalizePlan); }
-    catch { return []; }
+    try {
+      const global = JSON.parse(localStorage.getItem("depro_global_plans") || "[]");
+      return resolveClubPanelPlans(user?.club, global).map(normalizePlan);
+    } catch { return []; }
   });
   useEffect(() => {
     fetch("/api/admin-clubs")
@@ -1313,11 +1316,12 @@ function ClubMicrocycles({ accent }) {
         const apiPlans = globalEntry?.plans;
         if (apiPlans?.length > 0) {
           try { localStorage.setItem("depro_global_plans", JSON.stringify(apiPlans)); } catch {}
-          setAllPlans(apiPlans.map(normalizePlan));
         }
+        const picked = pickPlansFromAdminClubsResponse(data.clubs, user?.club, apiPlans || []);
+        if (picked.length) setAllPlans(picked.map(normalizePlan));
       })
       .catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.club?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filtrar: coordinador ve todos; entrenador ve planes de su bloque de edad
   // Sistema nuevo: filtra por ageBlock. Sistema antiguo (fallback): filtra por teamId.

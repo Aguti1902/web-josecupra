@@ -1,15 +1,20 @@
 import { createContext, useContext, useState } from "react";
 import { useAuth } from "./AuthContext";
+import { isProCoachUser } from "../lib/clubAuto/clubAutoCoachBridge";
 
 const ViewContext = createContext({ viewingTeam: null, setViewingTeam: () => {} });
 
 export function useView() { return useContext(ViewContext); }
 
-/** Devuelve el equipo "activo": el equipo visto por el coordinador o el equipo asignado al usuario. */
+/** Equipo activo: el que mira el coordinador, el asignado, o el primero en ProCoach. */
 export function useActiveTeam() {
   const { user } = useAuth();
   const { viewingTeam } = useView();
-  return viewingTeam || user?.team || null;
+  if (viewingTeam) return viewingTeam;
+  if (user?.team) return user.team;
+  const teams = user?.club?.teams || [];
+  if (isProCoachUser(user) && teams.length) return teams[0];
+  return null;
 }
 
 /** true si el rol actual es coordinador (no puede editar) */
