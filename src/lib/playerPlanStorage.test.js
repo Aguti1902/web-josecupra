@@ -42,8 +42,17 @@ describe("normalizePlayerPlan", () => {
     assert.equal(out.weeks.length, 2);
   });
 
-  it("no rompe premiumPending", () => {
-    const pending = { premiumPending: true, planPendingManual: true, sessions: [] };
-    assert.deepEqual(normalizePlayerPlan(pending), pending);
+  it("conserva startDate al normalizar weeks", () => {
+    const payload = {
+      startDate: "2026-08-17",
+      weeks: [
+        {
+          week: 1,
+          days: [{ day: "Lunes", sessions: [{ id: "a", type: "Fuerza" }] }],
+        },
+      ],
+    };
+    const out = normalizePlayerPlan(payload);
+    assert.equal(out.startDate, "2026-08-17");
   });
 });

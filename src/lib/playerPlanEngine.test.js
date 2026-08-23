@@ -3,7 +3,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildPlayerPlan, checkPlanCompatibility } from "./playerPlanEngine.js";
+import { buildPlayerPlan, checkPlanCompatibility, buildMesoPlayerPlan, resolvePlayerPlanStartDate, mondayOfDate } from "./playerPlanEngine.js";
 import { getAllowedIntensities, getMatchDayDistance, placeSessionsOnCalendar } from "./planLoadRules.js";
 import { buildWeekSessionList } from "./objectiveSessionMatrix.js";
 
@@ -267,5 +267,60 @@ describe("helpers matriz / distancias", () => {
     assert.equal(byDay.Jueves, "Velocidad");
     assert.equal(byDay.Lunes, "Prevención");
     assert.equal(byDay.Viernes, "Prevención");
+  });
+});
+
+describe("buildMesoPlayerPlan desde plan guardado", () => {
+  it("clona sesiones del microciclo aunque el perfil no regenere", () => {
+    const saved = [
+      { day: "Lunes", sessions: [{ id: "s1", title: "Fuerza A", duration: "45 min", type: "Fuerza" }] },
+      { day: "Martes", sessions: [] },
+      { day: "Miércoles", sessions: [{ id: "s2", title: "Velocidad", duration: "40 min", type: "Velocidad" }] },
+      { day: "Jueves", sessions: [] },
+      { day: "Viernes", sessions: [] },
+      { day: "Sábado", sessions: [] },
+      { day: "Domingo", sessions: [] },
+    ];
+    // Usuario sin días → regenerar daría vacío; el mesociclo debe usar el plan guardado
+    const meso = buildMesoPlayerPlan({ id: "u", disponibles: [] }, 4, saved);
+    assert.equal(meso.length, 4);
+    meso.forEach((w) => {
+      assert.equal(w.sessions.length, 2);
+      assert.ok(w.sessions.some((s) => s.dayName === "Lunes"));
+      assert.ok(w.sessions.some((s) => s.dayName === "Miércoles"));
+    });
+  });
+
+  it("usa weeks almacenadas del admin si existen", () => {
+    const saved = [
+      { day: "Lunes", sessions: [{ id: "cur", title: "Actual" }] },
+    ];
+    saved.weeks = [
+      {
+        week: 1,
+        sessions: [
+          { id: "a", title: "Sem1 Fuerza", dayName: "Lunes", duration: "40 min" },
+          { id: "b", title: "Sem1 Vel", dayName: "Jueves", duration: "35 min" },
+        ],
+      },
+      {
+        week: 2,
+        days: [
+          { day: "Lunes", sessions: [{ id: "c", title: "Sem2 Fuerza", duration: "40 min" }] },
+        ],
+      },
+    ];
+    const meso = buildMesoPlayerPlan({ id: "u" }, 4, saved);
+    assert.equal(meso[0].sessions.length, 2);
+    assert.equal(meso[0].sessions[0].title, "Sem1 Fuerza");
+    assert.equal(meso[1].sessions.length, 1);
+    assert.equal(meso[1].sessions[0].dayName, "Lunes");
+  });
+
+  it("resolvePlayerPlanStartDate ancla en lunes y respeta startDate", () => {
+    assert.equal(resolvePlayerPlanStartDate({ startDate: "2026-08-17" }), "2026-08-17");
+    const monday = mondayOfDate(new Date("2026-08-23T15:00:00"));
+    assert.equal(monday, "2026-08-17");
+    assert.equal(resolvePlayerPlanStartDate({}, new Date("2026-08-23T15:00:00")), "2026-08-17");
   });
 });

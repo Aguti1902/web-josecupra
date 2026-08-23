@@ -409,7 +409,7 @@ function CompletionButton({ completion, onComplete, onUncomplete, accentColor })
 }
 
 /** Calendario semanal L–D con sesiones clicables */
-export function WeekCalendar({ plan, accentColor, activeSessionId, onSelectSession }) {
+export function WeekCalendar({ plan, accentColor, activeSessionId, onSelectSession, weekLabel }) {
   const todayName = getTodayName();
   const sessionByDay = {};
   (plan || []).forEach((d) => {
@@ -418,10 +418,15 @@ export function WeekCalendar({ plan, accentColor, activeSessionId, onSelectSessi
 
   return (
     <div className="bg-white border border-depro-border rounded-2xl p-3 sm:p-4 shadow-card">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3">
         <div>
           <div className="text-xs font-bold uppercase tracking-wide text-depro-gray">Calendario semanal</div>
-          <div className="text-sm font-black text-depro-dark">Toca un día para abrir la sesión</div>
+          <div className="text-sm font-black text-depro-dark">
+            {weekLabel ? `Semana actual · ${weekLabel}` : "Toca un día para abrir la sesión"}
+          </div>
+          {weekLabel && (
+            <div className="text-[11px] text-depro-gray mt-0.5">Toca un día para abrir la sesión</div>
+          )}
         </div>
       </div>
       <div className="overflow-x-auto -mx-1 px-1 pb-1">
@@ -701,7 +706,16 @@ export function PlayerSessionFullscreen({
 export { getNonEmptyBlocks, getSessionBlocks };
 
 /** Calendario mensual del mesociclo: 4 semanas × 7 días */
-export function MesoMonthCalendar({ mesoWeeks, accentColor, activeSessionId, onSelectSession, completedByDay, completedWeek = 1 }) {
+export function MesoMonthCalendar({
+  mesoWeeks,
+  accentColor,
+  activeSessionId,
+  onSelectSession,
+  completedByDay,
+  completedWeek = 1,
+  currentWeek = 1,
+  weekRangeLabels = {},
+}) {
   const sessionByWeekDay = {};
   (mesoWeeks || []).forEach((week) => {
     week.sessions.forEach((s) => {
@@ -737,10 +751,23 @@ export function MesoMonthCalendar({ mesoWeeks, accentColor, activeSessionId, onS
       </div>
 
       <div className="space-y-3">
-        {(mesoWeeks || []).map((week) => (
-          <div key={week.week}>
-            <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-1.5 px-0.5">
-              {week.label}
+        {(mesoWeeks || []).map((week) => {
+          const isCurrent = week.week === currentWeek;
+          const rangeLabel = weekRangeLabels[week.week] || week.rangeLabel;
+          return (
+          <div
+            key={week.week}
+            className={isCurrent ? "rounded-xl ring-2 ring-depro-blue/40 ring-offset-2 p-1 -m-1" : undefined}
+          >
+            <div className={`text-[10px] font-bold uppercase tracking-wide mb-1.5 px-0.5 flex items-center gap-2 flex-wrap ${
+              isCurrent ? "text-depro-blue" : "text-depro-gray"
+            }`}>
+              <span>{week.label}{rangeLabel ? ` · ${rangeLabel}` : ""}</span>
+              {isCurrent && (
+                <span className="normal-case tracking-normal text-[9px] font-black px-2 py-0.5 rounded-full bg-depro-blue text-white">
+                  Semana actual
+                </span>
+              )}
             </div>
             <div className="grid grid-cols-7 gap-1.5">
               {WEEK_DAYS.map((day) => {
@@ -787,7 +814,8 @@ export function MesoMonthCalendar({ mesoWeeks, accentColor, activeSessionId, onS
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
         </div>
       </div>

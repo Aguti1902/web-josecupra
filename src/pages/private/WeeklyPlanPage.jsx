@@ -16,7 +16,7 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, hydratePlayerPlan, buildMinimalSession, refreshExercise, normalizeLesions, checkPlanCompatibility } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, hydratePlayerPlan, buildMinimalSession, refreshExercise, normalizeLesions, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
 import PlanCompatibilityModal from "../../components/private/PlanCompatibilityModal";
 import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "../../lib/sessionProgress";
 import {
@@ -615,7 +615,17 @@ function PlayerWeeklyPlan({ accent }) {
 
   const completedMicro  = microSessions.filter((s) => s.status === "completed").length;
   const pctMicro        = microSessions.length ? Math.round((completedMicro / microSessions.length) * 100) : 0;
-  const mesoWeeks       = view === "meso" ? buildMesoPlayerPlan(user) : [];
+  const planStartDate   = resolvePlayerPlanStartDate(plan);
+  const currentWeekIdx  = getCurrentWeekIndex(planStartDate);
+  const currentWeekNum  = currentWeekIdx < 0 ? 1 : Math.min(4, currentWeekIdx + 1);
+  const currentWeekLabel = formatWeekRangeLabel(planStartDate, Math.max(0, currentWeekIdx));
+  const mesoWeeks       = view === "meso" ? buildMesoPlayerPlan(user, 4, plan) : [];
+  const mesoWeekRangeLabels = Object.fromEntries(
+    (mesoWeeks.length ? mesoWeeks : [{ week: 1 }, { week: 2 }, { week: 3 }, { week: 4 }]).map((w) => [
+      w.week,
+      formatWeekRangeLabel(planStartDate, (w.week || 1) - 1),
+    ]),
+  );
   const completedMesoDays = new Set(
     microSessions.filter((s) => s.status === "completed").map((s) => s.dayName),
   );
@@ -705,7 +715,9 @@ function PlayerWeeklyPlan({ accent }) {
               {pctMicro}%
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-0.5">Progreso semanal</div>
+              <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-0.5">
+                Semana actual · {currentWeekLabel}
+              </div>
               <div className="font-black text-depro-dark">{completedMicro} de {microSessions.length} sesiones completadas</div>
               <div className="h-1.5 w-full bg-depro-gray-light rounded-full overflow-hidden mt-2">
                 <div className="h-full rounded-full transition-all" style={{ width:`${pctMicro}%`, backgroundColor: accent }} />
@@ -719,6 +731,7 @@ function PlayerWeeklyPlan({ accent }) {
             accentColor={accent}
             activeSessionId={activeSessionId}
             onSelectSession={openSession}
+            weekLabel={currentWeekLabel}
           />
 
           {/* Acceso rápido: sesión de hoy */}
@@ -757,16 +770,40 @@ function PlayerWeeklyPlan({ accent }) {
       {view === "meso" && (
         <div className="space-y-6">
           <p className="text-depro-gray text-sm">
-            4 semanas · {microSessions.length} sesiones por semana · Misma estructura cada semana
+            4 semanas · {microSessions.length} sesiones por semana · Semana actual:{" "}
+            <strong className="text-depro-dark">{currentWeekLabel}</strong>
           </p>
-          <MesoMonthCalendar
-            mesoWeeks={mesoWeeks}
-            accentColor={accent}
-            activeSessionId={activeSessionId}
-            onSelectSession={openSession}
-            completedByDay={completedMesoDays}
-            completedWeek={1}
-          />
+          {mesoWeeks.every((w) => !w.sessions?.length) ? (
+            <div className="bg-white border border-depro-border rounded-2xl text-center py-16 shadow-card">
+              <div className="w-14 h-14 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
+                <Moon size={26} className="text-depro-gray" />
+              </div>
+              <h3 className="text-lg font-bold text-depro-dark mb-2">Sin entrenos en el mesociclo</h3>
+              <p className="text-depro-gray text-sm max-w-xs mx-auto mb-4">
+                Genera o regenera tu plan semanal para ver las sesiones en el calendario mensual.
+              </p>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={generating}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark disabled:opacity-60"
+              >
+                {generating ? <RefreshCw size={16} className="animate-spin" /> : <Zap size={16} />}
+                Regenerar plan
+              </button>
+            </div>
+          ) : (
+            <MesoMonthCalendar
+              mesoWeeks={mesoWeeks}
+              accentColor={accent}
+              activeSessionId={activeSessionId}
+              onSelectSession={openSession}
+              completedByDay={completedMesoDays}
+              completedWeek={currentWeekNum}
+              currentWeek={currentWeekNum}
+              weekRangeLabels={mesoWeekRangeLabels}
+            />
+          )}
         </div>
       )}
     </div>
