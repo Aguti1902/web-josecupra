@@ -12,6 +12,7 @@ import {
 } from "../lib/playerTrainingProfile";
 import { getImpersonationSnapshot, stopImpersonation, isRealAdminUser } from "../lib/adminImpersonation";
 import { parseCoachAutoFromMeta, isProCoachUser } from "../lib/clubAuto/clubAutoCoachBridge";
+import { isSessionPresenceEvent, isSignedOutEvent } from "../lib/authSession";
 
 const AuthContext = createContext(null);
 
@@ -316,25 +317,16 @@ async function fetchProfile(userId) {
   }
 }
 
-function lookupClubSummary(clubId) {
-  if (!clubId) return null;
-  try {
-    const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
-    return clubs.find((c) => c.id === clubId) || null;
-  } catch {
-    return null;
-  }
-}
-
 function sessionIsDraftBlocked(authUser) {
   if (!authUser) return false;
   if (getImpersonationSnapshot()) return false;
   const meta = authUser.user_metadata || {};
-  const role = meta.role || (authUser.email === "jose@depro.es" ? "admin" : "player");
-  return shouldBlockAccountLogin(
-    { role, email: authUser.email, subscriptionStatus: meta.subscriptionStatus },
-    lookupClubSummary(meta.clubId),
-  );
+  const role = meta.role || (String(authUser.email || "").toLowerCase() === "jose@depro.es" ? "admin" : "player");
+  return shouldBlockAccountLogin({
+    role,
+    email: authUser.email,
+    subscriptionStatus: meta.subscriptionStatus,
+  });
 }
 
 function snapshotToAuthUser(snap) {
@@ -400,148 +392,187 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ── Patrón recomendado Supabase v2: onAuthStateChange maneja TODO,
-    //    incluido INITIAL_SESSION que restaura la sesión al recargar.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          if (sessionIsDraftBlocked(session.user)) {
-            await supabase.auth.signOut();
-            setUser(null);
-            setLoading(false);
-            return;
-          }
-          // Primero ponemos el usuario básico sin bloquear la UI
-          const basic = withImpersonation(buildUser(session.user, null));
-          setUser(basic);
-          setLoading(false);
+    let cancelled = false;
+    let enrichForId = "";
+    let hasLiveSession = false;
 
-          // Enriquecer con perfil de Supabase
-          fetchProfile(session.user.id).then(async (profile) => {
-            const realBuilt = buildUser(session.user, profile || null);
-            const builtUser = withImpersonation(realBuilt);
-            setUser(builtUser);
-
-            if (builtUser.role === "player") {
-              import("../lib/playerPlanEngine").then(({ hydratePlayerPlan }) => {
-                const pending = sessionStorage.getItem("depro_pending_plan_user");
-                if (pending === builtUser.id) {
-                  localStorage.removeItem(`depro_plan_${builtUser.id}`);
-                  sessionStorage.removeItem("depro_pending_plan_user");
-                }
-                return hydratePlayerPlan(builtUser);
-              }).catch(() => {});
-            }
-
-            // Si es usuario de club, sincronizar datos del club desde la API
-            // para garantizar que teams/sesiones estén siempre actualizados (cross-device)
-            const isClubUser = builtUser.role === "club" ||
-              (session.user.user_metadata?.role === "club");
-            if (isClubUser) {
-              try {
-                const res = await fetch("/api/admin-clubs");
-                if (res.ok) {
-                  const data = await res.json();
-                  const clubs = (data.clubs || []).filter(
-                    (c) => c.id && !["GLOBAL_PLANS","GLOBAL_TESTS","CATALOG_OVERRIDES"].includes(c.id)
-                  );
-                  if (clubs.length > 0) {
-                    // Fusionar con localStorage preservando logo/colores locales si la API no los tiene
-                    const existingLocal = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
-                    const mergedSummaries = clubs.map((remote) => {
-                      const local = existingLocal.find((c) => c.id === remote.id);
-                      const base = local ? { ...local, ...remote } : remote;
-                      return {
-                        id: base.id, name: base.name, abbreviation: base.abbreviation,
-                        login_code: base.login_code, coordinator: base.coordinator,
-                        status: base.status, plan: base.plan, city: base.city,
-                        country: base.country,
-                        isSoloCoach: remote.isSoloCoach ?? local?.isSoloCoach ?? false,
-                        planningMode: remote.planningMode || local?.planningMode || null,
-                        origen: remote.origen || local?.origen || null,
-                        mode: remote.mode || local?.mode || null,
-                        manualPrice: remote.manualPrice ?? local?.manualPrice ?? null,
-                        coachConfig: remote.coachConfig || local?.coachConfig || null,
-                        primaryColor:   remote.primaryColor   ?? local?.primaryColor   ?? null,
-                        secondaryColor: remote.secondaryColor ?? local?.secondaryColor ?? null,
-                        slogan:         remote.slogan         ?? local?.slogan         ?? null,
-                        logo:           remote.logo           ?? local?.logo           ?? null,
-                        banner:         remote.banner         ?? local?.banner         ?? null,
-                      };
-                    });
-                    try {
-                      localStorage.setItem("depro_clubs", JSON.stringify(mergedSummaries));
-                    } catch { /* cupo */ }
-                    for (const c of clubs) {
-                      const localDetail = JSON.parse(localStorage.getItem(`depro_club_${c.id}`) || "null");
-                      // Fusionar: la API es fuente de verdad, pero preservar logo/banner/colores locales
-                      const merged = localDetail
-                        ? {
-                            ...localDetail, ...c,
-                            logo:           c.logo           ?? localDetail.logo           ?? null,
-                            banner:         c.banner         ?? localDetail.banner         ?? null,
-                            primaryColor:   c.primaryColor   ?? localDetail.primaryColor   ?? null,
-                            secondaryColor: c.secondaryColor ?? localDetail.secondaryColor ?? null,
-                            slogan:         c.slogan         ?? localDetail.slogan         ?? null,
-                            teams:          (c.teams?.length > 0 ? c.teams : null) ?? localDetail.teams ?? [],
-                            coachConfig:    (c.coachConfig?.nivel || c.coachConfig?.engine)
-                              ? c.coachConfig
-                              : (localDetail.coachConfig || c.coachConfig || null),
-                            planningMode:   c.planningMode || localDetail.planningMode || null,
-                            origen:         c.origen || localDetail.origen || null,
-                            mode:           c.mode || localDetail.mode || null,
-                            isSoloCoach:    c.isSoloCoach ?? localDetail.isSoloCoach ?? false,
-                            manualPrice:    c.manualPrice ?? localDetail.manualPrice ?? null,
-                          }
-                        : c;
-                      delete merged.coachWeeks;
-                      delete merged.coachMesociclo;
-                      try {
-                        localStorage.setItem(`depro_club_${c.id}`, JSON.stringify(merged));
-                      } catch { /* cupo: no tumbar el login */ }
-                    }
-                    const freshUser = withImpersonation(buildUser(session.user, profile || null));
-                    if (!freshUser?.impersonating && sessionIsDraftBlocked(session.user)) {
-                      await supabase.auth.signOut();
-                      setUser(null);
-                      return;
-                    }
-                    setUser(freshUser);
-                    return;
-                  }
-                }
-                // Si la API falla o está vacía, intentar construir usuario con meta.clubId aunque
-                // no haya datos en localStorage (muestra UI sin datos pero con rol correcto)
-                const meta = (builtUser.impersonating
-                  ? { clubId: builtUser.clubId }
-                  : (session.user.user_metadata ?? {}));
-                if (meta.clubId && !builtUser.club) {
-                  const minimalClub = { id: meta.clubId, name: builtUser.clubName || "Mi Club", teams: [], plans: [] };
-                  localStorage.setItem(`depro_club_${meta.clubId}`, JSON.stringify(minimalClub));
-                  const local = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
-                  if (!local.find((c) => c.id === meta.clubId)) {
-                    local.unshift(minimalClub);
-                    localStorage.setItem("depro_clubs", JSON.stringify(local));
-                  }
-                  const fallbackUser = withImpersonation(buildUser(session.user, profile || null));
-                  setUser(fallbackUser);
-                }
-              } catch { /* silencioso */ }
-            }
-          });
-        } else {
-          setUser(null);
-          setLoading(false);
-        }
+    const applySession = (session, { signedOut = false, enrich = true } = {}) => {
+      if (cancelled) return;
+      if (signedOut) {
+        hasLiveSession = false;
+        enrichForId = "";
+        setUser(null);
+        setLoading(false);
+        return;
       }
-    );
+      if (!session?.user) {
+        // getSession() a veces llega vacío un instante antes de INITIAL_SESSION.
+        // No borres una sesión ya restaurada.
+        if (!hasLiveSession) setLoading(false);
+        return;
+      }
+      hasLiveSession = true;
+      if (sessionIsDraftBlocked(session.user)) {
+        setUser(null);
+        setLoading(false);
+        // Fuera del callback de auth: await signOut() bloquea el lock de supabase-js.
+        setTimeout(() => { supabase.auth.signOut().catch(() => {}); }, 0);
+        return;
+      }
+      setUser(withImpersonation(buildUser(session.user, null)));
+      setLoading(false);
+      if (enrich) enrichUser(session);
+    };
 
-    // Safety net: si Supabase tarda más de 5s en emitir INITIAL_SESSION
-    const timeout = setTimeout(() => setLoading(false), 5000);
+    const enrichUser = (session) => {
+      const userId = session.user.id;
+      if (enrichForId === userId) return;
+      enrichForId = userId;
+
+      fetchProfile(userId).then(async (profile) => {
+        if (cancelled) return;
+        const builtUser = withImpersonation(buildUser(session.user, profile || null));
+        setUser(builtUser);
+
+        if (builtUser.role === "player") {
+          import("../lib/playerPlanEngine").then(({ hydratePlayerPlan }) => {
+            const pending = sessionStorage.getItem("depro_pending_plan_user");
+            if (pending === builtUser.id) {
+              localStorage.removeItem(`depro_plan_${builtUser.id}`);
+              sessionStorage.removeItem("depro_pending_plan_user");
+            }
+            return hydratePlayerPlan(builtUser);
+          }).catch(() => {});
+        }
+
+        const isClubUser = builtUser.role === "club" || session.user.user_metadata?.role === "club";
+        if (!isClubUser) return;
+
+        try {
+          const clubId = builtUser.clubId || session.user.user_metadata?.clubId;
+          const url = clubId
+            ? `/api/admin-clubs?id=${encodeURIComponent(clubId)}`
+            : "/api/admin-clubs";
+          const res = await fetch(url);
+          if (cancelled) return;
+          if (res.ok) {
+            const data = await res.json();
+            const clubs = (data.clubs || []).filter(
+              (c) => c.id && !["GLOBAL_PLANS", "GLOBAL_TESTS", "CATALOG_OVERRIDES"].includes(c.id)
+            );
+            if (clubs.length > 0) {
+              const existingLocal = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+              const mergedSummaries = clubs.map((remote) => {
+                const local = existingLocal.find((c) => c.id === remote.id);
+                const base = local ? { ...local, ...remote } : remote;
+                return {
+                  id: base.id, name: base.name, abbreviation: base.abbreviation,
+                  login_code: base.login_code, coordinator: base.coordinator,
+                  status: base.status, plan: base.plan, city: base.city,
+                  country: base.country,
+                  isSoloCoach: remote.isSoloCoach ?? local?.isSoloCoach ?? false,
+                  planningMode: remote.planningMode || local?.planningMode || null,
+                  origen: remote.origen || local?.origen || null,
+                  mode: remote.mode || local?.mode || null,
+                  manualPrice: remote.manualPrice ?? local?.manualPrice ?? null,
+                  coachConfig: remote.coachConfig || local?.coachConfig || null,
+                  primaryColor:   remote.primaryColor   ?? local?.primaryColor   ?? null,
+                  secondaryColor: remote.secondaryColor ?? local?.secondaryColor ?? null,
+                  slogan:         remote.slogan         ?? local?.slogan         ?? null,
+                  logo:           remote.logo           ?? local?.logo           ?? null,
+                  banner:         remote.banner         ?? local?.banner         ?? null,
+                };
+              });
+              const keepOthers = clubId
+                ? existingLocal.filter((c) => !mergedSummaries.some((m) => m.id === c.id))
+                : [];
+              try {
+                localStorage.setItem("depro_clubs", JSON.stringify([...mergedSummaries, ...keepOthers]));
+              } catch { /* cupo */ }
+              for (const c of clubs) {
+                const localDetail = JSON.parse(localStorage.getItem(`depro_club_${c.id}`) || "null");
+                const merged = localDetail
+                  ? {
+                      ...localDetail, ...c,
+                      logo:           c.logo           ?? localDetail.logo           ?? null,
+                      banner:         c.banner         ?? localDetail.banner         ?? null,
+                      primaryColor:   c.primaryColor   ?? localDetail.primaryColor   ?? null,
+                      secondaryColor: c.secondaryColor ?? localDetail.secondaryColor ?? null,
+                      slogan:         c.slogan         ?? localDetail.slogan         ?? null,
+                      teams:          (c.teams?.length > 0 ? c.teams : null) ?? localDetail.teams ?? [],
+                      coachConfig:    (c.coachConfig?.nivel || c.coachConfig?.engine)
+                        ? c.coachConfig
+                        : (localDetail.coachConfig || c.coachConfig || null),
+                      planningMode:   c.planningMode || localDetail.planningMode || null,
+                      origen:         c.origen || localDetail.origen || null,
+                      mode:           c.mode || localDetail.mode || null,
+                      isSoloCoach:    c.isSoloCoach ?? localDetail.isSoloCoach ?? false,
+                      manualPrice:    c.manualPrice ?? localDetail.manualPrice ?? null,
+                    }
+                  : c;
+                delete merged.coachWeeks;
+                delete merged.coachMesociclo;
+                delete merged.plans;
+                try {
+                  localStorage.setItem(`depro_club_${c.id}`, JSON.stringify(merged));
+                } catch { /* cupo: no tumbar el login */ }
+              }
+              if (cancelled) return;
+              setUser(withImpersonation(buildUser(session.user, profile || null)));
+              return;
+            }
+          }
+          const meta = builtUser.impersonating
+            ? { clubId: builtUser.clubId }
+            : (session.user.user_metadata ?? {});
+          if (meta.clubId && !builtUser.club) {
+            const minimalClub = { id: meta.clubId, name: builtUser.clubName || "Mi Club", teams: [], plans: [] };
+            try { localStorage.setItem(`depro_club_${meta.clubId}`, JSON.stringify(minimalClub)); } catch { /* cupo */ }
+            try {
+              const local = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+              if (!local.find((c) => c.id === meta.clubId)) {
+                local.unshift(minimalClub);
+                localStorage.setItem("depro_clubs", JSON.stringify(local));
+              }
+            } catch { /* cupo */ }
+            if (!cancelled) setUser(withImpersonation(buildUser(session.user, profile || null)));
+          }
+        } catch { /* silencioso */ }
+      }).catch(() => {});
+    };
+
+    // Callback SÍNCRONO: un async aquí bloquea el lock de supabase-js y al recargar
+    // no se refresca el token → SIGNED_OUT / salto al login.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (isSignedOutEvent(event)) {
+        applySession(null, { signedOut: true });
+        return;
+      }
+      if (event === "TOKEN_REFRESHED") {
+        applySession(session, { enrich: false });
+        return;
+      }
+      if (isSessionPresenceEvent(event) || !event) {
+        applySession(session);
+      }
+    });
+
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (data?.session) {
+          applySession(data.session);
+          return;
+        }
+        // Vacío: espera a INITIAL_SESSION antes de mostrar el login.
+        setTimeout(() => {
+          if (!cancelled && !hasLiveSession) applySession(null, { signedOut: true });
+        }, 800);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
   }, []);
 
