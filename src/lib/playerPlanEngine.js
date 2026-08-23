@@ -135,7 +135,7 @@ function makeExerciseFromV2(ex, ei, blockType) {
     reps: isIso ? "25–30\"" : ex.reps,
     rest: ex.rest,
     load: ex.load || null,
-    description: ex.slotDescription || `Ejercicio: ${ex.nombre}.`,
+    description: ex.descripcion || ex.description || ex.slotDescription || `Ejercicio: ${ex.nombre}.`,
     tips,
     errorsToAvoid: (ex.etiquetas?.contraindicado || ex.lesionesContra)?.length
       ? `Evita si tienes: ${(ex.etiquetas?.contraindicado || ex.lesionesContra).join(", ")}`

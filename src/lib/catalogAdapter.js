@@ -36,9 +36,12 @@ export function v2ToLegacyExercise(ex) {
     contraindicado: mapLesiones(et.contraindicado || ex.lesionesContra || []),
     lesionesContra: et.contraindicado || ex.lesionesContra || [],
     tips: ex.tips,
+    descripcion: ex.descripcion || "",
+    description: ex.descripcion || `Ejercicio: ${ex.nombre}.`,
     videoUrl: ex.videoUrl,
+    videoGroup: ex.videoGroup || null,
     edadMinima: ex.edadMinima,
-    description: `Ejercicio: ${ex.nombre}.`,
+    esTest: !!ex.esTest,
   };
 }
 
