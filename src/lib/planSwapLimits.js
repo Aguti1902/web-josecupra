@@ -131,14 +131,33 @@ export function swapsRemaining(user, plan = null) {
   return Math.max(0, MAX_PLAN_SWAPS - getSwapCount(user.id, plan));
 }
 
-/** Fingerprint de campos de entrenamiento que regeneran el plan. */
+/** Fingerprint de campos que regeneran el plan (todo lo editable de entrenamiento). */
 export function profileTrainingFingerprint(data = {}) {
   const days = [...(data.disponibles || [])].map(String).sort().join(",");
   const mat = Array.isArray(data.material)
     ? [...data.material].map(String).sort().join(",")
     : String(data.material || "");
-  const exp = String(data.experiencia || "");
-  return `${days}|${mat}|${exp}`;
+  const objetivos = Array.isArray(data.objetivos)
+    ? [...data.objetivos].map(String).sort().join(",")
+    : String(data.objetivo || data.objetivos || "");
+  const lesiones = Array.isArray(data.lesion)
+    ? [...data.lesion].map(String).sort().join(",")
+    : String(data.lesion || "");
+  const subtipos = Array.isArray(data.lesionSubtipo)
+    ? [...data.lesionSubtipo].map(String).sort().join(",")
+    : String(data.lesionSubtipo || "");
+  return [
+    days,
+    mat,
+    String(data.experiencia || ""),
+    String(data.edad || ""),
+    String(data.deporte || ""),
+    String(data.frecuencia || ""),
+    objetivos,
+    lesiones,
+    subtipos,
+    String(data.diaCompeticion || data.dia_competicion || ""),
+  ].join("|");
 }
 
 export function getProfileRegenCount(userId, plan = null) {

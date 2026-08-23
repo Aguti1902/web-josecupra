@@ -16,20 +16,64 @@ import {
 } from "../../lib/planSwapLimits";
 import { loadPlayerPlan } from "../../lib/playerPlanStorage";
 import { openBillingPortal, isSubscriptionActive } from "../../lib/subscription";
+import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
+import {
+  registerPendingClubPlayer,
+  activateClubPlayerInSquad,
+  applyClubBrandingToPlayer,
+} from "../../lib/clubPlayerRegistry";
 
+const SPORTS = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
+const FREQUENCY = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem", "5 días / sem"];
 const MATERIALS = ["Sin material", "Gomas", "Mancuernas", "Barra", "Gimnasio completo"];
 const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
+const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
+const INJURIES = ["Ninguna", "Rodilla", "Tobillo", "Hombro", "Espalda", "Pubalgia"];
+const INJURY_SUBTYPES = {
+  Rodilla: ["ACL", "Menisco", "Rotuliana", "Otra"],
+  Tobillo: ["Esguince", "Inestabilidad", "Otra"],
+  Hombro: ["Manguito rotador", "Inestabilidad", "Otra"],
+  Espalda: ["Lumbar", "Dorsal", "Cervical", "Otra"],
+  Pubalgia: ["Aductores", "Recto abdominal", "Mixta"],
+};
 
 function normalizeMaterialList(mat) {
   if (Array.isArray(mat)) return mat.filter(Boolean);
   if (!mat) return ["Sin material"];
   return String(mat).split(",").map((s) => s.trim()).filter(Boolean);
 }
-import {
-  registerPendingClubPlayer,
-  activateClubPlayerInSquad,
-  applyClubBrandingToPlayer,
-} from "../../lib/clubPlayerRegistry";
+
+function normalizeList(v) {
+  if (Array.isArray(v)) return v.filter(Boolean);
+  if (!v) return [];
+  return String(v).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function freqNumber(freq) {
+  return parseInt(String(freq || "").replace(/\D/g, ""), 10) || 3;
+}
+
+function ChipGroup({ options, selected, onToggle, multi = true }) {
+  const isSel = (opt) => (multi ? selected.includes(opt) : selected === opt);
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => onToggle(opt)}
+          className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
+            isSel(opt)
+              ? "bg-depro-blue border-depro-blue text-white"
+              : "bg-white border-depro-border text-depro-gray hover:border-depro-blue"
+          }`}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function lsGet(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -111,15 +155,31 @@ export default function ProfilePage() {
   const [currentClub, setCurrentClub] = useState(null);
   const [currentTeam, setCurrentTeam] = useState(null);
 
-  const freqN = parseInt(String(user?.frecuencia || "").replace(/\D/g, "")) || 3;
   const [trainingDays, setTrainingDays] = useState(() => user?.disponibles?.length ? user.disponibles : ["Lunes", "Miércoles", "Viernes"]);
   const [materialSel, setMaterialSel] = useState(() => normalizeMaterialList(user?.material));
   const [experienciaSel, setExperienciaSel] = useState(() => user?.experiencia || EXPERIENCE[2]);
+  const [edadSel, setEdadSel] = useState(() => user?.edad || user?.age || "");
+  const [deporteSel, setDeporteSel] = useState(() => user?.deporte || "Fútbol");
+  const [frecuenciaSel, setFrecuenciaSel] = useState(() => user?.frecuencia || "3 días / sem");
+  const [objetivosSel, setObjetivosSel] = useState(() => {
+    if (Array.isArray(user?.objetivos) && user.objetivos.length) return user.objetivos;
+    if (user?.objetivo) return [user.objetivo];
+    return ["Fuerza"];
+  });
+  const [lesionSel, setLesionSel] = useState(() => {
+    const list = normalizeList(user?.lesion);
+    return list.length ? list : ["Ninguna"];
+  });
+  const [lesionSubtipoSel, setLesionSubtipoSel] = useState(() => normalizeList(user?.lesionSubtipo));
+  const [diaCompeticionSel, setDiaCompeticionSel] = useState(
+    () => user?.diaCompeticion || user?.dia_competicion || "Fin de semana",
+  );
   const [daysSaving, setDaysSaving] = useState(false);
   const [daysMsg, setDaysMsg] = useState("");
   const currentPlan = user?.id ? loadPlayerPlan(user.id) : null;
   const profileRegensUsed = user?.id ? getProfileRegenCount(user.id, currentPlan) : 0;
   const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, currentPlan) : false;
+  const freqN = freqNumber(frecuenciaSel);
 
   const [accountName, setAccountName] = useState(user?.name || "");
   const [accountEmail, setAccountEmail] = useState(user?.email || "");
@@ -209,6 +269,38 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user?.experiencia) setExperienciaSel(user.experiencia);
   }, [user?.experiencia]);
+
+  useEffect(() => {
+    if (user?.edad != null || user?.age != null) setEdadSel(user?.edad || user?.age || "");
+  }, [user?.edad, user?.age]);
+
+  useEffect(() => {
+    if (user?.deporte) setDeporteSel(user.deporte);
+  }, [user?.deporte]);
+
+  useEffect(() => {
+    if (user?.frecuencia) setFrecuenciaSel(user.frecuencia);
+  }, [user?.frecuencia]);
+
+  useEffect(() => {
+    if (Array.isArray(user?.objetivos) && user.objetivos.length) setObjetivosSel(user.objetivos);
+    else if (user?.objetivo) setObjetivosSel([user.objetivo]);
+  }, [user?.objetivo, user?.objetivos]);
+
+  useEffect(() => {
+    const list = normalizeList(user?.lesion);
+    if (list.length) setLesionSel(list);
+  }, [user?.lesion]);
+
+  useEffect(() => {
+    setLesionSubtipoSel(normalizeList(user?.lesionSubtipo));
+  }, [user?.lesionSubtipo]);
+
+  useEffect(() => {
+    if (user?.diaCompeticion || user?.dia_competicion) {
+      setDiaCompeticionSel(user.diaCompeticion || user.dia_competicion);
+    }
+  }, [user?.diaCompeticion, user?.dia_competicion]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -352,9 +444,70 @@ export default function ProfilePage() {
     setDaysMsg("");
   };
 
+  const toggleObjective = (obj) => {
+    setObjetivosSel((prev) => {
+      if (prev.includes(obj)) {
+        const next = prev.filter((o) => o !== obj);
+        return next.length ? next : prev;
+      }
+      if (prev.length >= 2) return [prev[0], obj];
+      return [...prev, obj];
+    });
+    setDaysMsg("");
+  };
+
+  const toggleLesion = (item) => {
+    setLesionSel((prev) => {
+      if (item === "Ninguna") return ["Ninguna"];
+      const withoutNone = prev.filter((l) => l !== "Ninguna");
+      if (withoutNone.includes(item)) {
+        const next = withoutNone.filter((l) => l !== item);
+        return next.length ? next : ["Ninguna"];
+      }
+      return [...withoutNone, item];
+    });
+    setLesionSubtipoSel([]);
+    setDaysMsg("");
+  };
+
+  const toggleLesionSubtipo = (item) => {
+    setLesionSubtipoSel((prev) => (
+      prev.includes(item) ? prev.filter((s) => s !== item) : [...prev, item]
+    ));
+    setDaysMsg("");
+  };
+
+  const buildTrainingPayload = () => {
+    const objetivos = objetivosSel.slice(0, 2);
+    return {
+      edad: String(edadSel || "").trim(),
+      deporte: deporteSel,
+      frecuencia: frecuenciaSel,
+      objetivos,
+      objetivo: objetivos[0] || "",
+      objetivoSecundario: objetivos[1] || "",
+      material: materialSel,
+      experiencia: experienciaSel,
+      lesion: lesionSel.includes("Ninguna") ? [] : lesionSel,
+      lesionSubtipo: lesionSel.includes("Ninguna") ? [] : lesionSubtipoSel,
+      diaCompeticion: diaCompeticionSel,
+      disponibles: trainingDays,
+    };
+  };
+
   const handleSaveTrainingProfile = async () => {
-    if (trainingDays.length < freqN) {
-      setDaysMsg(`Selecciona al menos ${freqN} días (tu frecuencia semanal).`);
+    const nextData = buildTrainingPayload();
+    const n = freqNumber(nextData.frecuencia);
+    if (!nextData.edad || Number(nextData.edad) < 10 || Number(nextData.edad) > 80) {
+      setDaysMsg("Indica una edad válida (10–80).");
+      return;
+    }
+    if (!nextData.objetivos?.length) {
+      setDaysMsg("Selecciona al menos un objetivo.");
+      return;
+    }
+    if (trainingDays.length < n) {
+      setDaysMsg(`Con frecuencia ${n} días/sem, selecciona al menos ${n} días disponibles.`);
       return;
     }
     if (!materialSel.length) {
@@ -362,15 +515,20 @@ export default function ProfilePage() {
       return;
     }
 
-    const nextData = {
-      disponibles: trainingDays,
-      material: materialSel,
-      experiencia: experienciaSel,
-    };
     const prevData = {
-      disponibles: user?.disponibles || [],
+      edad: String(user?.edad || user?.age || ""),
+      deporte: user?.deporte || "",
+      frecuencia: user?.frecuencia || "",
+      objetivos: Array.isArray(user?.objetivos) && user.objetivos.length
+        ? user.objetivos
+        : (user?.objetivo ? [user.objetivo] : []),
+      objetivo: user?.objetivo || "",
       material: normalizeMaterialList(user?.material),
       experiencia: user?.experiencia || "",
+      lesion: normalizeList(user?.lesion),
+      lesionSubtipo: normalizeList(user?.lesionSubtipo),
+      diaCompeticion: user?.diaCompeticion || user?.dia_competicion || "",
+      disponibles: user?.disponibles || [],
     };
     const changed = profileTrainingFingerprint(nextData) !== profileTrainingFingerprint(prevData);
 
@@ -379,9 +537,18 @@ export default function ProfilePage() {
     try {
       await supabase.auth.updateUser({
         data: {
-          disponibles: trainingDays,
-          material: materialSel,
-          experiencia: experienciaSel,
+          edad: nextData.edad,
+          deporte: nextData.deporte,
+          frecuencia: nextData.frecuencia,
+          objetivos: nextData.objetivos,
+          objetivo: nextData.objetivo,
+          objetivoSecundario: nextData.objetivoSecundario,
+          material: nextData.material,
+          experiencia: nextData.experiencia,
+          lesion: nextData.lesion,
+          lesionSubtipo: nextData.lesionSubtipo,
+          diaCompeticion: nextData.diaCompeticion,
+          disponibles: nextData.disponibles,
         },
       });
 
@@ -403,14 +570,19 @@ export default function ProfilePage() {
       const newUser = { ...user, ...nextData };
       const newPlan = ensurePlayerPlan(newUser);
       if (newPlan && !newPlan.planError) {
-        // Nuevo mesociclo: contadores a 0 y marcar el cambio de perfil ya usado
         resetCycleCounters(user.id, newPlan.startDate);
         recordProfileRegen(user.id, newPlan);
         localStorage.setItem(`depro_plan_${user.id}`, JSON.stringify(newPlan));
+        await refreshUser();
+        setDaysMsg("Perfil actualizado · rutina regenerada (1 cambio este mesociclo) ✓");
+        setTimeout(() => setDaysMsg(""), 5000);
+      } else if (newPlan?.planError) {
+        await refreshUser();
+        setDaysMsg(newPlan.planError);
+      } else {
+        await refreshUser();
+        setDaysMsg("Perfil guardado.");
       }
-      await refreshUser();
-      setDaysMsg("Perfil actualizado · rutina regenerada (1 cambio este mesociclo) ✓");
-      setTimeout(() => setDaysMsg(""), 5000);
     } catch {
       setDaysMsg("No se pudo guardar. Inténtalo de nuevo.");
     } finally {
@@ -482,38 +654,6 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm">
-          {(user?.objetivo || user?.objective) && (
-            <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">{t("profile.objective")}</div>
-              <div className="font-semibold text-depro-dark">{user.objetivo || user.objective}</div>
-            </div>
-          )}
-          {user?.deporte && (
-            <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">{t("profile.sport")}</div>
-              <div className="font-semibold text-depro-dark">{user.deporte}</div>
-            </div>
-          )}
-          {(user?.frecuencia || user?.training_days || user?.trainingDays) && (
-            <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">{t("profile.frequency")}</div>
-              <div className="font-semibold text-depro-dark">
-                {user.frecuencia || `${user.training_days || user.trainingDays} ${t("profile.days_week")}`}
-              </div>
-            </div>
-          )}
-          {user?.material && (
-            <div className="bg-depro-gray-light rounded-xl p-3">
-              <div className="text-xs text-depro-gray mb-0.5">{t("profile.material")}</div>
-              <div className="font-semibold text-depro-dark">{user.material}</div>
-            </div>
-          )}
-          {(user?.lesion?.length > 0) && (
-            <div className="bg-depro-gray-light rounded-xl p-3 col-span-2">
-              <div className="text-xs text-depro-gray mb-0.5">{t("profile.injury")}</div>
-              <div className="font-semibold text-depro-dark">{user.lesion.join(", ")}</div>
-            </div>
-          )}
           {user?.position && (
             <div className="bg-depro-gray-light rounded-xl p-3">
               <div className="text-xs text-depro-gray mb-0.5">{t("squad.position")}</div>
@@ -527,6 +667,9 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+        <p className="text-xs text-depro-gray mt-4">
+          Edad, objetivos, deporte, frecuencia, material, lesiones y días se editan abajo en «Entrenamiento» (máx. 1 regeneración de rutina por mesociclo).
+        </p>
       </div>
 
       {accountMsg && (
@@ -659,13 +802,62 @@ export default function ProfilePage() {
             <Calendar size={18} className="text-depro-blue" /> Entrenamiento
           </h2>
           <p className="text-sm text-depro-gray mb-2">
-            Puedes ajustar días, material y tiempo entrenando. Si cambian, la rutina se regenera
+            Edita los mismos datos del onboarding (edad, objetivos, deporte, frecuencia, material, lesiones, días…).
+            Si cambian, la rutina se regenera igual que al crear el plan
             {" "}(máximo {MAX_PROFILE_REGENS_PER_CYCLE} vez por mesociclo).
           </p>
           <p className={`text-xs font-bold mb-4 ${canProfileRegen ? "text-depro-blue" : "text-amber-700"}`}>
-            Cambios de rutina este mesociclo: {Math.min(profileRegensUsed, MAX_PROFILE_REGENS_PER_CYCLE)}/{MAX_PROFILE_REGENS_PER_CYCLE}
-            {!canProfileRegen && " · cupo agotado"}
+            Regeneraciones este mesociclo: {Math.min(profileRegensUsed, MAX_PROFILE_REGENS_PER_CYCLE)}/{MAX_PROFILE_REGENS_PER_CYCLE}
+            {!canProfileRegen && " · cupo agotado (puedes guardar datos, sin nueva rutina)"}
           </p>
+
+          <div className="mb-5">
+            <label className="block text-xs font-bold uppercase text-depro-gray mb-2">Edad</label>
+            <input
+              type="number"
+              min={10}
+              max={80}
+              value={edadSel}
+              onChange={(e) => { setEdadSel(e.target.value); setDaysMsg(""); }}
+              className="w-28 px-3 py-2 rounded-xl border border-depro-border text-sm focus:outline-none focus:border-depro-blue"
+              placeholder="años"
+            />
+          </div>
+
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Objetivos (máx. 2)</p>
+            <ChipGroup options={OBJECTIVES} selected={objetivosSel} onToggle={toggleObjective} multi />
+          </div>
+
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Deporte</p>
+            <ChipGroup
+              options={SPORTS}
+              selected={deporteSel}
+              onToggle={(s) => { setDeporteSel(s); setDaysMsg(""); }}
+              multi={false}
+            />
+          </div>
+
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Frecuencia semanal</p>
+            <ChipGroup
+              options={FREQUENCY}
+              selected={frecuenciaSel}
+              onToggle={(f) => { setFrecuenciaSel(f); setDaysMsg(""); }}
+              multi={false}
+            />
+          </div>
+
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Día de competición</p>
+            <ChipGroup
+              options={COMPETITION_DAY_OPTIONS}
+              selected={diaCompeticionSel}
+              onToggle={(d) => { setDiaCompeticionSel(d); setDaysMsg(""); }}
+              multi={false}
+            />
+          </div>
 
           <div className="mb-5">
             <p className="text-xs font-bold uppercase text-depro-gray mb-2">Días de entrenamiento</p>
@@ -691,44 +883,35 @@ export default function ProfilePage() {
 
           <div className="mb-5">
             <p className="text-xs font-bold uppercase text-depro-gray mb-2">Material disponible</p>
-            <div className="flex flex-wrap gap-2">
-              {MATERIALS.map((m) => {
-                const sel = materialSel.includes(m);
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => toggleMaterial(m)}
-                    className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
-                      sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray hover:border-depro-blue"
-                    }`}
-                  >
-                    {m}
-                  </button>
-                );
-              })}
-            </div>
+            <ChipGroup options={MATERIALS} selected={materialSel} onToggle={toggleMaterial} multi />
           </div>
 
           <div className="mb-5">
             <p className="text-xs font-bold uppercase text-depro-gray mb-2">Tiempo entrenando</p>
-            <div className="flex flex-wrap gap-2">
-              {EXPERIENCE.map((exp) => {
-                const sel = experienciaSel === exp;
-                return (
-                  <button
-                    key={exp}
-                    type="button"
-                    onClick={() => { setExperienciaSel(exp); setDaysMsg(""); }}
-                    className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
-                      sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray hover:border-depro-blue"
-                    }`}
-                  >
-                    {exp}
-                  </button>
-                );
-              })}
-            </div>
+            <ChipGroup
+              options={EXPERIENCE}
+              selected={experienciaSel}
+              onToggle={(exp) => { setExperienciaSel(exp); setDaysMsg(""); }}
+              multi={false}
+            />
+          </div>
+
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Lesiones</p>
+            <ChipGroup options={INJURIES} selected={lesionSel} onToggle={toggleLesion} multi />
+            {!lesionSel.includes("Ninguna") && lesionSel.map((les) => (
+              INJURY_SUBTYPES[les] ? (
+                <div key={les} className="mt-3">
+                  <p className="text-xs text-depro-gray mb-2">Detalle · {les}</p>
+                  <ChipGroup
+                    options={INJURY_SUBTYPES[les]}
+                    selected={lesionSubtipoSel}
+                    onToggle={toggleLesionSubtipo}
+                    multi
+                  />
+                </div>
+              ) : null
+            ))}
           </div>
 
           {daysMsg && (
@@ -741,7 +924,7 @@ export default function ProfilePage() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
           >
             {daysSaving ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-            Guardar cambios de entrenamiento
+            Guardar y regenerar rutina (si hay cambios)
           </button>
         </div>
       )}

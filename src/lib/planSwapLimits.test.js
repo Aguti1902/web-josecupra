@@ -54,18 +54,47 @@ describe("planSwapLimits — ciclo mensual", () => {
     assert.equal(canRegenerateFromProfile("u1", plan), false);
   });
 
-  it("fingerprint de perfil", () => {
+  it("fingerprint de perfil incluye todos los campos editables", () => {
     const a = profileTrainingFingerprint({
       disponibles: ["Viernes", "Lunes"],
       material: ["Gomas", "Mancuernas"],
       experiencia: "1–3 años",
+      edad: "24",
+      deporte: "Fútbol",
+      frecuencia: "3 días / sem",
+      objetivos: ["Velocidad", "Fuerza"],
+      lesion: ["Rodilla"],
+      lesionSubtipo: ["Menisco"],
+      diaCompeticion: "Fin de semana",
     });
     const b = profileTrainingFingerprint({
       disponibles: ["Lunes", "Viernes"],
       material: ["Mancuernas", "Gomas"],
       experiencia: "1–3 años",
+      edad: "24",
+      deporte: "Fútbol",
+      frecuencia: "3 días / sem",
+      objetivos: ["Fuerza", "Velocidad"],
+      lesion: ["Rodilla"],
+      lesionSubtipo: ["Menisco"],
+      diaCompeticion: "Fin de semana",
     });
     assert.equal(a, b);
+    const c = profileTrainingFingerprint({
+      ...{
+        disponibles: ["Lunes", "Viernes"],
+        material: ["Mancuernas", "Gomas"],
+        experiencia: "1–3 años",
+        edad: "25",
+        deporte: "Fútbol",
+        frecuencia: "3 días / sem",
+        objetivos: ["Fuerza", "Velocidad"],
+        lesion: ["Rodilla"],
+        lesionSubtipo: ["Menisco"],
+        diaCompeticion: "Fin de semana",
+      },
+    });
+    assert.notEqual(a, c);
   });
 });
 
