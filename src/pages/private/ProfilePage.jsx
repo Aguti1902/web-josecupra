@@ -1010,7 +1010,7 @@ export default function ProfilePage() {
               <h3 className="font-bold text-depro-dark text-sm mb-1">Pasar a Premium</h3>
               <p className="text-xs text-depro-gray mb-2">
                 Feedback del preparador, todos los extras y seguimiento humano.
-                Plazas limitadas ({PREMIUM_PLAYER_CAP}).
+                <strong className="text-depro-dark"> Sin prueba gratis</strong> · plazas limitadas ({PREMIUM_PLAYER_CAP}).
                 {premiumCap?.ok && (
                   <> · Disponibles: <strong>{premiumCap.remaining}</strong></>
                 )}

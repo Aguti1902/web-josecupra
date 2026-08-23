@@ -44,6 +44,7 @@ import ClubProfilePage from "./pages/private/ClubProfilePage";
 import TeamTestsPage from "./pages/private/TeamTestsPage";
 import CargasPage from "./pages/private/CargasPage";
 import PlayerLoadHistoryPage from "./pages/private/PlayerLoadHistoryPage";
+import WellnessPage from "./pages/private/WellnessPage";
 import CoachOnboardingPage from "./pages/private/CoachOnboardingPage";
 import ClubOnboardingPage from "./pages/private/ClubOnboardingPage";
 import ClubSettingsPage from "./pages/private/ClubSettingsPage";
@@ -213,6 +214,7 @@ function AppRoutes() {
       <Route path="/dashboard/team-tests"   element={<ClientRoute><AppLayout><TeamTestsPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/cargas"       element={<ClientRoute><AppLayout><CargasPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/mis-cargas"    element={<ClientRoute><AppLayout><PlayerLoadHistoryPage /></AppLayout></ClientRoute>} />
+      <Route path="/dashboard/wellness"     element={<ClientRoute><AppLayout><WellnessPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/club-profile" element={<ClientRoute><AppLayout><ClubProfilePage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/club-settings" element={<ClientRoute><AppLayout><ClubSettingsPage /></AppLayout></ClientRoute>} />
 
