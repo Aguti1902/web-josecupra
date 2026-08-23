@@ -41,11 +41,13 @@ export async function createClubUser({
   email, password, name, role = "club", clubId, teamId, teamRole, managedTeamIds,
   plan, subscriptionStatus, billingSource, posicion, deporte, objetivo, edad,
   frecuencia, material, experiencia, disponibles, lesion, clubName, clubCode,
+  purchasedAddons,
 }) {
   const payload = {
     email, password, name, role, clubId, teamId, teamRole, managedTeamIds,
     plan, subscriptionStatus, billingSource, posicion, deporte, objetivo, edad,
     frecuencia, material, experiencia, disponibles, lesion, clubName, clubCode,
+    purchasedAddons,
   };
 
   // 1. Endpoint serverless (cuenta confirmada, sin email de verificación)
@@ -77,6 +79,7 @@ export async function createClubUser({
         plan,
         subscriptionStatus,
         billingSource,
+        purchasedAddons,
       });
       if (upd.ok) return { ok: true, userId: upd.userId, updated: true };
       return { ok: false, error: upd.error || data.error, alreadyExists: true };
@@ -105,6 +108,7 @@ export async function createClubUser({
           posicion,
           deporte,
           objetivo,
+          purchasedAddons: Array.isArray(purchasedAddons) ? purchasedAddons : undefined,
         },
         emailRedirectTo: undefined,
       },
