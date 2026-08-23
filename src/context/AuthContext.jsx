@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { getCachedSubscription, isInTrial } from "../lib/subscription";
 import { clearTrialLoadLogs } from "../lib/loadLogs";
+import { clearWellnessLogs } from "../lib/wellnessLogs";
 import {
   normalizeStringList,
   resolveObjetivos,
@@ -494,6 +495,7 @@ export function AuthProvider({ children }) {
     try {
       if (user?.id && isInTrial(user)) {
         clearTrialLoadLogs(user.id);
+        clearWellnessLogs(user.id);
         Object.keys(localStorage).forEach((key) => {
           if (key.startsWith(`depro_progress_${user.id}`) || key.startsWith(`depro_chat_${user.id}`)) {
             localStorage.removeItem(key);

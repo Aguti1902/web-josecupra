@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, Activity, MessageSquare, LogOut, Menu, X,
   ChevronRight, Trophy, ClipboardList, Users as UsersIcon, User, TrendingUp,
-  Building2, HelpCircle, Bell, CreditCard,
+  Building2, HelpCircle, Bell, CreditCard, HeartPulse,
 } from "lucide-react";
 import TrialBanner from "./TrialBanner";
 import { useTranslation } from "react-i18next";
@@ -259,6 +259,7 @@ function AppLayoutInner({ children }) {
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/dashboard/plan", icon: Calendar, label: t("nav.weekly_plan") },
     { to: "/dashboard/mis-cargas", icon: TrendingUp, label: "Mis cargas" },
+    { to: "/dashboard/wellness", icon: HeartPulse, label: "Wellness" },
     { to: "/dashboard/physical", icon: Activity, label: t("nav.tests") },
     { to: "/dashboard/feedback", icon: MessageSquare, label: t("nav.feedback") },
     { to: "/dashboard/ranking", icon: Trophy, label: t("nav.ranking") },

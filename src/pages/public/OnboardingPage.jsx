@@ -178,6 +178,16 @@ function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
 
               <h3 className="text-xl font-black text-depro-dark">{plan.name}</h3>
               <p className="text-xs text-depro-gray mt-0.5 mb-3">{plan.tagline}</p>
+              {plan.audience === "player" && plan.id === "player-pro" && (
+                <p className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1 mb-3">
+                  Sin prueba gratis · cobro desde el día 1
+                </p>
+              )}
+              {plan.audience === "player" && plan.id === "player-essential" && (
+                <p className="text-[11px] font-bold text-depro-green bg-depro-green/10 rounded-lg px-2 py-1 mb-3">
+                  15 días de prueba · 0 € hoy
+                </p>
+              )}
 
               <div className="flex items-baseline gap-1 mb-5">
                 <span className="text-3xl font-black text-depro-dark">{formatPrice(plan.price)}</span>
@@ -289,7 +299,8 @@ function StepCuenta({ form, setForm, onNext, onBack }) {
     <div>
       <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Datos de acceso</h2>
       <p className="text-depro-gray text-sm mb-8">
-        Indica email y contraseña. Tu cuenta se crea al completar el checkout y activar la prueba gratuita.
+        Indica email y contraseña. Tu cuenta se crea al completar el checkout
+        (Standard: prueba 15 días · Premium: sin prueba gratis, cobro desde el día 1).
       </p>
 
       <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card space-y-5">
@@ -1037,6 +1048,8 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
   const hasDiscount = !!form.clubCode && plan.audience === "player";
   const discount    = hasDiscount ? Math.round((plan.price - applyClubDiscount(plan.price)) * 100) / 100 : 0;
   const total       = (hasDiscount ? applyClubDiscount(plan.price) : plan.price) + addonsTotal;
+  const isPlayerPremium =
+    plan.audience === "player" && (plan.id === "player-pro" || plan.id === "premium");
 
   const profileRows = [
     ["Nombre", form.nombre],
@@ -1061,8 +1074,17 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
       <div className="mb-8">
         <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu suscripción</h2>
         <p className="text-depro-gray text-sm">
-          Introduce tu método de pago para activar <strong className="text-depro-dark">15 días de prueba gratis</strong>.
-          Hoy se autoriza la tarjeta con <strong className="text-depro-dark">0 €</strong>; el primer cargo llega al terminar el trial.
+          {isPlayerPremium ? (
+            <>
+              El plan <strong className="text-depro-dark">Premium no incluye prueba gratuita</strong>.
+              Se cobra desde el primer día al confirmar el pago.
+            </>
+          ) : (
+            <>
+              Introduce tu método de pago para activar <strong className="text-depro-dark">15 días de prueba gratis</strong>.
+              Hoy se autoriza la tarjeta con <strong className="text-depro-dark">0 €</strong>; el primer cargo llega al terminar el trial.
+            </>
+          )}
         </p>
       </div>
 
@@ -1071,8 +1093,15 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
         <aside className="lg:col-span-2 space-y-4 lg:sticky lg:top-4 order-1">
           <div className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden">
             <div className="p-5 border-b border-depro-border">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-depro-green/10 px-2.5 py-1 text-[11px] font-bold text-depro-green mb-3">
-                <BadgeCheck size={12} /> 15 días gratis · 0 € hoy
+              <div
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold mb-3 ${
+                  isPlayerPremium
+                    ? "bg-amber-50 text-amber-800"
+                    : "bg-depro-green/10 text-depro-green"
+                }`}
+              >
+                <BadgeCheck size={12} />
+                {isPlayerPremium ? "Sin prueba gratis · cobro desde el día 1" : "15 días gratis · 0 € hoy"}
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: plan.bg }}>
@@ -1087,6 +1116,11 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
                 <p className="text-xs text-depro-gray mt-3 leading-relaxed">
                   Resumen de tu suscripción {plan.audience === "club" ? "de club" : "de entrenador"}:
                   {" "}{formatPrice(plan.price)}/mes tras {15} días de trial.
+                </p>
+              )}
+              {isPlayerPremium && (
+                <p className="text-xs text-amber-800 mt-3 leading-relaxed">
+                  Premium es acceso inmediato con seguimiento humano. No hay periodo de prueba.
                 </p>
               )}
             </div>
@@ -1112,7 +1146,9 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
                 <span className="text-2xl font-black text-depro-dark">{formatPrice(total)}</span>
               </div>
               <p className="text-[11px] text-depro-gray pt-1">
-                Se pide tarjeta ahora (cargo 0 €). Primer cobro tras 15 días. Cancela cuando quieras.
+                {isPlayerPremium
+                  ? "Se cobra el plan al confirmar el pago. Cancela cuando quieras."
+                  : "Se pide tarjeta ahora (cargo 0 €). Primer cobro tras 15 días. Cancela cuando quieras."}
               </p>
             </div>
 
@@ -1193,8 +1229,17 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
             </div>
             <h3 className="font-black text-depro-dark text-lg">Método de pago</h3>
             <p className="text-sm text-depro-gray">
-              Añade tu tarjeta para empezar la prueba de <strong className="text-depro-dark">15 días</strong>.
-              Hoy el cargo es <strong className="text-depro-dark">0 €</strong>; el cobro del plan comienza al terminar el trial.
+              {isPlayerPremium ? (
+                <>
+                  Añade tu tarjeta para activar <strong className="text-depro-dark">Premium</strong>.
+                  {" "}<strong className="text-depro-dark">No hay prueba gratis</strong>: el cobro empieza al confirmar el pago.
+                </>
+              ) : (
+                <>
+                  Añade tu tarjeta para empezar la prueba de <strong className="text-depro-dark">15 días</strong>.
+                  Hoy el cargo es <strong className="text-depro-dark">0 €</strong>; el cobro del plan comienza al terminar el trial.
+                </>
+              )}
             </p>
             <EmbeddedStripeCheckout
               planId={plan.id}

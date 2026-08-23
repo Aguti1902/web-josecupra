@@ -224,6 +224,7 @@ export default function PricingPage() {
     player: [
       { q: "¿Cómo funciona el descuento de club?", a: "Al registrarte con el código de tu entrenador obtienes 10% de descuento permanente en tu suscripción. El club recibe una comisión del 10% sobre esas ventas." },
       { q: "¿Puedo usar DEPRO Player sin club?", a: "Sí. Es totalmente independiente. El código de club es opcional y añade descuento + conexión con tu entrenador." },
+      { q: "¿Premium tiene prueba gratis?", a: "No. La prueba de 15 días aplica solo al plan Standard. Premium se cobra desde el primer día (seguimiento humano, plazas limitadas)." },
     ],
   };
 
@@ -234,7 +235,7 @@ export default function PricingPage() {
         theme="dark"
         badge="Precios · Transparentes"
         title="Planes que crecen contigo"
-        description="Elige el perfil que mejor encaje — entrenador individual, club/academia o jugador. Todos incluyen 15 días de prueba (0 € hoy; se pide tarjeta)."
+        description="Elige el perfil que mejor encaje — entrenador individual, club/academia o jugador. Standard (jugador) incluye 15 días de prueba; Premium jugador no tiene prueba gratis."
         bullets={["Sin permanencia", "Cancela cuando quieras", "Datos conservados 30 días", "Soporte en español"]}
         primaryCta={{ label: "Empezar prueba gratis", to: "/comprar" }}
         secondaryCta={{ label: "Comparar funcionalidades", to: "/funcionalidades" }}
@@ -242,7 +243,7 @@ export default function PricingPage() {
       <section className="py-4 bg-holded-dark border-b border-white/5">
         <div className="max-w-xl mx-auto px-4 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 text-white text-sm font-bold px-4 py-2 rounded-full">
-            <Gift size={15} className="text-holded-green" /> 15 días gratis · Sin tarjeta de crédito
+            <Gift size={15} className="text-holded-green" /> 15 días gratis en Standard · Premium sin prueba
           </div>
         </div>
       </section>

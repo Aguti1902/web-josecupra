@@ -25,4 +25,11 @@ describe("accesos Standard / Premium / extras", () => {
     assert.equal(TRIAL_PDF_MAX, 1);
     assert.equal(PREMIUM_PLAYER_CAP, 40);
   });
+
+  it("Premium remarca sin prueba gratuita", async () => {
+    const { PLANS } = await import("./checkoutPlans.js");
+    assert.ok(PLANS["player-pro"].features.some((f) => /sin prueba/i.test(f)));
+    assert.ok(/sin prueba/i.test(PLANS["player-pro"].tagline));
+    assert.ok(PLANS["player-essential"].features.some((f) => /15 días/i.test(f)));
+  });
 });
