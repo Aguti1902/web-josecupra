@@ -61,17 +61,21 @@ describe("etiquetado — casos críticos", () => {
     }
   });
 
-  it("variantes de resistencia/velocidad comparten vídeo por familia", () => {
-    const continua = EXERCISES.filter((e) => e.videoGroup === "res_continua");
-    assert.ok(continua.length >= 5, "faltan variantes de carrera continua");
-    const url = continua[0].videoUrl;
-    assert.ok(url);
-    assert.ok(continua.every((e) => e.videoUrl === url && e.carpeta === "resistencia"));
+  it("resistencia no cae en core; Nordic no es core", () => {
+    for (const ex of EXERCISES.filter((e) => e.carpeta === "resistencia")) {
+      assert.ok(["RowErg", "Carrera continua", "SkiErg", "BikeErg", "Empuje trineo"].includes(ex.nombre), `inesperado en resistencia: ${ex.nombre}`);
+    }
+    const nordic = EXERCISES.filter((e) => /nordic/i.test(e.nombre));
+    assert.ok(nordic.length >= 1);
+    assert.ok(nordic.every((e) => e.carpeta === "fuerza_tren_inferior"));
+  });
 
-    for (const group of ["vel_acel", "vel_sprint", "vel_cod"]) {
-      const family = EXERCISES.filter((e) => e.videoGroup === group);
-      assert.ok(family.length >= 2, `familia ${group} incompleta`);
-      assert.ok(family.every((e) => e.videoUrl === family[0].videoUrl && e.carpeta === "velocidad"));
+  it("no incluye genéricos inventados ni tests", () => {
+    const banned = [/skipping [abc]\b/i, /t-?test/i, /cooper/i, /zona 2/i, /fartlek controlado/i, /carrera continua regenerativa/i];
+    for (const ex of EXERCISES) {
+      for (const re of banned) {
+        assert.equal(re.test(ex.nombre), false, `no debe existir ${ex.nombre}`);
+      }
     }
   });
 

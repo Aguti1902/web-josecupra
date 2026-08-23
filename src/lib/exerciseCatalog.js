@@ -6,7 +6,7 @@
  * - etiquetas base: material, objetivo, segmento, patron, rol, grupo_principal, grupo_muscular, accion_secundaria?
  * - grupo_muscular = [grupo_principal] (sin músculos accesorios) para no romper el selector AND
  * - Etiquetas club_* viven en capa paralela (clubExerciseTags) y NO se usan aquí
- * - Listado alineado a Prompt final Depro 2.0 §9.6 + variantes con vídeo compartido
+ * - Listado alineado a Prompt final Depro 2.0 §9.6 (sin inventados; tests fuera del catálogo)
  *
  * Generado por scripts/build-definitive-catalog.mjs
  */
@@ -42,11 +42,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Sentadilla clásica: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
@@ -86,11 +86,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Sentadilla brazos arriba: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
@@ -131,11 +131,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Sentadilla isométrica en pared (Wall sit): isometría de cuadriceps. Mantén la posición con tensión controlada sin compensaciones. Material: sin_material.",
     "pool": "ISO-INF",
     "videoUrl": "",
     "lesionesContra": [
@@ -178,11 +178,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Equilibra ambos lados; empieza por el más débil",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Zancada adelante: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
@@ -225,11 +225,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Equilibra ambos lados; empieza por el más débil",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Zancada atrás: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
@@ -272,11 +272,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Equilibra ambos lados; empieza por el más débil",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Zancada lateral: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
@@ -317,11 +317,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Equilibra ambos lados; empieza por el más débil",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Split squat (estático): fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [],
@@ -361,7 +361,7 @@ export const EXERCISES = [
       "Equilibra ambos lados; empieza por el más débil",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gluteos. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Hip thrust unilateral (peso corporal): fuerza de tren inferior orientada a gluteos (cadena_posterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
@@ -406,7 +406,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Step-up en banco: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
@@ -448,7 +448,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gluteos. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Puente de glúteo 2 piernas: fuerza de tren inferior orientada a gluteos (cadena_posterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
@@ -486,11 +486,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: gomas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Sentadilla con goma en rodillas: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: gomas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
@@ -532,7 +532,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gluteos. Material: gomas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Glute bridge con goma: fuerza de tren inferior orientada a gluteos (cadena_posterior). Material: gomas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
@@ -572,7 +572,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: gomas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Lateral walk con banda elástica: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: gomas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [],
@@ -612,7 +612,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: gomas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Monster walk: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: gomas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [],
@@ -652,7 +652,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: gomas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Extensión isquios tumbado con banda: fuerza de tren inferior orientada a isquios (cadena_posterior). Material: gomas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
@@ -690,12 +690,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Sentadilla con mancuernas: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: mancuernas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
@@ -738,12 +737,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Equilibra ambos lados; empieza por el más débil",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Zancada con mancuernas: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: mancuernas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
@@ -783,12 +781,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Cadera atrás, barra/mancuernas cerca del cuerpo, espalda neutra",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Peso muerto rumano con mancuernas: fuerza de tren inferior orientada a isquios (cadena_posterior). Material: mancuernas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [
@@ -828,12 +825,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Cadera atrás, barra/mancuernas cerca del cuerpo, espalda neutra",
       "Equilibra ambos lados; empieza por el más débil",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Peso muerto a 1 pierna (mancuerna): fuerza de tren inferior orientada a isquios (cadena_posterior). Material: mancuernas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [
@@ -878,10 +874,9 @@ export const EXERCISES = [
     "tips": [
       "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Step-up pesado con mancuernas: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: mancuernas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
@@ -921,11 +916,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Sentadilla goblet: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: mancuernas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
@@ -965,10 +960,9 @@ export const EXERCISES = [
     "tips": [
       "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gluteos. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Hip thrust con mancuerna: fuerza de tren inferior orientada a gluteos (cadena_posterior). Material: mancuernas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1009,12 +1003,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Equilibra ambos lados; empieza por el más débil",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Sentadilla búlgara con mancuernas: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: mancuernas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
@@ -1052,12 +1045,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Cadera atrás, barra/mancuernas cerca del cuerpo, espalda neutra",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: mancuernas. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Buenos días con mancuernas: fuerza de tren inferior orientada a isquios (cadena_posterior). Material: mancuernas. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1101,7 +1093,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a core. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Farmer walk corto (10-20 m): fuerza de tren superior orientada a core (isometrico). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "ISO-CARRY",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1140,12 +1132,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: barra. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Sentadilla con barra trasera: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: barra. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
@@ -1186,12 +1177,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Cadera atrás, barra/mancuernas cerca del cuerpo, espalda neutra",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: barra. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Peso muerto convencional con barra: fuerza de tren inferior orientada a isquios (cadena_posterior). Material: barra. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [
@@ -1231,11 +1221,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Prensa inclinada: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: maquina. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
@@ -1275,10 +1265,9 @@ export const EXERCISES = [
     "tips": [
       "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Curl femoral tumbado en máquina: fuerza de tren inferior orientada a isquios (cadena_posterior). Material: maquina. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1314,12 +1303,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia",
-      "Calienta la articulación principal antes de series pesadas"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gemelos. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Elevación de gemelos en máquina: fuerza de tren inferior orientada a gemelos (analitico). Material: maquina. Ejecuta con control y rango completo seguro.",
     "pool": "AN-GEMELOS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1357,10 +1345,9 @@ export const EXERCISES = [
     "tips": [
       "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Extensión de cuádriceps en máquina: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: maquina. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1400,7 +1387,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Curl femoral sentado: fuerza de tren inferior orientada a isquios (cadena_posterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1436,11 +1423,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gemelos. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Elevación de gemelos de pie: fuerza de tren inferior orientada a gemelos (analitico). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "AN-GEMELOS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1478,11 +1465,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Flexiones clásicas: fuerza de tren superior orientada a pecho (empuje). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
@@ -1522,11 +1509,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Flexiones estrechas (tríceps): fuerza de tren superior orientada a triceps (analitico). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "AN-TRICEPS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1565,11 +1552,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a hombros. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Flexiones pica (hombros): fuerza de tren superior orientada a hombros (empuje). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [
@@ -1609,11 +1596,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Flexiones con apertura amplia: fuerza de tren superior orientada a pecho (empuje). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
@@ -1653,11 +1640,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Tríceps fondo en banco: fuerza de tren superior orientada a triceps (analitico). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "AN-TRICEPS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1693,11 +1680,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Dominadas asistidas: fuerza de tren superior orientada a espalda (traccion). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1737,11 +1724,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Controla el equilibrio antes de aumentar dificultad",
+      "Controla el equilibrio antes de subir dificultad",
       "Mantén alineación rodilla-tobillo-cadera",
       "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio preventivo/propioceptivo centrado en espalda. Mejora control motor y reduce riesgo de lesión.",
+    "descripcion": "Superman: trabajo preventivo/propioceptivo centrado en espalda. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1781,11 +1768,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Controla el equilibrio antes de aumentar dificultad",
+      "Controla el equilibrio antes de subir dificultad",
       "Mantén alineación rodilla-tobillo-cadera",
       "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio preventivo/propioceptivo centrado en escapular. Mejora control motor y reduce riesgo de lesión.",
+    "descripcion": "Y-T-W en suelo: trabajo preventivo/propioceptivo centrado en escapular. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-ESCAP",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1821,11 +1808,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Remo con banda elástica: fuerza de tren superior orientada a espalda (traccion). Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1863,11 +1850,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Press con banda elástica: fuerza de tren superior orientada a pecho (empuje). Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
@@ -1909,7 +1896,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Aperturas con banda: fuerza de tren superior orientada a pecho (empuje). Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1929,7 +1916,6 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "isometrico",
         "analitico"
       ],
       "rol": "complementario",
@@ -1950,11 +1936,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Controla el equilibrio antes de aumentar dificultad",
+      "Controla el equilibrio antes de subir dificultad",
       "Mantén alineación rodilla-tobillo-cadera",
       "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio preventivo/propioceptivo centrado en hombros. Mejora control motor y reduce riesgo de lesión.",
+    "descripcion": "Rotadores externos de hombro con goma: trabajo preventivo/propioceptivo centrado en hombros. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [],
@@ -1992,12 +1978,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Press con mancuernas: fuerza de tren superior orientada a pecho (empuje). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
@@ -2035,12 +2020,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Remo con mancuerna: fuerza de tren superior orientada a espalda (traccion). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -2081,7 +2065,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a hombros. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Elevaciones laterales: fuerza de tren superior orientada a hombros (empuje). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [],
@@ -2122,7 +2106,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a hombros. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Elevación frontal: fuerza de tren superior orientada a hombros (empuje). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [],
@@ -2161,11 +2145,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a hombros. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Press Arnold: fuerza de tren superior orientada a hombros (empuje). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [
@@ -2205,12 +2189,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia",
-      "Calienta la articulación principal antes de series pesadas"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Fondos en banco + mancuerna: fuerza de tren superior orientada a triceps (analitico). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "AN-TRICEPS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -2248,12 +2231,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: barra. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Press banca con barra: fuerza de tren superior orientada a pecho (empuje). Material: barra. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
@@ -2291,12 +2273,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: barra. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Remo con barra: fuerza de tren superior orientada a espalda (traccion). Material: barra. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -2335,13 +2316,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Aceleraciones 10 m: drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-ACEL",
-    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoUrl": "",
     "videoGroup": "vel_acel",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2382,13 +2363,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Aceleraciones 15 m: drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-ACEL",
-    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoUrl": "",
     "videoGroup": "vel_acel",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2429,13 +2410,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Salidas desde rodilla: drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-ACEL",
-    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoUrl": "",
     "videoGroup": "vel_acel",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2476,13 +2457,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Salidas laterales: drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-ACEL",
-    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoUrl": "",
     "videoGroup": "vel_acel",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2523,13 +2504,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Aceleración jogging → sprint: drill de velocidad/agilidad enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-SPRINT",
-    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoUrl": "",
     "videoGroup": "vel_sprint",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2570,13 +2551,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Sprint progresivo 10-20-30: drill de velocidad/agilidad enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-SPRINT",
-    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoUrl": "",
     "videoGroup": "vel_sprint",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2617,13 +2598,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Sprint 20 m: drill de velocidad/agilidad enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-SPRINT",
-    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoUrl": "",
     "videoGroup": "vel_sprint",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2664,13 +2645,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Sprint 30 m: drill de velocidad/agilidad enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-SPRINT",
-    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoUrl": "",
     "videoGroup": "vel_sprint",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2711,13 +2692,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Sprint 40 m: drill de velocidad/agilidad enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-SPRINT",
-    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoUrl": "",
     "videoGroup": "vel_sprint",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2758,13 +2739,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Sprint 60 m: drill de velocidad/agilidad enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-SPRINT",
-    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoUrl": "",
     "videoGroup": "vel_sprint",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2805,13 +2786,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Frena con el pie exterior y mantén el centro de masa bajo",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "COD 5-10-5: drill de velocidad/agilidad enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-COD",
-    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoUrl": "",
     "videoGroup": "vel_cod",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2852,13 +2833,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Frena con el pie exterior y mantén el centro de masa bajo",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "COD 3 conos: drill de velocidad/agilidad enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-COD",
-    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoUrl": "",
     "videoGroup": "vel_cod",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2899,13 +2880,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Frena con el pie exterior y mantén el centro de masa bajo",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Zig-zag 6 conos: drill de velocidad/agilidad enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-COD",
-    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoUrl": "",
     "videoGroup": "vel_cod",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2946,13 +2927,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Frena con el pie exterior y mantén el centro de masa bajo",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "COD reacción (start visual): drill de velocidad/agilidad enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-COD",
-    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoUrl": "",
     "videoGroup": "vel_cod",
     "lesionesContra": [
       "lesion_tobillo",
@@ -2993,13 +2974,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Frena con el pie exterior y mantén el centro de masa bajo",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "COD planta-pivote derecha/izquierda: drill de velocidad/agilidad enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-COD",
-    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+    "videoUrl": "",
     "videoGroup": "vel_cod",
     "lesionesContra": [
       "lesion_tobillo",
@@ -3040,13 +3021,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Frena con el pie exterior y mantén el centro de masa bajo",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en reaccion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Reacción visual (flechas/colores): drill de velocidad/agilidad enfocado en reaccion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-REAC",
-    "videoUrl": "https://www.youtube.com/watch?v=3PqgN9q_0ZQ",
+    "videoUrl": "",
     "videoGroup": "vel_reaccion",
     "lesionesContra": [
       "lesion_tobillo",
@@ -3087,13 +3068,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Frena con el pie exterior y mantén el centro de masa bajo",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en reaccion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Reacción auditiva: drill de velocidad/agilidad enfocado en reaccion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-REAC",
-    "videoUrl": "https://www.youtube.com/watch?v=3PqgN9q_0ZQ",
+    "videoUrl": "",
     "videoGroup": "vel_reaccion",
     "lesionesContra": [
       "lesion_tobillo",
@@ -3134,13 +3115,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Sprint + frenada: drill de velocidad/agilidad enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-SPRINT",
-    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoUrl": "",
     "videoGroup": "vel_sprint",
     "lesionesContra": [
       "lesion_tobillo",
@@ -3181,13 +3162,13 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Sprint curveado: drill de velocidad/agilidad enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-SPRINT",
-    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+    "videoUrl": "",
     "videoGroup": "vel_sprint",
     "lesionesContra": [
       "lesion_tobillo",
@@ -3228,11 +3209,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Saltos verticales simples: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3274,11 +3255,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Saltos laterales sobre línea: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3320,11 +3301,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Saltos adelante cortos: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3366,11 +3347,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Mini saltos pogos: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3412,11 +3393,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Caídas y saltos (drop jump): ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3458,11 +3439,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Saltos unipodales suaves: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3504,11 +3485,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Depth jumps: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3550,11 +3531,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Repeticiones salto a banco: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3596,11 +3577,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Saltos en escalera tipo quick feet: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3642,11 +3623,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Boundings (saltos largos): ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3688,11 +3669,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Lateral bounds (patinador): ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3734,11 +3715,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Sprint + salto reactivo: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3780,11 +3761,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Salto caja baja: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3826,11 +3807,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Salto caja alta (seguro): ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3872,11 +3853,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Drop jump desde cajón: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -3918,11 +3899,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Isometría en sentadilla 90°: isometría de cuadriceps. Mantén la posición con tensión controlada sin compensaciones. Material: sin_material.",
     "pool": "ISO-INF",
     "videoUrl": "",
     "lesionesContra": [
@@ -3963,11 +3944,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Equilibra ambos lados; empieza por el más débil",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Isometría zancada: isometría de cuadriceps. Mantén la posición con tensión controlada sin compensaciones. Material: sin_material.",
     "pool": "ISO-INF",
     "videoUrl": "",
     "lesionesContra": [
@@ -4006,11 +3987,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gemelos. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Isometría gemelo en punta: isometría de gemelos. Mantén la posición con tensión controlada sin compensaciones. Material: sin_material.",
     "pool": "ISO-INF",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4051,7 +4032,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a gluteos. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Isometría puente de glúteo: isometría de gluteos. Mantén la posición con tensión controlada sin compensaciones. Material: sin_material.",
     "pool": "ISO-INF",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4067,21 +4048,20 @@ export const EXERCISES = [
         "sin_material"
       ],
       "objetivo": [
-        "core"
+        "fuerza",
+        "prevencion"
       ],
-      "segmento": "core",
+      "segmento": "tren_inferior",
       "patron": [
+        "cadena_posterior",
         "isometrico"
       ],
-      "rol": "core",
-      "grupo_principal": "core",
+      "rol": "complementario",
+      "grupo_principal": "isquios",
       "grupo_muscular": [
-        "core"
+        "isquios"
       ],
-      "accion_secundaria": [
-        "estabilidad_lumbopelvica"
-      ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
         "intermedio",
@@ -4090,16 +4070,16 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
-      "Respira sin perder la tensión del tronco",
-      "Calidad de posición por encima del tiempo o las reps"
+      "Desciende controlado con isquios activos; no arquees la lumbar",
+      "Usa asistencia de compañero o anclaje seguro",
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
-    "pool": "CORE-GEN",
+    "descripcion": "Isometría femoral Nordic hold: isometría de isquios. Mantén la posición con tensión controlada sin compensaciones. Material: sin_material.",
+    "pool": "ISO-ISQ",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "core"
+    "carpeta": "fuerza_tren_inferior"
   },
   {
     "id": 93,
@@ -4133,11 +4113,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Bloquea costillas y pelvis; evita arquear la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Plancha frontal: estabilidad de tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4176,11 +4156,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Bloquea costillas y pelvis; evita arquear la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Plancha lateral: estabilidad de tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4217,11 +4197,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: gomas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Isometría de remo con banda: isometría de espalda. Mantén la posición con tensión controlada sin compensaciones. Material: gomas.",
     "pool": "ISO-REMO",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4260,11 +4240,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Bloquea costillas y pelvis; evita arquear la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Hollow hold: estabilidad de tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4304,11 +4284,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Bloquea costillas y pelvis; evita arquear la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (anti_extension). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Dead bug: estabilidad de tronco (anti_extension). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4347,11 +4327,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Bloquea costillas y pelvis; evita arquear la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Bird dog: estabilidad de tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4390,11 +4370,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Bloquea costillas y pelvis; evita arquear la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Hollow rock: estabilidad de tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4433,11 +4413,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Pelvis neutra: no arquees ni hundas la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (anti_rotacion). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Russian twist: estabilidad de tronco (anti_rotacion). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4476,11 +4456,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Pelvis neutra: no arquees ni hundas la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Elevación de piernas tumbado: estabilidad de tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4520,11 +4500,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Bloquea costillas y pelvis; evita arquear la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (anti_rotacion). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Anti-rotación con banda (Pallof): estabilidad de tronco (anti_rotacion). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4564,11 +4544,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Controla el equilibrio antes de aumentar dificultad",
+      "Controla el equilibrio antes de subir dificultad",
       "Mantén alineación rodilla-tobillo-cadera",
       "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
+    "descripcion": "Equilibrio unipodal: trabajo preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4608,7 +4588,7 @@ export const EXERCISES = [
       "Movimiento lento y controlado en ambas direcciones",
       "Combina con respiración profunda"
     ],
-    "descripcion": "Movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
+    "descripcion": "Pase pierna por encima: movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
     "pool": "MOV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4648,7 +4628,7 @@ export const EXERCISES = [
       "Movimiento lento y controlado en ambas direcciones",
       "Combina con respiración profunda"
     ],
-    "descripcion": "Movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
+    "descripcion": "Pase pierna por debajo: movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
     "pool": "MOV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4687,11 +4667,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Estabilidad rodilla + mini saltos: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -4733,11 +4713,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Controla el equilibrio antes de aumentar dificultad",
+      "Controla el equilibrio antes de subir dificultad",
       "Mantén alineación rodilla-tobillo-cadera",
       "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
+    "descripcion": "Estabilidad tobillo: trabajo preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4777,11 +4757,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Controla el equilibrio antes de aumentar dificultad",
+      "Controla el equilibrio antes de subir dificultad",
       "Mantén alineación rodilla-tobillo-cadera",
       "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
+    "descripcion": "Caminata talón-punta: trabajo preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4809,7 +4789,8 @@ export const EXERCISES = [
         "tobillo"
       ],
       "accion_secundaria": [
-        "prevencion_rodilla"
+        "equilibrio",
+        "prevencion_tobillo"
       ],
       "intensidad": "baja",
       "experiencia": [
@@ -4820,11 +4801,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Controla el equilibrio antes de aumentar dificultad",
+      "Controla el equilibrio antes de subir dificultad",
       "Mantén alineación rodilla-tobillo-cadera",
       "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
+    "descripcion": "Trabajo multidireccional controlado: trabajo preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4851,30 +4832,24 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
         "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_tobillo",
-        "lesion_rodilla"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Skipping técnico: drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-ACEL",
-    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoUrl": "",
     "videoGroup": "vel_acel",
-    "lesionesContra": [
-      "lesion_tobillo",
-      "lesion_rodilla"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
@@ -4911,7 +4886,7 @@ export const EXERCISES = [
       "Movimiento lento y controlado en ambas direcciones",
       "Combina con respiración profunda"
     ],
-    "descripcion": "Movilidad articular enfocada en espalda. Usa rangos cómodos y respiración constante.",
+    "descripcion": "Rotación torácica: movilidad articular enfocada en espalda. Usa rangos cómodos y respiración constante.",
     "pool": "MOV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -4951,12 +4926,12 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Controla el equilibrio antes de aumentar dificultad",
+      "Controla el equilibrio antes de subir dificultad",
       "Mantén alineación rodilla-tobillo-cadera",
       "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio preventivo/propioceptivo centrado en escapular. Mejora control motor y reduce riesgo de lesión.",
-    "pool": "PREV-GEN",
+    "descripcion": "Elevación escapular Y: trabajo preventivo/propioceptivo centrado en escapular. Mejora control motor y reduce riesgo de lesión.",
+    "pool": "PREV-ESCAP",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -4995,11 +4970,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Pelvis neutra: no arquees ni hundas la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (anti_extension). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Antiextensión lumbar: estabilidad de tronco (anti_extension). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5039,7 +5014,7 @@ export const EXERCISES = [
       "Movimiento lento y controlado en ambas direcciones",
       "Combina con respiración profunda"
     ],
-    "descripcion": "Movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
+    "descripcion": "Movilidad de cadera: movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
     "pool": "MOV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5079,7 +5054,7 @@ export const EXERCISES = [
       "Movimiento lento y controlado en ambas direcciones",
       "Combina con respiración profunda"
     ],
-    "descripcion": "Movilidad articular enfocada en tobillo. Usa rangos cómodos y respiración constante.",
+    "descripcion": "Movilidad de tobillo: movilidad articular enfocada en tobillo. Usa rangos cómodos y respiración constante.",
     "pool": "MOV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5119,7 +5094,7 @@ export const EXERCISES = [
       "Movimiento lento y controlado en ambas direcciones",
       "Combina con respiración profunda"
     ],
-    "descripcion": "Movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
+    "descripcion": "Estiramiento flexores de cadera: movilidad articular enfocada en cadera. Usa rangos cómodos y respiración constante.",
     "pool": "MOV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5155,11 +5130,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Jalón al pecho: fuerza de tren superior orientada a espalda (traccion). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5199,7 +5174,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Cruces pecho de pie: fuerza de tren superior orientada a pecho (empuje). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5240,7 +5215,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a hombros. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Elevaciones laterales en polea: fuerza de tren superior orientada a hombros (empuje). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5276,11 +5251,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Dominadas: fuerza de tren superior orientada a espalda (traccion). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5316,12 +5291,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: barra. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Remo barra: fuerza de tren superior orientada a espalda (traccion). Material: barra. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5357,11 +5331,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Remo agarre estrecho: fuerza de tren superior orientada a espalda (traccion). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5399,11 +5373,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Extensión tríceps en polea: fuerza de tren superior orientada a triceps (analitico). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "AN-TRICEPS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5441,11 +5415,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Extensión tríceps tras nuca: fuerza de tren superior orientada a triceps (analitico). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "AN-TRICEPS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5483,12 +5457,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia",
-      "Calienta la articulación principal antes de series pesadas"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a biceps. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Curl bíceps en máquina: fuerza de tren superior orientada a biceps (analitico). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "AN-BICEPS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5526,12 +5499,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia",
-      "Calienta la articulación principal antes de series pesadas"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a biceps. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Curl bíceps alterno sentado mancuerna: fuerza de tren superior orientada a biceps (analitico). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "AN-BICEPS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5569,12 +5541,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia",
-      "Calienta la articulación principal antes de series pesadas"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a biceps. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Curl bíceps sentado mancuernas: fuerza de tren superior orientada a biceps (analitico). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "AN-BICEPS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5612,12 +5583,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia",
-      "Calienta la articulación principal antes de series pesadas"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a biceps. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Curl bíceps sentado declinado mancuerna: fuerza de tren superior orientada a biceps (analitico). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "AN-BICEPS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5655,12 +5625,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Press mancuernas inclinado: fuerza de tren superior orientada a pecho (empuje). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
@@ -5700,12 +5669,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Aísla el músculo objetivo sin balanceo",
+      "Aísla el músculo objetivo sin balancear el cuerpo",
       "Controla la fase excéntrica 2–3 segundos",
-      "Elige un peso que permita técnica limpia",
-      "Calienta la articulación principal antes de series pesadas"
+      "Elige una carga que permita técnica limpia"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a triceps. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Extensión tríceps mancuernas en banco: fuerza de tren superior orientada a triceps (analitico). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "AN-TRICEPS",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5741,12 +5709,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Remo con mancuerna en banco: fuerza de tren superior orientada a espalda (traccion). Material: mancuernas. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5782,12 +5749,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Remo en máquina: fuerza de tren superior orientada a espalda (traccion). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5805,14 +5771,15 @@ export const EXERCISES = [
       "objetivo": [
         "fuerza"
       ],
-      "segmento": "tren_inferior",
+      "segmento": "tren_superior",
       "patron": [
-        "cadena_anterior"
+        "empuje",
+        "analitico"
       ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
+      "rol": "complementario",
+      "grupo_principal": "hombros",
       "grupo_muscular": [
-        "cuadriceps"
+        "hombros"
       ],
       "intensidad": "alta",
       "experiencia": [
@@ -5825,15 +5792,14 @@ export const EXERCISES = [
     "tips": [
       "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
-    "pool": "TI-ANT",
+    "descripcion": "Elevación lateral en máquina: fuerza de tren superior orientada a hombros (empuje). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "fuerza_tren_inferior"
+    "carpeta": "fuerza_tren_superior"
   },
   {
     "id": 134,
@@ -5866,12 +5832,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Press inclinado en máquina: fuerza de tren superior orientada a pecho (empuje). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
@@ -5911,12 +5876,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Press plano en máquina: fuerza de tren superior orientada a pecho (empuje). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
@@ -5956,10 +5920,9 @@ export const EXERCISES = [
     "tips": [
       "Mantén la columna neutra y el core activo",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Abducción pectoral en máquina: fuerza de tren superior orientada a pecho (empuje). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [],
@@ -5995,12 +5958,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Jalón al pecho máquina: fuerza de tren superior orientada a espalda (traccion). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -6038,12 +6000,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Sentadilla en máquina inclinada (tipo haka): fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: maquina. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
@@ -6083,12 +6044,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Prensa en máquina plana: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: maquina. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
@@ -6126,11 +6086,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Jalón al pecho agarre neutro ancho: fuerza de tren superior orientada a espalda (traccion). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -6166,11 +6126,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Jalón al pecho agarre neutro estrecho: fuerza de tren superior orientada a espalda (traccion). Material: sin_material. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -6190,12 +6150,13 @@ export const EXERCISES = [
       ],
       "segmento": "tren_superior",
       "patron": [
-        "empuje"
+        "empuje",
+        "analitico"
       ],
       "rol": "complementario",
-      "grupo_principal": "pecho",
+      "grupo_principal": "hombros",
       "grupo_muscular": [
-        "pecho"
+        "hombros"
       ],
       "intensidad": "alta",
       "experiencia": [
@@ -6208,13 +6169,12 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
-    "pool": "TS-EMPUJE",
+    "descripcion": "Press militar en máquina de discos: fuerza de tren superior orientada a hombros (empuje). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "pool": "TS-HOMBRO",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_hombro"
@@ -6251,12 +6211,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a espalda. Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Remo en máquina de discos: fuerza de tren superior orientada a espalda (traccion). Material: maquina. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-TRACCION",
     "videoUrl": "",
     "lesionesContra": [],
@@ -6294,12 +6253,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Escápulas estables; no abras en exceso los codos",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren superior orientado a pecho. Material: barra. Prioriza trayectoria estable y escápulas controladas.",
+    "descripcion": "Press inclinado barra: fuerza de tren superior orientada a pecho (empuje). Material: barra. Prioriza trayectoria estable y escápulas controladas.",
     "pool": "TS-EMPUJE",
     "videoUrl": "",
     "lesionesContra": [
@@ -6319,14 +6277,14 @@ export const EXERCISES = [
       "objetivo": [
         "resistencia"
       ],
-      "segmento": "tren_inferior",
+      "segmento": "full_body",
       "patron": [
         "aerobico"
       ],
       "rol": "basico",
-      "grupo_principal": "cuadriceps",
+      "grupo_principal": "espalda",
       "grupo_muscular": [
-        "cuadriceps"
+        "espalda"
       ],
       "intensidad": "media",
       "experiencia": [
@@ -6337,13 +6295,14 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+      "Ritmo conversacional salvo indicación contraria",
+      "Postura erguida y respiración rítmica",
+      "No conviertas el estímulo en sprint salvo que la sesión lo pida"
     ],
-    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
-    "pool": "RES-GEN",
+    "descripcion": "RowErg: trabajo de resistencia (aerobico) centrado en espalda. Material: maquina. Regula la intensidad según el objetivo de la sesión.",
+    "pool": "RES-ERG",
     "videoUrl": "",
+    "videoGroup": "res_erg",
     "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "resistencia"
@@ -6377,13 +6336,13 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+      "Ritmo conversacional salvo indicación contraria",
+      "Postura erguida y respiración rítmica",
+      "No conviertas el estímulo en sprint salvo que la sesión lo pida"
     ],
-    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
+    "descripcion": "Carrera continua: trabajo de resistencia (aerobico) centrado en cuadriceps. Material: sin_material. Regula la intensidad según el objetivo de la sesión.",
     "pool": "RES-GEN",
-    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
+    "videoUrl": "",
     "videoGroup": "res_continua",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -6400,14 +6359,14 @@ export const EXERCISES = [
       "objetivo": [
         "resistencia"
       ],
-      "segmento": "tren_inferior",
+      "segmento": "tren_superior",
       "patron": [
         "aerobico"
       ],
       "rol": "basico",
-      "grupo_principal": "cuadriceps",
+      "grupo_principal": "espalda",
       "grupo_muscular": [
-        "cuadriceps"
+        "espalda"
       ],
       "intensidad": "media",
       "experiencia": [
@@ -6418,13 +6377,14 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+      "Ritmo conversacional salvo indicación contraria",
+      "Postura erguida y respiración rítmica",
+      "No conviertas el estímulo en sprint salvo que la sesión lo pida"
     ],
-    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
-    "pool": "RES-GEN",
+    "descripcion": "SkiErg: trabajo de resistencia (aerobico) centrado en espalda. Material: maquina. Regula la intensidad según el objetivo de la sesión.",
+    "pool": "RES-ERG",
     "videoUrl": "",
+    "videoGroup": "res_erg",
     "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "resistencia"
@@ -6458,13 +6418,14 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+      "Ritmo conversacional salvo indicación contraria",
+      "Postura erguida y respiración rítmica",
+      "No conviertas el estímulo en sprint salvo que la sesión lo pida"
     ],
-    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
-    "pool": "RES-GEN",
+    "descripcion": "BikeErg: trabajo de resistencia (aerobico) centrado en cuadriceps. Material: maquina. Regula la intensidad según el objetivo de la sesión.",
+    "pool": "RES-ERG",
     "videoUrl": "",
+    "videoGroup": "res_erg",
     "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "resistencia"
@@ -6478,7 +6439,8 @@ export const EXERCISES = [
         "trineo"
       ],
       "objetivo": [
-        "resistencia"
+        "resistencia",
+        "fuerza"
       ],
       "segmento": "tren_inferior",
       "patron": [
@@ -6489,7 +6451,7 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
         "intermedio",
@@ -6498,12 +6460,12 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
+      "Mantén un ritmo sostenible según el objetivo de la sesión",
+      "Postura erguida y respiración rítmica",
+      "No conviertas el estímulo en sprint salvo que la sesión lo pida"
     ],
-    "descripcion": "Trabajo de resistencia (anaerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
-    "pool": "RES-GEN",
+    "descripcion": "Empuje trineo: trabajo de resistencia (anaerobico) centrado en cuadriceps. Material: trineo. Regula la intensidad según el objetivo de la sesión.",
+    "pool": "RES-POT",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
@@ -6540,12 +6502,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Cadera atrás, barra/mancuernas cerca del cuerpo, espalda neutra",
       "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga",
-      "Calienta la articulación principal antes de series pesadas"
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a isquios. Material: barra. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Peso muerto barra hexagonal: fuerza de tren inferior orientada a isquios (cadena_posterior). Material: barra. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [
@@ -6585,11 +6546,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
+      "Rodillas alineadas con la punta de los pies; no colapses hacia dentro",
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: maquina. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Sentadilla en multipower: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: maquina. Ejecuta con control y rango completo seguro.",
     "pool": "TI-ANT",
     "videoUrl": "",
     "lesionesContra": [
@@ -6630,11 +6591,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Salto profundo + salto al cajón: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -6676,11 +6637,11 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Aterriza suave, rodillas alineadas con los pies",
+      "Aterriza suave con rodillas alineadas sobre los pies",
       "Contacto breve con el suelo; rebote reactivo",
-      "Si aparece dolor articular, reduce altura o volumen"
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "descripcion": "Salto cajón + caigo + salto profundo: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
     "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
@@ -6728,7 +6689,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Step up + rodilla arriba: fuerza de tren inferior orientada a cuadriceps (cadena_anterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
     "pool": "TI-UNI",
     "videoUrl": "",
     "lesionesContra": [
@@ -6770,7 +6731,7 @@ export const EXERCISES = [
       "Movimiento lento y controlado en ambas direcciones",
       "Combina con respiración profunda"
     ],
-    "descripcion": "Movilidad articular enfocada en espalda. Usa rangos cómodos y respiración constante.",
+    "descripcion": "Perro gato movilidad torácica: movilidad articular enfocada en espalda. Usa rangos cómodos y respiración constante.",
     "pool": "MOV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -6810,11 +6771,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Controla el equilibrio antes de aumentar dificultad",
+      "Frena con el pie exterior y mantén el centro de masa bajo",
       "Mantén alineación rodilla-tobillo-cadera",
       "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
+    "descripcion": "Equilibrio unipodal ir a tocar conos: trabajo preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -6830,18 +6791,22 @@ export const EXERCISES = [
         "sin_material"
       ],
       "objetivo": [
-        "fuerza"
+        "prevencion"
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "cadena_anterior"
+        "isometrico"
       ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
+      "rol": "complementario",
+      "grupo_principal": "tobillo",
       "grupo_muscular": [
-        "cuadriceps"
+        "tobillo"
       ],
-      "intensidad": "alta",
+      "accion_secundaria": [
+        "equilibrio",
+        "prevencion_tobillo"
+      ],
+      "intensidad": "baja",
       "experiencia": [
         "novato",
         "intermedio",
@@ -6850,16 +6815,16 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Mantén la columna neutra y el core activo",
-      "Controla el movimiento en ambas fases",
-      "No sacrifiques técnica por carga"
+      "Controla el equilibrio antes de subir dificultad",
+      "Mantén alineación rodilla-tobillo-cadera",
+      "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio de fuerza de tren inferior orientado a cuadriceps. Material: sin_material. Ejecuta con control y rango completo seguro.",
-    "pool": "TI-ANT",
+    "descripcion": "Caminar sobre línea con los ojos cerrados: trabajo preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
+    "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "fuerza_tren_inferior"
+    "carpeta": "prevencion"
   },
   {
     "id": 158,
@@ -6894,11 +6859,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Controla el equilibrio antes de aumentar dificultad",
+      "Controla el equilibrio antes de subir dificultad",
       "Mantén alineación rodilla-tobillo-cadera",
       "Si pierdes la postura, reduce el estímulo"
     ],
-    "descripcion": "Ejercicio preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
+    "descripcion": "Equilibrio sobre BOSU: trabajo preventivo/propioceptivo centrado en tobillo. Mejora control motor y reduce riesgo de lesión.",
     "pool": "PREV-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -6928,29 +6893,23 @@ export const EXERCISES = [
       "accion_secundaria": [
         "control_motor"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
         "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Coordinación 1 pie por espacio: drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-COORD",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
@@ -6977,29 +6936,23 @@ export const EXERCISES = [
       "accion_secundaria": [
         "control_motor"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
         "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Coordinación Dos pies por espacio: drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-COORD",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
@@ -7026,29 +6979,23 @@ export const EXERCISES = [
       "accion_secundaria": [
         "control_motor"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
         "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Coordinación Un pie (dentro-fuera): drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-COORD",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
@@ -7075,29 +7022,23 @@ export const EXERCISES = [
       "accion_secundaria": [
         "control_motor"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
         "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Coordinación Dos pies dentro, uno fuera: drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-COORD",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
@@ -7124,29 +7065,23 @@ export const EXERCISES = [
       "accion_secundaria": [
         "control_motor"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
         "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_rodilla",
-        "lesion_tobillo"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Coordinación Lateral dos dentro, dos fuera: drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-COORD",
     "videoUrl": "",
-    "lesionesContra": [
-      "lesion_rodilla",
-      "lesion_tobillo"
-    ],
+    "lesionesContra": [],
     "edadMinima": 10,
     "carpeta": "velocidad"
   },
@@ -7159,19 +7094,16 @@ export const EXERCISES = [
         "sin_material"
       ],
       "objetivo": [
-        "velocidad"
+        "fuerza"
       ],
       "segmento": "tren_inferior",
       "patron": [
-        "aceleracion"
+        "pliometria"
       ],
       "rol": "complementario",
       "grupo_principal": "cuadriceps",
       "grupo_muscular": [
         "cuadriceps"
-      ],
-      "accion_secundaria": [
-        "control_motor"
       ],
       "intensidad": "alta",
       "experiencia": [
@@ -7185,19 +7117,19 @@ export const EXERCISES = [
       ]
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Aterriza suave con rodillas alineadas sobre los pies",
+      "Contacto breve con el suelo; rebote reactivo",
+      "Reduce altura o volumen si aparece molestia articular"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
-    "pool": "VEL-COORD",
+    "descripcion": "Coordinación Salto pies juntos: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: sin_material.",
+    "pool": "PLIO-GEN",
     "videoUrl": "",
     "lesionesContra": [
       "lesion_rodilla",
       "lesion_tobillo"
     ],
-    "edadMinima": 10,
-    "carpeta": "velocidad"
+    "edadMinima": 14,
+    "carpeta": "pliometria"
   },
   {
     "id": 165,
@@ -7232,11 +7164,11 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
+      "Bloquea costillas y pelvis; evita arquear la lumbar",
       "Respira sin perder la tensión del tronco",
       "Calidad de posición por encima del tiempo o las reps"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (anti_extension). Mantén pelvis neutra durante todo el estímulo.",
+    "descripcion": "Inch worm + plancha: estabilidad de tronco (anti_extension). Mantén pelvis neutra durante todo el estímulo.",
     "pool": "CORE-GEN",
     "videoUrl": "",
     "lesionesContra": [],
@@ -7252,21 +7184,20 @@ export const EXERCISES = [
         "sin_material"
       ],
       "objetivo": [
-        "core"
+        "fuerza",
+        "prevencion"
       ],
-      "segmento": "core",
+      "segmento": "tren_inferior",
       "patron": [
+        "cadena_posterior",
         "isometrico"
       ],
-      "rol": "core",
-      "grupo_principal": "core",
+      "rol": "complementario",
+      "grupo_principal": "isquios",
       "grupo_muscular": [
-        "core"
+        "isquios"
       ],
-      "accion_secundaria": [
-        "estabilidad_lumbopelvica"
-      ],
-      "intensidad": "media",
+      "intensidad": "alta",
       "experiencia": [
         "novato",
         "intermedio",
@@ -7275,16 +7206,16 @@ export const EXERCISES = [
       "contraindicado": []
     },
     "tips": [
-      "Neutraliza la lumbar: no arquees ni hundas la cadera",
-      "Respira sin perder la tensión del tronco",
-      "Calidad de posición por encima del tiempo o las reps"
+      "Desciende controlado con isquios activos; no arquees la lumbar",
+      "Usa asistencia de compañero o anclaje seguro",
+      "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Ejercicio de core para estabilidad del tronco (isometrico). Mantén pelvis neutra durante todo el estímulo.",
-    "pool": "CORE-GEN",
+    "descripcion": "Nordic hold: fuerza de tren inferior orientada a isquios (cadena_posterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "pool": "ISO-ISQ",
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "core"
+    "carpeta": "fuerza_tren_inferior"
   },
   {
     "id": 167,
@@ -7306,652 +7237,24 @@ export const EXERCISES = [
       "grupo_muscular": [
         "cuadriceps"
       ],
-      "intensidad": "alta",
+      "intensidad": "media",
       "experiencia": [
         "novato",
         "intermedio",
         "avanzado"
       ],
-      "contraindicado": [
-        "lesion_tobillo",
-        "lesion_rodilla"
-      ]
+      "contraindicado": []
     },
     "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
+      "Prioriza calidad técnica sobre volumen",
+      "Recupera completo entre repeticiones para conservar velocidad",
+      "Tronco estable y apoyos activos"
     ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
+    "descripcion": "Drill pared: drill de velocidad/agilidad enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
     "pool": "VEL-ACEL",
-    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+    "videoUrl": "",
     "videoGroup": "vel_acel",
-    "lesionesContra": [
-      "lesion_tobillo",
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "velocidad"
-  },
-  {
-    "id": 168,
-    "nombre": "Carrera continua zona 2",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "resistencia"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "aerobico"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
-    ],
-    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
-    "pool": "RES-GEN",
-    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
-    "videoGroup": "res_continua",
     "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "resistencia"
-  },
-  {
-    "id": 169,
-    "nombre": "Carrera continua regenerativa",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "resistencia"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "aerobico"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
-    ],
-    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
-    "pool": "RES-GEN",
-    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
-    "videoGroup": "res_continua",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "resistencia"
-  },
-  {
-    "id": 170,
-    "nombre": "Series umbral controlado",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "resistencia"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "umbral"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
-    ],
-    "descripcion": "Trabajo de resistencia (umbral). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
-    "pool": "RES-GEN",
-    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
-    "videoGroup": "res_continua",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "resistencia"
-  },
-  {
-    "id": 171,
-    "nombre": "Intervalos anaeróbicos cortos",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "resistencia"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "anaerobico"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
-    ],
-    "descripcion": "Trabajo de resistencia (anaerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
-    "pool": "RES-GEN",
-    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
-    "videoGroup": "res_continua",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "resistencia"
-  },
-  {
-    "id": 172,
-    "nombre": "Fartlek controlado",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "resistencia"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "anaerobico"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
-    ],
-    "descripcion": "Trabajo de resistencia (anaerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
-    "pool": "RES-GEN",
-    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
-    "videoGroup": "res_continua",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "resistencia"
-  },
-  {
-    "id": 173,
-    "nombre": "Carrera continua en cinta",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "resistencia"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "aerobico"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "baja",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": []
-    },
-    "tips": [
-      "Mantén un ritmo sostenible y respiración controlada",
-      "Postura erguida, mirada al frente y zancada eficiente",
-      "Ajusta la intensidad según la zona prevista (no aceleres de más)"
-    ],
-    "descripcion": "Trabajo de resistencia (aerobico). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.",
-    "pool": "RES-GEN",
-    "videoUrl": "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
-    "videoGroup": "res_continua",
-    "lesionesContra": [],
-    "edadMinima": 10,
-    "carpeta": "resistencia"
-  },
-  {
-    "id": 174,
-    "nombre": "Aceleraciones 20 m",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "velocidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "aceleracion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_tobillo",
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
-    ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
-    "pool": "VEL-ACEL",
-    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
-    "videoGroup": "vel_acel",
-    "lesionesContra": [
-      "lesion_tobillo",
-      "lesion_rodilla"
-    ],
-    "edadMinima": 14,
-    "carpeta": "velocidad"
-  },
-  {
-    "id": 175,
-    "nombre": "Aceleraciones 30 m",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "velocidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "aceleracion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_tobillo",
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
-    ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
-    "pool": "VEL-ACEL",
-    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
-    "videoGroup": "vel_acel",
-    "lesionesContra": [
-      "lesion_tobillo",
-      "lesion_rodilla"
-    ],
-    "edadMinima": 14,
-    "carpeta": "velocidad"
-  },
-  {
-    "id": 176,
-    "nombre": "Salidas desde pie",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "velocidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "aceleracion"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_tobillo",
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
-    ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en aceleracion. Recupera bien entre repeticiones para mantener calidad.",
-    "pool": "VEL-ACEL",
-    "videoUrl": "https://www.youtube.com/watch?v=2L2W3nY4v8A",
-    "videoGroup": "vel_acel",
-    "lesionesContra": [
-      "lesion_tobillo",
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "velocidad"
-  },
-  {
-    "id": 177,
-    "nombre": "Sprint 10 m",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "velocidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "velocidad_pura"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_tobillo",
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
-    ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
-    "pool": "VEL-SPRINT",
-    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
-    "videoGroup": "vel_sprint",
-    "lesionesContra": [
-      "lesion_tobillo",
-      "lesion_rodilla"
-    ],
-    "edadMinima": 14,
-    "carpeta": "velocidad"
-  },
-  {
-    "id": 178,
-    "nombre": "Sprint 15 m",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "velocidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "velocidad_pura"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "alta",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_tobillo",
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
-    ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en velocidad_pura. Recupera bien entre repeticiones para mantener calidad.",
-    "pool": "VEL-SPRINT",
-    "videoUrl": "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
-    "videoGroup": "vel_sprint",
-    "lesionesContra": [
-      "lesion_tobillo",
-      "lesion_rodilla"
-    ],
-    "edadMinima": 14,
-    "carpeta": "velocidad"
-  },
-  {
-    "id": 179,
-    "nombre": "COD 5-10-5 reactivo",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "velocidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "COD"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_tobillo",
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
-    ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
-    "pool": "VEL-COD",
-    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
-    "videoGroup": "vel_cod",
-    "lesionesContra": [
-      "lesion_tobillo",
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "velocidad"
-  },
-  {
-    "id": 180,
-    "nombre": "COD 4 conos",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "velocidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "COD"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_tobillo",
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
-    ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
-    "pool": "VEL-COD",
-    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
-    "videoGroup": "vel_cod",
-    "lesionesContra": [
-      "lesion_tobillo",
-      "lesion_rodilla"
-    ],
-    "edadMinima": 10,
-    "carpeta": "velocidad"
-  },
-  {
-    "id": 181,
-    "nombre": "Zig-zag 4 conos",
-    "nuevo": false,
-    "etiquetas": {
-      "material": [
-        "sin_material"
-      ],
-      "objetivo": [
-        "velocidad"
-      ],
-      "segmento": "tren_inferior",
-      "patron": [
-        "COD"
-      ],
-      "rol": "basico",
-      "grupo_principal": "cuadriceps",
-      "grupo_muscular": [
-        "cuadriceps"
-      ],
-      "intensidad": "media",
-      "experiencia": [
-        "novato",
-        "intermedio",
-        "avanzado"
-      ],
-      "contraindicado": [
-        "lesion_tobillo",
-        "lesion_rodilla"
-      ]
-    },
-    "tips": [
-      "Salida explosiva con apoyo completo del pie",
-      "Tronco estable y brazos activos en oposición",
-      "Prioriza calidad técnica antes que volumen"
-    ],
-    "descripcion": "Drill de velocidad/agilidad. Enfocado en COD. Recupera bien entre repeticiones para mantener calidad.",
-    "pool": "VEL-COD",
-    "videoUrl": "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
-    "videoGroup": "vel_cod",
-    "lesionesContra": [
-      "lesion_tobillo",
-      "lesion_rodilla"
-    ],
     "edadMinima": 10,
     "carpeta": "velocidad"
   }

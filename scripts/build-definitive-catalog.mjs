@@ -1,11 +1,11 @@
 /**
- * Construye el catálogo definitivo Depro 2.0 §9.6 + variantes con vídeo compartido.
+ * Catálogo definitivo Depro 2.0 §9.6 — solo listado del documento.
+ * Sin inventados, sin genéricos externos (Skipping A/B/C viven en EXTRA y se excluyen).
  * Uso: node scripts/build-definitive-catalog.mjs
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { EXERCISES as PREV } from "../src/lib/exerciseCatalog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, "../src/lib/exerciseCatalog.js");
@@ -21,7 +21,10 @@ const FOLDERS = [
   "movilidad",
 ];
 
-/** Listado definitivo §9.6 (duplicados unificados; T-test marcado como test). */
+/**
+ * Listado §9.6 (duplicados unificados; T-test excluido por ser test).
+ * Nombres tal cual el documento salvo tipografías obvias (comillas tipográficas).
+ */
 const DEFINITIVE = [
   "Sentadilla clásica",
   "Sentadilla brazos arriba",
@@ -192,35 +195,14 @@ const DEFINITIVE = [
   "Drill pared",
 ];
 
-/** Variantes extra que reutilizan el mismo vídeo de carrera continua. */
-const RESISTENCIA_VARIANTS = [
-  "Carrera continua zona 2",
-  "Carrera continua regenerativa",
-  "Series umbral controlado",
-  "Intervalos anaeróbicos cortos",
-  "Fartlek controlado",
-  "Carrera continua en cinta",
-];
-
-/** Variantes de velocidad que reutilizan vídeo de aceleración / sprint / COD. */
-const VELOCIDAD_VARIANTS = [
-  { nombre: "Aceleraciones 20 m", videoGroup: "vel_acel" },
-  { nombre: "Aceleraciones 30 m", videoGroup: "vel_acel" },
-  { nombre: "Salidas desde pie", videoGroup: "vel_acel" },
-  { nombre: "Sprint 10 m", videoGroup: "vel_sprint" },
-  { nombre: "Sprint 15 m", videoGroup: "vel_sprint" },
-  { nombre: "COD 5-10-5 reactivo", videoGroup: "vel_cod" },
-  { nombre: "COD 4 conos", videoGroup: "vel_cod" },
-  { nombre: "Zig-zag 4 conos", videoGroup: "vel_cod" },
-];
-
-/** Vídeos compartidos por familia (mismo URL = mismo recurso audiovisual). */
+/** Mismo vídeo solo entre ejercicios reales de la misma familia del documento. */
 const SHARED_VIDEOS = {
-  res_continua: "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
-  vel_acel: "https://www.youtube.com/watch?v=2L2W3nY4v8A",
-  vel_sprint: "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
-  vel_cod: "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
-  vel_reaccion: "https://www.youtube.com/watch?v=3PqgN9q_0ZQ",
+  res_continua: "",
+  res_erg: "",
+  vel_acel: "",
+  vel_sprint: "",
+  vel_cod: "",
+  vel_reaccion: "",
 };
 
 function norm(s) {
@@ -236,20 +218,6 @@ function uniq(arr) {
   return [...new Set((arr || []).filter(Boolean))];
 }
 
-const prevByName = new Map(PREV.map((e) => [norm(e.nombre), e]));
-
-function inferMaterial(nombre) {
-  const n = norm(nombre);
-  if (/maquina|prensa|polea|multipower|rowerg|skierg|bikeerg|haka/.test(n)) return ["maquina"];
-  if (/barra|hexagonal|multipower|press banca|press inclinado barra|press militar/.test(n)) return ["barra"];
-  if (/mancuerna|goblet|arnold|fondos en banco \+/.test(n)) return ["mancuernas"];
-  if (/goma|banda|elastica|pallof|monster walk|lateral walk/.test(n)) return ["gomas"];
-  if (/bosu/.test(n)) return ["bosu"];
-  if (/trineo/.test(n)) return ["trineo"];
-  return ["sin_material"];
-}
-
-/** Overrides explícitos para nombres frágiles del listado §9.6. */
 const NAME_OVERRIDES = {
   "y t w en suelo": {
     carpeta: "prevencion",
@@ -260,6 +228,17 @@ const NAME_OVERRIDES = {
     grupo_principal: "escapular",
     accion_secundaria: ["estabilidad_escapular", "prevencion_hombro"],
     pool: "PREV-ESCAP",
+    intensidad: "baja",
+  },
+  "superman": {
+    carpeta: "prevencion",
+    objetivo: ["prevencion"],
+    segmento: "tren_superior",
+    patron: ["isometrico"],
+    rol: "complementario",
+    grupo_principal: "espalda",
+    accion_secundaria: ["estabilidad_escapular", "prevencion_hombro"],
+    pool: "PREV-GEN",
     intensidad: "baja",
   },
   "isometria de remo con banda": {
@@ -273,16 +252,25 @@ const NAME_OVERRIDES = {
     pool: "ISO-REMO",
     intensidad: "media",
   },
-  "superman": {
-    carpeta: "prevencion",
-    objetivo: ["prevencion"],
-    segmento: "tren_superior",
-    patron: ["isometrico"],
+  "isometria femoral nordic hold": {
+    carpeta: "fuerza_tren_inferior",
+    objetivo: ["fuerza", "prevencion"],
+    segmento: "tren_inferior",
+    patron: ["cadena_posterior", "isometrico"],
     rol: "complementario",
-    grupo_principal: "espalda",
-    accion_secundaria: ["estabilidad_escapular", "prevencion_hombro"],
-    pool: "PREV-GEN",
-    intensidad: "baja",
+    grupo_principal: "isquios",
+    pool: "ISO-ISQ",
+    intensidad: "alta",
+  },
+  "nordic hold": {
+    carpeta: "fuerza_tren_inferior",
+    objetivo: ["fuerza", "prevencion"],
+    segmento: "tren_inferior",
+    patron: ["cadena_posterior", "isometrico"],
+    rol: "complementario",
+    grupo_principal: "isquios",
+    pool: "ISO-ISQ",
+    intensidad: "alta",
   },
   "farmer walk corto 10 20 m": {
     carpeta: "fuerza_tren_superior",
@@ -311,7 +299,7 @@ const NAME_OVERRIDES = {
     carpeta: "prevencion",
     objetivo: ["prevencion"],
     segmento: "tren_superior",
-    patron: ["isometrico", "analitico"],
+    patron: ["analitico"],
     rol: "complementario",
     grupo_principal: "hombros",
     material: ["gomas"],
@@ -319,11 +307,137 @@ const NAME_OVERRIDES = {
     pool: "PREV-HOMBRO",
     intensidad: "baja",
   },
+  "elevacion escapular y": {
+    carpeta: "prevencion",
+    objetivo: ["prevencion"],
+    segmento: "tren_superior",
+    patron: ["isometrico"],
+    rol: "complementario",
+    grupo_principal: "escapular",
+    accion_secundaria: ["estabilidad_escapular", "prevencion_hombro"],
+    pool: "PREV-ESCAP",
+    intensidad: "baja",
+  },
+  "skipping tecnico": {
+    carpeta: "velocidad",
+    objetivo: ["velocidad"],
+    segmento: "tren_inferior",
+    patron: ["aceleracion"],
+    rol: "basico",
+    grupo_principal: "cuadriceps",
+    pool: "VEL-ACEL",
+    intensidad: "media",
+    videoGroup: "vel_acel",
+  },
+  "drill pared": {
+    carpeta: "velocidad",
+    objetivo: ["velocidad"],
+    segmento: "tren_inferior",
+    patron: ["aceleracion"],
+    rol: "basico",
+    grupo_principal: "cuadriceps",
+    pool: "VEL-ACEL",
+    intensidad: "media",
+    videoGroup: "vel_acel",
+  },
+  "rowerg": {
+    carpeta: "resistencia",
+    objetivo: ["resistencia"],
+    segmento: "full_body",
+    patron: ["aerobico"],
+    rol: "basico",
+    grupo_principal: "espalda",
+    material: ["maquina"],
+    pool: "RES-ERG",
+    videoGroup: "res_erg",
+  },
+  "skierg": {
+    carpeta: "resistencia",
+    objetivo: ["resistencia"],
+    segmento: "tren_superior",
+    patron: ["aerobico"],
+    rol: "basico",
+    grupo_principal: "espalda",
+    material: ["maquina"],
+    pool: "RES-ERG",
+    videoGroup: "res_erg",
+  },
+  "bikeerg": {
+    carpeta: "resistencia",
+    objetivo: ["resistencia"],
+    segmento: "tren_inferior",
+    patron: ["aerobico"],
+    rol: "basico",
+    grupo_principal: "cuadriceps",
+    material: ["maquina"],
+    pool: "RES-ERG",
+    videoGroup: "res_erg",
+  },
+  "carrera continua": {
+    carpeta: "resistencia",
+    objetivo: ["resistencia"],
+    segmento: "tren_inferior",
+    patron: ["aerobico"],
+    rol: "basico",
+    grupo_principal: "cuadriceps",
+    pool: "RES-GEN",
+    videoGroup: "res_continua",
+    intensidad: "baja",
+  },
+  "empuje trineo": {
+    carpeta: "resistencia",
+    objetivo: ["resistencia", "fuerza"],
+    segmento: "tren_inferior",
+    patron: ["anaerobico"],
+    rol: "basico",
+    grupo_principal: "cuadriceps",
+    material: ["trineo"],
+    pool: "RES-POT",
+    intensidad: "alta",
+  },
 };
+
+function inferMaterial(nombre) {
+  const n = norm(nombre);
+  if (/maquina|prensa|polea|multipower|rowerg|skierg|bikeerg|haka/.test(n)) return ["maquina"];
+  if (/barra|hexagonal|press banca|press inclinado barra|press militar/.test(n)) return ["barra"];
+  if (/mancuerna|goblet|arnold|fondos en banco \+/.test(n)) return ["mancuernas"];
+  if (/goma|banda|elastica|pallof|monster walk|lateral walk/.test(n)) return ["gomas"];
+  if (/bosu/.test(n)) return ["bosu"];
+  if (/trineo/.test(n)) return ["trineo"];
+  return ["sin_material"];
+}
+
+function baseFromOverride(ov, material) {
+  return {
+    carpeta: ov.carpeta,
+    etiquetas: {
+      material: ov.material || material,
+      objetivo: uniq(ov.objetivo),
+      segmento: ov.segmento,
+      patron: uniq(ov.patron),
+      rol: ov.rol,
+      grupo_principal: ov.grupo_principal,
+      grupo_muscular: [ov.grupo_principal],
+      ...(ov.accion_secundaria?.length ? { accion_secundaria: uniq(ov.accion_secundaria) } : {}),
+      intensidad: ov.intensidad || "media",
+      experiencia: ["novato", "intermedio", "avanzado"],
+      contraindicado: ov.contraindicado || [],
+    },
+    pool: ov.pool || "GEN",
+    videoGroup: ov.videoGroup || null,
+    esTest: false,
+    lesionesContra: ov.contraindicado || [],
+    edadMinima: 10,
+  };
+}
 
 function inferTags(nombre) {
   const n = norm(nombre);
   const material = inferMaterial(nombre);
+  const ov = NAME_OVERRIDES[n];
+  if (ov) return baseFromOverride(ov, material);
+
   let carpeta = "fuerza_tren_inferior";
   let objetivo = ["fuerza"];
   let segmento = "tren_inferior";
@@ -336,52 +450,16 @@ function inferTags(nombre) {
   let contraindicado = [];
   let pool = "GEN";
   let videoGroup = null;
-  let esTest = false;
 
-  const ov = NAME_OVERRIDES[n];
-  if (ov) {
-    return {
-      carpeta: ov.carpeta,
-      etiquetas: {
-        material: ov.material || material,
-        objetivo: uniq(ov.objetivo),
-        segmento: ov.segmento,
-        patron: uniq(ov.patron),
-        rol: ov.rol,
-        grupo_principal: ov.grupo_principal,
-        grupo_muscular: [ov.grupo_principal],
-        ...(ov.accion_secundaria?.length ? { accion_secundaria: uniq(ov.accion_secundaria) } : {}),
-        intensidad: ov.intensidad || intensidad,
-        experiencia,
-        contraindicado: ov.contraindicado || [],
-      },
-      pool: ov.pool || "GEN",
-      videoGroup: ov.videoGroup || null,
-      esTest: false,
-      lesionesContra: ov.contraindicado || [],
-      edadMinima: 10,
-    };
-  }
-
-  // ── Resistencia ──
-  if (/carrera continua|rowerg|skierg|bikeerg|umbral|intervalo|fartlek|trineo/.test(n) && !/salto|sprint|acelera/.test(n)) {
+  if (/rowerg|skierg|bikeerg|carrera continua|empuje trineo/.test(n)) {
     carpeta = "resistencia";
     objetivo = ["resistencia"];
-    segmento = "tren_inferior";
-    patron = [/umbral|intervalo|fartlek|trineo/.test(n) ? "anaerobico" : "aerobico"];
-    if (/umbral/.test(n)) patron = ["umbral"];
-    if (/intervalo|anaerob/.test(n)) patron = ["anaerobico"];
-    rol = "basico";
-    grupo_principal = "cuadriceps";
-    intensidad = /regenerativa|zona 2|continua(?!.*umbral)/.test(n) ? "baja" : "media";
+    patron = ["aerobico"];
     pool = "RES-GEN";
-    if (/carrera continua|umbral|intervalo|fartlek|cinta/.test(n)) videoGroup = "res_continua";
-  }
-  // ── Velocidad / COD / reacción ──
-  else if (/acelera|sprint|salida|cod |zig.?zag|reacci[oó]n|drill pared|skipping|curveado|frenada/.test(n) && !/salto|bound|pogo|caja|depth|drop jump/.test(n)) {
+    if (/carrera continua/.test(n)) videoGroup = "res_continua";
+  } else if (/acelera|sprint|salida|cod |zig.?zag|reacci|drill pared|skipping|curveado|frenada/.test(n) && !/salto|bound|pogo|caja|depth|drop jump/.test(n)) {
     carpeta = "velocidad";
     objetivo = ["velocidad"];
-    segmento = "tren_inferior";
     if (/cod |zig|pivote|conos/.test(n)) {
       patron = ["COD"];
       videoGroup = "vel_cod";
@@ -401,25 +479,24 @@ function inferTags(nombre) {
       pool = "VEL-ACEL";
       intensidad = "alta";
     }
-    rol = "basico";
     grupo_principal = "cuadriceps";
     contraindicado = ["lesion_tobillo", "lesion_rodilla"];
-  }
-  // ── Pliometría ──
-  else if (/salto|pogo|bound|depth|drop jump|ca[ií]das y saltos|quick feet|coordinaci[oó]n/.test(n)) {
-    carpeta = /coordinaci[oó]n/.test(n) ? "velocidad" : "pliometria";
-    objetivo = /coordinaci[oó]n/.test(n) ? ["velocidad"] : ["fuerza"];
-    segmento = "tren_inferior";
-    patron = /coordinaci[oó]n/.test(n) ? ["aceleracion"] : ["pliometria"];
+  } else if (/salto|pogo|bound|depth|drop jump|ca[ií]das y saltos|quick feet/.test(n)) {
+    carpeta = "pliometria";
+    objetivo = ["fuerza"];
+    patron = ["pliometria"];
     rol = "complementario";
-    grupo_principal = "cuadriceps";
     intensidad = "alta";
-    pool = /coordinaci[oó]n/.test(n) ? "VEL-COORD" : "PLIO-GEN";
+    pool = "PLIO-GEN";
     contraindicado = ["lesion_rodilla", "lesion_tobillo"];
-    if (/coordinaci[oó]n/.test(n)) accion_secundaria = ["control_motor"];
-  }
-  // ── Core ──
-  else if (/plancha|dead bug|bird dog|hollow|russian|pallof|anti.?rotaci|antiextensi|elevaci[oó]n de piernas|inch worm|nordic hold|isometr[ií]a femoral/.test(n)) {
+  } else if (/coordinaci/.test(n)) {
+    carpeta = "velocidad";
+    objetivo = ["velocidad"];
+    patron = ["aceleracion"];
+    rol = "complementario";
+    pool = "VEL-COORD";
+    accion_secundaria = ["control_motor"];
+  } else if (/plancha|dead bug|bird dog|hollow|russian|pallof|anti.?rotaci|antiextensi|elevaci[oó]n de piernas|inch worm/.test(n)) {
     carpeta = "core";
     objetivo = ["core"];
     segmento = "core";
@@ -430,23 +507,19 @@ function inferTags(nombre) {
     grupo_principal = "core";
     pool = "CORE-GEN";
     accion_secundaria = ["estabilidad_lumbopelvica"];
-  }
-  // ── Movilidad ──
-  else if (/movilidad|rotaci[oó]n tor[aá]cica|perro gato|estiramiento flexores|pase pierna/.test(n)) {
+  } else if (/movilidad|rotaci[oó]n tor[aá]cica|perro gato|estiramiento flexores|pase pierna/.test(n)) {
     carpeta = "movilidad";
     objetivo = ["movilidad"];
-    segmento = /tor[aá]cica|escapular|perro gato/.test(n) ? "tren_superior" : "tren_inferior";
+    segmento = /tor[aá]cica|perro gato/.test(n) ? "tren_superior" : "tren_inferior";
     patron = ["movilidad"];
     rol = "calentamiento";
     grupo_principal = /cadera|flexores|pase pierna/.test(n) ? "cadera"
       : /tobillo/.test(n) ? "tobillo"
-      : /tor[aá]cica|perro gato|escapular/.test(n) ? "espalda"
+      : /tor[aá]cica|perro gato/.test(n) ? "espalda"
       : "cadera";
     pool = "MOV-GEN";
     intensidad = "baja";
-  }
-  // ── Prevención / equilibrio ──
-  else if (/equilibrio|estabilidad|caminata tal[oó]n|multidireccional|y[\s\-]?t[\s\-]?w|rotadores externos|elevaci[oó]n escapular|superman/.test(n)) {
+  } else if (/equilibrio|estabilidad|caminata tal[oó]n|multidireccional|y[\s\-]?t[\s\-]?w|rotadores externos|elevaci[oó]n escapular|superman|caminar sobre l[ií]nea/.test(n)) {
     carpeta = "prevencion";
     objetivo = ["prevencion"];
     segmento = /y[\s\-]?t[\s\-]?w|rotadores|escapular|superman/.test(n) ? "tren_superior" : "tren_inferior";
@@ -456,27 +529,14 @@ function inferTags(nombre) {
       : /rotadores|hombro/.test(n) ? "hombros"
       : /rodilla/.test(n) ? "cuadriceps"
       : "tobillo";
-    accion_secundaria = /equilibrio|caminata|bosu|l[ií]nea/.test(n)
+    accion_secundaria = /equilibrio|caminata|bosu|l[ií]nea|multidireccional/.test(n)
       ? ["equilibrio", "prevencion_tobillo"]
       : /y[\s\-]?t[\s\-]?w|rotadores|escapular/.test(n)
         ? ["estabilidad_escapular", "prevencion_hombro"]
         : ["prevencion_rodilla"];
     pool = "PREV-GEN";
     intensidad = "baja";
-  }
-  // ── Isometría de remo (antes del branch genérico remo/press) ──
-  else if (/isometr.*remo|remo.*isometr/.test(n)) {
-    carpeta = "fuerza_tren_superior";
-    objetivo = ["fuerza"];
-    segmento = "tren_superior";
-    patron = ["traccion", "isometrico"];
-    rol = "complementario";
-    grupo_principal = "espalda";
-    pool = "ISO-REMO";
-    intensidad = "media";
-  }
-  // ── Analíticos bíceps / tríceps / gemelos ──
-  else if (/curl b[ií]ceps/.test(n)) {
+  } else if (/curl b[ií]ceps/.test(n)) {
     carpeta = "fuerza_tren_superior";
     objetivo = ["fuerza", "estetica"];
     segmento = "tren_superior";
@@ -496,21 +556,19 @@ function inferTags(nombre) {
     carpeta = "fuerza_tren_inferior";
     objetivo = ["fuerza"];
     segmento = "tren_inferior";
-    patron = ["analitico"];
+    patron = /isometr/.test(n) ? ["analitico", "isometrico"] : ["analitico"];
     rol = "complementario";
     grupo_principal = "gemelos";
     pool = "AN-GEMELOS";
-  }
-  // ── Tren superior empuje/tracción ──
-  else if (/flexiones|press|jal[oó]n|remo|dominadas|aperturas|elevaciones laterales|elevaci[oó]n frontal|abducci[oó]n pectoral|cruces pecho/.test(n)) {
+  } else if (/flexiones|press|jal[oó]n|remo|dominadas|aperturas|elevaciones laterales|elevaci[oó]n frontal|abducci[oó]n pectoral|cruces pecho|elevaci[oó]n lateral/.test(n)) {
     carpeta = "fuerza_tren_superior";
     objetivo = ["fuerza"];
     segmento = "tren_superior";
     if (/remo|jal[oó]n|dominadas/.test(n)) {
-      patron = ["traccion"];
+      patron = /isometr/.test(n) ? ["traccion", "isometrico"] : ["traccion"];
       grupo_principal = "espalda";
       pool = "TS-TRACCION";
-    } else if (/elevaciones laterales|elevaci[oó]n frontal|arnold|pica|hombros/.test(n)) {
+    } else if (/elevaciones laterales|elevaci[oó]n lateral|elevaci[oó]n frontal|arnold|pica|hombros|militar/.test(n)) {
       patron = ["empuje", "analitico"];
       grupo_principal = "hombros";
       pool = "TS-HOMBRO";
@@ -522,19 +580,17 @@ function inferTags(nombre) {
     rol = /flexiones cl[aá]sicas|press banca|press mancuernas|dominadas(?! asistidas)|jal[oó]n al pecho$/.test(n) ? "basico" : "complementario";
     intensidad = "alta";
     if (/hombro|press|flexiones/.test(n)) contraindicado = ["lesion_hombro"];
-  }
-  // ── Tren inferior fuerza ──
-  else {
+  } else {
     carpeta = "fuerza_tren_inferior";
     objetivo = ["fuerza"];
     segmento = "tren_inferior";
     if (/isometr|wall sit/.test(n)) {
-      patron = uniq([...(patron.includes("cadena_posterior") ? ["cadena_posterior"] : /puente|glute/.test(n) ? ["cadena_posterior"] : ["cadena_anterior"]), "isometrico"]);
-      if (/gemelo/.test(n)) grupo_principal = "gemelos";
-      else if (/glute|puente/.test(n)) grupo_principal = "gluteos";
-      else if (!/farmer/.test(n)) grupo_principal = grupo_principal || "cuadriceps";
+      patron = /puente|glute|femoral|nordic|isquios/.test(n)
+        ? ["cadena_posterior", "isometrico"]
+        : ["cadena_anterior", "isometrico"];
+      grupo_principal = /gemelo/.test(n) ? "gemelos" : /glute|puente/.test(n) ? "gluteos" : /femoral|nordic|isquios/.test(n) ? "isquios" : "cuadriceps";
       rol = "complementario";
-      pool = pool.startsWith("ISO") ? pool : "ISO-INF";
+      pool = "ISO-INF";
       intensidad = "media";
     } else if (/peso muerto|buenos d[ií]as|hip thrust|puente|glute|isquios|femoral|nordic|hexagonal/.test(n)) {
       patron = ["cadena_posterior"];
@@ -546,14 +602,6 @@ function inferTags(nombre) {
       accion_secundaria = ["control_motor"];
       rol = "complementario";
       pool = "TI-UNI";
-    } else if (/farmer/.test(n)) {
-      carpeta = "fuerza_tren_superior";
-      segmento = "full_body";
-      patron = ["isometrico", "cadena_posterior"];
-      grupo_principal = "core";
-      accion_secundaria = ["estabilidad_lumbopelvica"];
-      rol = "complementario";
-      pool = "ISO-CARRY";
     } else {
       patron = ["cadena_anterior"];
       grupo_principal = "cuadriceps";
@@ -562,13 +610,6 @@ function inferTags(nombre) {
     if (/sentadilla|zancada|prensa|step/.test(n)) contraindicado = uniq([...contraindicado, "lesion_rodilla"]);
     if (/peso muerto|barra/.test(n)) contraindicado = uniq([...contraindicado, "lesion_espalda"]);
     intensidad = /isometr|wall sit/.test(n) ? "media" : "alta";
-  }
-
-  // Overrides desde catálogo previo si existe match
-  const prev = prevByName.get(norm(nombre));
-  if (prev?.etiquetas) {
-    // Preferir inferencia nueva para carpeta resistencia/velocidad; conservar pool útil
-    if (prev.pool && pool === "GEN") pool = prev.pool;
   }
 
   return {
@@ -588,7 +629,7 @@ function inferTags(nombre) {
     },
     pool,
     videoGroup,
-    esTest,
+    esTest: false,
     lesionesContra: contraindicado,
     edadMinima: carpeta === "pliometria" || /sprint|acelera|barra/.test(n) ? 14 : 10,
   };
@@ -597,20 +638,21 @@ function inferTags(nombre) {
 function buildTips(nombre, tags) {
   const n = norm(nombre);
   const tips = [];
+
   if (tags.carpeta === "resistencia") {
-    tips.push("Mantén un ritmo sostenible y respiración controlada");
-    tips.push("Postura erguida, mirada al frente y zancada eficiente");
-    tips.push("Ajusta la intensidad según la zona prevista (no aceleres de más)");
+    tips.push("Mantén un ritmo sostenible según el objetivo de la sesión");
+    tips.push("Postura erguida y respiración rítmica");
+    tips.push("No conviertas el estímulo en sprint salvo que la sesión lo pida");
   } else if (tags.carpeta === "velocidad") {
-    tips.push("Salida explosiva con apoyo completo del pie");
-    tips.push("Tronco estable y brazos activos en oposición");
-    tips.push("Prioriza calidad técnica antes que volumen");
+    tips.push("Prioriza calidad técnica sobre volumen");
+    tips.push("Recupera completo entre repeticiones para conservar velocidad");
+    tips.push("Tronco estable y apoyos activos");
   } else if (tags.carpeta === "pliometria") {
-    tips.push("Aterriza suave, rodillas alineadas con los pies");
+    tips.push("Aterriza suave con rodillas alineadas sobre los pies");
     tips.push("Contacto breve con el suelo; rebote reactivo");
-    tips.push("Si aparece dolor articular, reduce altura o volumen");
+    tips.push("Reduce altura o volumen si aparece molestia articular");
   } else if (tags.carpeta === "core") {
-    tips.push("Neutraliza la lumbar: no arquees ni hundas la cadera");
+    tips.push("Pelvis neutra: no arquees ni hundas la lumbar");
     tips.push("Respira sin perder la tensión del tronco");
     tips.push("Calidad de posición por encima del tiempo o las reps");
   } else if (tags.carpeta === "movilidad") {
@@ -618,116 +660,114 @@ function buildTips(nombre, tags) {
     tips.push("Movimiento lento y controlado en ambas direcciones");
     tips.push("Combina con respiración profunda");
   } else if (tags.carpeta === "prevencion") {
-    tips.push("Controla el equilibrio antes de aumentar dificultad");
+    tips.push("Controla el equilibrio antes de subir dificultad");
     tips.push("Mantén alineación rodilla-tobillo-cadera");
     tips.push("Si pierdes la postura, reduce el estímulo");
   } else if (/biceps|triceps|gemelos/.test(tags.etiquetas.grupo_principal)) {
-    tips.push("Aísla el músculo objetivo sin balanceo");
+    tips.push("Aísla el músculo objetivo sin balancear el cuerpo");
     tips.push("Controla la fase excéntrica 2–3 segundos");
-    tips.push("Elige un peso que permita técnica limpia");
+    tips.push("Elige una carga que permita técnica limpia");
   } else {
     tips.push("Mantén la columna neutra y el core activo");
     tips.push("Controla el movimiento en ambas fases");
     tips.push("No sacrifiques técnica por carga");
   }
+
+  if (/sentadilla|zancada|split|prensa/.test(n)) {
+    tips[0] = "Rodillas alineadas con la punta de los pies; no colapses hacia dentro";
+  }
+  if (/peso muerto|buenos d[ií]as|rumano|hexagonal/.test(n)) {
+    tips[0] = "Cadera atrás, barra/mancuernas cerca del cuerpo, espalda neutra";
+  }
+  if (/remo|jal[oó]n|dominadas/.test(n)) {
+    tips[0] = "Escápulas atrás y abajo; tira con la espalda, no solo con los brazos";
+  }
+  if (/press|flexiones/.test(n)) {
+    tips[0] = "Escápulas estables; no abras en exceso los codos";
+  }
+  if (/plancha|hollow|pallof|dead bug|bird dog/.test(n)) {
+    tips[0] = "Bloquea costillas y pelvis; evita arquear la lumbar";
+  }
+  if (/nordic|isometr[ií]a femoral/.test(n)) {
+    tips[0] = "Desciende controlado con isquios activos; no arquees la lumbar";
+    tips[1] = "Usa asistencia de compañero o anclaje seguro";
+  }
+  if (/carrera continua|rowerg|skierg|bikeerg/.test(n)) {
+    tips[0] = "Ritmo conversacional salvo indicación contraria";
+  }
+  if (/cod |zig|conos|reacci/.test(n)) {
+    tips[0] = "Frena con el pie exterior y mantén el centro de masa bajo";
+  }
   if (/unilateral|1 pierna|split|b[uú]lgara|zancada/.test(n)) {
     tips[1] = "Equilibra ambos lados; empieza por el más débil";
   }
-  if (/barra|mancuerna|maquina/.test(n)) {
-    tips.push("Calienta la articulación principal antes de series pesadas");
-  }
-  return tips.slice(0, 4);
+
+  return uniq(tips).slice(0, 4);
 }
 
 function buildDescripcion(nombre, tags) {
-  const carpeta = tags.carpeta;
   const musculo = tags.etiquetas.grupo_principal;
   const material = (tags.etiquetas.material || []).join(", ");
-  const map = {
-    fuerza_tren_inferior: `Ejercicio de fuerza de tren inferior orientado a ${musculo}. Material: ${material}. Ejecuta con control y rango completo seguro.`,
-    fuerza_tren_superior: `Ejercicio de fuerza de tren superior orientado a ${musculo}. Material: ${material}. Prioriza trayectoria estable y escápulas controladas.`,
-    velocidad: `Drill de velocidad/agilidad. Enfocado en ${tags.etiquetas.patron?.[0] || "aceleración"}. Recupera bien entre repeticiones para mantener calidad.`,
-    resistencia: `Trabajo de resistencia (${tags.etiquetas.patron?.[0] || "aeróbico"}). Regula la intensidad según el objetivo de la sesión; el vídeo de carrera continua aplica a esta familia.`,
-    pliometria: `Ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: ${material}.`,
-    core: `Ejercicio de core para estabilidad del tronco (${tags.etiquetas.patron?.[0] || "control"}). Mantén pelvis neutra durante todo el estímulo.`,
-    prevencion: `Ejercicio preventivo/propioceptivo centrado en ${musculo}. Mejora control motor y reduce riesgo de lesión.`,
-    movilidad: `Movilidad articular enfocada en ${musculo}. Usa rangos cómodos y respiración constante.`,
-  };
-  return map[carpeta] || `Ejercicio: ${nombre}.`;
+  const patron = tags.etiquetas.patron?.[0] || "";
+  const n = norm(nombre);
+
+  if (tags.carpeta === "resistencia") {
+    return `${nombre}: trabajo de resistencia (${patron || "aeróbico"}) centrado en ${musculo}. Material: ${material}. Regula la intensidad según el objetivo de la sesión.`;
+  }
+  if (tags.carpeta === "velocidad") {
+    return `${nombre}: drill de velocidad/agilidad enfocado en ${patron || "aceleración"}. Recupera bien entre repeticiones para mantener calidad.`;
+  }
+  if (tags.carpeta === "pliometria") {
+    return `${nombre}: ejercicio pliométrico para potencia y reactividad. Aterrizaje suave y alineación de rodilla. Material: ${material}.`;
+  }
+  if (tags.carpeta === "core") {
+    return `${nombre}: estabilidad de tronco (${patron || "control"}). Mantén pelvis neutra durante todo el estímulo.`;
+  }
+  if (tags.carpeta === "prevencion") {
+    return `${nombre}: trabajo preventivo/propioceptivo centrado en ${musculo}. Mejora control motor y reduce riesgo de lesión.`;
+  }
+  if (tags.carpeta === "movilidad") {
+    return `${nombre}: movilidad articular enfocada en ${musculo}. Usa rangos cómodos y respiración constante.`;
+  }
+  if (/isometr/.test(n)) {
+    return `${nombre}: isometría de ${musculo}. Mantén la posición con tensión controlada sin compensaciones. Material: ${material}.`;
+  }
+  if (tags.carpeta === "fuerza_tren_superior") {
+    return `${nombre}: fuerza de tren superior orientada a ${musculo} (${patron}). Material: ${material}. Prioriza trayectoria estable y escápulas controladas.`;
+  }
+  return `${nombre}: fuerza de tren inferior orientada a ${musculo} (${patron}). Material: ${material}. Ejecuta con control y rango completo seguro.`;
 }
 
-function makeExercise(id, nombre, extra = {}) {
-  const inferred = inferTags(nombre);
-  const videoGroup = extra.videoGroup || inferred.videoGroup;
-  const videoUrl = videoGroup && SHARED_VIDEOS[videoGroup] ? SHARED_VIDEOS[videoGroup] : (extra.videoUrl || "");
-  const tags = { ...inferred, ...extra };
-  if (extra.etiquetas) tags.etiquetas = { ...inferred.etiquetas, ...extra.etiquetas };
-  if (extra.carpeta) tags.carpeta = extra.carpeta;
-
-  const tips = buildTips(nombre, tags);
-  const descripcion = buildDescripcion(nombre, tags);
-
+function makeExercise(id, nombre) {
+  const tags = inferTags(nombre);
+  const videoGroup = tags.videoGroup;
+  const videoUrl = videoGroup && SHARED_VIDEOS[videoGroup] ? SHARED_VIDEOS[videoGroup] : "";
   return {
     id,
     nombre,
     nuevo: false,
     etiquetas: tags.etiquetas,
-    tips,
-    descripcion,
+    tips: buildTips(nombre, tags),
+    descripcion: buildDescripcion(nombre, tags),
     pool: tags.pool || "GEN",
     videoUrl,
     ...(videoGroup ? { videoGroup } : {}),
     lesionesContra: tags.lesionesContra || tags.etiquetas.contraindicado || [],
     edadMinima: tags.edadMinima ?? 10,
     carpeta: tags.carpeta,
-    ...(tags.esTest || extra.esTest ? { esTest: true } : {}),
   };
 }
 
-// Build list
-const names = [];
 const seen = new Set();
+const names = [];
 for (const n of DEFINITIVE) {
   const k = norm(n);
   if (seen.has(k)) continue;
   seen.add(k);
   names.push(n);
 }
-for (const n of RESISTENCIA_VARIANTS) {
-  const k = norm(n);
-  if (seen.has(k)) continue;
-  seen.add(k);
-  names.push(n);
-}
-for (const v of VELOCIDAD_VARIANTS) {
-  const k = norm(v.nombre);
-  if (seen.has(k)) continue;
-  seen.add(k);
-  names.push(v.nombre);
-}
 
-const velocityExtraMap = Object.fromEntries(VELOCIDAD_VARIANTS.map((v) => [norm(v.nombre), v.videoGroup]));
-
-const exercises = names.map((nombre, i) => {
-  const id = i + 1;
-  const extra = {};
-  if (velocityExtraMap[norm(nombre)]) extra.videoGroup = velocityExtraMap[norm(nombre)];
-  // T-test no está en DEFINITIVE ya; si aparece como COD test legacy:
-  if (/^t.?test$/i.test(nombre)) extra.esTest = true;
-  return makeExercise(id, nombre, extra);
-});
-
-// Ensure carrera continua family all share video
-for (const ex of exercises) {
-  if (ex.videoGroup === "res_continua" || /carrera continua|umbral|intervalo anaerob|fartlek/.test(norm(ex.nombre))) {
-    ex.videoGroup = "res_continua";
-    ex.videoUrl = SHARED_VIDEOS.res_continua;
-    ex.carpeta = "resistencia";
-    if (!ex.etiquetas.objetivo.includes("resistencia")) {
-      ex.etiquetas.objetivo = ["resistencia"];
-    }
-  }
-}
+const exercises = names.map((nombre, i) => makeExercise(i + 1, nombre));
 
 const byFolder = {};
 for (const e of exercises) byFolder[e.carpeta] = (byFolder[e.carpeta] || 0) + 1;
@@ -740,7 +780,7 @@ const header = `/**
  * - etiquetas base: material, objetivo, segmento, patron, rol, grupo_principal, grupo_muscular, accion_secundaria?
  * - grupo_muscular = [grupo_principal] (sin músculos accesorios) para no romper el selector AND
  * - Etiquetas club_* viven en capa paralela (clubExerciseTags) y NO se usan aquí
- * - Listado alineado a Prompt final Depro 2.0 §9.6 + variantes con vídeo compartido
+ * - Listado alineado a Prompt final Depro 2.0 §9.6 (sin inventados; tests fuera del catálogo)
  *
  * Generado por scripts/build-definitive-catalog.mjs
  */
@@ -754,5 +794,6 @@ export default EXERCISES;
 fs.writeFileSync(OUT, header);
 console.log(`Wrote ${exercises.length} exercises → ${OUT}`);
 console.log("By folder:", byFolder);
-console.log("With shared video:", exercises.filter((e) => e.videoUrl).length);
+console.log("With tips:", exercises.filter((e) => e.tips?.length).length);
 console.log("With descripcion:", exercises.filter((e) => e.descripcion).length);
+console.log("Banned generics present?", exercises.some((e) => /skipping [abc]$/i.test(e.nombre)));
