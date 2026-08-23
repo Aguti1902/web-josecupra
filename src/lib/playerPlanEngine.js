@@ -12,6 +12,7 @@ import {
   injectPreventionExercises,
   normalizeMaterialList,
 } from "./exerciseSelector.js";
+import { normalizePlayerPlan, savePlayerPlan as savePlanLocal } from "./playerPlanStorage.js";
 import {
   DAY_ORDER,
   DAY_SHORT,
@@ -642,8 +643,16 @@ export function ensurePlayerPlan(user) {
         localStorage.removeItem(planKey);
       } else if (parsed?.premiumPending && !isPremiumManualUser(user)) {
         localStorage.removeItem(planKey);
-      } else {
+      } else if (parsed?.premiumPending || parsed?.planPendingManual) {
         return parsed;
+      } else {
+        // Normalizar weeks→días por si se asignó desde admin en este mismo navegador
+        const normalized = normalizePlayerPlan(parsed);
+        if (normalized && normalized !== parsed) {
+          savePlanLocal(user.id, normalized);
+          return normalized;
+        }
+        return normalized || parsed;
       }
     }
   } catch { /* ignore */ }
@@ -667,6 +676,24 @@ export function ensurePlayerPlan(user) {
     localStorage.setItem(planKey, JSON.stringify(plan));
   }
   return plan;
+}
+
+/**
+ * Carga el plan preferiendo el servidor (asignación admin cross-device).
+ * Sustituye premiumPending cuando ya hay plan asignado.
+ */
+export async function hydratePlayerPlan(user) {
+  if (!user?.id) return null;
+  try {
+    const { fetchPlayerPlan } = await import("./playerPlanStorage.js");
+    const remote = await fetchPlayerPlan(user.id);
+    if (remote && !remote.premiumPending && !remote.planError) {
+      const normalized = normalizePlayerPlan(remote);
+      savePlanLocal(user.id, normalized);
+      return normalized;
+    }
+  } catch { /* ignore */ }
+  return ensurePlayerPlan(user);
 }
 
 export function buildPlanAIPayload(user) {

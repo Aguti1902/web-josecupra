@@ -10,10 +10,32 @@ import { refreshExercise as refreshExerciseInEngine, buildMesoPlayerPlan } from 
 import { isPlayerPro } from "../../lib/subscription";
 import { loadPlayerPlan } from "../../lib/playerPlanStorage";
 
-const INTENSITY_OPTIONS = ["Low", "Medium", "High", "Maximum"];
-const TYPE_OPTIONS = ["Technical", "Physical", "Tactical", "Recovery", "Match"];
-const typeColor = { Technical: "#0A36F7", Physical: "#F6CC12", Recovery: "#3BC21D", Tactical: "#a855f7", Match: "#FB2C39" };
-const intensityColor = { Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
+const INTENSITY_OPTIONS = ["Baja", "Media", "Alta", "Máxima"];
+const TYPE_OPTIONS = [
+  { id: "Fuerza", label: "Fuerza" },
+  { id: "Velocidad", label: "Velocidad" },
+  { id: "Resistencia", label: "Resistencia" },
+  { id: "Hipertrofia", label: "Hipertrofia" },
+  { id: "Prevención", label: "Prevención" },
+  { id: "Movilidad", label: "Movilidad" },
+  { id: "Recuperación", label: "Recuperación" },
+];
+const typeColor = {
+  Fuerza: "#0A36F7",
+  Velocidad: "#F6CC12",
+  Resistencia: "#FB2C39",
+  Hipertrofia: "#a855f7",
+  Prevención: "#3BC21D",
+  Movilidad: "#06b6d4",
+  Recuperación: "#64748b",
+  // legacy
+  Physical: "#F6CC12",
+  Technical: "#94a3b8",
+  Tactical: "#94a3b8",
+  Recovery: "#3BC21D",
+  Match: "#FB2C39",
+};
+const intensityColor = { Baja: "#3BC21D", Media: "#F6CC12", Alta: "#FB2C39", Máxima: "#dc2626", Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
 
 /* ── WEEK PLAN TAB ───────────────────────────────────────────────── */
 function PlanTab({ clientId }) {
@@ -27,7 +49,7 @@ function PlanTab({ clientId }) {
   const [showAddExercise, setShowAddExercise] = useState(null);
   const [sessionDraft, setSessionDraft] = useState({});
   const [exerciseDraft, setExerciseDraft] = useState({});
-  const [newSession, setNewSession] = useState({ title: "", duration: "60 min", intensity: "Medium", type: "Technical", objective: "", status: "upcoming", exercises: [] });
+  const [newSession, setNewSession] = useState({ title: "", duration: "60 min", intensity: "Media", type: "Fuerza", objective: "", status: "upcoming", exercises: [] });
   const [newExercise, setNewExercise] = useState({ name: "", duration: "15 min", sets: "3", reps: "5", description: "", tips: "", videoUrl: "" });
 
   const day = plan[selectedDay];
@@ -36,7 +58,7 @@ function PlanTab({ clientId }) {
   const saveSession = () => { updateSession(clientId, editingSession.dayIdx, editingSession.sessionIdx, sessionDraft); setEditingSession(null); };
   const startEditExercise = (dIdx, sIdx, eIdx) => { setExerciseDraft({ ...plan[dIdx].sessions[sIdx].exercises[eIdx] }); setEditingExercise({ dayIdx: dIdx, sessionIdx: sIdx, exIdx: eIdx }); };
   const saveExercise = () => { updateExercise(clientId, editingExercise.dayIdx, editingExercise.sessionIdx, editingExercise.exIdx, exerciseDraft); setEditingExercise(null); };
-  const handleAddSession = () => { addSession(clientId, selectedDay, { ...newSession }); setNewSession({ title: "", duration: "60 min", intensity: "Medium", type: "Technical", objective: "", status: "upcoming", exercises: [] }); setShowAddSession(false); };
+  const handleAddSession = () => { addSession(clientId, selectedDay, { ...newSession }); setNewSession({ title: "", duration: "60 min", intensity: "Media", type: "Fuerza", objective: "", status: "upcoming", exercises: [] }); setShowAddSession(false); };
   const handleAddExercise = (sIdx) => { addExercise(clientId, selectedDay, sIdx, { ...newExercise }); setNewExercise({ name: "", duration: "15 min", sets: "3", reps: "5", description: "", tips: "", videoUrl: "" }); setShowAddExercise(null); };
 
   /** Sustituye ejercicio por otro compatible del mismo slot (PDF §3.4). */
@@ -68,7 +90,7 @@ function PlanTab({ clientId }) {
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-        Plan sincronizado con el jugador (<code className="text-xs">depro_plan_{clientId}</code>). Los cambios se reflejan en su perfil.
+        Plan sincronizado con el jugador (servidor + su cuenta). Enfoque solo físico: fuerza, velocidad, resistencia, prevención…
       </div>
       {/* Day selector */}
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -102,7 +124,7 @@ function PlanTab({ clientId }) {
             <input placeholder="Título de sesión" value={newSession.title} onChange={(e) => setNewSession({ ...newSession, title: e.target.value })} className="admin-input" />
             <input placeholder="Duración (ej. 90 min)" value={newSession.duration} onChange={(e) => setNewSession({ ...newSession, duration: e.target.value })} className="admin-input" />
             <select value={newSession.type} onChange={(e) => setNewSession({ ...newSession, type: e.target.value })} className="admin-input">
-              {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+              {TYPE_OPTIONS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
             </select>
             <select value={newSession.intensity} onChange={(e) => setNewSession({ ...newSession, intensity: e.target.value })} className="admin-input">
               {INTENSITY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
@@ -135,7 +157,7 @@ function PlanTab({ clientId }) {
                       <input value={sessionDraft.title} onChange={(e) => setSessionDraft({ ...sessionDraft, title: e.target.value })} className="admin-input text-sm" placeholder="Título" />
                       <input value={sessionDraft.duration} onChange={(e) => setSessionDraft({ ...sessionDraft, duration: e.target.value })} className="admin-input text-sm" placeholder="Duración" />
                       <select value={sessionDraft.type} onChange={(e) => setSessionDraft({ ...sessionDraft, type: e.target.value })} className="admin-input text-sm">
-                        {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                        {TYPE_OPTIONS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
                       </select>
                       <select value={sessionDraft.intensity} onChange={(e) => setSessionDraft({ ...sessionDraft, intensity: e.target.value })} className="admin-input text-sm">
                         {INTENSITY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}

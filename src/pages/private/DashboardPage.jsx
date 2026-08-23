@@ -13,7 +13,7 @@ import { hasFeatureAccess, getPlanLabel, isInTrial } from "../../lib/subscriptio
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 import { coachFeedback } from "../../data/mockData";
-import { ensurePlayerPlan, DAY_ORDER, buildMinimalSession } from "../../lib/playerPlanEngine";
+import { ensurePlayerPlan, hydratePlayerPlan, DAY_ORDER, buildMinimalSession } from "../../lib/playerPlanEngine";
 import {
   distributeMesocycleForTeam, getCurrentWeekIndex, isMesocicloActive, getMesocicloWeeks,
 } from "../../lib/periodization";
@@ -930,10 +930,15 @@ function JugadorDashboard({ user, club }) {
 
   useEffect(() => {
     if (!user?.id) return;
-    const plan = ensurePlayerPlan(user);
-    setPlayerPlan(plan);
-    setPlanProgress(countCompletedSessions(plan));
-  }, [user?.id, user?.objetivo, user?.frecuencia, user?.material, user?.lesion]);
+    let cancelled = false;
+    (async () => {
+      const plan = await hydratePlayerPlan(user);
+      if (cancelled) return;
+      setPlayerPlan(plan);
+      setPlanProgress(countCompletedSessions(plan));
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, user?.objetivo, user?.frecuencia, user?.material, user?.lesion, user?.hasAssignedPlan]);
 
   const todayName = getTodayName();
   const todayDay = playerPlan?.find((d) => d.day === todayName);

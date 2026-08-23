@@ -38,9 +38,9 @@ const Youtube = PlayCircle;
 
 const CATEGORIES = [
   { id: "físico", label: "Físico", icon: Flame, color: "text-orange-500 bg-orange-50" },
-  { id: "técnica", label: "Técnica", icon: Target, color: "text-depro-blue bg-depro-blue/10" },
-  { id: "táctica", label: "Táctica", icon: Shield, color: "text-purple-600 bg-purple-50" },
   { id: "prevención", label: "Prevención", icon: Zap, color: "text-green-600 bg-green-50" },
+  { id: "movilidad", label: "Movilidad", icon: Target, color: "text-depro-blue bg-depro-blue/10" },
+  { id: "recuperación", label: "Recuperación", icon: Shield, color: "text-slate-600 bg-slate-50" },
 ];
 const OBJECTIVES = ["Fuerza", "Velocidad", "Resistencia", "Hipertrofia", "Prevención", "Movilidad"];
 const MATERIALS = ["Sin material", "Gomas", "Mancuernas", "Barra", "Gimnasio completo"];
