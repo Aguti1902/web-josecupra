@@ -49,7 +49,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
     onClose?.();
     if (audience === "player" && userId) {
       navigate(
-        `/admin/plan-builder?clientId=${encodeURIComponent(userId)}&assign=1&name=${encodeURIComponent(form.name || "")}`,
+        `/admin/plan-builder?clientId=${encodeURIComponent(userId)}&name=${encodeURIComponent(form.name || "")}`,
       );
     } else if (audience === "coach") {
       navigate("/admin/club-auto");
@@ -180,7 +180,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           userId: res.userId,
           addons: effectiveAddons,
           nextPath: res.userId
-            ? `/admin/plan-builder?clientId=${encodeURIComponent(res.userId)}&assign=1&name=${encodeURIComponent(form.name || "")}`
+            ? `/admin/plan-builder?clientId=${encodeURIComponent(res.userId)}&name=${encodeURIComponent(form.name || "")}`
             : null,
         });
         if (res.ok) onCreated?.();
@@ -381,7 +381,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
         </div>
         {audience === "player" && (
           <p className="px-6 pb-4 text-[11px] text-depro-gray -mt-2">
-            <strong>Asignar plan</strong> es opcional: crea el jugador y te lleva al motor para generar y asignarle la rutina automáticamente.
+            <strong>Asignar plan</strong> es opcional: crea el jugador y abre el motor para completar el cuestionario, generar la rutina y asignársela.
           </p>
         )}
       </div>

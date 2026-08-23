@@ -81,7 +81,6 @@ function IASimulator() {
   const [searchParams] = useSearchParams();
   const preselectClientId = searchParams.get("clientId") || "";
   const preselectName = searchParams.get("name") || "";
-  const wantAutoAssign = searchParams.get("assign") === "1" && !!preselectClientId;
 
   const [profile, setProfile] = useState({
     edad: "22",
@@ -102,7 +101,6 @@ function IASimulator() {
   const [expandedKey, setExpandedKey] = useState(null);
   const [viewWeek, setViewWeek] = useState(1);
   const [assignOpen, setAssignOpen] = useState(false);
-  const [pendingAutoAssign, setPendingAutoAssign] = useState(wantAutoAssign);
 
   const buildUser = () => ({
     ...profile,
@@ -132,20 +130,8 @@ function IASimulator() {
       });
       setViewWeek(1);
       setLoading(false);
-      setPendingAutoAssign((was) => {
-        if (was) setAssignOpen(true);
-        return false;
-      });
     }, 400);
   };
-
-  // Alta admin → motor: generar y abrir asignación con el jugador ya preseleccionado
-  useEffect(() => {
-    if (!wantAutoAssign) return;
-    const t = setTimeout(() => simulate(), 200);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar con ?assign=1
-  }, []);
 
   const handleRefreshExercise = (weekIdx, sessionId, exerciseId) => {
     if (!simulated) return;
@@ -180,10 +166,9 @@ function IASimulator() {
           <User size={16} className="shrink-0" />
           <span>
             Destino: <strong>{preselectName || "Jugador"}</strong>
-            <span className="opacity-80 font-mono text-xs ml-2">{preselectClientId.slice(0, 8)}…</span>
           </span>
           <span className="text-xs opacity-90">
-            · Ajusta el perfil, genera el plan y confírmalo (el jugador ya está preseleccionado).
+            · Completa el cuestionario, genera el plan y pulsa Asignar.
           </span>
         </div>
       )}
@@ -418,11 +403,11 @@ function IASimulator() {
                   onClick={() => setAssignOpen(true)}
                   className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-depro-blue text-white text-xs font-bold hover:bg-depro-blue-dark"
                 >
-                  Asignar{preselectName ? ` a ${preselectName}` : ""}
+                  Asignar
                 </button>
                 <span className="text-[11px] text-depro-gray">
                   {preselectClientId
-                    ? "El jugador del alta ya está preseleccionado en el modal"
+                    ? "El jugador del alta ya estará preseleccionado al confirmar"
                     : "Asignar este plan a un jugador"}
                 </span>
               </div>
