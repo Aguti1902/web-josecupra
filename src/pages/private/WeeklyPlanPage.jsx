@@ -38,6 +38,9 @@ import {
   resolveTaskCues, resolveTaskRecommendations,
 } from "../../lib/taskDesigner";
 import { getYouTubeId, youtubeEmbedUrl, youtubeThumbUrl } from "../../lib/youtube";
+import { sessionTextsFor } from "../../data/sessionTypeTexts";
+
+const FRAMEWORK_TO_SESSION_TEXT = { A: "extensiva", B: "intensiva", C: "reactiva" };
 
 const Youtube = PlayCircle;
 
@@ -1028,10 +1031,12 @@ function DisenarTareas({ accentColor, sessionType = "A", storageKey, taskDesigne
 ───────────────────────────────────────────── */
 function ExerciseCardClub({ ex, ytId, accentColor }) {
   const [open, setOpen] = useState(false);
+  const description = ex.description || ex.descripcion || ex.tips || "";
+  const hasDetail = Boolean(ytId || description);
   return (
     <div className="border border-depro-border rounded-xl overflow-hidden bg-white">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => hasDetail && setOpen(!open)}
         className="w-full flex items-center gap-3 p-3 hover:bg-depro-gray-light/40 transition-colors text-left"
       >
         {/* Thumbnail o placeholder */}
@@ -1057,23 +1062,28 @@ function ExerciseCardClub({ ex, ytId, accentColor }) {
             {ex.rest  && <span className="text-[10px] text-depro-gray bg-depro-gray-light px-2 py-0.5 rounded-md">Desc: {ex.rest}</span>}
           </div>
         </div>
-        {ytId && (
+        {hasDetail && (
           <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0"
             style={{ backgroundColor: accentColor + "15", color: accentColor }}>
-            <Youtube size={11} /> {open ? "Cerrar" : "Ver"}
+            {ytId ? <Youtube size={11} /> : null} {open ? "Cerrar" : (ytId ? "Ver" : "Detalle")}
           </span>
         )}
       </button>
 
-      {open && ytId && (
+      {open && (
         <div className="border-t border-depro-border">
-          <iframe
-            src={youtubeEmbedUrl(ytId)}
-            title={ex.name}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="w-full aspect-video"
-          />
+          {description && (
+            <p className="px-4 py-3 text-sm text-depro-gray leading-relaxed">{description}</p>
+          )}
+          {ytId && (
+            <iframe
+              src={youtubeEmbedUrl(ytId)}
+              title={ex.name}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full aspect-video"
+            />
+          )}
         </div>
       )}
     </div>
@@ -1347,6 +1357,30 @@ function ClubSessionCard({
                     </div>
                   ))}
                 </div>
+
+                {(() => {
+                  const texts = sessionTextsFor(FRAMEWORK_TO_SESSION_TEXT[sessionType] || "extensiva");
+                  return (
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-depro-border p-4">
+                        <p className="text-[11px] font-black uppercase text-depro-gray mb-2">{texts.warmup.title}</p>
+                        <ul className="space-y-1">
+                          {texts.warmup.bullets.slice(0, 3).map((b) => (
+                            <li key={b} className="text-xs text-depro-dark">· {b}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="rounded-xl border border-depro-border p-4">
+                        <p className="text-[11px] font-black uppercase text-depro-gray mb-2">{texts.main.title}</p>
+                        <ul className="space-y-1">
+                          {texts.main.bullets.map((b) => (
+                            <li key={b} className="text-xs text-depro-dark">· {b}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {!readOnly && (
                   <CompletionButton

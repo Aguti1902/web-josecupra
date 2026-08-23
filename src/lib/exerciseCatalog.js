@@ -3911,6 +3911,7 @@ export const EXERCISES = [
       "lesion_tobillo"
     ],
     "edadMinima": 10,
+    "esTest": true,
     "carpeta": "velocidad"
   },
   {
@@ -6790,7 +6791,7 @@ export const EXERCISES = [
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "fuerza_tren_inferior"
+    "carpeta": "resistencia"
   },
   {
     "id": 165,
@@ -6829,7 +6830,7 @@ export const EXERCISES = [
     "videoUrl": "",
     "lesionesContra": [],
     "edadMinima": 10,
-    "carpeta": "fuerza_tren_inferior"
+    "carpeta": "resistencia"
   },
   {
     "id": 166,
@@ -6871,7 +6872,7 @@ export const EXERCISES = [
       "lesion_rodilla"
     ],
     "edadMinima": 10,
-    "carpeta": "fuerza_tren_inferior"
+    "carpeta": "resistencia"
   },
   {
     "id": 167,
@@ -7620,6 +7621,7 @@ export const CATALOG_CARPETAS = [
   "fuerza_tren_inferior",
   "fuerza_tren_superior",
   "velocidad",
+  "resistencia",
   "pliometria",
   "core",
   "prevencion",

@@ -33,6 +33,7 @@ function findExercisesForSlot(slotKey, { gymAccess, protocolo } = {}) {
   const tag = clubSlotTag(slotKey);
   const byTag = [];
   for (const ex of EXERCISES) {
+    if (ex.esTest || /\btest\b/i.test(ex.nombre || "")) continue;
     const clubTags = getClubTagsForExercise(ex.id);
     if (!clubTags?.club_slot?.includes(tag)) continue;
     if (protocolo) {
@@ -100,15 +101,7 @@ export function selectProtocolExercises({ protocolo, gymAccess, seed = "", usedI
       candidates = findExercisesForSlot(slotDef.slot, { gymAccess, protocolo }).filter((ex) => !used.has(ex.id));
     }
     if (!candidates.length) {
-      exercises.push({
-        slot: slotDef.slot,
-        label: slotDef.label,
-        nombre: `Slot ${slotDef.label} (sin candidato)`,
-        catalogId: null,
-        sets: "45\"",
-        rest: "15\"",
-        missing: true,
-      });
+      // §4.4: no renderizar bloques sin ejercicios etiquetados
       return;
     }
     const picked = candidates[stableIndex(`${seed}|${protocolo}|${slotDef.slot}|${idx}`, candidates.length)];
@@ -122,6 +115,9 @@ export function selectProtocolExercises({ protocolo, gymAccess, seed = "", usedI
       nombre: picked.nombre,
       catalogId: picked.id,
       videoUrl: picked.videoUrl || "",
+      descripcion: Array.isArray(picked.tips) ? picked.tips.join(" · ") : (picked.descripcion || ""),
+      description: Array.isArray(picked.tips) ? picked.tips.join(" · ") : (picked.descripcion || ""),
+      tips: picked.tips || [],
       sets: gymAccess && String(slotDef.slot).includes("fuerza") ? "3×8-10" : "45\"",
       rest: gymAccess && String(slotDef.slot).includes("fuerza") ? "60-90\"" : "15\"",
       etiquetas: picked.etiquetas,

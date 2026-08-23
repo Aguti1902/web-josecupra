@@ -65,11 +65,40 @@ export const MAIN_BLOCK_TEXT = {
   },
 };
 
+/** Ítems de diseñador de tareas alineados con §7.2 / §7.3 */
+export const TASK_DESIGNER_TEXT = {
+  extensiva: {
+    title: "Diseñador de tareas · Extensiva",
+    bullets: [
+      "Tareas alejadas del juego real",
+      "Priorizar calidad técnica y recuperación",
+      "Evitar densidades altas y duelos prolongados",
+    ],
+  },
+  intensiva: {
+    title: "Diseñador de tareas · Intensiva",
+    bullets: [
+      "Espacios reducidos y alta participación",
+      "Transiciones y carga alineada con el protocolo del día",
+      "Ritmos altos con control de volumen",
+    ],
+  },
+  reactiva: {
+    title: "Diseñador de tareas · Reactiva",
+    bullets: [
+      "Volumen bajo e intensidad alta",
+      "Salidas, aceleraciones y activación específica corta",
+      "Priorizar frescura precompetitiva",
+    ],
+  },
+};
+
 export function sessionTextsFor(type = "extensiva") {
   const key = SESSION_TYPES.includes(type) ? type : "extensiva";
   return {
     type: key,
     warmup: WARMUP_TEXT[key],
     main: MAIN_BLOCK_TEXT[key],
+    tasks: TASK_DESIGNER_TEXT[key],
   };
 }

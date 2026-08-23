@@ -1,10 +1,13 @@
 /**
  * Selectores de calentamiento general, tarea con balón y tarea principal.
+ * Filtros IA (§3.1): bloque de edad → tipo de sesión → selección.
  */
 import {
   CLUB_GENERAL_WARMUPS,
   CLUB_BALL_WARMUPS,
   CLUB_MAIN_TASKS,
+  GRUPO_TO_SESION,
+  NIVEL_TO_BLOQUE,
 } from "../../data/clubAutoCatalog.js";
 import { PROTOCOL_DAY_META } from "./clubAutoTemplates.js";
 
@@ -30,6 +33,8 @@ function applyWarmupOverride(item) {
     ...item,
     nombre: ov.nombre ?? item.nombre,
     descripcion: ov.descripcion ?? item.descripcion,
+    videoUrl: ov.videoUrl ?? item.videoUrl ?? item.video ?? "",
+    video: ov.videoUrl ?? item.videoUrl ?? item.video ?? "",
     ...(ov.tags ? {
       tipo: ov.tags.tipo ?? item.tipo,
       intensidad: ov.tags.intensidad ?? item.intensidad,
@@ -40,11 +45,15 @@ function applyWarmupOverride(item) {
 function applyTaskOverride(item) {
   if (!item) return item;
   const ov = readJson(TASK_OVERRIDES_KEY, {})[item.id];
-  // Solo explicación editable en tareas base
   if (!ov) return item;
   return {
     ...item,
     descripcion: ov.descripcion ?? item.descripcion,
+    video: ov.video ?? item.video,
+    videoUrl: ov.video ?? ov.videoUrl ?? item.videoUrl ?? item.video,
+    tipo_tarea: ov.tipo_tarea ?? item.tipo_tarea,
+    tipo_sesion: ov.tipo_sesion ?? item.tipo_sesion,
+    bloques_edad: ov.bloques_edad ?? item.bloques_edad,
   };
 }
 
@@ -59,6 +68,27 @@ function stableIndex(seed, length) {
   const s = String(seed);
   for (let i = 0; i < s.length; i++) hash = ((hash << 5) + hash + s.charCodeAt(i)) | 0;
   return Math.abs(hash) % length;
+}
+
+/** Protocolo A/B/C → tipo sesión extensiva/intensiva/reactiva */
+export function sessionTypeForProtocol(protocolo = "A") {
+  const meta = PROTOCOL_DAY_META[protocolo] || PROTOCOL_DAY_META.A;
+  return GRUPO_TO_SESION[meta.grupoMicrociclo] || "extensiva";
+}
+
+export function ageBlockForNivel(nivel = "B") {
+  return NIVEL_TO_BLOQUE[String(nivel).toUpperCase()] || "2";
+}
+
+function matchesAgeBlock(task, bloque) {
+  const blocks = Array.isArray(task.bloques_edad) ? task.bloques_edad.map(String) : null;
+  if (!blocks || !blocks.length) return true;
+  return blocks.includes(String(bloque));
+}
+
+function matchesSessionType(task, tipoSesion) {
+  if (!task.tipo_sesion) return true;
+  return String(task.tipo_sesion).toLowerCase() === String(tipoSesion).toLowerCase();
 }
 
 export function selectGeneralWarmup({ seed = "", avoidId = null } = {}) {
@@ -78,19 +108,43 @@ export function selectBallWarmup({ nivel = "B", protocolo = "A", seed = "" } = {
   return applyWarmupOverride(pool[stableIndex(`${seed}|ball|${nivel}|${protocolo}`, pool.length)]);
 }
 
-export function selectMainTask({ nivel = "B", protocolo = "A", seed = "", gymAccess = false } = {}) {
+/**
+ * Selección de tarea principal / calentamiento con balón filtrable.
+ * Orden: bloque edad → tipo sesión → grupo microciclo / nivel → aleatorio estable.
+ */
+export function selectMainTask({
+  nivel = "B",
+  protocolo = "A",
+  seed = "",
+  gymAccess = false,
+  bloqueEdad = null,
+  tipoSesion = null,
+} = {}) {
   const meta = PROTOCOL_DAY_META[protocolo] || PROTOCOL_DAY_META.A;
+  const bloque = bloqueEdad || ageBlockForNivel(nivel);
+  const sesion = tipoSesion || sessionTypeForProtocol(protocolo);
   const tasks = allMainTasks();
-  let pool = tasks.filter(
+
+  let pool = tasks.filter((t) => matchesAgeBlock(t, bloque));
+  pool = pool.filter((t) => matchesSessionType(t, sesion));
+
+  let narrowed = pool.filter(
     (t) => t.nivel === nivel && t.grupo_microciclo === meta.grupoMicrociclo,
   );
-  // Las tareas de campo no dependen de gym; se mantiene el flag por compatibilidad futura
+  if (!narrowed.length) {
+    narrowed = pool.filter((t) => t.grupo_microciclo === meta.grupoMicrociclo);
+  }
+  if (!narrowed.length) narrowed = pool;
+  if (!narrowed.length) {
+    // Fallback suave: no vaciar la sesión si el catálogo custom está mal etiquetado
+    narrowed = tasks.filter((t) => t.grupo_microciclo === meta.grupoMicrociclo);
+  }
+  if (!narrowed.length) narrowed = tasks;
+
   if (gymAccess) {
-    pool = pool.filter((t) => t.gimnasio === true || t.gimnasio === false);
+    const withGymFlag = narrowed.filter((t) => t.gimnasio === true || t.gimnasio === false);
+    if (withGymFlag.length) narrowed = withGymFlag;
   }
-  if (!pool.length) {
-    pool = tasks.filter((t) => t.grupo_microciclo === meta.grupoMicrociclo);
-  }
-  if (!pool.length) pool = tasks;
-  return applyTaskOverride(pool[stableIndex(`${seed}|main|${nivel}|${protocolo}`, pool.length)]);
+
+  return applyTaskOverride(narrowed[stableIndex(`${seed}|main|${nivel}|${protocolo}|${bloque}|${sesion}`, narrowed.length)]);
 }

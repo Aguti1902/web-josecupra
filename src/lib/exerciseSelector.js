@@ -83,6 +83,9 @@ function matchesAllScalars(slotValue, exerciseValue) {
 
 /** Filtra catálogo por restricciones AND del slot. */
 export function matchSlotTags(ex, slot = {}) {
+  if (ex?.esTest) return false;
+  const nombre = String(ex?.nombre || "");
+  if (/\btest\b|cooper adaptado/i.test(nombre)) return false;
   const et = tagsOf(ex);
   if (slot.objetivo && !matchesAny(asArray(slot.objetivo), et.objetivo)) return false;
   if (slot.segmento && !matchesAllScalars(slot.segmento, et.segmento)) return false;

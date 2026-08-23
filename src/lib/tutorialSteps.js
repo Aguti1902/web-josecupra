@@ -7,13 +7,17 @@
 /** Clave estable por usuario (no depende del rol hidratado). */
 export function getTutorialKey(user) {
   if (!user?.id) return null;
-  return `depro_tutorial_v1_${user.id}`;
+  return `depro_tutorial_v2_${user.id}`;
 }
 
 export function getLegacyTutorialKeys(user) {
   if (!user?.id) return [];
   const roles = ["admin", "coach", "coordinador", "entrenador", "player"];
-  return roles.map((role) => `depro_tutorial_v1_${user.id}_${role}`);
+  return [
+    `depro_tutorial_v1_${user.id}`,
+    ...roles.map((role) => `depro_tutorial_v1_${user.id}_${role}`),
+    ...roles.map((role) => `depro_tutorial_v2_${user.id}_${role}`),
+  ];
 }
 
 export function hasCompletedTutorial(user) {
@@ -155,7 +159,19 @@ export function getTutorialSteps(user) {
         target: '[data-tour="nav-club-settings"]',
         placement: "right",
         title: "Mi Club",
-        body: "Logo, colores, equipos, entrenadores y código de acceso para jugadores. Todo autogestionable.",
+        body: "Identidad, equipos, crear staff y código de acceso. Empieza por Equipar y Staff.",
+      },
+      {
+        target: '[data-tour="club-tab-equipos"]',
+        placement: "bottom",
+        title: "Equipos",
+        body: "Crea equipos y elige quién rellena el cuestionario: el club/admin (opción A) o el entrenador en su primer acceso (opción B).",
+      },
+      {
+        target: '[data-tour="club-tab-staff"]',
+        placement: "bottom",
+        title: "Crear staff",
+        body: "Crea coordinadores, entrenadores o ayudantes y asígnales uno o varios equipos. Un entrenador puede crearse sin equipo y asignarse después.",
       },
       {
         target: '[data-tour="nav-squad"]',

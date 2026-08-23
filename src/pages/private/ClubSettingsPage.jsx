@@ -234,9 +234,9 @@ function TeamModal({ team, clubId, onClose, onSave }) {
             </div>
           </div>
           {!isEdit && (
-            <div className="pt-2 border-t border-depro-border space-y-3">
-              <div>
-                <p className="text-sm font-medium text-depro-dark mb-2">¿Quién rellena el cuestionario del equipo?</p>
+              <div data-tour="club-questionnaire-options" className="pt-2 border-t border-depro-border space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-depro-dark mb-2">¿Quién rellena el cuestionario del equipo?</p>
                 <div className="space-y-2">
                   <label className={`flex gap-3 p-3 rounded-xl border cursor-pointer ${form.questionnaireBy === "club" ? "border-depro-blue bg-depro-blue/5" : "border-depro-border"}`}>
                     <input
@@ -544,6 +544,8 @@ export default function ClubSettingsPage() {
         {tabs.map((t) => (
           <button
             key={t.id}
+            type="button"
+            data-tour={`club-tab-${t.id}`}
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors ${
               tab === t.id ? "border-depro-blue text-depro-blue" : "border-transparent text-depro-gray hover:text-depro-dark"

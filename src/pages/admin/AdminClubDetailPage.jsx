@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
   Building2,
@@ -37,7 +37,16 @@ import {
   MapPin,
   PlayCircle,
   BarChart2,
+  BookOpen,
+  Sparkles,
+  Layers,
 } from "lucide-react";
+import AdminClubCalentamientosPage from "./AdminClubCalentamientosPage";
+import AdminClubTareasPage from "./AdminClubTareasPage";
+import AdminClubPlantillasPage from "./AdminClubPlantillasPage";
+import AdminClubAutoMotorPage from "./AdminClubAutoMotorPage";
+import AdminCatalogPage from "./AdminCatalogPage";
+import AdminTestsPage from "./AdminTestsPage";
 import { loadClubs, saveClub, saveClubDetail, loadClubDetail, createClubUser, updateUserByEmail } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect } from "../../components/admin/PlanSelectField";
 import { PLANS as CHECKOUT_PLANS } from "../../lib/checkoutPlans";
@@ -1941,6 +1950,8 @@ export default function AdminClubDetailPage() {
   const [club, setClub]             = useState(null);
   const [loading, setLoading]       = useState(true);
   const [activeTab, setActiveTab]   = useState("identidad");
+  const [contenidoMode, setContenidoMode] = useState("automatico");
+  const [contenidoPanel, setContenidoPanel] = useState("plantillas");
   const [showNewTeam, setShowNewTeam] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
@@ -2143,6 +2154,7 @@ export default function AdminClubDetailPage() {
 
   const TABS = [
     { id: "identidad", label: "Identidad", icon: Palette },
+    { id: "contenido", label: "Contenido", icon: BookOpen },
     { id: "equipos", label: "Equipos", icon: Shield, count: (club.teams || []).length },
     { id: "usuarios", label: "Usuarios", icon: Users, count: (() => {
       let n = (club.users || []).length;
@@ -2489,6 +2501,120 @@ export default function AdminClubDetailPage() {
           return await persistClub(updated, plans);
         }} />
         </>
+      )}
+
+      {/* CONTENIDO (§3.1) */}
+      {activeTab === "contenido" && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "automatico", label: "A) Automático", hint: "Protocolos, calentamientos, tareas, ejercicios, motor" },
+              { id: "manual", label: "B) Manual", hint: "Planificación del club + tests físicos" },
+            ].map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  setContenidoMode(m.id);
+                  setContenidoPanel(m.id === "automatico" ? "plantillas" : "planificacion");
+                }}
+                className={`text-left px-4 py-3 rounded-xl border transition-colors ${
+                  contenidoMode === m.id ? "border-depro-blue bg-depro-blue/5" : "border-depro-border hover:border-depro-blue/40"
+                }`}
+              >
+                <p className="text-sm font-bold text-depro-dark">{m.label}</p>
+                <p className="text-[11px] text-depro-gray mt-0.5">{m.hint}</p>
+              </button>
+            ))}
+          </div>
+
+          {contenidoMode === "automatico" && (
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "plantillas", label: "Plantillas de protocolos", icon: Layers },
+                { id: "sin_balon", label: "Calentamientos sin balón", icon: Flame },
+                { id: "con_balon", label: "Calentamiento con balón", icon: Sparkles },
+                { id: "ejercicios", label: "Ejercicios (versión club)", icon: Dumbbell },
+                { id: "motor", label: "Motor Club Auto", icon: Sparkles },
+              ].map((p) => {
+                const Icon = p.icon;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setContenidoPanel(p.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border ${
+                      contenidoPanel === p.id
+                        ? "bg-depro-blue text-white border-depro-blue"
+                        : "bg-white text-depro-dark border-depro-border"
+                    }`}
+                  >
+                    <Icon size={12} /> {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {contenidoMode === "manual" && (
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "planificacion", label: "Planificación", icon: ClipboardList },
+                { id: "tests", label: "Tests físicos", icon: BarChart2 },
+              ].map((p) => {
+                const Icon = p.icon;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setContenidoPanel(p.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border ${
+                      contenidoPanel === p.id
+                        ? "bg-depro-blue text-white border-depro-blue"
+                        : "bg-white text-depro-dark border-depro-border"
+                    }`}
+                  >
+                    <Icon size={12} /> {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="bg-white border border-depro-border rounded-2xl p-4 md:p-6">
+            {contenidoMode === "automatico" && contenidoPanel === "plantillas" && <AdminClubPlantillasPage />}
+            {contenidoMode === "automatico" && contenidoPanel === "sin_balon" && <AdminClubCalentamientosPage embedded />}
+            {contenidoMode === "automatico" && contenidoPanel === "con_balon" && <AdminClubTareasPage embedded />}
+            {contenidoMode === "automatico" && contenidoPanel === "ejercicios" && (
+              <div className="space-y-3">
+                <p className="text-sm text-depro-gray">
+                  Catálogo duplicado para club con etiquetas <code className="text-xs bg-depro-gray-light px-1 rounded">club_*</code> independientes del motor individual.
+                </p>
+                <AdminCatalogPage embedded />
+                <Link to="/admin/catalog" className="inline-flex items-center gap-1 text-xs font-bold text-depro-blue">
+                  Abrir catálogo completo <ChevronRight size={12} />
+                </Link>
+              </div>
+            )}
+            {contenidoMode === "automatico" && contenidoPanel === "motor" && <AdminClubAutoMotorPage />}
+            {contenidoMode === "manual" && contenidoPanel === "planificacion" && (
+              <PlanificacionSection
+                plans={plans}
+                teams={club.teams || []}
+                onAddSession={addSession}
+                onDeleteSession={deleteSession}
+                onDeleteMicrocycle={deleteMicrocycle}
+                onCreateMicrocycle={addMicrocycle}
+              />
+            )}
+            {contenidoMode === "manual" && contenidoPanel === "tests" && (
+              <div className="space-y-3">
+                <p className="text-sm text-depro-gray">Tests físicos compartidos entre modo manual y automático.</p>
+                <AdminTestsPage />
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* EQUIPOS */}
