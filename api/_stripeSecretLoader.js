@@ -11,24 +11,35 @@ function adminClient() {
   });
 }
 
-let cachedSecret = null;
+const cache = new Map();
 
-export async function loadStripeSecretFromSupabase() {
-  if (cachedSecret) return cachedSecret;
+async function loadSecretByKey(key) {
+  if (cache.has(key)) return cache.get(key);
   try {
     const { data, error } = await adminClient()
       .from("app_secrets")
       .select("value")
-      .eq("key", "stripe_test_secret")
+      .eq("key", key)
       .maybeSingle();
     if (error) {
       console.warn("stripe secret supabase:", error.message);
       return "";
     }
-    cachedSecret = (data?.value || "").trim();
-    return cachedSecret;
+    const value = (data?.value || "").trim();
+    cache.set(key, value);
+    return value;
   } catch (err) {
     console.warn("stripe secret supabase:", err.message);
     return "";
   }
+}
+
+/** Secret test (compat). */
+export async function loadStripeSecretFromSupabase() {
+  return loadSecretByKey("stripe_test_secret");
+}
+
+/** Secret live para cobros reales. */
+export async function loadStripeLiveSecretFromSupabase() {
+  return loadSecretByKey("stripe_live_secret");
 }

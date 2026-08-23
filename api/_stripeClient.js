@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import embeddedSecret from "./_stripeSecret.embedded.js";
-import { loadStripeSecretFromSupabase } from "./_stripeSecretLoader.js";
+import { loadStripeSecretFromSupabase, loadStripeLiveSecretFromSupabase } from "./_stripeSecretLoader.js";
 import { getStripeTestSecretFallback } from "./_stripeTestKey.js";
 import { getStripeModeDiagnostics } from "./_stripeMode.js";
 import { resolveStripePublishableKey } from "./_stripePublic.js";
@@ -36,6 +36,14 @@ export async function getStripeSecretKey() {
   const publishable = resolveStripePublishableKey();
   const pubIsTest = publishable.includes("_test_");
   const secretIsLive = fromEnv.includes("_live_");
+  const forcedLive = (process.env.STRIPE_MODE || process.env.VITE_STRIPE_MODE || "").toLowerCase() === "live";
+
+  // Cobros reales: preferir sk_live de env o Supabase
+  if (forcedLive || publishable.includes("_live_")) {
+    if (fromEnv.includes("_live_")) return fromEnv;
+    const liveFromDb = await loadStripeLiveSecretFromSupabase();
+    if (liveFromDb?.includes("_live_")) return liveFromDb;
+  }
 
   if (secretIsLive && pubIsTest) {
     const testKey = clean(
