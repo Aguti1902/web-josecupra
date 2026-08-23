@@ -33,8 +33,9 @@ export function evaluateFeatureAccess({
   if (!feature) return true;
   if (!feature.audiences.includes(audience)) return true;
 
-  // Club/coach manual: sin paywall. Jugadores manuales respetan el plan.
-  if (billingSource === "manual" && audience !== "player") return true;
+  // Clubs (academia) creados a mano: sin paywall de extras.
+  // DEPRO Coach manual SÍ respeta plan + extras marcados en admin.
+  if (billingSource === "manual" && audience === "club") return true;
 
   if (feature.addonId && purchasedAddons.includes(feature.addonId)) return true;
   if (purchasedAddons.some((aid) => {

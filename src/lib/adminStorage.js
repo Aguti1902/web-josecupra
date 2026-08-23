@@ -297,6 +297,27 @@ export function loadClubDetail(clubId) {
   return lsGet(`depro_club_${clubId}`, null);
 }
 
+/** Parche compacto (p. ej. coachConfig) sin reenviar el club entero. */
+export async function patchClubDetail(clubId, fields) {
+  const compact = withoutHeavyCoachPayload({ id: clubId, ...fields });
+  const prev = lsGet(`depro_club_${clubId}`, null) || {};
+  lsSet(`depro_club_${clubId}`, mergeClubRecord(prev, compact));
+
+  const clubs = lsGet("depro_clubs", []);
+  const idx = clubs.findIndex((c) => c.id === clubId);
+  if (idx >= 0) {
+    clubs[idx] = withoutHeavyCoachPayload({ ...clubs[idx], ...compact, id: clubId });
+    lsSet("depro_clubs", clubs);
+  }
+
+  const { ok, data: apiResult } = await apiClubs("POST", { club: compact });
+  if (!ok) {
+    console.warn("[adminStorage] patchClubDetail falló en Supabase:", apiResult?.error);
+    return { ok: false, error: apiResult?.error, hint: apiResult?.hint };
+  }
+  return { ok: true };
+}
+
 export async function saveClubDetail(clubId, data) {
   const prev = lsGet(`depro_club_${clubId}`, null) || {};
   const localMerged = withoutHeavyCoachPayload({ id: clubId, ...prev, ...data });

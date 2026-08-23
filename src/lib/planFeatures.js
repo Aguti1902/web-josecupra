@@ -44,7 +44,7 @@ export const FEATURES = {
     labelKey: "features.pdf_export",
     descKey: "features.pdf_export_desc",
     audiences: ["player", "coach", "club"],
-    minPlan: { player: "player-pro", coach: "coach-starter", club: "club-inicial" },
+    minPlan: { player: "player-pro", coach: "coach-premium", club: "club-inicial" },
     trialLocked: true,
     addonId: "addon-pdf",
     upsellBenefits: ["Descarga de sesiones en PDF", "Plan semanal imprimible", "Formato profesional DEPRO"],
@@ -73,7 +73,6 @@ export const FEATURES = {
     descKey: "features.team_tests_desc",
     audiences: ["coach", "club"],
     minPlan: { coach: "coach-starter", club: "club-inicial" },
-    addonId: "addon-progression",
     trialLocked: false,
   },
   coach_contact: {

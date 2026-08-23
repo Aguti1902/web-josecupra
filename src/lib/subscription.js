@@ -3,6 +3,7 @@ import { PLANS, getPlanLimits, getNextPlan, resolvePlanForClub } from "./checkou
 import { FEATURES, planIncludesFeature, upsellPlanForFeature } from "./planFeatures";
 import { isClubAdmin } from "./clubRoles";
 import { evaluateFeatureAccess } from "./featureAccess";
+import { isProCoachUser } from "./clubAuto/clubAutoCoachBridge";
 
 const STORAGE_PREFIX = "depro_subscription_";
 export const TRIAL_PERIOD_DAYS = 15;
@@ -183,10 +184,8 @@ export function shouldShowTrialWatermark(user) {
 
 export function resolveUserAudience(user) {
   if (user?.role === "player") return "player";
-  if (user?.role === "club") {
-    if (user?.club?.isSoloCoach) return "coach";
-    return "club";
-  }
+  if (isProCoachUser(user) || user?.role === "coach") return "coach";
+  if (user?.role === "club") return "club";
   return "player";
 }
 

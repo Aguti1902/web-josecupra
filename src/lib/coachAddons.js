@@ -1,6 +1,6 @@
 /**
  * Extras del carrito DEPRO Coach (+5€/mes), mismo modelo que el jugador.
- * Standard: sesiones. Premium: todo incluido con descuento.
+ * Standard: sesiones + tests incluidos. Premium: todo incluido con descuento.
  */
 export const COACH_ADDONS = [
   {
@@ -13,11 +13,11 @@ export const COACH_ADDONS = [
     period: "/ mes",
   },
   {
-    id: "addon-progression",
-    featureId: "team_tests",
-    featureIds: ["team_tests", "physical_tests"],
-    name: "Tests con registro",
-    description: "Acceso a tests físicos de equipo con registro e histórico.",
+    id: "addon-pdf",
+    featureId: "pdf_export",
+    featureIds: ["pdf_export"],
+    name: "Descarga de sesiones en PDF",
+    description: "Descarga las sesiones del microciclo en PDF profesional.",
     price: 5,
     period: "/ mes",
   },
@@ -45,8 +45,22 @@ export const COACH_EXTRA_TEAMS_ADDON = "addon-coach-teams";
 export const COACH_STANDARD_MAX_TEAMS = 1;
 export const COACH_TEAMS_WITH_ADDON = 4;
 
+/** Compras antiguas de tests: los tests ahora van incluidos. */
+const LEGACY_ALIAS = {
+  "addon-progression": "addon-progression",
+  "addon-physical-tests": "addon-progression",
+};
+
 export function coachAddonById(id) {
-  return COACH_ADDONS.find((a) => a.id === id) || null;
+  const resolved = LEGACY_ALIAS[id] || id;
+  return COACH_ADDONS.find((a) => a.id === resolved)
+    || (resolved === "addon-progression" ? {
+      id: "addon-progression",
+      featureId: "team_tests",
+      featureIds: ["team_tests", "physical_tests"],
+      name: "Tests con registro",
+      price: 5,
+    } : null);
 }
 
 export function coachFeaturesForAddon(addonId) {

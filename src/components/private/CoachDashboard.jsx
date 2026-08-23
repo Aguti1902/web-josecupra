@@ -12,6 +12,7 @@ import {
 } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { loadOrGenerateWeek } from "../../lib/coachSessionsStorage";
 import PlanUsageCard from "./PlanUsageCard";
+import { hasFeatureAccess } from "../../lib/subscription";
 
 function lum(hex) {
   try {
@@ -81,8 +82,12 @@ export default function CoachDashboard({ club, team, user }) {
     { to: "/dashboard/mesocycle", label: "Planificación", icon: ClipboardList, desc: "Macro / meso / microciclo" },
     { to: "/dashboard/plan", label: "Sesiones", icon: Calendar, desc: "Sesión del día generada" },
     { to: "/dashboard/squad", label: "Plantilla", icon: Users, desc: `${squad.length} jugadores` },
-    { to: "/dashboard/team-tests", label: "Tests", icon: Activity, desc: "Evaluaciones físicas" },
-    { to: "/dashboard/cargas", label: "Carga", icon: TrendingUp, desc: "Control de carga" },
+    ...(hasFeatureAccess(user, "team_tests")
+      ? [{ to: "/dashboard/team-tests", label: "Tests", icon: Activity, desc: "Evaluaciones físicas" }]
+      : []),
+    ...(hasFeatureAccess(user, "cargas")
+      ? [{ to: "/dashboard/cargas", label: "Carga", icon: TrendingUp, desc: "Control de carga" }]
+      : []),
   ];
 
   return (

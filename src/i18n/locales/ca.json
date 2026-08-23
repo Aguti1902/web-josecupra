@@ -468,9 +468,9 @@
       {"id": "coach-premium", "name": "Premium", "price": "49,99€", "subtext": "Equips il·limitats", "features": ["Tot Pro +", "Import GPS", "Classificació IA de càrrega", "Diagrames tàctics IA", "Suport prioritari"], "ctaLink": "/comprar?audience=coach&plan=premium"}
     ],
     "pricing_club": [
-      {"id": "club-inicial", "name": "Inicial", "price": "199€", "subtext": "Fins a 3 equips · 80 jugadors", "features": ["Tauler centralitzat", "Periodització IA", "White-label", "Programa de referits", "2 comptes staff"], "ctaLink": "/comprar?audience=club&plan=inicial"},
-      {"id": "club-pro", "name": "Professional", "price": "399€", "subtext": "Fins a 8 equips · 200 jugadors", "badge": "Recomanat", "highlighted": true, "features": ["Tot Inicial +", "Import GPS multi-equip", "Mòdul mèdic", "KPIs direcció", "5 comptes staff"], "ctaLink": "/comprar?audience=club&plan=pro"},
-      {"id": "club-elite", "name": "Elite", "price": "699€", "subtext": "Equips il·limitats", "features": ["Tot Professional +", "API", "Scouting i cantera", "SLA dedicat", "Comptes il·limitats"], "ctaLink": "/comprar?audience=club&plan=elite"}
+      {"id": "club-inicial", "name": "Inicial", "price": "199€", "subtext": "Fins a 3 equips · 80 jugadors", "features": ["Tauler centralitzat", "Periodització IA", "White-label", "Programa de referits", "2 comptes staff"], "ctaLink": "/para-clubs"},
+      {"id": "club-pro", "name": "Professional", "price": "399€", "subtext": "Fins a 8 equips · 200 jugadors", "badge": "Recomanat", "highlighted": true, "features": ["Tot Inicial +", "Import GPS multi-equip", "Mòdul mèdic", "KPIs direcció", "5 comptes staff"], "ctaLink": "/para-clubs"},
+      {"id": "club-elite", "name": "Elite", "price": "699€", "subtext": "Equips il·limitats", "features": ["Tot Professional +", "API", "Scouting i cantera", "SLA dedicat", "Comptes il·limitats"], "ctaLink": "/para-clubs"}
     ],
     "pricing_player": [
       {"id": "player-essential", "name": "Essencial", "price": "19,99€", "subtext": "Pla mensual IA", "features": ["Pla de preparació física", "Adaptat a posició i nivell", "Sessions amb iconografia", "Descàrrega PDF", "Codi referit aplicable"], "ctaLink": "/comprar?audience=player&plan=essential"},

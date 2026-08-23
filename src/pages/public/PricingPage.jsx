@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, X, Gift, User, Building2, Users, ChevronRight, Shield, Zap, HelpCircle } from "lucide-react";
 import PageHero from "../../components/public/holded/PageHero";
+import { isClubSelfServeOpen } from "../../lib/productAvailability";
 import {
   PageBenefitsGrid, PageMiniFaq, PageCompareSection,
 } from "../../components/public/holded/PageSections";
@@ -19,10 +20,11 @@ const PLANS = {
         "Actualización automática al cambiar de mes",
         "Cuestionario de equipo (días, partido, material, gym)",
         "1 equipo incluido",
-        "Extras +5€: refresco con balón, tests, cargas, +3 equipos",
+        "Tests de equipo incluidos",
+        "Extras +5€: refresco con balón, PDF de sesiones, cargas, +3 equipos",
       ],
       notIncluded: [
-        "Tests con registro (extra)",
+        "Descarga de sesiones en PDF (extra)",
         "Control de cargas (extra)",
         "Refresco ilimitado con balón (extra)",
         "Más de 1 equipo (extra +3)",
@@ -36,9 +38,10 @@ const PLANS = {
       features: [
         "Todo lo de Standard",
         "Refresco ilimitado de calentamientos con balón",
-        "Tests con registro",
+        "Descarga de sesiones en PDF",
         "Control de cargas",
         "Hasta 4 equipos (1 + 3 extra)",
+        "Tests de equipo incluidos",
         "Descuento vs 30€ + 20€ de extras (50€ → 45€)",
       ],
       notIncluded: [],
@@ -156,9 +159,9 @@ const COMPARE_BY_AUDIENCE = {
   coach: [
     { label: "Equipos", values: ["1", "3", "∞"] },
     { label: "Jugadores", values: ["25", "60", "∞"] },
-    { label: "Control de carga", values: ["—", "✓", "✓"] },
-    { label: "Tests T1→T3", values: ["—", "✓", "✓"] },
-    { label: "Import GPS", values: ["—", "—", "✓"] },
+    { label: "Tests de equipo", values: ["✓", "✓"] },
+    { label: "PDF de sesiones", values: ["extra", "✓"] },
+    { label: "Control de carga", values: ["extra", "✓"] },
   ],
   club: [
     { label: "Equipos incluidos", values: ["3", "8", "∞"] },
@@ -237,6 +240,11 @@ export default function PricingPage() {
 
           {audience === "club" && (
             <p className="text-center text-sm text-gray-500 mb-8 max-w-2xl mx-auto">
+              {!isClubSelfServeOpen() && (
+                <span className="block mb-3 font-semibold text-amber-800">
+                  Contratación pública de Club: próximamente. El producto se conserva para acabarlo más adelante.
+                </span>
+              )}
               Cada plan club limita el número de <strong className="text-gray-800">equipos activos</strong>, jugadores totales y cuentas de staff.
               Un equipo = una categoría (Cadete A, Juvenil B…).
             </p>
@@ -285,9 +293,15 @@ export default function PricingPage() {
                   </>
                 )}
 
-                <Link to={`/comprar?audience=${audience}`} className={`w-full py-3.5 rounded-full font-bold text-sm flex items-center justify-center gap-2 mt-auto ${plan.hi ? "bg-holded-blue text-white hover:bg-holded-blue/90" : "border border-gray-200 text-gray-800 hover:bg-gray-50"}`}>
-                  Probar 15 días gratis <ChevronRight size={15} />
-                </Link>
+                {audience === "club" && !isClubSelfServeOpen() ? (
+                  <span className="w-full py-3.5 rounded-full font-bold text-sm flex items-center justify-center gap-2 mt-auto bg-gray-100 text-gray-500 cursor-not-allowed">
+                    Próximamente
+                  </span>
+                ) : (
+                  <Link to={`/comprar?audience=${audience}`} className={`w-full py-3.5 rounded-full font-bold text-sm flex items-center justify-center gap-2 mt-auto ${plan.hi ? "bg-holded-blue text-white hover:bg-holded-blue/90" : "border border-gray-200 text-gray-800 hover:bg-gray-50"}`}>
+                    Probar 15 días gratis <ChevronRight size={15} />
+                  </Link>
+                )}
               </div>
             ))}
           </div>

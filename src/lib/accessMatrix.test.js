@@ -4,6 +4,8 @@ import { PLAYER_ADDONS, featuresForAddon, addonById } from "./playerAddons.js";
 import { TRIAL_PDF_MAX } from "./trialPdfLimit.js";
 import { PREMIUM_PLAYER_CAP } from "./premiumCapacity.js";
 import { evaluateFeatureAccess } from "./featureAccess.js";
+import { isProCoachUser } from "./clubAuto/clubAutoCoachBridge.js";
+import { isClubSelfServeOpen, isClubCheckoutPlan } from "./productAvailability.js";
 
 describe("accesos Standard / Premium / extras", () => {
   it("carrito de extras: 3 items a 5€ (PDF, tests, mis cargas)", () => {
@@ -91,6 +93,10 @@ describe("entrenador Standard / Premium / extras", () => {
     const { COACH_ADDONS } = await import("./coachAddons.js");
     const { PLANS, getPlanLimits, plansForAudience } = await import("./checkoutPlans.js");
     assert.equal(COACH_ADDONS.length, 4);
+    assert.deepEqual(
+      COACH_ADDONS.map((a) => a.id).sort(),
+      ["addon-cargas", "addon-coach-ball-refresh", "addon-coach-teams", "addon-pdf"],
+    );
     COACH_ADDONS.forEach((a) => assert.equal(a.price, 5));
     assert.equal(PLANS["coach-starter"].price, 30);
     assert.equal(PLANS["coach-premium"].price, 45);
@@ -103,7 +109,7 @@ describe("entrenador Standard / Premium / extras", () => {
     assert.equal(planHasCheckoutTrial("coach-premium"), false);
   });
 
-  it("tests abiertos en Standard como en clubs; cargas bloqueadas hasta extra o Premium", () => {
+  it("tests abiertos en Standard; cargas y PDF bloqueados hasta extra o Premium", () => {
     assert.equal(
       evaluateFeatureAccess({
         audience: "coach",
@@ -117,9 +123,46 @@ describe("entrenador Standard / Premium / extras", () => {
       evaluateFeatureAccess({
         audience: "coach",
         planId: "coach-starter",
-        billingSource: "stripe",
-        purchasedAddons: ["addon-progression"],
+        billingSource: "manual",
         featureId: "team_tests",
+      }),
+      true,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "coach",
+        planId: "coach-starter",
+        billingSource: "manual",
+        featureId: "cargas",
+      }),
+      false,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "coach",
+        planId: "coach-starter",
+        billingSource: "manual",
+        featureId: "pdf_export",
+      }),
+      false,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "coach",
+        planId: "coach-starter",
+        billingSource: "manual",
+        purchasedAddons: ["addon-cargas", "addon-pdf"],
+        featureId: "cargas",
+      }),
+      true,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "coach",
+        planId: "coach-starter",
+        billingSource: "manual",
+        purchasedAddons: ["addon-pdf"],
+        featureId: "pdf_export",
       }),
       true,
     );
@@ -143,5 +186,35 @@ describe("entrenador Standard / Premium / extras", () => {
       }),
       true,
     );
+  });
+
+  it("ProCoach se detecta aunque el role sea club (no academia)", () => {
+    assert.equal(isProCoachUser({
+      role: "club",
+      isSoloCoach: true,
+      plan: "coach-starter",
+      clubId: "coach_1",
+    }), true);
+    assert.equal(isProCoachUser({
+      role: "club",
+      club: { isSoloCoach: true },
+      plan: "coach-starter",
+    }), true);
+    assert.equal(isProCoachUser({
+      role: "club",
+      clubId: "coach_abc",
+    }), true);
+    assert.equal(isProCoachUser({
+      role: "club",
+      club: { id: "academia_1", isSoloCoach: false },
+    }), false);
+  });
+});
+
+describe("DEPRO Club self-serve", () => {
+  it("contratación pública de club cerrada", () => {
+    assert.equal(isClubSelfServeOpen(), false);
+    assert.equal(isClubCheckoutPlan("club-inicial", "club"), true);
+    assert.equal(isClubCheckoutPlan("coach-starter", "coach"), false);
   });
 });

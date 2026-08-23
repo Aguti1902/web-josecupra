@@ -125,7 +125,12 @@ export default async function handler(req, res) {
     const { data: existingRow } = await admin.from("clubs_detail").select("data").eq("club_id", clubId).maybeSingle();
     const existing = existingRow?.data || {};
 
-    let payload = { ...club };
+    const incoming = { ...club };
+    delete incoming.coachWeeks;
+    delete incoming.coachMesociclo;
+    let payload = { ...existing, ...incoming, id: clubId };
+    delete payload.coachWeeks;
+    delete payload.coachMesociclo;
     if (!caller.isAdmin && Object.keys(existing).length) {
       payload = {
         ...payload,

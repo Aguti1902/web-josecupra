@@ -9,9 +9,11 @@ import {
   isInTrial,
   activateSubscriptionNow,
   purchaseAddon,
+  resolveUserAudience,
 } from "../../lib/subscription";
 import { FEATURES } from "../../lib/planFeatures";
 import { addonForFeature } from "../../lib/playerAddons";
+import { COACH_ADDONS } from "../../lib/coachAddons";
 import { formatPrice } from "../../lib/checkoutPlans";
 import ChangePlanModal from "./ChangePlanModal";
 import { useAuth } from "../../context/AuthContext";
@@ -39,11 +41,11 @@ export default function FeatureGate({
   const meta = FEATURES[feature] || {};
   const reason = getFeatureLockReason(user, feature);
   const upsellPlan = getFeatureUpsellPlan(user, feature);
-  const trialAddon = addonForFeature(feature);
+  const audience = audienceProp || resolveUserAudience(user);
+  const trialAddon = audience === "coach"
+    ? (COACH_ADDONS.find((a) => a.featureId === feature || (a.featureIds || []).includes(feature)) || null)
+    : addonForFeature(feature);
   const addon = trialAddon || addonForFeature(feature);
-  const audience = audienceProp || (user.role === "club"
-    ? (user.club?.isSoloCoach ? "coach" : "club")
-    : "player");
 
   const title = t(meta.labelKey || "features.locked");
   const desc = reason === "trial"

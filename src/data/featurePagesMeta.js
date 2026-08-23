@@ -141,7 +141,7 @@ export const FEATURE_PAGES = {
       badge: "Plantilla · Multi-equipo",
       description: "Centraliza fichas con posición, antropometría, lesiones y notas privadas. Códigos de club para alta self-service.",
       bullets: ["Ficha completa por jugador", "Código de club para altas", "Lesiones y aptitud médica", "Vista multi-equipo"],
-      primaryCta: { label: "Gestionar plantilla", to: "/comprar?audience=club" },
+      primaryCta: { label: "Ver DEPRO Coach", to: "/para-entrenadores" },
       secondaryCta: { label: "DEPRO Coach", to: "/funcionalidades/depro-coach" },
     },
     benefits: [
@@ -267,7 +267,7 @@ export const FEATURE_PAGES = {
       description: "Gestiona Prebenjamín a Juvenil desde un solo panel. Límites claros por plan: 3, 8 o equipos ilimitados.",
       bullets: ["Hasta 3 / 8 / ∞ equipos", "Staff multi-usuario", "Código de club jugadores", "Informes para junta"],
       stats: [{ val: "199€", label: "Desde / mes" }, { val: "3", label: "Equipos plan Inicial" }],
-      primaryCta: { label: "Probar DEPRO Club", to: "/comprar?audience=club" },
+      primaryCta: { label: "Próximamente", disabled: true },
       secondaryCta: { label: "Ver perfil club", to: "/para-clubs" },
     },
     benefits: [
@@ -434,7 +434,7 @@ export const FEATURE_PAGES = {
       badge: "White-label · DEPRO Club",
       description: "Personaliza la experiencia digital de tu academia. Jugadores acceden con la imagen de tu club en móvil y escritorio.",
       bullets: ["Logo en panel y emails", "Colores primarios y secundarios", "Banner de bienvenida", "Dominio custom (Elite)"],
-      primaryCta: { label: "Probar DEPRO Club", to: "/comprar?audience=club" },
+      primaryCta: { label: "Próximamente", disabled: true },
       secondaryCta: { label: "Ver planes club", to: "/precios" },
     },
     benefits: [

@@ -20,6 +20,7 @@ import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatri
 import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
 import CoachAutoQuestionnaire from "../../components/shared/CoachAutoQuestionnaire";
 import { validateCoachQuestionnaire } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { isClubSelfServeOpen, CLUB_COMING_SOON_COPY } from "../../lib/productAvailability";
 
 const ONBOARDING_STORAGE_KEY = "depro_onboarding";
 const ONBOARDING_DRAFT_KEY = "depro_onboarding_draft_v1";
@@ -125,6 +126,7 @@ function Toggle({ label, value, options, onChange, multi = false }) {
 ───────────────────────────────────────────── */
 function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
   const visiblePlans = plansForAudience(audience);
+  const clubLocked = audience === "club" && !isClubSelfServeOpen();
 
   return (
     <div>
@@ -148,6 +150,13 @@ function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
         ))}
       </div>
 
+      {clubLocked && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-bold mb-0.5">Próximamente</p>
+          <p>{CLUB_COMING_SOON_COPY} Elige Entrenador o Jugador para contratar ahora.</p>
+        </div>
+      )}
+
       <div className={`grid gap-5 ${visiblePlans.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
         {visiblePlans.map((plan) => {
           const isSelected = selected === plan.id;
@@ -155,9 +164,12 @@ function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
             <button
               key={plan.id}
               type="button"
-              onClick={() => onSelect(plan.id)}
-              className={`relative text-left rounded-2xl border-2 p-6 transition-all hover:shadow-card-hover hover:-translate-y-1 ${
-                isSelected ? "border-depro-blue bg-depro-blue/[0.03]" : "border-depro-border bg-white"
+              onClick={() => { if (!clubLocked) onSelect(plan.id); }}
+              disabled={clubLocked}
+              className={`relative text-left rounded-2xl border-2 p-6 transition-all ${
+                clubLocked
+                  ? "border-depro-border bg-depro-gray-light/40 cursor-not-allowed opacity-70"
+                  : `hover:shadow-card-hover hover:-translate-y-1 ${isSelected ? "border-depro-blue bg-depro-blue/[0.03]" : "border-depro-border bg-white"}`
               }`}
             >
               {plan.highlight && (
@@ -213,7 +225,7 @@ function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
       <div className="mt-8 flex justify-end">
         <button
           onClick={onNext}
-          disabled={!selected}
+          disabled={clubLocked || !selected}
           className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Continuar <ArrowRight size={16} />
@@ -1349,7 +1361,9 @@ export default function OnboardingPage() {
     : (AUDIENCES[audienceParam] ? audienceParam : "player");
 
   const [audience, setAudience] = useState(initialAudience);
-  const [step, setStep] = useState(initialPlanId ? 2 : 1);
+  const [step, setStep] = useState(
+    (!isClubSelfServeOpen() && initialAudience === "club") ? 1 : (initialPlanId ? 2 : 1),
+  );
   // Si llega ?audience=coach sin plan, preseleccionar el primero para no bloquear el avance
   const [planId, setPlanId] = useState(
     initialPlanId || plansForAudience(initialAudience)[0]?.id || "",
@@ -1395,6 +1409,7 @@ export default function OnboardingPage() {
     setAudience(nextAudience);
     const first = plansForAudience(nextAudience)[0];
     setPlanId(first?.id || "");
+    if (!isClubSelfServeOpen() && nextAudience === "club") setStep(1);
   };
 
   const saveOnboardingForOAuth = () => {
@@ -1489,6 +1504,11 @@ export default function OnboardingPage() {
   }, [draftReady, audience, planId, form, step]);
 
   useEffect(() => {
+    if (isClubSelfServeOpen()) return;
+    if (audience === "club" && step > 1) setStep(1);
+  }, [audience, step]);
+
+  useEffect(() => {
     if (params.get("oauth") !== "1" || authLoading || !user) return;
     const saved = sessionStorage.getItem(ONBOARDING_STORAGE_KEY);
     if (!saved) return;
@@ -1558,7 +1578,10 @@ export default function OnboardingPage() {
             onAudienceChange={handleAudienceChange}
             selected={planId}
             onSelect={setPlanId}
-            onNext={() => planId && setStep(2)}
+            onNext={() => {
+              if (!isClubSelfServeOpen() && audience === "club") return;
+              if (planId) setStep(2);
+            }}
           />
         )}
 

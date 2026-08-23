@@ -27,6 +27,7 @@ import {
 import { lockedFeaturesForUser } from "../../lib/planFeatures";
 import { plansForAudience, formatPrice, PLANS } from "../../lib/checkoutPlans";
 import { PLAYER_ADDONS, addonById } from "../../lib/playerAddons";
+import { COACH_ADDONS, coachAddonById } from "../../lib/coachAddons";
 import ChangePlanModal from "../../components/private/ChangePlanModal";
 import { canManageClubBilling } from "../../lib/clubRoles";
 
@@ -182,7 +183,9 @@ export default function SubscriptionPage() {
 
   const availableAddons = isPlayer
     ? PLAYER_ADDONS.filter((a) => !purchasedAddons.includes(a.id) && !hasFeatureAccess(user, a.featureId))
-    : [];
+    : audience === "coach"
+      ? COACH_ADDONS.filter((a) => !purchasedAddons.includes(a.id) && !hasFeatureAccess(user, a.featureId))
+      : [];
 
   if (user?.role === "club" && !canManageClubBilling(user)) {
     return <Navigate to="/dashboard" replace />;
@@ -412,7 +415,7 @@ export default function SubscriptionPage() {
           <div className="flex flex-wrap gap-2">
             {purchasedAddons.map((id) => (
               <span key={id} className="text-xs font-bold px-2.5 py-1 rounded-full bg-white border border-green-200 text-green-800">
-                {addonById(id)?.name || id}
+                {addonById(id)?.name || coachAddonById(id)?.name || id}
               </span>
             ))}
           </div>
