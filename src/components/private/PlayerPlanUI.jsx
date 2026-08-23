@@ -54,7 +54,7 @@ function isBodyweightExercise(exercise) {
   return !list.length || list.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno|campo/.test(m));
 }
 
-function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap }) {
+function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap, swapTooltip }) {
   const ytId = getYouTubeId(exercise.videoUrl);
   const typedExercise = {
     ...exercise,
@@ -323,6 +323,9 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
             <button
               type="button"
               disabled={!canSwap}
+              title={swapTooltip || (canSwap
+                ? "Recomendamos seguir el ejercicio indicado. Refresca solo si no puedes hacerlo."
+                : "Sin refrescos disponibles este mesociclo")}
               onClick={() => { onSwap(exercise.id); onClose(); }}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-depro-border hover:border-depro-blue hover:text-depro-blue transition-all disabled:opacity-40"
             >
@@ -506,6 +509,7 @@ export function PlayerSessionFullscreen({
   onSwapExercise,
   canSwap = true,
   swapMessage,
+  swapTooltip,
 }) {
   const blocks = getNonEmptyBlocks(session);
   const totalEx = blocks.reduce((a, b) => a + (b.exercises?.length || 0), 0);
@@ -693,6 +697,7 @@ export function PlayerSessionFullscreen({
           sessionMeta={{ sessionId: session.id, sessionTitle: session.title, weekLabel: dayLabel }}
           onSwap={onSwapExercise}
           canSwap={canSwap}
+          swapTooltip={swapTooltip}
         />
       )}
     </div>

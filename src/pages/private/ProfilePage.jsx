@@ -6,7 +6,25 @@ import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { WEEK_DAYS } from "../../lib/sessionBlocks";
 import { ensurePlayerPlan } from "../../lib/playerPlanEngine";
+import {
+  canRegenerateFromProfile,
+  recordProfileRegen,
+  profileTrainingFingerprint,
+  getProfileRegenCount,
+  MAX_PROFILE_REGENS_PER_CYCLE,
+  resetCycleCounters,
+} from "../../lib/planSwapLimits";
+import { loadPlayerPlan } from "../../lib/playerPlanStorage";
 import { openBillingPortal, isSubscriptionActive } from "../../lib/subscription";
+
+const MATERIALS = ["Sin material", "Gomas", "Mancuernas", "Barra", "Gimnasio completo"];
+const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
+
+function normalizeMaterialList(mat) {
+  if (Array.isArray(mat)) return mat.filter(Boolean);
+  if (!mat) return ["Sin material"];
+  return String(mat).split(",").map((s) => s.trim()).filter(Boolean);
+}
 import {
   registerPendingClubPlayer,
   activateClubPlayerInSquad,
@@ -95,8 +113,13 @@ export default function ProfilePage() {
 
   const freqN = parseInt(String(user?.frecuencia || "").replace(/\D/g, "")) || 3;
   const [trainingDays, setTrainingDays] = useState(() => user?.disponibles?.length ? user.disponibles : ["Lunes", "Miércoles", "Viernes"]);
+  const [materialSel, setMaterialSel] = useState(() => normalizeMaterialList(user?.material));
+  const [experienciaSel, setExperienciaSel] = useState(() => user?.experiencia || EXPERIENCE[2]);
   const [daysSaving, setDaysSaving] = useState(false);
   const [daysMsg, setDaysMsg] = useState("");
+  const currentPlan = user?.id ? loadPlayerPlan(user.id) : null;
+  const profileRegensUsed = user?.id ? getProfileRegenCount(user.id, currentPlan) : 0;
+  const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, currentPlan) : false;
 
   const [accountName, setAccountName] = useState(user?.name || "");
   const [accountEmail, setAccountEmail] = useState(user?.email || "");
@@ -178,6 +201,14 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user?.disponibles?.length) setTrainingDays(user.disponibles);
   }, [user?.disponibles]);
+
+  useEffect(() => {
+    if (user?.material != null) setMaterialSel(normalizeMaterialList(user.material));
+  }, [user?.material]);
+
+  useEffect(() => {
+    if (user?.experiencia) setExperienciaSel(user.experiencia);
+  }, [user?.experiencia]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -307,23 +338,81 @@ export default function ProfilePage() {
     setDaysMsg("");
   };
 
-  const handleSaveTrainingDays = async () => {
+  const toggleMaterial = (item) => {
+    setMaterialSel((prev) => {
+      const has = prev.includes(item);
+      if (has) {
+        const next = prev.filter((m) => m !== item);
+        return next.length ? next : ["Sin material"];
+      }
+      if (item === "Sin material") return ["Sin material"];
+      const base = prev.filter((m) => m !== "Sin material");
+      return [...base, item];
+    });
+    setDaysMsg("");
+  };
+
+  const handleSaveTrainingProfile = async () => {
     if (trainingDays.length < freqN) {
       setDaysMsg(`Selecciona al menos ${freqN} días (tu frecuencia semanal).`);
       return;
     }
+    if (!materialSel.length) {
+      setDaysMsg("Selecciona al menos un material disponible.");
+      return;
+    }
+
+    const nextData = {
+      disponibles: trainingDays,
+      material: materialSel,
+      experiencia: experienciaSel,
+    };
+    const prevData = {
+      disponibles: user?.disponibles || [],
+      material: normalizeMaterialList(user?.material),
+      experiencia: user?.experiencia || "",
+    };
+    const changed = profileTrainingFingerprint(nextData) !== profileTrainingFingerprint(prevData);
+
     setDaysSaving(true);
     setDaysMsg("");
     try {
-      await supabase.auth.updateUser({ data: { disponibles: trainingDays } });
+      await supabase.auth.updateUser({
+        data: {
+          disponibles: trainingDays,
+          material: materialSel,
+          experiencia: experienciaSel,
+        },
+      });
+
+      if (!changed) {
+        await refreshUser();
+        setDaysMsg("Perfil de entrenamiento guardado (sin cambios en la rutina).");
+        setTimeout(() => setDaysMsg(""), 4000);
+        return;
+      }
+
+      const plan = loadPlayerPlan(user.id);
+      if (!canRegenerateFromProfile(user.id, plan)) {
+        await refreshUser();
+        setDaysMsg(`Ya usaste tu cambio de rutina este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos se guardaron, pero la rutina no se regeneró.`);
+        return;
+      }
+
       localStorage.removeItem(`depro_plan_${user.id}`);
-      const newPlan = ensurePlayerPlan({ ...user, disponibles: trainingDays });
-      if (newPlan) localStorage.setItem(`depro_plan_${user.id}`, JSON.stringify(newPlan));
+      const newUser = { ...user, ...nextData };
+      const newPlan = ensurePlayerPlan(newUser);
+      if (newPlan && !newPlan.planError) {
+        // Nuevo mesociclo: contadores a 0 y marcar el cambio de perfil ya usado
+        resetCycleCounters(user.id, newPlan.startDate);
+        recordProfileRegen(user.id, newPlan);
+        localStorage.setItem(`depro_plan_${user.id}`, JSON.stringify(newPlan));
+      }
       await refreshUser();
-      setDaysMsg("Días actualizados · plan regenerado ✓");
-      setTimeout(() => setDaysMsg(""), 4000);
+      setDaysMsg("Perfil actualizado · rutina regenerada (1 cambio este mesociclo) ✓");
+      setTimeout(() => setDaysMsg(""), 5000);
     } catch {
-      setDaysMsg("No se pudieron guardar los días. Inténtalo de nuevo.");
+      setDaysMsg("No se pudo guardar. Inténtalo de nuevo.");
     } finally {
       setDaysSaving(false);
     }
@@ -567,42 +656,92 @@ export default function ProfilePage() {
       {user?.role === "player" && (
         <div className="bg-white border border-depro-border rounded-2xl p-6">
           <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
-            <Calendar size={18} className="text-depro-blue" /> Días de entrenamiento
+            <Calendar size={18} className="text-depro-blue" /> Entrenamiento
           </h2>
-          <p className="text-sm text-depro-gray mb-4">
-            Cambia los días en los que entrenas. El plan semanal se regenerará automáticamente.
+          <p className="text-sm text-depro-gray mb-2">
+            Puedes ajustar días, material y tiempo entrenando. Si cambian, la rutina se regenera
+            {" "}(máximo {MAX_PROFILE_REGENS_PER_CYCLE} vez por mesociclo).
           </p>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {WEEK_DAYS.map((day) => {
-              const sel = trainingDays.includes(day);
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => toggleTrainingDay(day)}
-                  className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
-                    sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray hover:border-depro-blue"
-                  }`}
-                >
-                  {day.slice(0, 3)}
-                </button>
-              );
-            })}
+          <p className={`text-xs font-bold mb-4 ${canProfileRegen ? "text-depro-blue" : "text-amber-700"}`}>
+            Cambios de rutina este mesociclo: {Math.min(profileRegensUsed, MAX_PROFILE_REGENS_PER_CYCLE)}/{MAX_PROFILE_REGENS_PER_CYCLE}
+            {!canProfileRegen && " · cupo agotado"}
+          </p>
+
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Días de entrenamiento</p>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {WEEK_DAYS.map((day) => {
+                const sel = trainingDays.includes(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => toggleTrainingDay(day)}
+                    className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
+                      sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray hover:border-depro-blue"
+                    }`}
+                  >
+                    {day.slice(0, 3)}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-depro-gray">Mínimo {freqN} días · seleccionados: {trainingDays.length}</p>
           </div>
-          <p className="text-xs text-depro-gray mb-4">
-            Mínimo {freqN} días · seleccionados: {trainingDays.length}
-          </p>
+
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Material disponible</p>
+            <div className="flex flex-wrap gap-2">
+              {MATERIALS.map((m) => {
+                const sel = materialSel.includes(m);
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => toggleMaterial(m)}
+                    className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
+                      sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray hover:border-depro-blue"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Tiempo entrenando</p>
+            <div className="flex flex-wrap gap-2">
+              {EXPERIENCE.map((exp) => {
+                const sel = experienciaSel === exp;
+                return (
+                  <button
+                    key={exp}
+                    type="button"
+                    onClick={() => { setExperienciaSel(exp); setDaysMsg(""); }}
+                    className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
+                      sel ? "bg-depro-blue border-depro-blue text-white" : "bg-white border-depro-border text-depro-gray hover:border-depro-blue"
+                    }`}
+                  >
+                    {exp}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {daysMsg && (
             <p className={`text-xs mb-3 ${daysMsg.includes("✓") ? "text-green-600" : "text-amber-700"}`}>{daysMsg}</p>
           )}
           <button
             type="button"
-            onClick={handleSaveTrainingDays}
+            onClick={handleSaveTrainingProfile}
             disabled={daysSaving}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark transition-colors disabled:opacity-50"
           >
             {daysSaving ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-            Guardar y regenerar plan
+            Guardar cambios de entrenamiento
           </button>
         </div>
       )}
