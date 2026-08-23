@@ -138,10 +138,10 @@ export function normalizeTaskDesigner(raw) {
     recommendationsByFramework: {
       ...base.recommendationsByFramework,
       ...Object.fromEntries(
-        Object.entries(raw.recommendationsByFramework || {}).map(([fw, list]) => [
-          fw,
-          Array.isArray(list) ? [...list] : base.recommendationsByFramework[fw],
-        ])
+        Object.entries(raw.recommendationsByFramework || {}).map(([fw, list]) => {
+          const normalized = asCueList(list);
+          return [fw, normalized.length ? normalized : base.recommendationsByFramework[fw]];
+        })
       ),
     },
   };
