@@ -52,17 +52,35 @@ export function materialMatches(exerciseMaterials = [], playerMaterials = []) {
   const mats = normalizeMaterialList(playerMaterials);
   if (mats.includes("gym_completo")) return true;
   const unlocked = new Set(mats);
+  // Variantes de máquina se desbloquean con "maquina" o gym completo
+  if (mats.includes("maquina") || mats.includes("maquina_polea") || mats.includes("maquina_disco")) {
+    MACHINE_MATERIALS.forEach((m) => unlocked.add(m));
+  }
   if (mats.includes("barra") && mats.includes("maquina")) {
     MACHINE_MATERIALS.forEach((m) => unlocked.add(m));
   }
-  return (exerciseMaterials || []).some((m) => unlocked.has(m) || (m === "gym_completo" && mats.includes("gym_completo")));
+  return asArray(exerciseMaterials).some(
+    (m) => unlocked.has(String(m).toLowerCase()) || (m === "gym_completo" && mats.includes("gym_completo")),
+  );
 }
 
-/** Peso corporal / sin material (fallback permitido). */
+/** Peso corporal / sin material (único fallback permitido). */
 export function isBodyweightMaterial(exerciseMaterials = []) {
   const em = asArray(exerciseMaterials).map((x) => String(x).toLowerCase());
   if (!em.length) return true;
-  return em.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno/.test(m));
+  return em.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno|campo/.test(m));
+}
+
+/**
+ * ¿Puede usarse este ejercicio con el material del jugador?
+ * Regla dura: solo material disponible del usuario O peso corporal.
+ * Nunca máquina/barra/gomas/etc. si el usuario no las tiene.
+ */
+export function isExerciseAllowedForMaterials(exerciseMaterials = [], playerMaterials = []) {
+  const mats = normalizeMaterialList(playerMaterials);
+  if (mats.includes("gym_completo")) return true;
+  if (isBodyweightMaterial(exerciseMaterials)) return true;
+  return materialMatches(exerciseMaterials, mats);
 }
 
 /**
@@ -70,8 +88,7 @@ export function isBodyweightMaterial(exerciseMaterials = []) {
  * El peso corporal nunca se considera "equipo faltante".
  */
 export function requiresUnavailableEquipment(exerciseMaterials = [], playerMaterials = []) {
-  if (isBodyweightMaterial(exerciseMaterials)) return false;
-  return !materialMatches(exerciseMaterials, playerMaterials);
+  return !isExerciseAllowedForMaterials(exerciseMaterials, playerMaterials);
 }
 
 function asArray(v) {
@@ -135,12 +152,11 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
   const exp = userProfile.experiencia || "intermedio";
   const expLevel = EXP_LEVELS[exp] || 2;
   const dayIntensity = userProfile.dayIntensity || null;
-  // Material = prioridad, no filtro rígido (Depro 2.0 §9.1)
-  const materialStrict = userProfile.materialStrict === true;
 
   return exercises.filter((ex) => {
     const et = tagsOf(ex);
-    if (materialStrict && !materialMatches(et.material, mats)) return false;
+    // REGLA DURA: nunca equipo que el usuario no tiene (fallback = peso corporal)
+    if (!isExerciseAllowedForMaterials(et.material, mats)) return false;
 
     const exExp = et.experiencia || [];
     if (exExp.length) {
@@ -170,20 +186,23 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
 /** Prioriza material del perfil; fallback a peso corporal / sin material. */
 export function rankByMaterialPreference(candidates, userProfile = {}) {
   const mats = normalizeMaterialList(userProfile.material);
-  const fullGym = mats.some((m) => /gimnasio|gym|completo/i.test(String(m)));
+  const fullGym = mats.includes("gym_completo") || mats.some((m) => /gimnasio|gym|completo/i.test(String(m)));
   const preferFree = fullGym || mats.some((m) => /barra|mancuern/i.test(String(m)));
 
   const score = (ex) => {
     const et = tagsOf(ex);
     const em = asArray(et.material).map((x) => String(x).toLowerCase());
-    const body = !em.length || em.some((m) => /sin.?material|peso.?corporal|bodyweight|ninguno/.test(m));
+    const body = isBodyweightMaterial(et.material);
+    // Solo puntuar candidatos ya permitidos
+    if (!isExerciseAllowedForMaterials(et.material, mats)) return -1;
     if (mats.length && materialMatches(et.material, mats)) {
       if (preferFree && em.some((m) => /barra|mancuern/.test(m))) return 300;
       if (preferFree && em.some((m) => /maquina|máquina|polea/.test(m))) return 180;
+      if (em.some((m) => mats.includes(m))) return 260;
       return 250;
     }
     if (body) return 100;
-    return 40;
+    return 0;
   };
 
   return [...candidates].sort((a, b) => score(b) - score(a));
@@ -302,13 +321,11 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
 
   if (!candidates.length) return null;
   const ranked = rankByMaterialPreference(candidates, userProfile);
-  // Preferir material del perfil; si no hay match, solo peso corporal (nunca máquina/barra ajenas)
+  // Prioridad: material del perfil → solo peso corporal (nunca otro equipo)
   const mats = normalizeMaterialList(userProfile.material);
   const preferMatched = ranked.filter((ex) => materialMatches(tagsOf(ex).material, mats));
   const bodyFallback = ranked.filter((ex) => isBodyweightMaterial(tagsOf(ex).material));
-  const pool = preferMatched.length
-    ? preferMatched
-    : (bodyFallback.length ? bodyFallback : ranked.filter((ex) => !requiresUnavailableEquipment(tagsOf(ex).material, mats)));
+  const pool = preferMatched.length ? preferMatched : bodyFallback;
   if (!pool.length) return null;
   return pickFrom(pool, userProfile, slot, usedExerciseIds, seedExtra);
 }
@@ -429,7 +446,13 @@ export function refreshExercise(currentExercise, userProfile, excludeIds = [], s
     (ex) => ex.id !== currentExercise.id && ex.id !== currentExercise.catalogId && !excludeIds.includes(ex.id),
   );
   if (!candidates.length) return null;
-  return pickDeterministic(candidates, seed || `${Date.now()}|${currentExercise.id}`);
+  const ranked = rankByMaterialPreference(candidates, userProfile);
+  const mats = normalizeMaterialList(userProfile.material);
+  const preferMatched = ranked.filter((ex) => materialMatches(tagsOf(ex).material, mats));
+  const bodyFallback = ranked.filter((ex) => isBodyweightMaterial(tagsOf(ex).material));
+  const pool = preferMatched.length ? preferMatched : bodyFallback;
+  if (!pool.length) return null;
+  return pickDeterministic(pool, seed || `${Date.now()}|${currentExercise.id}`);
 }
 
 export function getPreventionInjectionIds(lesiones = []) {
@@ -530,6 +553,7 @@ export default {
   rankByMaterialPreference,
   isBodyweightMaterial,
   requiresUnavailableEquipment,
+  isExerciseAllowedForMaterials,
   selectExerciseForSlot,
   fillBlockSlots,
   refreshExercise,

@@ -228,4 +228,35 @@ describe("filtro de material", () => {
       );
     }
   });
+
+  it("nunca selecciona equipo que el usuario no tiene (todas las plantillas)", () => {
+    const profiles = [
+      ["mancuernas"],
+      ["gomas"],
+      ["barra"],
+      ["sin_material"],
+      ["mancuernas", "gomas"],
+    ];
+    for (const mat of profiles) {
+      const profile = { material: mat, experiencia: "intermedio", edad: 25 };
+      const unlocked = new Set(["sin_material", "peso_corporal", "campo", "ninguno", ...mat]);
+      for (const [key, tpl] of Object.entries(SESSION_TEMPLATES)) {
+        if (!tpl?.blocks) continue;
+        for (const b of tpl.blocks || []) {
+          for (const s of b.slots || []) {
+            for (let i = 0; i < 3; i++) {
+              const picked = selectExerciseForSlot(s, profile, [], `${key}-${i}`);
+              if (!picked) continue;
+              const em = (picked.etiquetas?.material || []).map((x) => String(x).toLowerCase());
+              const ok = em.every((m) => unlocked.has(m) || /sin.?material|peso.?corporal|ninguno|campo/.test(m));
+              assert.ok(
+                ok,
+                `${key}/${s.slotId || s.description}: "${picked.nombre}" exige [${em}] con perfil [${mat}]`,
+              );
+            }
+          }
+        }
+      }
+    }
+  });
 });

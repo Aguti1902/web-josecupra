@@ -1360,7 +1360,7 @@ export const EXERCISES = [
     "nuevo": false,
     "etiquetas": {
       "material": [
-        "sin_material"
+        "maquina"
       ],
       "objetivo": [
         "fuerza"
@@ -1387,7 +1387,7 @@ export const EXERCISES = [
       "Controla el movimiento en ambas fases",
       "No sacrifiques técnica por carga"
     ],
-    "descripcion": "Curl femoral sentado: fuerza de tren inferior orientada a isquios (cadena_posterior). Material: sin_material. Ejecuta con control y rango completo seguro.",
+    "descripcion": "Curl femoral sentado: fuerza de tren inferior orientada a isquios (cadena_posterior). Material: maquina. Ejecuta con control y rango completo seguro.",
     "pool": "TI-POST",
     "videoUrl": "",
     "lesionesContra": [],
