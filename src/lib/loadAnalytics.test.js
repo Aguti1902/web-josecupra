@@ -10,6 +10,7 @@ import {
   classifyTimeHrImprovement,
   getFuerzaExerciseProgress,
   getTimeHrExerciseProgress,
+  getMaxWeightByWeek,
 } from "./loadAnalytics.js";
 import { loadLogsKey } from "./loadLogs.js";
 
@@ -127,5 +128,15 @@ describe("loadAnalytics — mejoras prácticas", () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0].verdict, "misma_eficiencia");
     assert.equal(rows[0].tone, "positive");
+  });
+
+  it("getMaxWeightByWeek no revienta con fechas sucias (ranking en blanco)", () => {
+    seedLogs([
+      { exerciseName: "Press", weight: 40, recordedAt: "no-es-fecha", tipoRegistro: "fuerza" },
+      { exerciseName: "Press", weight: 50, recordedAt: "2026-08-01T10:00:00Z", tipoRegistro: "fuerza" },
+    ]);
+    const weeks = getMaxWeightByWeek(USER);
+    assert.ok(Array.isArray(weeks));
+    assert.ok(weeks.length >= 1);
   });
 });

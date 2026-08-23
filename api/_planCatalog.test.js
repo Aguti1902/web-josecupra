@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { PRICES, buildCheckoutLineItem, buildSubscriptionItemUpdate, planHasCheckoutTrial } from "./_planCatalog.js";
+import { checkoutUsesTrial } from "../src/lib/checkoutPlans.js";
 
 describe("_planCatalog · precios entrenador", () => {
   it("Standard 30€ y Premium 45€", () => {
@@ -30,5 +31,7 @@ describe("_planCatalog · precios entrenador", () => {
     assert.equal(planHasCheckoutTrial("coach-premium"), false);
     assert.equal(planHasCheckoutTrial("player-pro"), false);
     assert.equal(planHasCheckoutTrial("club-inicial"), false);
+    assert.equal(checkoutUsesTrial("player-essential", true), false);
+    assert.equal(checkoutUsesTrial("coach-starter", false), true);
   });
 });

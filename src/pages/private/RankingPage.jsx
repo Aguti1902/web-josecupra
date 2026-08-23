@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { Component, useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Trophy, Zap, CheckCircle, Flame, Star, Medal, Crown,
@@ -76,7 +76,7 @@ function buildRealRanking(user) {
   const tests = getLastTests(uid);
 
   // Construir leaderboard con el jugador real + compañeros de equipo del registry
-  const teamId  = user?.team;
+  const teamId  = user?.team?.id || (typeof user?.team === "string" ? user.team : null);
   const registry = [];
   try {
     const reg = JSON.parse(localStorage.getItem(`depro_team_registry_${teamId}`) || "[]");
@@ -265,7 +265,7 @@ function PodiumStep({ player, rank, isCurrentUser }) {
       </div>
 
       <div className="text-center">
-        <p className="font-bold text-depro-dark text-sm leading-tight">{player.name.split(" ")[0]}</p>
+        <p className="font-bold text-depro-dark text-sm leading-tight">{String(player?.name || "Jugador").split(/\s+/)[0]}</p>
         <p className="text-xs text-depro-gray">{player.points._tab?.toLocaleString()} pts</p>
       </div>
 
@@ -280,6 +280,30 @@ function PodiumStep({ player, rank, isCurrentUser }) {
   );
 }
 
+class RankingErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="dash-page">
+          <div className="bg-white border border-depro-border rounded-2xl p-8 text-center">
+            <Trophy size={36} className="mx-auto mb-3 text-depro-border" />
+            <p className="font-bold text-depro-dark mb-1">No se pudo cargar el ranking</p>
+            <p className="text-sm text-depro-gray">Inténtalo de nuevo en unos segundos. Tus datos de entrenamiento no se han perdido.</p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function lum(hex) {
   try {
     const h = (hex || "#000").replace("#", "");
@@ -287,7 +311,7 @@ function lum(hex) {
   } catch { return 0; }
 }
 
-export default function RankingPage() {
+function RankingPageInner() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -335,15 +359,25 @@ export default function RankingPage() {
   }, [user?.id]);
 
   const rankingData = useMemo(() => {
-    if (rankingMode === "friends") {
-      return buildFriendsRanking(user, friendProfiles);
+    try {
+      if (rankingMode === "friends") {
+        return buildFriendsRanking(user, friendProfiles);
+      }
+      return buildRealRanking(user);
+    } catch {
+      return { leaderboard: [], activityFeed: [], myEntry: null };
     }
-    return buildRealRanking(user);
   }, [user, rankingMode, friendProfiles]);
 
-  const weightWeeks = useMemo(() => getMaxWeightByWeek(user?.id), [user?.id]);
-  const topExercises = useMemo(() => getTopWeightedExercises(user?.id), [user?.id]);
-  const improvement = useMemo(() => getImprovementSummary(user?.id), [user?.id]);
+  const weightWeeks = useMemo(() => {
+    try { return getMaxWeightByWeek(user?.id); } catch { return []; }
+  }, [user?.id]);
+  const topExercises = useMemo(() => {
+    try { return getTopWeightedExercises(user?.id); } catch { return []; }
+  }, [user?.id]);
+  const improvement = useMemo(() => {
+    try { return getImprovementSummary(user?.id); } catch { return null; }
+  }, [user?.id]);
 
   const key = TAB_IDS.some((tab) => tab.id === activeTab) ? activeTab : "weekly";
   const sorted = [...(rankingData.leaderboard || [])].sort(
@@ -519,7 +553,7 @@ export default function RankingPage() {
                   {/* Avatar */}
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0"
-                    style={{ backgroundColor: player.club.primaryColor + "20", color: player.club.primaryColor }}
+                    style={{ backgroundColor: (player.club?.primaryColor || "#0A36F7") + "20", color: player.club?.primaryColor || "#0A36F7" }}
                   >
                     {player.avatar}
                   </div>
@@ -541,7 +575,7 @@ export default function RankingPage() {
                     <div className="mt-1.5 h-1 bg-depro-gray-light rounded-full overflow-hidden w-full max-w-xs">
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${pct}%`, backgroundColor: isMe ? "#0A36F7" : player.club.primaryColor + "99" }}
+                        style={{ width: `${pct}%`, backgroundColor: isMe ? "#0A36F7" : (player.club?.primaryColor || "#0A36F7") + "99" }}
                       />
                     </div>
                   </div>
@@ -631,5 +665,13 @@ export default function RankingPage() {
       </div>
     </div>
     </FeatureGate>
+  );
+}
+
+export default function RankingPage() {
+  return (
+    <RankingErrorBoundary>
+      <RankingPageInner />
+    </RankingErrorBoundary>
   );
 }

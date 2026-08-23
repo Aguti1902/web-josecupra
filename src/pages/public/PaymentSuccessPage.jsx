@@ -59,6 +59,7 @@ export default function PaymentSuccessPage() {
             plan: data.plan,
             status: data.subscriptionStatus || "trialing",
             trialEndsAt: data.trialEndsAt,
+            skippedTrial: data.subscriptionStatus === "active" && !data.trialEndsAt,
             billingSource: "stripe",
           });
 

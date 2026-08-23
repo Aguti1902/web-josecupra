@@ -382,6 +382,8 @@
     "banner_title": "Free trial · {{days}} days left",
     "banner_desc": "Some sections are limited during the trial. Upgrade to unlock everything.",
     "banner_cta": "View plans",
+    "skip_cta": "Skip trial and unlock everything",
+    "skip_desc": "Skipping the trial charges your plan now. You get PDF, logs and every feature you paid for, with no trial banner.",
     "watermark": "DEPRO TRIAL",
     "unlock": "Unlock",
     "view_plans": "View subscription"

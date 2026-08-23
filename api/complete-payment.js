@@ -31,6 +31,10 @@ export default async function handler(req, res) {
         const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
         subscriptionStatus = sub.status;
         trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
+        if (meta.skipTrial === "1" || !sub.trial_end) {
+          subscriptionStatus = subscriptionStatus === "trialing" ? "active" : subscriptionStatus;
+          trialEndsAt = null;
+        }
       } catch { /* ignore */ }
     }
     if (session.customer) {
@@ -78,6 +82,7 @@ export default async function handler(req, res) {
         stripeSubscriptionId,
         stripeCustomerId,
         trialEndsAt,
+        skippedTrial: !trialEndsAt && subscriptionStatus !== "trialing",
         billingSource: "stripe",
         coachAuto: meta.coachAuto || "",
         // Premium: rutina pendiente de intervención humana

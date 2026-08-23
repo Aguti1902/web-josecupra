@@ -1009,6 +1009,7 @@ function StepFutbol({ form, setForm, onNext, onBack, planId }) {
 function StepPago({ form, setForm, plan, onBack, authUserId }) {
   const [error, setError] = useState("");
   const [showDetails, setShowDetails] = useState(false);
+  const [skipTrial, setSkipTrial] = useState(!!form.skipTrial);
   const selectedAddons = form.selectedAddons || [];
   const cartAddons = plan?.audience === "coach" ? COACH_ADDONS : PLAYER_ADDONS;
   const showAddons = (plan?.audience === "player" && plan?.id !== "player-pro")
@@ -1047,10 +1048,11 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
       password: form.password || form.pendingPassword || "",
       pendingPassword: form.pendingPassword || form.password || "",
       selectedAddons: effectiveAddons,
+      skipTrial,
       primaryColor: form.primaryColor || "#0A36F7",
       secondaryColor: form.secondaryColor || "#ffffff",
     }),
-    [form, plan?.audience, authUserId, effectiveAddons],
+    [form, plan?.audience, authUserId, effectiveAddons, skipTrial],
   );
 
   if (!plan?.id) {
@@ -1068,7 +1070,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
   const discount    = hasDiscount ? Math.round((plan.price - applyClubDiscount(plan.price)) * 100) / 100 : 0;
   const total       = (hasDiscount ? applyClubDiscount(plan.price) : plan.price) + addonsTotal;
   const hasTrial = planHasCheckoutTrial(plan.id);
-  const isImmediateCharge = !hasTrial;
+  const isImmediateCharge = !hasTrial || skipTrial;
 
   const profileRows = [
     ["Nombre", form.nombre],
@@ -1256,7 +1258,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
               {isImmediateCharge ? (
                 <>
                   Añade tu tarjeta para activar <strong className="text-depro-dark">{plan.name}</strong>.
-                  {" "}<strong className="text-depro-dark">No hay prueba gratis</strong>: el cobro de {formatPrice(total)}/mes empieza al confirmar el pago.
+                  {" "}<strong className="text-depro-dark">Cobro desde el día 1</strong>: {formatPrice(total)}/mes y todas las funciones contratadas desde el primer momento.
                 </>
               ) : (
                 <>
@@ -1265,6 +1267,23 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
                 </>
               )}
             </p>
+            {hasTrial && (
+              <label className="flex items-start gap-3 rounded-xl border border-depro-border bg-depro-gray-light/40 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={skipTrial}
+                  onChange={(e) => {
+                    setSkipTrial(e.target.checked);
+                    setForm({ ...form, skipTrial: e.target.checked });
+                  }}
+                />
+                <span className="text-sm text-depro-dark">
+                  <strong>Saltar prueba gratis y activar todo ahora.</strong>
+                  {" "}Se cobra {formatPrice(total)}/mes al confirmar. Tendrás PDF, registros y el resto de lo contratado desde el primer día, sin panel de prueba.
+                </span>
+              </label>
+            )}
             <EmbeddedStripeCheckout
               planId={plan.id}
               formData={formPayload}

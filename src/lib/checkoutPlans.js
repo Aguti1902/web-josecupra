@@ -179,6 +179,11 @@ export function planHasCheckoutTrial(planId) {
   return planId === "player-essential" || planId === "coach-starter" || planId === "coach-pro";
 }
 
+/** Trial en Stripe: el plan lo admite y el usuario no ha pedido saltarlo. */
+export function checkoutUsesTrial(planId, skipTrial = false) {
+  return planHasCheckoutTrial(planId) && !skipTrial;
+}
+
 export function resolvePlanId(audience, planSlug) {
   if (!audience || !planSlug) return "";
   return PLAN_SLUGS[audience]?.[planSlug] || "";

@@ -382,6 +382,8 @@
     "banner_title": "Prueba gratuita · te quedan {{days}} días",
     "banner_desc": "Algunas secciones están limitadas durante la prueba. Mejora tu plan para desbloquear todo.",
     "banner_cta": "Ver planes",
+    "skip_cta": "Saltar prueba y activar todo",
+    "skip_desc": "Si saltas la prueba se cobra el plan ahora y tienes PDF, registros y todo lo contratado. Ya no verás el panel de prueba.",
     "expired_title": "Tu prueba gratuita ha terminado",
     "expired_desc": "Activa una suscripción para seguir usando DEPRO. Elige el plan que prefieras y confirma el pago.",
     "expired_cta": "Activar {{plan}}",
