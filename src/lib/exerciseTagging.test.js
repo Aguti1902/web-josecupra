@@ -7,11 +7,12 @@ import { blockAllowsLoadLogging, objectiveAllowsLoadLogging } from "./loadAnalyt
 import { buildClubExerciseTagIndex, CLUB_TAG_VALUES } from "./clubAuto/clubExerciseTags.js";
 
 describe("taxonomía carpetas", () => {
-  it("define las 7 carpetas funcionales", () => {
+  it("define las carpetas funcionales (incluye resistencia)", () => {
     assert.deepEqual(CATALOG_CARPETAS, [
       "fuerza_tren_inferior",
       "fuerza_tren_superior",
       "velocidad",
+      "resistencia",
       "pliometria",
       "core",
       "prevencion",

@@ -306,6 +306,9 @@ export function filterExercisesEnriched(params) {
   if (edadNum < 18) excludeByAge.push("fuerza_maxima");
   const mat = material ? material.toLowerCase().replace(/\s/g,"_").replace("/","_").replace("barra_gimnasio","barra") : null;
   let results = enriched.filter((ex) => {
+    const nombre = String(ex.nombre || "").toLowerCase();
+    // §9.6 / reglas: no incluir tests ni no-ejercicios en el pool IA
+    if (ex.esTest || /\btest\b|cooper adaptado/i.test(nombre)) return false;
     if (lesiones.some((l) => ex.contraindicado.includes(l.toLowerCase()))) return false;
     if (excludeByAge.some((t) => ex.etiquetas.includes(t))) return false;
     if (params.experiencia === "novato" && (ex.etiquetas.includes("pliometria") || ex.etiquetas.includes("fuerza_maxima"))) return false;

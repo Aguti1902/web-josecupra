@@ -3,13 +3,59 @@
  * Capa separada: no modifica exerciseCatalog ni etiquetas del motor individual.
  */
 
-/** Carpeta lógica: /calentamientos_generales */
+/**
+ * Carpeta lógica: /calentamientos_sin_balon
+ * Solo enlaces a vídeo (YouTube). Selección aleatoria como calentamiento general.
+ */
 export const CLUB_GENERAL_WARMUPS = [
-  { id: "cgw_1", carpeta: "/calentamientos_generales", nombre: "Calentamiento general móvil 1", duracion: "8-10 min", descripcion: "Movilidad articular global + activación suave en círculo." },
-  { id: "cgw_2", carpeta: "/calentamientos_generales", nombre: "Calentamiento general móvil 2", duracion: "8-10 min", descripcion: "Skipping suave, talones, apertura/cierre de cadera y movilidad de tobillo." },
-  { id: "cgw_3", carpeta: "/calentamientos_generales", nombre: "Calentamiento general dinámico", duracion: "8-10 min", descripcion: "Desplazamientos + movilidad dinámica de cadera y hombro." },
-  { id: "cgw_4", carpeta: "/calentamientos_generales", nombre: "Calentamiento general con balón integrado suave", duracion: "8-10 min", descripcion: "Activación sin oposición: conducción suave + movilidad." },
-  { id: "cgw_5", carpeta: "/calentamientos_generales", nombre: "Calentamiento general pre-protocolo", duracion: "8-10 min", descripcion: "Secuencia estable: articulación → activación → elevación de pulso." },
+  {
+    id: "cgw_1",
+    carpeta: "/calentamientos_sin_balon",
+    nombre: "Movilidad articular global",
+    duracion: "8-10 min",
+    descripcion: "Movilidad articular global + activación suave en círculo.",
+    videoUrl: "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+  },
+  {
+    id: "cgw_2",
+    carpeta: "/calentamientos_sin_balon",
+    nombre: "Activación dinámica cadera-tobillo",
+    duracion: "8-10 min",
+    descripcion: "Skipping suave, talones, apertura/cierre de cadera y movilidad de tobillo.",
+    videoUrl: "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+  },
+  {
+    id: "cgw_3",
+    carpeta: "/calentamientos_sin_balon",
+    nombre: "Desplazamientos + movilidad dinámica",
+    duracion: "8-10 min",
+    descripcion: "Desplazamientos + movilidad dinámica de cadera y hombro.",
+    videoUrl: "https://www.youtube.com/watch?v=3PqgN9q_0ZQ",
+  },
+  {
+    id: "cgw_4",
+    carpeta: "/calentamientos_sin_balon",
+    nombre: "Movilidad torácica y hombro",
+    duracion: "8-10 min",
+    descripcion: "Secuencia de movilidad torácica, escapular y hombro sin balón.",
+    videoUrl: "https://www.youtube.com/watch?v=R0mMyIyLx_Q",
+  },
+  {
+    id: "cgw_5",
+    carpeta: "/calentamientos_sin_balon",
+    nombre: "Pre-protocolo sin balón",
+    duracion: "8-10 min",
+    descripcion: "Secuencia estable: articulación → activación → elevación de pulso.",
+    videoUrl: "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
+  },
+  {
+    id: "cgw_6",
+    carpeta: "/calentamientos_sin_balon",
+    nombre: "Movilidad + elevación de pulso",
+    duracion: "8-10 min",
+    descripcion: "Movilidad general seguida de activación neuromuscular suave.",
+    videoUrl: "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+  },
 ];
 
 const BALL_FOLDER = {
@@ -51,22 +97,37 @@ export const CLUB_SLOT_EXERCISE_NAMES = {
   aceleracion: ["Aceleraciones 10 m", "Aceleraciones 15 m", "Aceleración jogging → sprint", "Salidas desde rodilla"],
   coordinacion_pies: ["Saltos en escalera tipo quick feet", "Skipping técnico en sitio", "Mini saltos pogos"],
   reaccion: ["Reacción visual", "Reacción auditiva", "COD reacción"],
-  COD: ["COD 3 conos", "COD 5-10-5", "Sprint + frenada", "Zig-zag 6 conos", "T-test"],
+  COD: ["COD 3 conos", "COD 5-10-5", "Sprint + frenada", "Zig-zag 6 conos", "COD planta-pivote"],
   fuerza_principal_anterior: ["Sentadilla con barra trasera", "Sentadilla multipower", "Sentadilla máquina", "Sentadilla goblet", "Prensa inclinada"],
   fuerza_principal_posterior: ["Peso muerto convencional con barra", "Peso muerto rumano con mancuernas", "Hip thrust con mancuerna", "Curl femoral tumbado en máquina"],
   fuerza_rapida: ["Sentadilla goblet", "Sentadilla multipower", "Saltos verticales simples", "Aceleraciones 10 m"],
   locomocion_tecnica: ["Skipping técnico en sitio", "Farmer walk corto", "Aceleraciones 10 m", "Técnica de carrera"],
 };
 
-function task({ id, nombre, nivel, grupo, intensidad, gimnasio = false, descripcion, adaptaciones }) {
+/** Mapeo grupo microciclo → tipo de sesión (filtros IA §3.1 / §4.2). */
+const GRUPO_TO_SESION = {
+  regenerativo: "extensiva",
+  carga_alta: "intensiva",
+  prepartido: "reactiva",
+};
+
+/** Nivel A/B/C → bloque de edad 1/2/3. */
+const NIVEL_TO_BLOQUE = { A: "1", B: "2", C: "3" };
+
+function task({ id, nombre, nivel, grupo, intensidad, gimnasio = false, descripcion, adaptaciones, tipo_tarea, tipo_sesion, bloques_edad, video }) {
   return {
     id,
-    carpeta: `/tareas/${nivel}/${grupo}`,
+    carpeta: `/calentamiento_con_balon/${nivel}/${grupo}`,
     nombre,
     nivel, // A | B | C
     grupo_microciclo: grupo, // regenerativo | carga_alta | prepartido
     intensidad,
     gimnasio,
+    tipo_tarea: tipo_tarea || "Posesión",
+    tipo_sesion: tipo_sesion || GRUPO_TO_SESION[grupo] || "extensiva",
+    bloques_edad: bloques_edad || [NIVEL_TO_BLOQUE[nivel] || "2"],
+    video: video || "",
+    videoUrl: video || "",
     descripcion,
     adaptaciones: adaptaciones || {
       jugadores: "Si hay pocos → reducir comodines / bajar a formato menor. Si hay muchos → añadir apoyos exteriores o subir formato.",
@@ -74,6 +135,8 @@ function task({ id, nombre, nivel, grupo, intensidad, gimnasio = false, descripc
     },
   };
 }
+
+export { GRUPO_TO_SESION, NIVEL_TO_BLOQUE };
 
 /**
  * 45 tareas únicas: 5 por carpeta /tareas/{A,B,C}/{regenerativo,carga_alta,prepartido}.

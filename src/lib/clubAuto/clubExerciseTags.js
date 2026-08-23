@@ -22,7 +22,7 @@ const SLOT_RULES = [
   { slot: "club_slot_aceleracion", match: (e) => (e.etiquetas?.patron || []).includes("aceleracion") },
   { slot: "club_slot_coordinacion_pies", match: (e) => /pies|skipping|escalera|coordin/i.test(e.nombre) },
   { slot: "club_slot_reaccion", match: (e) => (e.etiquetas?.patron || []).includes("reaccion") || /reacci[oó]n/i.test(e.nombre) },
-  { slot: "club_slot_COD", match: (e) => (e.etiquetas?.patron || []).includes("COD") || /cod|slalom|zig.?zag|t-test/i.test(e.nombre) },
+  { slot: "club_slot_COD", match: (e) => !e.esTest && ((e.etiquetas?.patron || []).includes("COD") || /cod|slalom|zig.?zag/i.test(e.nombre)) },
   { slot: "club_slot_fuerza_principal_anterior", match: (e) => e.carpeta === "fuerza_tren_inferior" && (e.etiquetas?.patron || []).includes("cadena_anterior") && e.etiquetas?.rol === "basico" },
   { slot: "club_slot_fuerza_principal_posterior", match: (e) => e.carpeta === "fuerza_tren_inferior" && (e.etiquetas?.patron || []).includes("cadena_posterior") && e.etiquetas?.rol === "basico" },
   { slot: "club_slot_fuerza_rapida", match: (e) => (e.etiquetas?.patron || []).includes("fuerza_explosiva") || e.carpeta === "pliometria" },
@@ -88,5 +88,29 @@ export const CLUB_TAG_VALUES = {
   club_entorno: ["club_campo", "club_gym"],
   club_protocolo: ["club_protocolo_A", "club_protocolo_B", "club_protocolo_C"],
   club_intensidad_dia: ["club_regenerativo", "club_carga_alta", "club_prepartido"],
+  club_material: [
+    "club_material_conos",
+    "club_material_picas",
+    "club_material_mini_vallas",
+    "club_material_gomas",
+    "club_material_balones",
+    "club_material_porterias",
+  ],
   club_slot: SLOT_RULES.map((r) => r.slot),
 };
+
+/** Mapeo UI cuestionario → tags club_material_* */
+export const CLUB_MATERIAL_TAG_MAP = {
+  Conos: "club_material_conos",
+  Picas: "club_material_picas",
+  "Mini vallas": "club_material_mini_vallas",
+  Gomas: "club_material_gomas",
+  Balones: "club_material_balones",
+  Porterías: "club_material_porterias",
+};
+
+export function materialsToClubTags(materials = []) {
+  return (materials || [])
+    .map((m) => CLUB_MATERIAL_TAG_MAP[m] || null)
+    .filter(Boolean);
+}
