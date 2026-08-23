@@ -1,16 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { PlayCircle, Save, CheckCircle, RefreshCw, Info } from "lucide-react";
+import { EVAL_TEST_DEFAULTS } from "../../lib/evalTestDefaults";
 
-const BASE_TESTS = [
-  { id: "resistencia", label: "Resistencia aeróbica", unit: "m / min",
-    placeholder: "Protocolo: el jugador corre durante X minutos a ritmo constante. Se miden los metros totales…" },
-  { id: "sprint",      label: "Sprint 30m",           unit: "seg",
-    placeholder: "Protocolo: el jugador realiza un sprint de 30m partiendo desde parado. Se registra el tiempo con fotocélulas…" },
-  { id: "cod",         label: "Cambio de dirección",  unit: "seg",
-    placeholder: "Protocolo: test 5-10-5 o Illinois. El jugador recorre el circuito lo más rápido posible…" },
-  { id: "cmj",         label: "Salto CMJ",            unit: "cm",
-    placeholder: "Protocolo: salto con contramovimiento desde posición erguida. Se mide la altura máxima alcanzada…" },
-];
+const BASE_TESTS = EVAL_TEST_DEFAULTS;
 
 const STORAGE_KEY = "depro_global_tests";
 

@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, RefreshCw, ChevronUp, ChevronDown,
   Clock, Dumbbell, StickyNote, Target, Calendar, Info, Star,
-  Copy, Plus, X, Trash2, Sparkles, SlidersHorizontal,
+  Copy, Plus, X, Trash2, Sparkles, SlidersHorizontal, CheckCircle,
 } from "lucide-react";
 import { substituteExercise, toSessionExercise, getProtocolStructure } from "../../lib/coachEngine";
 import { loadCoachLibrary, getCachedCoachLibrary, submitCustomExercise } from "../../lib/coachLibraryStorage";
@@ -11,9 +12,11 @@ import {
 } from "../../lib/coachSessionsStorage";
 import { loadFavorites, toggleFavorite } from "../../lib/coachFavorites";
 import { PROTOCOLOS, CATEGORY_PROTOCOLS } from "../../data/coachExerciseLibrary";
-import { usesClubAutoEngine } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { usesClubAutoEngine, isoWeekStartsInMonth, startOfIsoWeek, monthBounds } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { selectBallWarmup } from "../../lib/clubAuto/clubAutoTaskSelector";
 import { hasFeatureAccess } from "../../lib/subscription";
+import { formatWeekRangeLabel, formatDate } from "../../lib/periodization";
+import { prefetchCatalogMedia, resolveExerciseVideo, youtubeEmbedUrl } from "../../lib/catalogMedia";
 import ClubAutoSessionView from "./ClubAutoSessionView";
 
 function lum(hex) {
@@ -25,20 +28,16 @@ function lum(hex) {
 function safeAccent(hex) { return lum(hex) > 0.75 ? "#0A36F7" : (hex || "#0A36F7"); }
 function contrastText(hex) { return lum(hex) > 0.55 ? "#111827" : "#ffffff"; }
 
-function mondayOfWeek(offset = 0) {
+function isoToday() {
   const d = new Date();
-  d.setDate(d.getDate() + offset * 7);
-  const diff = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - diff);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-function formatRange(weekStart) {
-  const start = new Date(weekStart + "T00:00:00");
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  const fmt = (d) => d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-  return `${fmt(start)} – ${fmt(end)}`;
+function todayLabel() {
+  return new Date().toLocaleDateString("es-ES", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
 }
+
 function genId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -192,9 +191,19 @@ export default function CoachSessions({ club, team, user }) {
   const teamId = team?.id;
   const isPersonalizado = club?.mode === "personalizado";
   const isClubAuto = usesClubAutoEngine({ ...club, coachConfig: config });
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [weekOffset, setWeekOffset] = useState(0);
-  const weekStart = useMemo(() => mondayOfWeek(weekOffset), [weekOffset]);
+  const bounds = useMemo(() => monthBounds(new Date()), []);
+  const weekStarts = useMemo(() => isoWeekStartsInMonth(bounds.startDate), [bounds.startDate]);
+  const todayMonday = startOfIsoWeek(isoToday());
+  const currentIdx = Math.max(0, weekStarts.indexOf(todayMonday));
+  const parsedWeek = searchParams.get("week");
+  const parsedIdx = parsedWeek != null ? parseInt(parsedWeek, 10) : NaN;
+  const weekIdx = Number.isFinite(parsedIdx)
+    ? Math.min(Math.max(parsedIdx, 0), Math.max(weekStarts.length - 1, 0))
+    : currentIdx;
+  const weekStart = weekStarts[weekIdx] || todayMonday;
+
   const [libraryReady, setLibraryReady] = useState(false);
   const [week, setWeek] = useState(null);
   const [activeSessionId, setActiveSessionId] = useState(null);
@@ -205,6 +214,19 @@ export default function CoachSessions({ club, team, user }) {
   const [showExerciseModal, setShowExerciseModal] = useState(false);
 
   useEffect(() => { loadCoachLibrary().then(() => setLibraryReady(true)); }, []);
+  useEffect(() => { prefetchCatalogMedia().catch(() => {}); }, []);
+
+  const changeWeek = (nextIdx) => {
+    const clamped = Math.min(Math.max(nextIdx, 0), Math.max(weekStarts.length - 1, 0));
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (clamped === currentIdx) next.delete("week");
+      else next.set("week", String(clamped));
+      return next;
+    }, { replace: true });
+  };
+
+  const targetSessionId = searchParams.get("session");
 
   useEffect(() => {
     if (!clubId || !teamId) return;
@@ -212,10 +234,11 @@ export default function CoachSessions({ club, team, user }) {
     const w = loadOrGenerateWeek({ clubId, teamId, weekStart, config, library });
     setWeek(w);
     setActiveSessionId((prev) => {
+      if (targetSessionId && w.sessions.some((s) => s.id === targetSessionId)) return targetSessionId;
       if (prev && w.sessions.some((s) => s.id === prev)) return prev;
       return w.sessions[0]?.id || null;
     });
-  }, [clubId, teamId, weekStart, config, libraryReady]);
+  }, [clubId, teamId, weekStart, config, libraryReady, targetSessionId]);
 
   const flashSaved = useCallback(() => {
     setSavedFlash(true);
@@ -314,8 +337,12 @@ export default function CoachSessions({ club, team, user }) {
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-xl font-black text-depro-dark">Sesiones</h2>
+          <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">Microciclo</h1>
+          <p className="text-sm text-depro-gray capitalize">{todayLabel()}</p>
+          <div className="mt-2 inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-xl bg-depro-blue-light/40 border border-depro-blue/20 text-xs">
+            <Calendar size={11} className="text-depro-blue" />
+            <span className="text-depro-dark font-bold">{formatWeekRangeLabel(weekStart, 0)}</span>
+            <span className="text-depro-gray">· Semana {weekIdx + 1} de {weekStarts.length}</span>
             <span
               className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: accent + "12", color: accent }}
@@ -324,25 +351,55 @@ export default function CoachSessions({ club, team, user }) {
               {isPersonalizado ? "Personalizado" : isClubAuto ? "Automático" : "Modo DEPRO"}
             </span>
           </div>
-          <p className="text-sm text-depro-gray">
-            {isClubAuto
-              ? "Microciclo según tu cuestionario. Dos sesiones por tipo de entreno, repartidas en el mes. Al cambiar de mes se generan otras nuevas."
-              : isPersonalizado
-                ? "Añade, duplica y edita tus propias sesiones."
-                : "Sesión del día generada por DEPRO."}
-          </p>
         </div>
-        <div className="flex items-center gap-2 bg-white border border-depro-border rounded-xl px-2 py-1.5">
-          <button onClick={() => setWeekOffset((o) => o - 1)} className="p-1.5 rounded-lg hover:bg-depro-gray-light transition-colors" aria-label="Semana anterior">
-            <ChevronLeft size={16} className="text-depro-gray" />
-          </button>
-          <span className="text-sm font-semibold text-depro-dark px-1 min-w-[150px] text-center">
-            {weekOffset === 0 ? "Esta semana" : weekOffset === 1 ? "Próxima semana" : weekOffset === -1 ? "Semana anterior" : formatRange(weekStart)}
-            <span className="block text-[11px] text-depro-gray font-normal">{formatRange(weekStart)}</span>
-          </span>
-          <button onClick={() => setWeekOffset((o) => o + 1)} className="p-1.5 rounded-lg hover:bg-depro-gray-light transition-colors" aria-label="Semana siguiente">
-            <ChevronRight size={16} className="text-depro-gray" />
-          </button>
+      </div>
+
+      <div className="flex items-center gap-3 p-3 rounded-2xl border border-depro-border bg-white">
+        <button
+          type="button"
+          disabled={weekIdx <= 0}
+          onClick={() => changeWeek(weekIdx - 1)}
+          className="p-2 rounded-xl border border-depro-border bg-depro-gray-light/50 text-depro-dark hover:bg-depro-gray-light disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          aria-label="Semana anterior"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <div className="flex-1 text-center min-w-0">
+          <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">
+            Semana {weekIdx + 1} de {weekStarts.length}
+          </div>
+          <div className="font-black text-depro-dark">{formatWeekRangeLabel(weekStart, 0)}</div>
+          {weekIdx === currentIdx && (
+            <div className="text-[10px] text-green-700 font-bold mt-1 flex items-center justify-center gap-1">
+              <CheckCircle size={10} /> Semana en curso
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          disabled={weekIdx >= weekStarts.length - 1}
+          onClick={() => changeWeek(weekIdx + 1)}
+          className="p-2 rounded-xl border border-depro-border bg-depro-gray-light/50 text-depro-dark hover:bg-depro-gray-light disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          aria-label="Semana siguiente"
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
+
+      <div
+        className="rounded-2xl p-5 flex items-center gap-5"
+        style={{ background: `linear-gradient(135deg, ${accent}14 0%, ${accent}04 100%)`, border: `1px solid ${accent}25` }}
+      >
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-base font-black flex-shrink-0" style={{ backgroundColor: accent + "20", color: accent }}>
+          S{weekIdx + 1}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-bold text-depro-gray uppercase tracking-wide">Semana {weekIdx + 1}</div>
+          <div className="font-black text-depro-dark">{formatWeekRangeLabel(weekStart, 0)}</div>
+          <div className="text-xs text-depro-gray">
+            {formatDate(bounds.startDate)} → {formatDate(bounds.endDate)}
+            {isClubAuto ? " · Microciclo según tu cuestionario" : ""}
+          </div>
         </div>
       </div>
 
@@ -523,6 +580,16 @@ export default function CoachSessions({ club, team, user }) {
                             <p className="text-xs text-depro-gray mt-2 flex items-start gap-1.5">
                               <Info size={12} className="flex-shrink-0 mt-0.5" /> {ex.description}
                             </p>
+                          )}
+
+                          {youtubeEmbedUrl(resolveExerciseVideo(ex)) && (
+                            <iframe
+                              src={youtubeEmbedUrl(resolveExerciseVideo(ex))}
+                              title={ex.name}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="mt-3 w-full aspect-video rounded-lg border border-depro-border"
+                            />
                           )}
 
                           <div className="mt-2">

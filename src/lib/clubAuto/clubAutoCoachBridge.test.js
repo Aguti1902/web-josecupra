@@ -4,6 +4,7 @@ import {
   usesClubAutoEngine,
   coachConfigToQuestionnaire,
   generateClubAutoWeekForCoach,
+  generateClubAutoMesocicloForCoach,
   categoryForNivel,
   CLUB_AUTO_MATERIALS,
   isProCoachUser,
@@ -65,6 +66,26 @@ describe("clubAutoCoachBridge", () => {
       "observaciones",
     ]);
     assert.equal(week.sessions[0].exercises.length, 6);
+  });
+
+  it("mesociclo ProCoach cubre el mes calendario con sesión por día de entreno", () => {
+    const config = {
+      engine: "club_auto",
+      nivel: "B",
+      dias_entrenamiento_semana: 3,
+      dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
+      dia_partido: "sabado",
+      acceso_gimnasio: "no",
+    };
+    const meso = generateClubAutoMesocicloForCoach(config, { startDate: "2026-08-01", endDate: "2026-08-31" });
+    assert.equal(meso.startDate, "2026-08-01");
+    assert.equal(meso.endDate, "2026-08-31");
+    assert.ok(meso.weeks.length >= 5);
+    const first = meso.weeks[1];
+    assert.equal(first.weekStart, "2026-08-03");
+    assert.ok(first.sessions.length >= 1);
+    assert.ok(first.sessions[0].assignedDay);
+    assert.ok(["A", "B", "C"].includes(first.sessions[0].framework));
   });
 
   it("categoryForNivel", () => {

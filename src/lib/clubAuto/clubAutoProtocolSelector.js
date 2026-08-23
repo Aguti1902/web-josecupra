@@ -8,6 +8,7 @@ import { CLUB_SLOT_EXERCISE_NAMES } from "../../data/clubAutoCatalog.js";
 import { getProtocolTemplate } from "./clubAutoTemplates.js";
 import { getClubTagsForExercise } from "./clubExerciseTags.js";
 import { isExerciseAllowedForMaterials, normalizeMaterialList } from "../exerciseSelector.js";
+import { resolveExerciseVideo } from "../catalogMedia.js";
 
 function stableIndex(seed, length) {
   if (length <= 0) return 0;
@@ -128,7 +129,7 @@ export function selectProtocolExercises({ protocolo, gymAccess, seed = "", usedI
       club_entorno: gymAccess ? "gym" : "campo",
       nombre: picked.nombre,
       catalogId: picked.id,
-      videoUrl: picked.videoUrl || "",
+      videoUrl: resolveExerciseVideo(picked) || picked.videoUrl || "",
       descripcion: Array.isArray(picked.tips) ? picked.tips.join(" · ") : (picked.descripcion || ""),
       description: Array.isArray(picked.tips) ? picked.tips.join(" · ") : (picked.descripcion || ""),
       tips: picked.tips || [],

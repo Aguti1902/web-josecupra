@@ -103,7 +103,7 @@ describe("entrenador Standard / Premium / extras", () => {
     assert.equal(planHasCheckoutTrial("coach-premium"), false);
   });
 
-  it("tests y cargas bloqueados en Standard, abiertos con extra o Premium", () => {
+  it("tests abiertos en Standard como en clubs; cargas bloqueadas hasta extra o Premium", () => {
     assert.equal(
       evaluateFeatureAccess({
         audience: "coach",
@@ -111,7 +111,7 @@ describe("entrenador Standard / Premium / extras", () => {
         billingSource: "stripe",
         featureId: "team_tests",
       }),
-      false,
+      true,
     );
     assert.equal(
       evaluateFeatureAccess({

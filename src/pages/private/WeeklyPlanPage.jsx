@@ -27,6 +27,7 @@ import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
 import { canDownloadTrialPdf, recordTrialPdfDownload, trialPdfLimitMessage } from "../../lib/trialPdfLimit";
 import { savePlayerPlan } from "../../lib/playerPlanStorage";
 import CoachSessions from "../../components/private/CoachSessions";
+import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
@@ -1839,8 +1840,12 @@ export default function WeeklyPlanPage() {
   const accent = safeColor(raw);
 
   let content;
-  if (user?.role === "club" && user?.club?.isSoloCoach) {
-    content = <CoachSessions club={user.club} team={user.team} user={user} />;
+  if (isProCoachUser(user)) {
+    content = (
+      <div className="dash-page">
+        <CoachSessions club={user.club} team={user.team} user={user} />
+      </div>
+    );
   } else if (user?.role === "club") {
     content = <ClubMicrocycles accent={accent} />;
   } else {

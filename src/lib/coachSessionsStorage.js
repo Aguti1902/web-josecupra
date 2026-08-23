@@ -14,6 +14,9 @@ import {
   generateClubAutoWeekForCoach,
   generateClubAutoMesocicloForCoach,
   coachConfigFingerprint,
+  weekIndexInMonth,
+  monthKeyFromDate,
+  monthBounds,
 } from "./clubAuto/clubAutoCoachBridge";
 
 function weekKeyFor(clubId, teamId, weekStart) {
@@ -31,11 +34,16 @@ function lsSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 
-function weekMatchesEngine(week, config) {
+function weekMatchesEngine(week, config, weekStart) {
   if (!week) return false;
   const fp = coachConfigFingerprint(config);
   if (week.configFingerprint && week.configFingerprint !== fp) return false;
-  if (usesClubAutoEngine(config)) return week.engine === "club_auto";
+  if (usesClubAutoEngine(config)) {
+    if (week.engine !== "club_auto") return false;
+    const offset = weekIndexInMonth(weekStart);
+    if (week.weekOffset == null) return offset === 0;
+    return week.weekOffset === offset;
+  }
   return week.engine !== "club_auto";
 }
 
@@ -46,18 +54,20 @@ function withFingerprint(data, config) {
 export function loadOrGenerateWeek({ clubId, teamId, weekStart, config, library }) {
   const key = weekKeyFor(clubId, teamId, weekStart);
   const cached = lsGet(key, null);
-  if (weekMatchesEngine(cached, config)) return cached;
+  if (weekMatchesEngine(cached, config, weekStart)) return cached;
 
   const detail = loadClubDetail(clubId);
   const remote = detail?.coachWeeks?.[`${teamId}_${weekStart}`];
-  if (weekMatchesEngine(remote, config)) {
+  if (weekMatchesEngine(remote, config, weekStart)) {
     lsSet(key, remote);
     return remote;
   }
 
+  const offset = weekIndexInMonth(weekStart);
+  const monthKey = monthKeyFromDate(weekStart);
   const generated = withFingerprint(
     usesClubAutoEngine(config)
-      ? generateClubAutoWeekForCoach(config, { weekStart, weekOffset: 0 })
+      ? generateClubAutoWeekForCoach(config, { weekStart, weekOffset: offset, monthKey })
       : generateMicrociclo({ config, weekStart, library }),
     config,
   );
@@ -95,11 +105,14 @@ export function removeSessionFromWeek({ clubId, teamId, weekStart, sessionId }) 
   return next;
 }
 
-export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, numWeeks = 4, library }) {
+export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, endDate, numWeeks, library }) {
   const key = mesoKeyFor(clubId, teamId);
   const fp = coachConfigFingerprint(config);
+  const bounds = monthBounds(startDate || new Date());
+  const start = startDate || bounds.startDate;
+  const end = endDate || bounds.endDate;
   const cached = lsGet(key, null);
-  if (cached && cached.startDate === startDate && cached.configFingerprint === fp) {
+  if (cached && cached.startDate === start && (cached.endDate || start) === end && cached.configFingerprint === fp) {
     if (!(usesClubAutoEngine(config) && cached.engine !== "club_auto")) {
       return cached;
     }
@@ -107,7 +120,7 @@ export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, num
 
   const detail = loadClubDetail(clubId);
   const remote = detail?.coachMesociclo?.[teamId];
-  if (remote && remote.startDate === startDate) {
+  if (remote && remote.startDate === start && (remote.endDate || start) === end) {
     if ((!remote.configFingerprint || remote.configFingerprint === fp)
       && !(usesClubAutoEngine(config) && remote.engine !== "club_auto")) {
       lsSet(key, remote);
@@ -117,8 +130,8 @@ export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, num
 
   const generated = withFingerprint(
     usesClubAutoEngine(config)
-      ? generateClubAutoMesocicloForCoach(config, { startDate, numWeeks })
-      : generateMesociclo({ config, startDate, numWeeks, library }),
+      ? generateClubAutoMesocicloForCoach(config, { startDate: start, endDate: end, numWeeks })
+      : generateMesociclo({ config, startDate: start, numWeeks: numWeeks || 4, library }),
     config,
   );
   saveMesociclo({ clubId, teamId, data: generated });

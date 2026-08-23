@@ -2,16 +2,15 @@
  * Vista visual de sesión club_auto — idéntica a la planificación manual (§4.3):
  * Resumen | Calentamiento | Parte principal (hasta 6 huecos) | Diseñador de tareas
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dumbbell, Clock, Target, Sparkles, StickyNote, Activity, BarChart2, Flame, ListChecks, PencilRuler, ExternalLink } from "lucide-react";
 import { sessionTextsFor } from "../../data/sessionTypeTexts";
 import { sessionTypeForProtocol } from "../../lib/clubAuto/clubAutoTaskSelector";
 import { CLUB_SIN_BALON_INTRO } from "../../data/clubAutoCatalog";
+import { prefetchCatalogMedia, resolveExerciseVideo, youtubeEmbedUrl } from "../../lib/catalogMedia";
 
 function youtubeEmbed(url) {
-  if (!url) return null;
-  const m = String(url).match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{6,})/);
-  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+  return youtubeEmbedUrl(url);
 }
 
 function ProtocolSlots({ exercises, accent }) {
@@ -22,7 +21,7 @@ function ProtocolSlots({ exercises, accent }) {
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {visible.map((ex, i) => {
-        const embed = youtubeEmbed(ex.videoUrl);
+        const embed = youtubeEmbed(resolveExerciseVideo(ex) || ex.videoUrl);
         return (
           <div key={`${ex.slot}-${i}`} className="rounded-xl border border-depro-border p-3 space-y-2">
             <div className="flex items-start gap-2">
@@ -123,6 +122,10 @@ export default function ClubAutoSessionView({
   refreshBallLocked = "",
 }) {
   const [tab, setTab] = useState("resumen");
+  const [, setMediaReady] = useState(0);
+  useEffect(() => {
+    prefetchCatalogMedia().then(() => setMediaReady((n) => n + 1)).catch(() => {});
+  }, []);
   const structure = session?.structure || [];
   const byType = Object.fromEntries(structure.map((b) => [b.type, b]));
   const warm = byType.calentamiento_general;
