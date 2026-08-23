@@ -37,7 +37,7 @@ export function TutorialProvider({ user, children }) {
 
   // Auto-start solo la primera vez (clave estable + migración legacy)
   useEffect(() => {
-    if (!user?.id || !roleReady || steps.length === 0) return;
+    if (!user?.id || !roleReady || steps.length === 0 || user?.impersonating) return;
     if (hasCompletedTutorial(user)) return;
     const t = setTimeout(() => setActive(true), 800);
     return () => clearTimeout(t);

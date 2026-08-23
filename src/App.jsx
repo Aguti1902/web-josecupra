@@ -5,6 +5,8 @@ import { AdminProvider } from "./context/AdminContext";
 import { ViewProvider } from "./context/ViewContext";
 import { shouldForceSetup } from "./lib/questionnaireState";
 import { isDraftLoginBlocked } from "./lib/adminAccountStatus";
+import { getImpersonationSnapshot, stopImpersonation } from "./lib/adminImpersonation";
+import ImpersonationGuard from "./components/ImpersonationGuard";
 import PWAInstallBanner from "./components/PWAInstallBanner";
 
 // Public — web marketing Holded-style
@@ -111,12 +113,13 @@ function ClientRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
   // Usuarios Google/legacy marcados como pendingPayment no deben entrar al panel sin pagar
-  if (user.pendingPayment === true) {
+  if (user.pendingPayment === true && !user.impersonating) {
     return <Navigate to="/comprar" replace />;
   }
   const viewAs = typeof sessionStorage !== "undefined" && sessionStorage.getItem("depro_view_as");
-  if (user.role === "admin" && !viewAs) return <Navigate to="/admin" replace />;
+  if (user.role === "admin" && !user.impersonating && !viewAs) return <Navigate to="/admin" replace />;
   const qKey = user?.id || user?.email;
+  if (user.impersonating) return children;
   // Entrenador individual sin alta: forzar setup salvo cancelado/completado
   if (user.role === "coach" && shouldForceSetup("coach", qKey)) {
     return <Navigate to="/dashboard/coach-setup" replace />;
@@ -154,10 +157,18 @@ function AdminRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.impersonating) {
+  // Entrar a /admin cancela la vista de usuario y recupera el panel
+  if (user.impersonating || getImpersonationSnapshot()) {
+    stopImpersonation();
+    if (typeof window !== "undefined") {
+      if (window.location.pathname === "/admin/users") window.location.reload();
+      else window.location.replace("/admin/users");
+    }
+    return <LoadingScreen />;
+  }
+  if (user.role !== "admin" && String(user.email || "").toLowerCase() !== "jose@depro.es") {
     return <Navigate to="/dashboard" replace />;
   }
-  if (user.role !== "admin") return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -188,7 +199,13 @@ function AppRoutes() {
         path="/login"
         element={
           user
-            ? <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace />
+            ? <Navigate to={
+                user.impersonating
+                  ? "/dashboard"
+                  : ((user.role === "admin" || String(user.email || "").toLowerCase() === "jose@depro.es")
+                    ? "/admin"
+                    : "/dashboard")
+              } replace />
             : <LoginPage />
         }
       />
@@ -257,12 +274,14 @@ export default function App() {
     <BrowserRouter>
       <ScrollToTopOnNavigate />
       <AuthProvider>
-        <AdminProvider>
-          <ViewProvider>
-            <AppRoutes />
-            <PWAInstallBanner />
-          </ViewProvider>
-        </AdminProvider>
+        <ImpersonationGuard>
+          <AdminProvider>
+            <ViewProvider>
+              <AppRoutes />
+              <PWAInstallBanner />
+            </ViewProvider>
+          </AdminProvider>
+        </ImpersonationGuard>
       </AuthProvider>
     </BrowserRouter>
   );
