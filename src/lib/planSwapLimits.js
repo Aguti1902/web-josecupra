@@ -170,7 +170,14 @@ export function getProfileRegenCount(userId, plan = null) {
 
 export function canRegenerateFromProfile(userId, plan = null) {
   if (!userId) return false;
-  return getProfileRegenCount(userId, plan) < MAX_PROFILE_REGENS_PER_CYCLE;
+  const count = getProfileRegenCount(userId, plan);
+  if (count < MAX_PROFILE_REGENS_PER_CYCLE) return true;
+  // Gracia: el cupo se marcó sin evidencia de regeneración exitosa desde perfil
+  // (p. ej. intento incompleto / bug previo). Permite reintentar una vez.
+  if (plan && !plan.profileRegenAt && plan.source !== "profile_regen") {
+    return true;
+  }
+  return false;
 }
 
 export function recordProfileRegen(userId, plan = null) {

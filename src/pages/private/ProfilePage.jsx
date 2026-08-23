@@ -579,6 +579,7 @@ export default function ProfilePage() {
 
     newPlan.profileSnapshot = trainingProfileSnapshotFromAny(nextData);
     newPlan.source = "profile_regen";
+    newPlan.profileRegenAt = new Date().toISOString();
     resetCycleCounters(user.id, newPlan.startDate);
     recordProfileRegen(user.id, newPlan);
     savePlayerPlan(user.id, newPlan);

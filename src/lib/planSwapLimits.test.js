@@ -118,7 +118,12 @@ describe("planSwapLimits — ciclo mensual", () => {
     // Simula intento fallido: no se llama recordProfileRegen
     assert.equal(canRegenerateFromProfile("u2", plan), true);
     recordProfileRegen("u2", plan);
-    assert.equal(canRegenerateFromProfile("u2", plan), false);
+    // Sin evidencia de éxito en el plan → gracia para reintentar
+    assert.equal(canRegenerateFromProfile("u2", plan), true);
+    assert.equal(
+      canRegenerateFromProfile("u2", { ...plan, source: "profile_regen", profileRegenAt: "2026-08-17T12:00:00.000Z" }),
+      false,
+    );
   });
 });
 
