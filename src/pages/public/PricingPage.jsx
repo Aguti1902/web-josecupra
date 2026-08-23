@@ -3,15 +3,21 @@ import { Link } from "react-router-dom";
 import { Check, X, Gift, User, Building2, Users, ChevronRight, Shield, Zap, HelpCircle } from "lucide-react";
 import PageHero from "../../components/public/holded/PageHero";
 import { isClubSelfServeOpen } from "../../lib/productAvailability";
+import { PLANS as CHECKOUT_PLANS, formatPrice, applyClubDiscount } from "../../lib/checkoutPlans";
 import {
   PageBenefitsGrid, PageMiniFaq, PageCompareSection,
 } from "../../components/public/holded/PageSections";
 
+function planPriceLabel(planId, fallback = "—") {
+  const p = CHECKOUT_PLANS[planId];
+  return p ? formatPrice(p.price) : fallback;
+}
+
 const PLANS = {
   coach: [
     {
+      planId: "coach-starter",
       name: "Standard",
-      price: "30€",
       hi: true,
       limits: { teams: "1 equipo", players: "Hasta 25 jugadores", staff: "1 entrenador" },
       features: [
@@ -31,8 +37,8 @@ const PLANS = {
       ],
     },
     {
+      planId: "coach-premium",
       name: "Premium",
-      price: "45€",
       hi: false,
       limits: { teams: "Hasta 4 equipos", players: "Hasta 60 jugadores", staff: "1 entrenador" },
       features: [
@@ -49,8 +55,8 @@ const PLANS = {
   ],
   club: [
     {
+      planId: "club-inicial",
       name: "Inicial",
-      price: "199€",
       hi: false,
       limits: { teams: "Hasta 3 equipos", players: "80 jugadores", staff: "2 staff" },
       features: [
@@ -71,8 +77,8 @@ const PLANS = {
       ],
     },
     {
+      planId: "club-pro",
       name: "Profesional",
-      price: "399€",
       hi: true,
       limits: { teams: "Hasta 8 equipos", players: "200 jugadores", staff: "5 staff" },
       features: [
@@ -93,8 +99,8 @@ const PLANS = {
       ],
     },
     {
+      planId: "club-elite",
       name: "Elite",
-      price: "699€",
       hi: false,
       limits: { teams: "Equipos ilimitados", players: "Jugadores ilimitados", staff: "Staff ilimitado" },
       features: [
@@ -112,8 +118,8 @@ const PLANS = {
   ],
   player: [
     {
-      name: "Esencial",
-      price: "19,99€",
+      planId: "player-essential",
+      name: "Standard",
       hi: false,
       limits: { teams: "Individual", players: "1 perfil", staff: "Sin entrenador vinculado" },
       features: [
@@ -133,8 +139,8 @@ const PLANS = {
       ],
     },
     {
-      name: "Pro",
-      price: "39,99€",
+      planId: "player-pro",
+      name: "Premium",
       hi: true,
       limits: { teams: "Individual", players: "1 perfil", staff: "Coach vinculado opcional" },
       features: [
@@ -257,10 +263,16 @@ export default function PricingPage() {
                   <span className="text-[10px] font-bold uppercase tracking-widest text-holded-blue mb-2">Más popular</span>
                 )}
                 <p className="text-xs font-bold uppercase text-gray-400 mb-2">{plan.name}</p>
-                <div className="flex items-end gap-1 mb-4">
-                  <span className="text-4xl font-black text-gray-900">{plan.price}</span>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-4xl font-black text-gray-900">{planPriceLabel(plan.planId)}</span>
                   <span className="text-gray-400 text-sm mb-1">/ mes</span>
                 </div>
+                {audience === "player" && plan.planId && (
+                  <p className="text-xs text-holded-green font-semibold mb-4">
+                    {formatPrice(applyClubDiscount(CHECKOUT_PLANS[plan.planId].price))}/mes con código club (−10%)
+                  </p>
+                )}
+                {audience !== "player" && <div className="mb-4" />}
 
                 <div className={`rounded-xl p-4 mb-5 ${plan.hi ? "bg-blue-50 border border-blue-100" : "bg-gray-50 border border-gray-100"}`}>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Límites del plan</p>
