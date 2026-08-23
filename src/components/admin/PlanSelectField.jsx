@@ -1,4 +1,8 @@
 import { PLANS, plansForAudience, formatPrice } from "../../lib/checkoutPlans";
+import {
+  ADMIN_ACCOUNT_STATUSES,
+  normalizeAdminStatus,
+} from "../../lib/adminAccountStatus";
 
 /** Selector de plan DEPRO por audiencia (coach | club | player) */
 export default function PlanSelectField({ audience = "club", value, onChange, label = "Plan personalizado" }) {
@@ -33,22 +37,44 @@ export default function PlanSelectField({ audience = "club", value, onChange, la
 }
 
 export function SubscriptionStatusSelect({ value, onChange }) {
+  const current = normalizeAdminStatus(value);
   return (
     <div>
-      <label className="block text-sm font-medium text-depro-dark mb-1">Estado final del usuario</label>
+      <label className="block text-sm font-medium text-depro-dark mb-1">Estado</label>
       <select
         className="w-full border border-depro-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
-        value={value}
+        value={current}
         onChange={(e) => onChange(e.target.value)}
       >
-        <option value="active">Activo</option>
-        <option value="comp">Demo / cortesía</option>
-        <option value="pendiente">Pendiente</option>
-        <option value="borrador">Borrador</option>
-        <option value="trialing">Trial activo</option>
+        {ADMIN_ACCOUNT_STATUSES.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.label}
+          </option>
+        ))}
       </select>
       <p className="text-xs text-depro-gray mt-1.5">
-        El alta manual crea el perfil sin forzar login. Puedes dejarlo en demo, pendiente, borrador o activo.
+        {ADMIN_ACCOUNT_STATUSES.find((s) => s.id === current)?.hint}
+      </p>
+    </div>
+  );
+}
+
+export function ManualPriceField({ value, onChange, label = "Precio cobrado (€ / mes)" }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-depro-dark mb-1">{label}</label>
+      <input
+        type="number"
+        min="0"
+        step="0.01"
+        inputMode="decimal"
+        className="w-full border border-depro-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30 bg-white"
+        placeholder="Ej. 199"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <p className="text-xs text-depro-gray mt-1.5">
+        Importe que le cobras tú a este club (no pasa por Stripe). Déjalo vacío si no aplica.
       </p>
     </div>
   );

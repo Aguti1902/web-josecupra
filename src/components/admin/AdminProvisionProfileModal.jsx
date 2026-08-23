@@ -4,6 +4,7 @@ import { CheckCircle, Copy, RefreshCw, X, Brain } from "lucide-react";
 import { createClubUser, saveClub } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect } from "./PlanSelectField";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
+import { adminStatusLabel, normalizeAdminStatus } from "../../lib/adminAccountStatus";
 
 function generatePassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -28,7 +29,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
     email: "",
     password: generatePassword(),
     planId: audience === "coach" ? "coach-pro" : "player-essential",
-    subscriptionStatus: "active",
+    subscriptionStatus: "activo",
     teamName: "Mi equipo",
     category: "Sub-16",
     selectedAddons: [],
@@ -67,7 +68,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
         email: form.email,
         role: "player",
         plan: form.planId,
-        subscriptionStatus: form.subscriptionStatus,
+        subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
         billingSource: "manual",
         purchasedAddons: effectiveAddons,
       };
@@ -103,8 +104,9 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           abbreviation: (form.teamName || "COA").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "COA",
           city: "",
           country: "España",
-          status: "activo",
+          status: normalizeAdminStatus(form.subscriptionStatus),
           plan: form.planId,
+          subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
           isSoloCoach: true,
           createdAt: new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }),
           teams: [{
@@ -131,7 +133,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           teamId,
           teamRole: "entrenador",
           plan: form.planId,
-          subscriptionStatus: form.subscriptionStatus,
+          subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
           billingSource: "manual",
         });
 
@@ -143,7 +145,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           error: res.error,
           label: "DEPRO Coach",
           updated: !!res.updated,
-          status: form.subscriptionStatus,
+          status: normalizeAdminStatus(form.subscriptionStatus),
           nextPath: "/admin/club-auto",
           goAssign: false,
         });
@@ -155,7 +157,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           name: form.name,
           role: "player",
           plan: form.planId,
-          subscriptionStatus: form.subscriptionStatus,
+          subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
           billingSource: "manual",
           deporte: "Fútbol",
           purchasedAddons: effectiveAddons,
@@ -176,7 +178,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           error: res.error,
           label: "Jugador",
           updated: !!res.updated,
-          status: form.subscriptionStatus,
+          status: normalizeAdminStatus(form.subscriptionStatus),
           userId: res.userId,
           addons: effectiveAddons,
           nextPath: res.userId
@@ -202,7 +204,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
           </h2>
           {creds.ok ? (
             <p className="text-sm text-depro-gray mb-4">
-              Perfil guardado en estado <strong>{creds.status || "active"}</strong>.
+              Perfil guardado en estado <strong>{adminStatusLabel(creds.status)}</strong>.
               {audience === "player" && (
                 <> Puedes asignar el plan en el motor (opcional).</>
               )}

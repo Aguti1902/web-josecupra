@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { normalizeAdminStatus, parseManualPrice } from "../src/lib/adminAccountStatus.js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
 const SERVICE_ROLE_KEY =
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
     clubId, teamId, teamRole, managedTeamIds,
     plan, subscriptionStatus, billingSource,
     posicion, deporte, objetivo, edad, frecuencia, material, experiencia, disponibles, lesion,
-    clubName, clubCode, purchasedAddons,
+    clubName, clubCode, purchasedAddons, manualPrice,
   } = req.body || {};
 
   if (!email || !password) {
@@ -87,7 +88,9 @@ export default async function handler(req, res) {
     teamRole: teamRole || undefined,
     managedTeamIds: Array.isArray(managedTeamIds) ? managedTeamIds : undefined,
     plan: plan || undefined,
-    subscriptionStatus: subscriptionStatus || (caller.isAdmin ? "active" : undefined),
+    subscriptionStatus: caller.isAdmin
+      ? normalizeAdminStatus(subscriptionStatus || "activo")
+      : (subscriptionStatus || undefined),
     billingSource: billingSource || (caller.isAdmin && plan ? "manual" : undefined),
     posicion: posicion || undefined,
     deporte: deporte || undefined,
@@ -101,6 +104,9 @@ export default async function handler(req, res) {
     clubName: clubName || undefined,
     clubCode: clubCode || undefined,
     purchasedAddons: Array.isArray(purchasedAddons) ? purchasedAddons : undefined,
+    ...(manualPrice !== undefined && manualPrice !== ""
+      ? { manualPrice: parseManualPrice(manualPrice) }
+      : {}),
   };
 
   const { data, error } = await admin.auth.admin.createUser({

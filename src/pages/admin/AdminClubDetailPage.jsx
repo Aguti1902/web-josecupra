@@ -48,8 +48,15 @@ import AdminClubAutoMotorPage from "./AdminClubAutoMotorPage";
 import AdminCatalogPage from "./AdminCatalogPage";
 import AdminTestsPage from "./AdminTestsPage";
 import { loadClubs, saveClub, saveClubDetail, loadClubDetail, createClubUser, updateUserByEmail } from "../../lib/adminStorage";
-import PlanSelectField, { SubscriptionStatusSelect } from "../../components/admin/PlanSelectField";
+import PlanSelectField, { SubscriptionStatusSelect, ManualPriceField } from "../../components/admin/PlanSelectField";
 import { PLANS as CHECKOUT_PLANS } from "../../lib/checkoutPlans";
+import {
+  ADMIN_STATUS_STYLES,
+  adminStatusLabel,
+  normalizeAdminStatus,
+  parseManualPrice,
+  canUserLogin,
+} from "../../lib/adminAccountStatus";
 import { normalizeBlock, adminDefaultBlocks, adminSessionBlocks, flattenBlocksToExercises, ADMIN_BLOCK_TYPES } from "../../lib/sessionBlocks";
 import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
 import CoachAutoQuestionnaire, {
@@ -163,7 +170,7 @@ function generatePassword() {
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 
-function NewTeamModal({ onClose, onCreate, clubId }) {
+function NewTeamModal({ onClose, onCreate, clubId, clubPlan, clubStatus, clubManualPrice }) {
   const [form, setForm] = useState({
     name: "", category: "Sub-16", season: "2025/26",
     coachName: "", coachEmail: "", coachPassword: generatePassword(),
@@ -203,6 +210,10 @@ function NewTeamModal({ onClose, onCreate, clubId }) {
         clubId,
         teamId,
         teamRole: "entrenador",
+        plan: clubPlan,
+        subscriptionStatus: normalizeAdminStatus(clubStatus || "activo"),
+        billingSource: "manual",
+        manualPrice: parseManualPrice(clubManualPrice),
       });
       userCreated = !!(result.ok || result.alreadyExists);
       userError = userCreated ? null : result.error;
@@ -528,8 +539,17 @@ function EditTeamModal({ team, onClose, onSave, clubId }) {
   );
 }
 
-function NewUserModal({ teams, clubId, onClose, onCreate, onAccessActivated }) {
-  const [form, setForm] = useState({ name: "", email: "", role: "entrenador", teamId: "", managedTeamIds: [], password: generatePassword() });
+function NewUserModal({ teams, clubId, clubPlan, clubStatus, clubManualPrice, onClose, onCreate, onAccessActivated }) {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    role: "entrenador",
+    teamId: "",
+    managedTeamIds: [],
+    password: generatePassword(),
+    subscriptionStatus: normalizeAdminStatus(clubStatus || "activo"),
+    manualPrice: clubManualPrice ?? "",
+  });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null); // { ok, email, password, error, formSnapshot }
 
@@ -555,6 +575,8 @@ function NewUserModal({ teams, clubId, onClose, onCreate, onAccessActivated }) {
     active: true,
     lastLogin: "nunca",
     password: form.password,
+    subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
+    manualPrice: parseManualPrice(form.manualPrice),
   });
 
   const activateAccess = async (snapshot = form) => {
@@ -567,6 +589,10 @@ function NewUserModal({ teams, clubId, onClose, onCreate, onAccessActivated }) {
       teamId: snapshot.role === "coordinador" ? undefined : (snapshot.teamId || undefined),
       teamRole: snapshot.role,
       managedTeamIds: snapshot.role === "coordinador" ? snapshot.managedTeamIds : undefined,
+      plan: clubPlan,
+      subscriptionStatus: normalizeAdminStatus(snapshot.subscriptionStatus || clubStatus || "activo"),
+      billingSource: "manual",
+      manualPrice: parseManualPrice(snapshot.manualPrice ?? clubManualPrice),
     });
     const active = !!(res.ok || res.alreadyExists);
     if (active) onAccessActivated?.(snapshot.email);
@@ -590,6 +616,7 @@ function NewUserModal({ teams, clubId, onClose, onCreate, onAccessActivated }) {
       password: form.password,
       error: res.error,
       formSnapshot: { ...form },
+      status: normalizeAdminStatus(form.subscriptionStatus),
     });
     setLoading(false);
   };
@@ -618,12 +645,20 @@ function NewUserModal({ teams, clubId, onClose, onCreate, onAccessActivated }) {
             }
           </div>
           <h2 className="font-bold text-depro-dark text-lg mb-1">
-            {result.ok ? "Usuario activo — guarda las credenciales" : "Datos guardados, acceso no activado"}
+            {result.ok
+              ? (result.status === "borrador"
+                ? "Usuario en borrador — guarda las credenciales"
+                : "Usuario creado — guarda las credenciales")
+              : "Datos guardados, acceso no activado"}
           </h2>
           {result.ok ? (
             <>
               <p className="text-sm text-depro-gray mt-2 mb-4">
-                El usuario <strong>ya puede iniciar sesión</strong>. Comparte email y contraseña; no volverás a ver la contraseña aquí.
+                {result.status === "borrador"
+                  ? <>Estado <strong>borrador</strong>: el usuario no puede iniciar sesión hasta que lo pases a demo o activo.</>
+                  : result.status === "demo"
+                    ? <>Cuenta <strong>demo</strong> (colaboración). El usuario ya puede iniciar sesión.</>
+                    : <>El usuario <strong>ya puede iniciar sesión</strong>. Comparte email y contraseña; no volverás a ver la contraseña aquí.</>}
               </p>
               <div className="bg-gray-50 rounded-xl p-4 text-left space-y-2">
                 <p className="text-xs text-depro-gray uppercase font-semibold tracking-wider">Credenciales</p>
@@ -789,6 +824,14 @@ function NewUserModal({ teams, clubId, onClose, onCreate, onAccessActivated }) {
               : <p className="text-xs text-depro-gray mt-1">El usuario deberá cambiarla en el primer acceso.</p>
             }
           </div>
+          <SubscriptionStatusSelect
+            value={form.subscriptionStatus}
+            onChange={(v) => setForm((f) => ({ ...f, subscriptionStatus: v }))}
+          />
+          <ManualPriceField
+            value={form.manualPrice}
+            onChange={(v) => setForm((f) => ({ ...f, manualPrice: v }))}
+          />
         </div>
         <div className="flex gap-3 p-6 border-t border-depro-border">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-depro-gray font-medium text-sm hover:border-depro-dark transition-colors">Cancelar</button>
@@ -1965,7 +2008,8 @@ export default function AdminClubDetailPage() {
   const [editingClubUser, setEditingClubUser] = useState(null);
   const [activatingUserEmail, setActivatingUserEmail] = useState(null);
   const [planId, setPlanId] = useState("club-inicial");
-  const [subscriptionStatus, setSubscriptionStatus] = useState("active");
+  const [subscriptionStatus, setSubscriptionStatus] = useState("activo");
+  const [manualPrice, setManualPrice] = useState("");
   const [planSaving, setPlanSaving] = useState(false);
   const [planMsg, setPlanMsg] = useState(null);
 
@@ -1984,7 +2028,8 @@ export default function AdminClubDetailPage() {
         setClub(merged);
         setPlans(detail?.plans || found.plans || []);
         setPlanId(merged.plan || "club-inicial");
-        setSubscriptionStatus(merged.subscriptionStatus || "active");
+        setSubscriptionStatus(normalizeAdminStatus(merged.subscriptionStatus || merged.status || "activo"));
+        setManualPrice(merged.manualPrice ?? merged.precioCobrado ?? "");
       } else {
         setClub(null);
       }
@@ -2034,8 +2079,9 @@ export default function AdminClubDetailPage() {
       clubId: club.id,
       teamRole: "coordinador",
       plan: club.plan || planId,
-      subscriptionStatus: club.subscriptionStatus || subscriptionStatus,
+      subscriptionStatus: normalizeAdminStatus(club.subscriptionStatus || subscriptionStatus),
       billingSource: "manual",
+      manualPrice: parseManualPrice(club.manualPrice ?? manualPrice),
     });
     setRecreating(false);
     const alreadyExists = result.alreadyExists || result.error?.includes("already registered") || result.error?.includes("already been registered");
@@ -2103,6 +2149,10 @@ export default function AdminClubDetailPage() {
       teamId: user.teamId || undefined,
       teamRole: user.role,
       managedTeamIds: user.managedTeamIds,
+      plan: club.plan || planId,
+      subscriptionStatus: normalizeAdminStatus(user.subscriptionStatus || club.subscriptionStatus || subscriptionStatus),
+      billingSource: "manual",
+      manualPrice: parseManualPrice(user.manualPrice ?? club.manualPrice ?? manualPrice),
     });
     setActivatingUserEmail(null);
     if (result.ok || result.alreadyExists) {
@@ -2169,7 +2219,9 @@ export default function AdminClubDetailPage() {
   const handleSavePlan = async () => {
     setPlanSaving(true);
     setPlanMsg(null);
-    const updated = { ...club, plan: planId, subscriptionStatus };
+    const status = normalizeAdminStatus(subscriptionStatus);
+    const price = parseManualPrice(manualPrice);
+    const updated = { ...club, plan: planId, subscriptionStatus: status, status, manualPrice: price };
     setClub(updated);
     await persistClub(updated, plans);
     await saveClub(updated);
@@ -2178,8 +2230,9 @@ export default function AdminClubDetailPage() {
       const res = await updateUserByEmail({
         email: club.coordinator.email,
         plan: planId,
-        subscriptionStatus,
+        subscriptionStatus: status,
         billingSource: "manual",
+        manualPrice: price,
       });
       if (!res.ok) {
         setPlanMsg({ ok: false, text: res.error || "Plan guardado en club, pero no se sincronizó el coordinador." });
@@ -2194,14 +2247,21 @@ export default function AdminClubDetailPage() {
   };
 
   const handleStatusToggle = async () => {
-    const next = club.status === "activo" ? "inactivo" : "activo";
-    const updated = { ...club, status: next };
+    const next = canUserLogin(club.status || club.subscriptionStatus) ? "borrador" : "activo";
+    const updated = { ...club, status: next, subscriptionStatus: next };
     setClub(updated);
+    setSubscriptionStatus(next);
     setShowStatusConfirm(false);
-    // Guardar en localStorage y Supabase
     saveClubDetail(id, { ...updated, plans });
     const { saveClub: sc } = await import("../../lib/adminStorage");
     sc(updated);
+    if (club.coordinator?.email) {
+      await updateUserByEmail({
+        email: club.coordinator.email,
+        subscriptionStatus: next,
+        billingSource: "manual",
+      });
+    }
   };
 
   return (
@@ -2210,19 +2270,18 @@ export default function AdminClubDetailPage() {
     {showStatusConfirm && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
         <div className="bg-white rounded-2xl shadow-depro w-full max-w-sm p-6">
-          {club.status === "activo" ? (
+          {canUserLogin(club.status || club.subscriptionStatus) ? (
             <>
               <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
               </div>
-              <h2 className="text-lg font-bold text-depro-dark text-center mb-2">¿Desactivar el club?</h2>
+              <h2 className="text-lg font-bold text-depro-dark text-center mb-2">¿Pasar el club a borrador?</h2>
               <p className="text-sm text-depro-gray text-center mb-6">
-                Todos los perfiles del club (coordinador, entrenadores) perderán el acceso al dashboard inmediatamente.
-                Podrás reactivarlo en cualquier momento.
+                El coordinador y el staff no podrán iniciar sesión. Solo tú lo verás en el panel admin. Puedes pasarlo a demo o activo cuando quieras.
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setShowStatusConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm text-depro-gray hover:bg-depro-gray-light transition-colors">Cancelar</button>
-                <button onClick={handleStatusToggle} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">Sí, desactivar</button>
+                <button onClick={handleStatusToggle} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">Sí, a borrador</button>
               </div>
             </>
           ) : (
@@ -2230,13 +2289,13 @@ export default function AdminClubDetailPage() {
               <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
-              <h2 className="text-lg font-bold text-depro-dark text-center mb-2">¿Reactivar el club?</h2>
+              <h2 className="text-lg font-bold text-depro-dark text-center mb-2">¿Activar el club?</h2>
               <p className="text-sm text-depro-gray text-center mb-6">
-                Todos los perfiles del club recuperarán el acceso al dashboard.
+                El coordinador y el staff podrán entrar al dashboard.
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setShowStatusConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm text-depro-gray hover:bg-depro-gray-light transition-colors">Cancelar</button>
-                <button onClick={handleStatusToggle} className="flex-1 py-2.5 rounded-xl bg-green-500 text-white text-sm font-bold hover:bg-green-600 transition-colors">Sí, reactivar</button>
+                <button onClick={handleStatusToggle} className="flex-1 py-2.5 rounded-xl bg-green-500 text-white text-sm font-bold hover:bg-green-600 transition-colors">Sí, activar</button>
               </div>
             </>
           )}
@@ -2272,13 +2331,11 @@ export default function AdminClubDetailPage() {
                 <button
                   title="Cambiar estado del club"
                   onClick={() => setShowStatusConfirm(true)}
-                  className={`px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize cursor-pointer hover:opacity-80 transition-opacity ${
-                    club.status === "activo"
-                      ? "bg-green-50 text-green-700 border-green-200"
-                      : "bg-red-50 text-red-700 border-red-200"
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${
+                    ADMIN_STATUS_STYLES[normalizeAdminStatus(club.subscriptionStatus || club.status)] || ADMIN_STATUS_STYLES.borrador
                   }`}
                 >
-                  {club.status === "activo" ? "Activo" : "Inactivo"}
+                  {adminStatusLabel(club.subscriptionStatus || club.status)}
                 </button>
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-depro-blue/10 text-depro-blue">
                   {planLabel}
@@ -2478,6 +2535,7 @@ export default function AdminClubDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PlanSelectField audience="club" value={planId} onChange={setPlanId} />
             <SubscriptionStatusSelect value={subscriptionStatus} onChange={setSubscriptionStatus} />
+            <ManualPriceField value={manualPrice} onChange={setManualPrice} />
           </div>
           {planMsg && (
             <p className={`text-sm ${planMsg.ok ? "text-green-700" : "text-red-600"}`}>{planMsg.text}</p>
@@ -2840,7 +2898,16 @@ export default function AdminClubDetailPage() {
       )}
 
 
-      {showNewTeam && <NewTeamModal onClose={() => setShowNewTeam(false)} onCreate={addTeam} clubId={club.id} />}
+      {showNewTeam && (
+        <NewTeamModal
+          onClose={() => setShowNewTeam(false)}
+          onCreate={addTeam}
+          clubId={club.id}
+          clubPlan={club.plan || planId}
+          clubStatus={club.subscriptionStatus || subscriptionStatus}
+          clubManualPrice={club.manualPrice ?? manualPrice}
+        />
+      )}
       {editingTeam && (
         <EditTeamModal
           team={editingTeam}
@@ -2853,6 +2920,9 @@ export default function AdminClubDetailPage() {
         <NewUserModal
           teams={club.teams}
           clubId={club.id}
+          clubPlan={club.plan || planId}
+          clubStatus={club.subscriptionStatus || subscriptionStatus}
+          clubManualPrice={club.manualPrice ?? manualPrice}
           onClose={() => setShowNewUser(false)}
           onCreate={addUser}
           onAccessActivated={markUserAccessActive}

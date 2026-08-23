@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { getCachedSubscription, isInTrial } from "../lib/subscription";
+import { shouldBlockAccountLogin } from "../lib/adminAccountStatus";
 import { clearTrialLoadLogs } from "../lib/loadLogs";
 import { clearWellnessLogs } from "../lib/wellnessLogs";
 import {
@@ -201,6 +202,7 @@ function buildUser(authUser, profile) {
       stripeCustomerId: meta.stripeCustomerId ?? null,
       purchasedAddons: meta.purchasedAddons ?? cached?.purchasedAddons ?? [],
       pendingPayment: meta.pendingPayment === true,
+      manualPrice: meta.manualPrice ?? cached?.manualPrice ?? null,
     };
   }
 
@@ -251,6 +253,7 @@ function buildUser(authUser, profile) {
     stripeCustomerId: meta.stripeCustomerId ?? null,
     purchasedAddons: meta.purchasedAddons ?? cached?.purchasedAddons ?? [],
     pendingPayment: meta.pendingPayment === true,
+    manualPrice: meta.manualPrice ?? cached?.manualPrice ?? null,
   };
 }
 
@@ -272,6 +275,26 @@ async function fetchProfile(userId) {
   }
 }
 
+function lookupClubSummary(clubId) {
+  if (!clubId) return null;
+  try {
+    const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+    return clubs.find((c) => c.id === clubId) || null;
+  } catch {
+    return null;
+  }
+}
+
+function sessionIsDraftBlocked(authUser) {
+  if (!authUser) return false;
+  const meta = authUser.user_metadata || {};
+  const role = meta.role || (authUser.email === "jose@depro.es" ? "admin" : "player");
+  return shouldBlockAccountLogin(
+    { role, email: authUser.email, subscriptionStatus: meta.subscriptionStatus },
+    lookupClubSummary(meta.clubId),
+  );
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
@@ -282,6 +305,12 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
+          if (sessionIsDraftBlocked(session.user)) {
+            await supabase.auth.signOut();
+            setUser(null);
+            setLoading(false);
+            return;
+          }
           // Primero ponemos el usuario básico sin bloquear la UI
           const basic = buildUser(session.user, null);
           setUser(basic);
@@ -351,6 +380,11 @@ export function AuthProvider({ children }) {
                       localStorage.setItem(`depro_club_${c.id}`, JSON.stringify(merged));
                     }
                     const freshUser = buildUser(session.user, profile || null);
+                    if (sessionIsDraftBlocked(session.user)) {
+                      await supabase.auth.signOut();
+                      setUser(null);
+                      return;
+                    }
                     setUser(freshUser);
                     return;
                   }
@@ -423,6 +457,14 @@ export function AuthProvider({ children }) {
             ? "Confirma tu email antes de entrar"
             : error.message;
         return { success: false, error: msg };
+      }
+
+      if (sessionIsDraftBlocked(data?.user)) {
+        await supabase.auth.signOut();
+        return {
+          success: false,
+          error: "Esta cuenta está en borrador. Solo el administrador puede verla.",
+        };
       }
 
       // onAuthStateChange → SIGNED_IN disparará setUser automáticamente

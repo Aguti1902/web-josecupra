@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { normalizeAdminStatus, parseManualPrice } from "../src/lib/adminAccountStatus.js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
 const SERVICE_ROLE_KEY =
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
   if (caller.error) return res.status(caller.status).json({ error: caller.error });
   if (!caller.isAdmin) return res.status(403).json({ error: "Solo administradores" });
 
-  const { email, password, name, teamRole, clubId, teamId, managedTeamIds, plan, subscriptionStatus, billingSource, purchasedAddons } = req.body || {};
+  const { email, password, name, teamRole, clubId, teamId, managedTeamIds, plan, subscriptionStatus, billingSource, purchasedAddons, manualPrice } = req.body || {};
   if (!email) return res.status(400).json({ error: "email requerido" });
 
   try {
@@ -54,11 +55,12 @@ export default async function handler(req, res) {
       ...(teamId !== undefined && { teamId }),
       ...(managedTeamIds !== undefined && { managedTeamIds }),
       ...(plan !== undefined && { plan }),
-      ...(subscriptionStatus !== undefined && { subscriptionStatus }),
+      ...(subscriptionStatus !== undefined && { subscriptionStatus: normalizeAdminStatus(subscriptionStatus) }),
       ...(billingSource !== undefined && { billingSource }),
       ...(purchasedAddons !== undefined && {
         purchasedAddons: Array.isArray(purchasedAddons) ? purchasedAddons : [],
       }),
+      ...(manualPrice !== undefined && { manualPrice: parseManualPrice(manualPrice) }),
     };
 
     const payload = { user_metadata: meta };

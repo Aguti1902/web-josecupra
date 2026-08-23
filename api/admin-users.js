@@ -86,6 +86,7 @@ export default async function handler(req, res) {
         plan: meta.plan || null,
         subscriptionStatus: meta.subscriptionStatus || null,
         billingSource: meta.billingSource || null,
+        manualPrice: meta.manualPrice ?? null,
         trialEndsAt: meta.trialEndsAt || null,
         stripeCustomerId: meta.stripeCustomerId || null,
         stripeSubscriptionId: meta.stripeSubscriptionId || null,

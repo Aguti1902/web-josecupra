@@ -20,8 +20,15 @@ import {
   Hand,
 } from "lucide-react";
 import { loadClubs, saveClub, deleteClub, createClubUser } from "../../lib/adminStorage";
-import PlanSelectField, { SubscriptionStatusSelect } from "../../components/admin/PlanSelectField";
+import PlanSelectField, { SubscriptionStatusSelect, ManualPriceField } from "../../components/admin/PlanSelectField";
 import AdminProvisionHelp from "../../components/admin/AdminProvisionHelp";
+import {
+  ADMIN_STATUS_STYLES,
+  adminStatusLabel,
+  normalizeAdminStatus,
+  parseManualPrice,
+  canUserLogin,
+} from "../../lib/adminAccountStatus";
 
 function generatePassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -29,17 +36,13 @@ function generatePassword() {
 }
 
 const PLANS = ["Básico", "Premium"]; // legacy badge fallback
-const STATUS_STYLES = {
-  activo: "bg-green-50 text-green-700 border-green-200",
-  pendiente: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  inactivo: "bg-gray-100 text-gray-500 border-gray-200",
-};
 
 function StatusBadge({ status }) {
+  const id = normalizeAdminStatus(status);
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${STATUS_STYLES[status] ?? STATUS_STYLES.inactivo}`}>
-      {status === "activo" ? <CheckCircle size={10} /> : <Clock size={10} />}
-      {status}
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${ADMIN_STATUS_STYLES[id] || ADMIN_STATUS_STYLES.borrador}`}>
+      {id === "activo" ? <CheckCircle size={10} /> : <Clock size={10} />}
+      {adminStatusLabel(id)}
     </span>
   );
 }
@@ -78,7 +81,8 @@ function NewClubModal({ onClose, onCreate }) {
     coordinatorName: "", coordinatorEmail: "", coordinatorPhone: "",
     coordinatorPassword: generatePassword(),
     planId: "club-inicial",
-    subscriptionStatus: "active",
+    subscriptionStatus: "activo",
+    manualPrice: "",
     planningMode: "auto",
   });
   const [loading, setLoading] = useState(false);
@@ -106,8 +110,9 @@ function NewClubModal({ onClose, onCreate }) {
         clubId,
         teamRole: "coordinador",
         plan: form.planId,
-        subscriptionStatus: form.subscriptionStatus,
+        subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
         billingSource: "manual",
+        manualPrice: parseManualPrice(form.manualPrice),
       });
       userCreated = result.ok;
       userError = result.ok ? null : result.error;
@@ -120,9 +125,10 @@ function NewClubModal({ onClose, onCreate }) {
       city: form.city,
       country: form.country,
       founded: new Date().getFullYear(),
-      status: "activo",
+      status: normalizeAdminStatus(form.subscriptionStatus),
       plan: form.planId,
-      subscriptionStatus: form.subscriptionStatus,
+      subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
+      manualPrice: parseManualPrice(form.manualPrice),
       origen: form.planningMode === "manual" ? "manual" : "automatico",
       planningMode: form.planningMode === "manual" ? "manual" : "auto",
       mode: form.planningMode === "manual" ? "personalizado" : "depro",
@@ -360,6 +366,10 @@ function NewClubModal({ onClose, onCreate }) {
               value={form.subscriptionStatus}
               onChange={(v) => setForm((f) => ({ ...f, subscriptionStatus: v }))}
             />
+            <ManualPriceField
+              value={form.manualPrice}
+              onChange={(v) => setForm((f) => ({ ...f, manualPrice: v }))}
+            />
           </div>
 
           {generatedCode && (
@@ -442,7 +452,7 @@ function ClubSection({ title, subtitle, icon: Icon, accent, clubs, emptyText, on
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-depro-dark">{club.name}</h3>
-                    <StatusBadge status={club.status} />
+                    <StatusBadge status={club.subscriptionStatus || club.status} />
                     <PlanBadge plan={club.plan} />
                     <PlanningModeBadge mode={clubPlanningMode(club)} />
                   </div>
@@ -567,7 +577,8 @@ export default function AdminClubsManagerPage() {
       !search ||
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
       c.city?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === "todos" || c.status === filterStatus;
+    const clubStatus = normalizeAdminStatus(c.subscriptionStatus || c.status);
+    const matchStatus = filterStatus === "todos" || clubStatus === filterStatus;
     const mode = clubPlanningMode(c);
     const matchPlanning = filterPlanning === "todos" || mode === filterPlanning;
     return matchSearch && matchStatus && matchPlanning;
@@ -621,7 +632,7 @@ export default function AdminClubsManagerPage() {
           { label: "Total clubs", value: clubs.length, color: "text-depro-dark" },
           { label: "Automáticos", value: clubs.filter((c) => clubPlanningMode(c) === "auto").length, color: "text-sky-700" },
           { label: "Llevados por mí", value: clubs.filter((c) => clubPlanningMode(c) === "manual").length, color: "text-amber-700" },
-          { label: "Activos", value: clubs.filter((c) => c.status === "activo").length, color: "text-green-600" },
+          { label: "Activos / demo", value: clubs.filter((c) => canUserLogin(c.subscriptionStatus || c.status)).length, color: "text-green-600" },
           { label: "Equipos totales", value: clubs.reduce((a, c) => a + (c.teams || []).length, 0), color: "text-depro-blue" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white border border-depro-border rounded-xl p-4">
@@ -644,7 +655,7 @@ export default function AdminClubsManagerPage() {
             />
           </div>
           <div className="flex gap-2">
-            {["todos", "activo", "pendiente"].map((s) => (
+            {["todos", "activo", "demo", "borrador"].map((s) => (
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}

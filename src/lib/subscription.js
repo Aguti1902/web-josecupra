@@ -106,11 +106,11 @@ export function getSubscriptionFromUser(user) {
 
 export function isSubscriptionActive(sub) {
   if (!sub) return false;
+  const raw = String(sub.status || "").toLowerCase().trim();
+  // Trío admin (y aliases). No aplicar a estados Stripe (trialing, cancel_at_period_end…).
+  if (raw === "borrador" || raw === "pendiente" || raw === "draft" || raw === "inactivo") return false;
+  if (raw === "demo" || raw === "comp" || raw === "activo") return true;
   if (sub.status === "active") return true;
-  // Alta manual / demo: acceso válido sin Stripe
-  if (sub.status === "comp" || sub.status === "demo") return true;
-  // Pendiente / borrador: perfil creado, sin acceso de producto todavía
-  if (sub.status === "pendiente" || sub.status === "borrador") return false;
   if (sub.status === "trialing") {
     if (!sub.trialEndsAt) return true;
     return new Date(sub.trialEndsAt) > new Date();

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminProvider } from "./context/AdminContext";
 import { ViewProvider } from "./context/ViewContext";
 import { shouldForceSetup } from "./lib/questionnaireState";
+import { isDraftLoginBlocked } from "./lib/adminAccountStatus";
 import PWAInstallBanner from "./components/PWAInstallBanner";
 
 // Public — web marketing Holded-style
@@ -106,6 +107,9 @@ function ClientRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "admin" && isDraftLoginBlocked(user.subscriptionStatus)) {
+    return <Navigate to="/login" replace />;
+  }
   // Usuarios Google/legacy marcados como pendingPayment no deben entrar al panel sin pagar
   if (user.pendingPayment === true) {
     return <Navigate to="/comprar" replace />;
