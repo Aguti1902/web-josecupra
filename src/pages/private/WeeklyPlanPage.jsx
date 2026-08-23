@@ -16,11 +16,11 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, hydratePlayerPlan, buildMinimalSession, refreshExercise, normalizeLesions, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, hydratePlayerPlan, buildMinimalSession, refreshExerciseAcrossPlan, normalizeLesions, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
 import PlanCompatibilityModal from "../../components/private/PlanCompatibilityModal";
 import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "../../lib/sessionProgress";
 import {
-  canSwapExercise, recordSwap, swapsRemaining, hasUnlimitedSwaps, MAINTENANCE_MESSAGE, MAX_PLAN_SWAPS,
+  canSwapExercise, recordSwap, swapsRemaining, hasUnlimitedSwaps, MAINTENANCE_MESSAGE, MAX_PLAN_SWAPS, SWAP_TOOLTIP,
 } from "../../lib/planSwapLimits";
 import { canPersistInTrial } from "../../lib/trialPersistence";
 import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
@@ -487,31 +487,26 @@ function PlayerWeeklyPlan({ accent }) {
   });
 
   const handleExerciseSwap = (sessionId, exerciseId) => {
-    if (!canSwapExercise(user)) {
-      alert(`Has usado tus ${MAX_PLAN_SWAPS} cambios de ejercicio. Añade el extra «Ejercicios ilimitados» en Suscripción.`);
+    if (!canSwapExercise(user, plan)) {
+      alert(`Has usado tus ${MAX_PLAN_SWAPS} cambios de ejercicio este mesociclo. Añade el extra «Ejercicios ilimitados» en Suscripción.`);
       return;
     }
-    if (!hasUnlimitedSwaps(user) && !window.confirm(`${MAINTENANCE_MESSAGE}\n\n¿Sustituir este ejercicio?`)) return;
+    if (!hasUnlimitedSwaps(user) && !window.confirm(`${MAINTENANCE_MESSAGE}\n\n¿Sustituir este ejercicio en todo el plan?`)) return;
 
     let nextPlan = null;
     setPlan((prev) => {
       if (!prev) return prev;
-      nextPlan = prev.map((day) => ({
-        ...day,
-        sessions: (day.sessions || []).map((s) =>
-          s.id === sessionId ? refreshExercise(s, exerciseId, buildFilterParams()) : s
-        ),
-      }));
+      nextPlan = refreshExerciseAcrossPlan(prev, sessionId, exerciseId, buildFilterParams());
       return nextPlan;
     });
     if (nextPlan && user?.id) {
       savePlayerPlan(user.id, nextPlan);
       localStorage.setItem(planKey, JSON.stringify(nextPlan));
-      recordSwap(user.id);
+      recordSwap(user.id, nextPlan);
     }
   };
 
-  const remainingSwaps = swapsRemaining(user);
+  const remainingSwaps = swapsRemaining(user, plan);
 
   const compatModalEl = (
     <PlanCompatibilityModal
@@ -835,8 +830,9 @@ function PlayerWeeklyPlan({ accent }) {
           sessionPdf(activeSession);
         }}
         onSwapExercise={(exerciseId) => handleExerciseSwap(activeSession.id, exerciseId)}
-        canSwap={canSwapExercise(user)}
+        canSwap={canSwapExercise(user, plan)}
         swapMessage={MAINTENANCE_MESSAGE}
+        swapTooltip={SWAP_TOOLTIP}
       />
       );
     })()}

@@ -13,6 +13,7 @@ import {
   normalizeMaterialList,
 } from "./exerciseSelector.js";
 import { normalizePlayerPlan, savePlayerPlan as savePlanLocal } from "./playerPlanStorage.js";
+import { needsMonthlyPlanRefresh, resetCycleCounters } from "./planSwapLimits.js";
 import {
   DAY_ORDER,
   DAY_SHORT,
@@ -660,6 +661,141 @@ function isPremiumManualUser(user) {
   return plan === "player-pro" || plan === "premium" || plan === "pro";
 }
 
+function isAdminAssignedPlan(plan) {
+  return !!(plan?.source === "admin_manual" || plan?.assignment || plan?.hasAssignedPlan);
+}
+
+function shouldAutoRegenerateMonthly(user, plan) {
+  if (!user || !plan) return false;
+  if (isPremiumManualUser(user) || user?.hasAssignedPlan) return false;
+  if (isAdminAssignedPlan(plan)) return false;
+  return needsMonthlyPlanRefresh(plan);
+}
+
+/**
+ * Sustituye un ejercicio y propaga el mismo cambio (mismo catalogId)
+ * a todas las sesiones del microciclo y weeks[] del mesociclo.
+ */
+export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterParams) {
+  if (!Array.isArray(plan) || !sessionId || !exerciseId) return plan;
+
+  let target = null;
+  for (const day of plan) {
+    for (const s of day.sessions || []) {
+      if (s.id === sessionId) {
+        target = (s.exercises || []).find((ex) => ex.id === exerciseId);
+        break;
+      }
+    }
+    if (target) break;
+  }
+  if (!target) return plan;
+
+  const oldCatalogId = target.catalogId ?? parseCatalogId(target.id);
+  const usedInSession = (plan
+    .flatMap((d) => d.sessions || [])
+    .find((s) => s.id === sessionId)?.exercises || [])
+    .map((ex) => ex.catalogId ?? parseCatalogId(ex.id))
+    .filter((id) => id != null);
+
+  const userProfile = buildUserProfile({
+    ...filterParams,
+    material: normalizeMaterial(filterParams.material),
+  });
+  const excludeIds = usedInSession.filter((id) => id !== oldCatalogId);
+  const replacement = refreshExerciseInPool(
+    {
+      id: target.catalogId,
+      pool: target.pool,
+      slotConstraints: target.slotConstraints,
+      etiquetas: target.etiquetas,
+    },
+    userProfile,
+    excludeIds,
+    String(Date.now()),
+  );
+  if (!replacement) return plan;
+
+  const matchesOld = (ex) => {
+    if (!ex) return false;
+    if (ex.id === exerciseId) return true;
+    const cid = ex.catalogId ?? parseCatalogId(ex.id);
+    return oldCatalogId != null && cid === oldCatalogId;
+  };
+
+  const makeNew = (seed) => {
+    const newEx = makeExerciseFromV2(replacement, seed, target.blockType);
+    newEx.id = `v2_${replacement.id}_${seed}`;
+    newEx.slotConstraints = target.slotConstraints || replacement.slotConstraints;
+    return newEx;
+  };
+
+  const mapSession = (session, seed) => {
+    if (!session?.exercises?.length && !session?.blocks?.length) return session;
+    const has = (session.exercises || []).some(matchesOld)
+      || (session.blocks || []).some((b) => (b.exercises || []).some(matchesOld));
+    if (!has) return session;
+    let i = 0;
+    const mapList = (list) => (list || []).map((ex) => {
+      if (!matchesOld(ex)) return ex;
+      return makeNew(seed + (++i));
+    });
+    const blocks = (session.blocks || []).map((block) => ({
+      ...block,
+      exercises: mapList(block.exercises),
+    }));
+    const exercises = blocks.length
+      ? blocks.flatMap((b) => b.exercises)
+      : mapList(session.exercises);
+    return { ...session, blocks, exercises, refreshedAt: Date.now() };
+  };
+
+  const seed = Date.now();
+  const next = plan.map((day, di) => ({
+    ...day,
+    sessions: (day.sessions || []).map((s, si) => mapSession(s, seed + di * 20 + si)),
+  }));
+
+  // Conservar meta del array
+  for (const key of Object.keys(plan)) {
+    if (Number.isNaN(Number(key)) && next[key] === undefined) {
+      next[key] = plan[key];
+    }
+  }
+
+  if (Array.isArray(plan.weeks)) {
+    next.weeks = plan.weeks.map((w, wi) => {
+      const mapped = { ...w };
+      if (Array.isArray(w.days)) {
+        mapped.days = w.days.map((day, di) => ({
+          ...day,
+          sessions: (day.sessions || []).map((s, si) => mapSession(s, seed + 5000 + wi * 100 + di * 10 + si)),
+        }));
+      }
+      if (Array.isArray(w.sessions)) {
+        mapped.sessions = w.sessions.map((s, si) => mapSession(s, seed + 8000 + wi * 50 + si));
+      }
+      return mapped;
+    });
+  }
+
+  next.refrescos_usados_mes = (Number(plan.refrescos_usados_mes) || 0) + 1;
+  return next;
+}
+
+function regenerateEssentialPlan(user) {
+  const plan = buildPlayerPlan(user);
+  if (!plan.planError) {
+    const start = plan.startDate || mondayOfDate();
+    resetCycleCounters(user.id, start);
+    plan.refrescos_usados_mes = 0;
+    plan.semana_actual = 1;
+    plan.monthlyRefreshAt = new Date().toISOString();
+    savePlanLocal(user.id, plan);
+  }
+  return plan;
+}
+
 export function ensurePlayerPlan(user) {
   if (!user?.id) return null;
   const planKey = `depro_plan_${user.id}`;
@@ -674,23 +810,25 @@ export function ensurePlayerPlan(user) {
       } else if (parsed?.premiumPending || parsed?.planPendingManual) {
         return parsed;
       } else {
-        // Normalizar weeks→días por si se asignó desde admin en este mismo navegador
         const normalized = normalizePlayerPlan(parsed);
-        if (normalized && Array.isArray(normalized) && !normalized.startDate) {
-          normalized.startDate = resolvePlayerPlanStartDate(normalized);
-          savePlanLocal(user.id, normalized);
-          return normalized;
+        const plan = normalized || parsed;
+        if (Array.isArray(plan) && !plan.startDate) {
+          plan.startDate = resolvePlayerPlanStartDate(plan);
+        }
+        if (shouldAutoRegenerateMonthly(user, plan)) {
+          localStorage.removeItem(planKey);
+          return regenerateEssentialPlan(user);
         }
         if (normalized && normalized !== parsed) {
-          savePlanLocal(user.id, normalized);
-          return normalized;
+          savePlanLocal(user.id, plan);
+        } else if (Array.isArray(plan) && plan.startDate && !parsed.startDate) {
+          savePlanLocal(user.id, plan);
         }
-        return normalized || parsed;
+        return plan;
       }
     }
   } catch { /* ignore */ }
 
-  // Premium: guardar marcador de pendiente hasta asignación manual desde el motor
   if (isPremiumManualUser(user)) {
     const pending = {
       premiumPending: true,
@@ -704,16 +842,13 @@ export function ensurePlayerPlan(user) {
     return pending;
   }
 
-  const plan = buildPlayerPlan(user);
-  if (!plan.planError) {
-    localStorage.setItem(planKey, JSON.stringify(plan));
-  }
-  return plan;
+  return regenerateEssentialPlan(user);
 }
 
 /**
  * Carga el plan preferiendo el servidor (asignación admin cross-device).
  * Sustituye premiumPending cuando ya hay plan asignado.
+ * Regenera Essential automáticamente al vencer el mesociclo (~28 días).
  */
 export async function hydratePlayerPlan(user) {
   if (!user?.id) return null;
@@ -724,6 +859,9 @@ export async function hydratePlayerPlan(user) {
       const normalized = normalizePlayerPlan(remote);
       if (normalized && Array.isArray(normalized) && !normalized.startDate) {
         normalized.startDate = resolvePlayerPlanStartDate(normalized);
+      }
+      if (shouldAutoRegenerateMonthly(user, normalized)) {
+        return regenerateEssentialPlan(user);
       }
       savePlanLocal(user.id, normalized);
       return normalized;
