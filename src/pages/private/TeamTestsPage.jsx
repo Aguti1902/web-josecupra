@@ -10,6 +10,8 @@ import {
   RATING_LEGEND, getEvalValues, loadSeasonData, saveSeasonData,
   getRatingForEval, getLastEvalInfo,
 } from "../../lib/teamTestRatings";
+import { mergeEvalTests } from "../../lib/evalTestDefaults";
+import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 /* ── Helper: cargar config de tests del admin ─────────────── */
 function loadAdminTests() {
@@ -346,15 +348,18 @@ function TeamTestsPageInner() {
   const [expandedPlayer,  setExpanded]   = useState(null);
   const [editingPlayer,   setEditing]    = useState(null);
   const [tick,            setTick]       = useState(0);
-  const [adminTests,      setAdminTests] = useState(() => loadAdminTests());
-  const [showProtocols,   setShowProtocols] = useState(false);
+  const [adminTests,      setAdminTests] = useState(() => mergeEvalTests(loadAdminTests()));
+  const [showProtocols,   setShowProtocols] = useState(true);
 
   /* Carga tests del admin desde la nube */
   useEffect(() => {
     fetchAdminTestsFromCloud().then((cloud) => {
       if (cloud?.length) {
-        setAdminTests(cloud);
+        const merged = mergeEvalTests(cloud);
+        setAdminTests(merged);
         localStorage.setItem("depro_global_tests", JSON.stringify(cloud));
+      } else {
+        setAdminTests(mergeEvalTests(loadAdminTests()));
       }
     });
   }, []);
@@ -401,13 +406,104 @@ function TeamTestsPageInner() {
     return null;
   });
 
+  const isSoloCoach = isProCoachUser(user);
+  const protocols = adminTests.length ? adminTests : mergeEvalTests([]);
+  const hasProtocolContent = protocols.some((t) => t.videoUrl || t.description);
+
+  const protocolsBlock = hasProtocolContent && (
+    <div className={`${players.length === 0 ? "" : "mt-6"} bg-white border border-depro-border rounded-2xl overflow-hidden`}>
+      <button
+        className="w-full flex items-center gap-3 px-5 py-4 hover:bg-[#F8F9FB] transition-colors text-left"
+        onClick={() => setShowProtocols((v) => !v)}>
+        <div className="w-9 h-9 rounded-xl bg-depro-blue/10 border border-depro-blue/20 flex items-center justify-center flex-shrink-0">
+          <BookOpen size={16} className="text-depro-blue" />
+        </div>
+        <div className="flex-1">
+          <div className="font-black text-depro-dark">Protocolos de evaluación</div>
+          <div className="text-xs text-depro-gray">Cómo se realiza cada test · Vídeos explicativos</div>
+        </div>
+        {showProtocols
+          ? <ChevronUp size={16} className="text-depro-gray flex-shrink-0" />
+          : <ChevronDown size={16} className="text-depro-gray flex-shrink-0" />}
+      </button>
+
+      {showProtocols && (
+        <div className="border-t border-depro-border">
+          {protocols.map((adminTest, i) => {
+            const testDef = TESTS.find((t) => t.id === adminTest.id) || {};
+            const ytId = getYouTubeId(adminTest.videoUrl);
+            const hasContent = adminTest.videoUrl || adminTest.description;
+            if (!hasContent) return null;
+
+            return (
+              <div key={adminTest.id || i}
+                className={i < protocols.length - 1 ? "border-b border-depro-border/60" : ""}>
+                <div className="flex items-center gap-3 px-5 py-3.5 bg-[#F8F9FB]/60">
+                  <div className="w-7 h-7 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0"
+                    style={{ backgroundColor: (testDef.color || "#3B82F6") + "20", color: testDef.color || "#3B82F6" }}>
+                    {i + 1}
+                  </div>
+                  <div>
+                    <div className="font-black text-depro-dark text-sm">{adminTest.label || testDef.name}</div>
+                    <div className="text-[10px] text-depro-gray">Unidad: {adminTest.unit || testDef.unit}</div>
+                  </div>
+                </div>
+
+                <div className="px-5 pb-5 pt-3 grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {ytId ? (
+                    <div>
+                      <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1">
+                        <PlayCircle size={10} className="text-depro-blue" /> Vídeo explicativo
+                      </div>
+                      <div className="relative w-full rounded-xl overflow-hidden bg-black" style={{ paddingBottom: "56.25%" }}>
+                        <iframe src={`https://www.youtube.com/embed/${ytId}`}
+                          className="absolute inset-0 w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen title={adminTest.label} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1">
+                        <PlayCircle size={10} className="text-depro-blue" /> Vídeo explicativo
+                      </div>
+                      <div className="flex items-center justify-center rounded-xl bg-depro-gray-light/50 border-2 border-dashed border-depro-border text-depro-gray text-xs font-medium min-h-[140px] px-4 text-center">
+                        El vídeo de este protocolo aparecerá aquí cuando el admin suba la URL (igual que el resto de ejercicios).
+                      </div>
+                    </div>
+                  )}
+
+                  {adminTest.description && (
+                    <div>
+                      <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2">
+                        Protocolo de ejecución
+                      </div>
+                      <div className="bg-[#F8F9FB] border border-depro-border rounded-xl px-4 py-3 text-sm text-depro-dark/80 whitespace-pre-line leading-relaxed">
+                        {adminTest.description}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
   if (players.length === 0) return (
     <div className="dash-page">
       <h1 className="text-2xl font-black text-depro-dark mb-2">Tests del equipo</h1>
-      <div className="bg-white border-2 border-dashed border-depro-border rounded-2xl text-center py-16">
+      {protocolsBlock}
+      <div className="bg-white border-2 border-dashed border-depro-border rounded-2xl text-center py-16 mt-6">
         <Users size={36} className="mx-auto mb-3 text-depro-gray opacity-40" />
         <h3 className="font-bold text-depro-dark mb-1">Sin jugadores en la plantilla</h3>
-        <p className="text-sm text-depro-gray">Añade jugadores desde la sección Plantilla.</p>
+        <p className="text-sm text-depro-gray">
+          {isSoloCoach
+            ? "Añade jugadores desde Plantilla para registrar marcas. Los protocolos de evaluación están arriba, con el mismo formato de vídeo que en clubs."
+            : "Añade jugadores desde la sección Plantilla."}
+        </p>
       </div>
     </div>
   );
@@ -609,83 +705,7 @@ function TeamTestsPageInner() {
         })}
       </div>
 
-      {/* Protocolos y vídeos de los tests (del admin) */}
-      {adminTests.length > 0 && adminTests.some((t) => t.videoUrl || t.description) && (
-        <div className="mt-6 bg-white border border-depro-border rounded-2xl overflow-hidden">
-          <button
-            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-[#F8F9FB] transition-colors text-left"
-            onClick={() => setShowProtocols((v) => !v)}>
-            <div className="w-9 h-9 rounded-xl bg-depro-blue/10 border border-depro-blue/20 flex items-center justify-center flex-shrink-0">
-              <BookOpen size={16} className="text-depro-blue" />
-            </div>
-            <div className="flex-1">
-              <div className="font-black text-depro-dark">Protocolos de evaluación</div>
-              <div className="text-xs text-depro-gray">Cómo se realiza cada test · Vídeos explicativos</div>
-            </div>
-            {showProtocols
-              ? <ChevronUp size={16} className="text-depro-gray flex-shrink-0" />
-              : <ChevronDown size={16} className="text-depro-gray flex-shrink-0" />}
-          </button>
-
-          {showProtocols && (
-            <div className="border-t border-depro-border">
-              {adminTests.map((adminTest, i) => {
-                // Buscar el TESTS local que coincida por id
-                const testDef = TESTS.find((t) => t.id === adminTest.id) || {};
-                const ytId = getYouTubeId(adminTest.videoUrl);
-                const hasContent = adminTest.videoUrl || adminTest.description;
-                if (!hasContent) return null;
-
-                return (
-                  <div key={adminTest.id || i}
-                    className={i < adminTests.length - 1 ? "border-b border-depro-border/60" : ""}>
-                    {/* Header del test */}
-                    <div className="flex items-center gap-3 px-5 py-3.5 bg-[#F8F9FB]/60">
-                      <div className="w-7 h-7 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0"
-                        style={{ backgroundColor: (testDef.color || "#3B82F6") + "20", color: testDef.color || "#3B82F6" }}>
-                        {i + 1}
-                      </div>
-                      <div>
-                        <div className="font-black text-depro-dark text-sm">{adminTest.label || testDef.name}</div>
-                        <div className="text-[10px] text-depro-gray">Unidad: {adminTest.unit || testDef.unit}</div>
-                      </div>
-                    </div>
-
-                    <div className="px-5 pb-5 pt-3 grid grid-cols-1 md:grid-cols-2 gap-5">
-                      {/* Vídeo */}
-                      {ytId && (
-                        <div>
-                          <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1">
-                            <PlayCircle size={10} className="text-depro-blue" /> Vídeo explicativo
-                          </div>
-                          <div className="relative w-full rounded-xl overflow-hidden bg-black" style={{ paddingBottom: "56.25%" }}>
-                            <iframe src={`https://www.youtube.com/embed/${ytId}`}
-                              className="absolute inset-0 w-full h-full"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen title={adminTest.label} />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Protocolo */}
-                      {adminTest.description && (
-                        <div>
-                          <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide mb-2">
-                            Protocolo de ejecución
-                          </div>
-                          <div className="bg-[#F8F9FB] border border-depro-border rounded-xl px-4 py-3 text-sm text-depro-dark/80 whitespace-pre-line leading-relaxed">
-                            {adminTest.description}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+      {protocolsBlock}
 
       {/* Modal edición de marcas */}
       {editingPlayer && (

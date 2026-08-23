@@ -4,6 +4,10 @@ import {
   validateCoachQuestionnaire,
   assignProtocolsToDays,
   generateClubAutoMicrociclo,
+  isoWeekStartsInMonth,
+  weekIndexInMonth,
+  startOfIsoWeek,
+  monthBounds,
 } from "./clubAutoEngine.js";
 
 function protoMap(plan) {
@@ -147,5 +151,24 @@ describe("clubAutoEngine — generación sesión completa", () => {
     assert.equal(byDay.Jueves, "B");
     assert.equal(byDay.Viernes, "C");
     assert.equal(result.sessions[0].structure.length, 5);
+  });
+});
+
+describe("clubAutoEngine — semanas del mes", () => {
+  it("lista los lunes ISO que solapan agosto 2026", () => {
+    const starts = isoWeekStartsInMonth("2026-08-15");
+    assert.deepEqual(starts, [
+      "2026-07-27",
+      "2026-08-03",
+      "2026-08-10",
+      "2026-08-17",
+      "2026-08-24",
+      "2026-08-31",
+    ]);
+    assert.equal(startOfIsoWeek("2026-08-01"), "2026-07-27");
+    assert.equal(weekIndexInMonth("2026-08-03"), 1);
+    const bounds = monthBounds("2026-08-23");
+    assert.equal(bounds.startDate, "2026-08-01");
+    assert.equal(bounds.endDate, "2026-08-31");
   });
 });

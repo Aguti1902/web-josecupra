@@ -72,7 +72,7 @@ export const FEATURES = {
     labelKey: "features.team_tests",
     descKey: "features.team_tests_desc",
     audiences: ["coach", "club"],
-    minPlan: { coach: "coach-premium", club: "club-inicial" },
+    minPlan: { coach: "coach-starter", club: "club-inicial" },
     addonId: "addon-progression",
     trialLocked: false,
   },

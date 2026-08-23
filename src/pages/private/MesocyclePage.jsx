@@ -16,6 +16,8 @@ import {
 import { sessionPlanUrl } from "../../lib/sessionBlocks";
 import { getSessionDisplayKey } from "../../lib/mesocycleTemplates";
 import CoachPlanning from "../../components/private/CoachPlanning";
+import MesocycleCalendar from "../../components/private/MesocycleCalendar";
+import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 /* ── Contraste seguro ───────────────────────────────────── */
 function lum(hex) {
@@ -59,158 +61,6 @@ const SESSION_TYPE_OPTIONS = [
   { value: "Máxima",           label: "C · Reactiva",        color: "#EF4444" },
   { value: "Complementaria-D", label: "D · Complementaria",  color: "#10B981" },
 ];
-
-/* ── Calendar View ─────────────────────────────────────── */
-const WEEKDAY_NAMES  = ["L","M","X","J","V","S","D"];
-const WEEKDAY_FULL   = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
-const MONTH_NAMES    = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-
-function buildCalendarGrid(year, month) {
-  // month: 0-based. Returns array of 6 rows × 7 cols (null = outside month)
-  const firstDay = new Date(year, month, 1);
-  // Monday-first: getDay() 0=Sun → index 6, 1=Mon → index 0 ...
-  const startOffset = (firstDay.getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells = [];
-  for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-  const rows = [];
-  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
-  return rows;
-}
-
-function MesocycleCalendar({ activePlan, weeks, trainingDays, accent }) {
-  const navigate = useNavigate();
-  if (!activePlan?.startDate) return null;
-
-  const start = new Date(activePlan.startDate);
-  const end   = new Date(activePlan.endDate || activePlan.startDate);
-  const today = new Date();
-
-  // Meses que abarca el mesociclo
-  const months = [];
-  const cur = new Date(start.getFullYear(), start.getMonth(), 1);
-  const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
-  while (cur <= endMonth) {
-    months.push({ year: cur.getFullYear(), month: cur.getMonth() });
-    cur.setMonth(cur.getMonth() + 1);
-  }
-
-  // Mapear sesiones a fechas concretas
-  // Cada sesión tiene assignedDay (ej. "Lunes") y su semana en weeks[]
-  const sessionDateMap = {}; // "YYYY-MM-DD" → { session, weekIdx, sessionIdx, sType }
-  weeks.forEach(({ sessions: weekSessions }, wi) => {
-    weekSessions.forEach((session, si) => {
-      if (!session.assignedDay) return;
-      // Calcular la fecha real: inicio + wi semanas + offset del día
-      const weekBase = new Date(start);
-      weekBase.setDate(weekBase.getDate() + wi * 7);
-      // Ajustar al día de la semana correcto (Monday-first)
-      const targetDayIdx = WEEKDAY_FULL.findIndex((d) => d === session.assignedDay);
-      if (targetDayIdx < 0) return;
-      const curDayIdx = (weekBase.getDay() + 6) % 7; // 0=Mon
-      const diff = targetDayIdx - curDayIdx;
-      const sessionDate = new Date(weekBase);
-      sessionDate.setDate(sessionDate.getDate() + diff);
-      const key = sessionDate.toISOString().slice(0, 10);
-      const sType = session.framework || getSessionType(session.intensity);
-      const templateKey = getSessionDisplayKey(session);
-      sessionDateMap[key] = { session, weekIdx: wi, sType, templateKey, sessionNumber: wi * 3 + si + 1 };
-    });
-  });
-
-  return (
-    <div className="bg-white border border-depro-border rounded-2xl overflow-hidden mb-5">
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-depro-border/60 bg-[#F8F9FB]">
-        <Calendar size={15} className="text-depro-blue" />
-        <span className="font-black text-depro-dark text-sm">Calendario del mesociclo</span>
-        <div className="ml-auto flex items-center gap-3 text-[10px] text-depro-gray">
-          {Object.entries(SESSION_TYPE_COLOR).map(([type, color]) => (
-            <span key={type} className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: color }} />
-              {type} · {SESSION_TYPE_LABEL[type]}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="p-4 space-y-6">
-        {months.map(({ year, month }) => {
-          const rows = buildCalendarGrid(year, month);
-          return (
-            <div key={`${year}-${month}`}>
-              <div className="text-sm font-black text-depro-dark mb-2">
-                {MONTH_NAMES[month]} {year}
-              </div>
-              <div className="grid grid-cols-7 gap-px rounded-xl overflow-hidden bg-depro-border">
-                {/* Cabecera días */}
-                {WEEKDAY_NAMES.map((d) => (
-                  <div key={d} className="bg-[#F8F9FB] text-center py-1.5 text-[10px] font-black text-depro-gray uppercase">
-                    {d}
-                  </div>
-                ))}
-                {/* Celdas */}
-                {rows.flat().map((day, ci) => {
-                  if (!day) return (
-                    <div key={`e-${ci}`} className="bg-[#F8F9FB] h-14" />
-                  );
-                  const dateStr = `${year}-${String(month + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-                  const sessionInfo = sessionDateMap[dateStr];
-                  const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
-                  const isInRange = dateStr >= activePlan.startDate && dateStr <= (activePlan.endDate || activePlan.startDate);
-
-                  return (
-                    <button
-                      type="button"
-                      key={dateStr}
-                      disabled={!sessionInfo || !isInRange}
-                      onClick={() => {
-                        if (!sessionInfo?.session) return;
-                        navigate(sessionPlanUrl(sessionInfo.session, {
-                          tab: "resumen",
-                          date: dateStr,
-                          week: sessionInfo.weekIdx,
-                        }));
-                      }}
-                      className={`bg-white relative flex flex-col items-center justify-center h-14 transition-colors ${
-                        !isInRange ? "opacity-30" : ""
-                      } ${sessionInfo && isInRange ? "cursor-pointer hover:bg-depro-gray-light/50" : "cursor-default"}`}
-                      title={sessionInfo ? `${sessionInfo.templateKey} · ${dateStr}` : undefined}
-                    >
-                      {/* Fondo de sesión */}
-                      {sessionInfo && (
-                        <div className="absolute inset-1 rounded-lg opacity-20"
-                          style={{ backgroundColor: SESSION_TYPE_COLOR[sessionInfo.sType] }} />
-                      )}
-                      {/* Número del día + plantilla (A1, B2…) */}
-                      <div className="relative z-10 flex flex-col items-center justify-center gap-0.5">
-                        <div className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all`}
-                          style={isToday
-                            ? { backgroundColor: accent, color: contrastText(accent) }
-                            : sessionInfo
-                            ? { color: SESSION_TYPE_COLOR[sessionInfo.sType], fontWeight: 800 }
-                            : { color: "#333333" }}>
-                          {day}
-                        </div>
-                        {sessionInfo && (
-                          <span className="text-[9px] font-black leading-none"
-                            style={{ color: SESSION_TYPE_COLOR[sessionInfo.sType] }}>
-                            {sessionInfo.templateKey}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 /* ── Card de sesión (vista sólo lectura) ──────────────────── */
 function SessionCard({ session, sessionNumber, accent }) {
@@ -372,7 +222,7 @@ export default function MesocyclePage() {
     activePlan, trainingDays, 3, totalCalendarWeeks
   );
 
-  if (user?.role === "club" && user?.club?.isSoloCoach) {
+  if (isProCoachUser(user)) {
     return (
       <FeatureGate user={user} feature="mesocycle">
       <div className="dash-page">

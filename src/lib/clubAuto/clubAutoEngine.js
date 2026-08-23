@@ -277,14 +277,66 @@ function buildSession({ day, protocol, nivel, gymAccess, seed, weekOffset = 0, v
   };
 }
 
-export function monthKeyFromDate(isoOrDate = new Date()) {
-  const d = typeof isoOrDate === "string"
-    ? new Date(`${isoOrDate}${isoOrDate.includes("T") ? "" : "T12:00:00"}`)
-    : (isoOrDate || new Date());
+export function isoDateLocal(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function asLocalDate(isoOrDate = new Date()) {
+  if (isoOrDate instanceof Date) return new Date(isoOrDate.getFullYear(), isoOrDate.getMonth(), isoOrDate.getDate());
+  const s = String(isoOrDate || "");
+  const d = new Date(`${s}${s.includes("T") ? "" : "T12:00:00"}`);
   if (Number.isNaN(d.getTime())) {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+export function startOfIsoWeek(isoOrDate) {
+  const d = asLocalDate(isoOrDate);
+  const diff = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - diff);
+  return isoDateLocal(d);
+}
+
+export function addDaysIso(dateStr, n) {
+  const d = asLocalDate(dateStr);
+  d.setDate(d.getDate() + n);
+  return isoDateLocal(d);
+}
+
+/** Primer y último día del mes calendario. */
+export function monthBounds(isoOrDate = new Date()) {
+  const d = asLocalDate(isoOrDate);
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  return { startDate: isoDateLocal(start), endDate: isoDateLocal(end) };
+}
+
+/** Lunes ISO de cada semana que solapa el mes. */
+export function isoWeekStartsInMonth(isoOrDate = new Date()) {
+  const { startDate, endDate } = monthBounds(isoOrDate);
+  let cur = startOfIsoWeek(startDate);
+  const out = [];
+  while (cur <= endDate) {
+    out.push(cur);
+    cur = addDaysIso(cur, 7);
+  }
+  return out;
+}
+
+export function weekIndexInMonth(weekStart) {
+  if (!weekStart) return 0;
+  const monday = startOfIsoWeek(weekStart);
+  const idx = isoWeekStartsInMonth(weekStart).indexOf(monday);
+  return idx >= 0 ? idx : 0;
+}
+
+export function monthKeyFromDate(isoOrDate = new Date()) {
+  const d = asLocalDate(isoOrDate);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
@@ -294,10 +346,7 @@ export function variantIndexForWeek(weekOffset = 0) {
 }
 
 export function weekOffsetInMonth(weekStart) {
-  if (!weekStart) return 0;
-  const d = new Date(`${weekStart}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return 0;
-  return Math.min(3, Math.max(0, Math.floor((d.getDate() - 1) / 7)));
+  return weekIndexInMonth(weekStart);
 }
 
 /**
