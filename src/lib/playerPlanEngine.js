@@ -722,6 +722,9 @@ export async function hydratePlayerPlan(user) {
     const remote = await fetchPlayerPlan(user.id);
     if (remote && !remote.premiumPending && !remote.planError) {
       const normalized = normalizePlayerPlan(remote);
+      if (normalized && Array.isArray(normalized) && !normalized.startDate) {
+        normalized.startDate = resolvePlayerPlanStartDate(normalized);
+      }
       savePlanLocal(user.id, normalized);
       return normalized;
     }
