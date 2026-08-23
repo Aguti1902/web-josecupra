@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Search, Users, RefreshCw, CreditCard, Building2, User, Shield, Plus, Dumbbell,
+  Search, Users, RefreshCw, CreditCard, Building2, User, Shield, Plus, Dumbbell, Trash2,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useAdmin } from "../../context/AdminContext";
+import { useAuth } from "../../context/AuthContext";
 import AdminProvisionProfileModal from "../../components/admin/AdminProvisionProfileModal";
 import AdminProvisionHelp from "../../components/admin/AdminProvisionHelp";
 import {
@@ -15,6 +16,13 @@ import {
   formatManualPrice,
   canUserLogin,
 } from "../../lib/adminAccountStatus";
+import {
+  startImpersonation,
+  canImpersonateUser,
+  canDeleteUser,
+  compareUsersForAdminList,
+  isPremiumPlayerPlan,
+} from "../../lib/adminImpersonation";
 
 const TYPE_FILTERS = [
   { id: "all", label: "Todos" },
@@ -80,6 +88,7 @@ function TypeBadge({ type, label }) {
 
 export default function AdminUsersPage() {
   const { refreshClients } = useAdmin();
+  const { user: adminUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -87,6 +96,8 @@ export default function AdminUsersPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [provisionAudience, setProvisionAudience] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const alta = searchParams.get("alta");
@@ -124,21 +135,56 @@ export default function AdminUsersPage() {
 
   useEffect(() => { load(); }, []);
 
+  const openUserPanel = (u) => {
+    if (!canImpersonateUser(u)) return;
+    startImpersonation(u);
+    window.location.assign("/dashboard");
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete?.id) return;
+    setDeleting(true);
+    setError("");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch("/api/delete-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ userId: pendingDelete.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "No se pudo eliminar");
+      setUsers((prev) => prev.filter((x) => x.id !== pendingDelete.id));
+      setPendingDelete(null);
+      refreshClients();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return users.filter((u) => {
-      const matchType = typeFilter === "all"
-        || u.type === typeFilter
-        || (typeFilter === "club_pending" && (u.type === "club_pending" || u.type === "coach_pending"));
-      if (!matchType) return false;
-      if (!q) return true;
-      return (
-        u.name?.toLowerCase().includes(q) ||
-        u.email?.toLowerCase().includes(q) ||
-        u.clubName?.toLowerCase().includes(q) ||
-        u.plan?.toLowerCase().includes(q)
-      );
-    });
+    return users
+      .filter((u) => {
+        const matchType = typeFilter === "all"
+          || u.type === typeFilter
+          || (typeFilter === "club_pending" && (u.type === "club_pending" || u.type === "coach_pending"));
+        if (!matchType) return false;
+        if (!q) return true;
+        return (
+          u.name?.toLowerCase().includes(q) ||
+          u.email?.toLowerCase().includes(q) ||
+          u.clubName?.toLowerCase().includes(q) ||
+          u.plan?.toLowerCase().includes(q)
+        );
+      })
+      .sort(compareUsersForAdminList);
   }, [users, search, typeFilter]);
 
   const stats = useMemo(() => ({
@@ -160,7 +206,7 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-depro-dark">Usuarios</h1>
           <p className="text-sm text-depro-gray mt-0.5">
-            DEPRO Coach y jugadores se crean aquí. Los clubs se crean en el apartado Clubs → Nuevo club
+            Pulsa una fila para ver su panel. La papelera elimina la cuenta. En jugadores, Premium sale primero.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -254,17 +300,31 @@ export default function AdminUsersPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-depro-gray uppercase tracking-wide">Plan</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-depro-gray uppercase tracking-wide">Pago</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-depro-gray uppercase tracking-wide hidden lg:table-cell">Alta</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-depro-gray uppercase tracking-wide"> </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-depro-border">
-                {filtered.map((u) => (
-                  <tr key={u.id} className="hover:bg-depro-gray-light/50">
+                {filtered.map((u) => {
+                  const clickable = canImpersonateUser(u);
+                  const premium = isPremiumPlayerPlan(u.plan) && (u.type === "player" || u.role === "player");
+                  return (
+                  <tr
+                    key={u.id}
+                    onClick={() => openUserPanel(u)}
+                    className={`hover:bg-depro-gray-light/50 ${clickable ? "cursor-pointer" : ""}`}
+                    title={clickable ? "Ver el panel de esta cuenta" : undefined}
+                  >
                     <td className="px-4 py-3">
                       <p className="font-bold text-depro-dark">{u.name}</p>
                       <p className="text-xs text-depro-gray">{u.email}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <TypeBadge type={u.type} label={u.typeLabel} />
+                      <div className="flex flex-col items-start gap-1">
+                        <TypeBadge type={u.type} label={u.typeLabel} />
+                        {premium && (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Premium</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell text-depro-gray text-xs">
                       {u.clubName || "—"}
@@ -283,13 +343,63 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 hidden lg:table-cell text-xs text-depro-gray">
                       {u.created_at ? new Date(u.created_at).toLocaleDateString("es-ES") : "—"}
                     </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      {canDeleteUser(u, adminUser?.email) && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingDelete(u)}
+                          className="inline-flex items-center justify-center p-2 rounded-lg text-depro-gray hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Eliminar usuario"
+                          aria-label={`Eliminar a ${u.name || u.email}`}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-depro w-full max-w-sm p-6">
+            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={22} className="text-red-500" />
+            </div>
+            <h2 className="text-lg font-bold text-depro-dark text-center mb-2">¿Eliminar esta cuenta?</h2>
+            <p className="text-sm text-depro-gray text-center mb-1">
+              <strong className="text-depro-dark">{pendingDelete.name}</strong>
+            </p>
+            <p className="text-xs text-depro-gray text-center font-mono mb-5">{pendingDelete.email}</p>
+            <p className="text-sm text-depro-gray text-center mb-6">
+              Dejará de poder entrar. Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm text-depro-gray hover:bg-depro-gray-light"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50"
+              >
+                {deleting ? "Eliminando…" : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {provisionAudience && (
         <AdminProvisionProfileModal

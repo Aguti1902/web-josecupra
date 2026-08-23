@@ -10,6 +10,7 @@ import {
   resolveEdad,
   normalizeFrecuencia,
 } from "../lib/playerTrainingProfile";
+import { getImpersonationSnapshot, stopImpersonation } from "../lib/adminImpersonation";
 
 const AuthContext = createContext(null);
 
@@ -287,12 +288,71 @@ function lookupClubSummary(clubId) {
 
 function sessionIsDraftBlocked(authUser) {
   if (!authUser) return false;
+  if (getImpersonationSnapshot()) return false;
   const meta = authUser.user_metadata || {};
   const role = meta.role || (authUser.email === "jose@depro.es" ? "admin" : "player");
   return shouldBlockAccountLogin(
     { role, email: authUser.email, subscriptionStatus: meta.subscriptionStatus },
     lookupClubSummary(meta.clubId),
   );
+}
+
+function snapshotToAuthUser(snap) {
+  const isCoach = snap.type === "coach" || snap.isSoloCoach || String(snap.clubId || "").startsWith("coach_");
+  const role = snap.role || (snap.type === "player" ? "player" : "club");
+  return {
+    id: snap.id,
+    email: snap.email,
+    user_metadata: {
+      name: snap.name,
+      role,
+      teamRole: snap.teamRole,
+      clubId: snap.clubId,
+      clubName: snap.clubName,
+      plan: snap.plan,
+      subscriptionStatus: snap.subscriptionStatus,
+      billingSource: snap.billingSource,
+      purchasedAddons: snap.purchasedAddons || [],
+      trialEndsAt: snap.trialEndsAt,
+      stripeSubscriptionId: snap.stripeSubscriptionId,
+      stripeCustomerId: snap.stripeCustomerId,
+      posicion: snap.posicion,
+      deporte: snap.deporte,
+      objetivo: snap.objetivo,
+      objetivos: snap.objetivos,
+      frecuencia: snap.frecuencia,
+      material: snap.material,
+      experiencia: snap.experiencia,
+      diaCompeticion: snap.diaCompeticion,
+      disponibles: snap.disponibles,
+      lesion: snap.lesion,
+      lesionSubtipo: snap.lesionSubtipo,
+      edad: snap.edad,
+      phone: snap.phone,
+      telefono: snap.telefono,
+      isSoloCoach: isCoach,
+      managedTeamIds: snap.managedTeamIds || [],
+      teamId: snap.teamId,
+    },
+  };
+}
+
+function withImpersonation(realUser) {
+  const snap = getImpersonationSnapshot();
+  if (!snap || !realUser || realUser.role !== "admin") return realUser;
+  const built = buildUser(snapshotToAuthUser(snap), null);
+  const isCoach = snap.type === "coach" || snap.isSoloCoach || String(snap.clubId || "").startsWith("coach_");
+  if (isCoach) {
+    built.club = {
+      ...(built.club || { id: snap.clubId, name: snap.clubName || "DEPRO Coach", teams: [] }),
+      isSoloCoach: true,
+    };
+  }
+  return {
+    ...built,
+    impersonating: true,
+    impersonatedFrom: { id: realUser.id, email: realUser.email, name: realUser.name },
+  };
 }
 
 export function AuthProvider({ children }) {
@@ -312,13 +372,14 @@ export function AuthProvider({ children }) {
             return;
           }
           // Primero ponemos el usuario básico sin bloquear la UI
-          const basic = buildUser(session.user, null);
+          const basic = withImpersonation(buildUser(session.user, null));
           setUser(basic);
           setLoading(false);
 
           // Enriquecer con perfil de Supabase
           fetchProfile(session.user.id).then(async (profile) => {
-            const builtUser = buildUser(session.user, profile || null);
+            const realBuilt = buildUser(session.user, profile || null);
+            const builtUser = withImpersonation(realBuilt);
             setUser(builtUser);
 
             if (builtUser.role === "player") {
@@ -379,8 +440,8 @@ export function AuthProvider({ children }) {
                         : c;
                       localStorage.setItem(`depro_club_${c.id}`, JSON.stringify(merged));
                     }
-                    const freshUser = buildUser(session.user, profile || null);
-                    if (sessionIsDraftBlocked(session.user)) {
+                    const freshUser = withImpersonation(buildUser(session.user, profile || null));
+                    if (!freshUser?.impersonating && sessionIsDraftBlocked(session.user)) {
                       await supabase.auth.signOut();
                       setUser(null);
                       return;
@@ -391,16 +452,18 @@ export function AuthProvider({ children }) {
                 }
                 // Si la API falla o está vacía, intentar construir usuario con meta.clubId aunque
                 // no haya datos en localStorage (muestra UI sin datos pero con rol correcto)
-                const meta = session.user.user_metadata ?? {};
+                const meta = (builtUser.impersonating
+                  ? { clubId: builtUser.clubId }
+                  : (session.user.user_metadata ?? {}));
                 if (meta.clubId && !builtUser.club) {
-                  const minimalClub = { id: meta.clubId, name: "Mi Club", teams: [], plans: [] };
+                  const minimalClub = { id: meta.clubId, name: builtUser.clubName || "Mi Club", teams: [], plans: [] };
                   localStorage.setItem(`depro_club_${meta.clubId}`, JSON.stringify(minimalClub));
                   const local = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
                   if (!local.find((c) => c.id === meta.clubId)) {
                     local.unshift(minimalClub);
                     localStorage.setItem("depro_clubs", JSON.stringify(local));
                   }
-                  const fallbackUser = buildUser(session.user, profile || null);
+                  const fallbackUser = withImpersonation(buildUser(session.user, profile || null));
                   setUser(fallbackUser);
                 }
               } catch { /* silencioso */ }
@@ -485,10 +548,10 @@ export function AuthProvider({ children }) {
       await supabase.auth.refreshSession();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
-      const basic = buildUser(session.user, null);
+      const basic = withImpersonation(buildUser(session.user, null));
       setUser(basic);
       const profile = await fetchProfile(session.user.id);
-      if (profile) setUser(buildUser(session.user, profile));
+      if (profile) setUser(withImpersonation(buildUser(session.user, profile)));
     } catch {}
   };
 
@@ -534,6 +597,7 @@ export function AuthProvider({ children }) {
 
   // ── Logout ─────────────────────────────────────────────────
   const logout = async () => {
+    stopImpersonation();
     try {
       if (user?.id && isInTrial(user)) {
         clearTrialLoadLogs(user.id);
