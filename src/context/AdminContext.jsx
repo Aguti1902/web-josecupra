@@ -168,6 +168,7 @@ export function AdminProvider({ children }) {
         plan: u.plan,
         subscriptionStatus: u.subscriptionStatus,
         billingSource: u.billingSource,
+        manualPrice: u.manualPrice,
         clubCode: u.clubCode,
         isSoloCoach: u.isSoloCoach,
       })));
@@ -185,6 +186,7 @@ export function AdminProvider({ children }) {
             plan: u.plan,
             subscriptionStatus: u.subscriptionStatus,
             billingSource: u.billingSource,
+            manualPrice: u.manualPrice,
           }))
         ));
       } catch { /* ignore */ }

@@ -7,6 +7,14 @@ import { supabase } from "../../lib/supabase";
 import { useAdmin } from "../../context/AdminContext";
 import AdminProvisionProfileModal from "../../components/admin/AdminProvisionProfileModal";
 import AdminProvisionHelp from "../../components/admin/AdminProvisionHelp";
+import {
+  ADMIN_STATUS_STYLES,
+  adminStatusLabel,
+  isAdminManagedStatus,
+  normalizeAdminStatus,
+  formatManualPrice,
+  canUserLogin,
+} from "../../lib/adminAccountStatus";
 
 const TYPE_FILTERS = [
   { id: "all", label: "Todos" },
@@ -27,8 +35,21 @@ const STATUS_STYLES = {
   none: "bg-gray-50 text-gray-500 border-gray-200",
 };
 
-function StatusBadge({ status, trialEndsAt }) {
-  const s = status || "none";
+function StatusBadge({ status, trialEndsAt, billingSource, manualPrice }) {
+  const raw = status || "";
+  if (billingSource === "manual" || isAdminManagedStatus(raw)) {
+    const id = normalizeAdminStatus(raw || "activo");
+    const price = formatManualPrice(manualPrice);
+    return (
+      <span className="inline-flex flex-col items-start gap-0.5">
+        <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold border ${ADMIN_STATUS_STYLES[id]}`}>
+          {adminStatusLabel(id)}
+        </span>
+        {price && <span className="text-[10px] text-depro-gray">{price}/mes</span>}
+      </span>
+    );
+  }
+  const s = raw || "none";
   const label = s === "trialing"
     ? (trialEndsAt ? `Trial · hasta ${new Date(trialEndsAt).toLocaleDateString("es-ES")}` : "Trial")
     : s === "none" ? "Sin pago" : s;
@@ -125,7 +146,12 @@ export default function AdminUsersPage() {
     players: users.filter((u) => u.type === "player").length,
     clubs: users.filter((u) => u.type?.startsWith("club_")).length,
     coaches: users.filter((u) => u.type === "coach" || u.type === "coach_pending").length,
-    paying: users.filter((u) => u.subscriptionStatus === "active" || u.subscriptionStatus === "trialing").length,
+    paying: users.filter((u) => {
+      if (u.billingSource === "manual" || isAdminManagedStatus(u.subscriptionStatus)) {
+        return canUserLogin(u.subscriptionStatus);
+      }
+      return u.subscriptionStatus === "active" || u.subscriptionStatus === "trialing";
+    }).length,
   }), [users]);
 
   return (
@@ -170,7 +196,7 @@ export default function AdminUsersPage() {
           { label: "Jugadores", value: stats.players, icon: User },
           { label: "Staff club", value: stats.clubs, icon: Building2 },
           { label: "DEPRO Coach", value: stats.coaches, icon: Shield },
-          { label: "Con pago/trial", value: stats.paying, icon: CreditCard },
+          { label: "Con acceso", value: stats.paying, icon: CreditCard },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="bg-white border border-depro-border rounded-xl p-4">
             <div className="flex items-center gap-2 text-depro-gray text-xs font-bold uppercase tracking-wide mb-1">
@@ -247,7 +273,12 @@ export default function AdminUsersPage() {
                       <span className="text-xs font-semibold text-depro-dark">{u.plan || "—"}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={u.subscriptionStatus} trialEndsAt={u.trialEndsAt} />
+                      <StatusBadge
+                        status={u.subscriptionStatus}
+                        trialEndsAt={u.trialEndsAt}
+                        billingSource={u.billingSource}
+                        manualPrice={u.manualPrice}
+                      />
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell text-xs text-depro-gray">
                       {u.created_at ? new Date(u.created_at).toLocaleDateString("es-ES") : "—"}

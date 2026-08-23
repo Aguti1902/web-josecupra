@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import { useAdmin } from "../../context/AdminContext";
 import { PLANS } from "../../lib/checkoutPlans";
+import { canUserLogin, monthlyBilledAmount, adminStatusLabel, formatManualPrice } from "../../lib/adminAccountStatus";
 
 function planPrice(planId) {
   return PLANS[planId]?.price ?? 0;
@@ -27,25 +28,24 @@ export default function AdminOverviewPage() {
     || (u.role === "club" && (u.teamRole === "entrenador" || u.isSoloCoach))
   );
   const clubs = users.filter((u) =>
-    u.role === "club" && u.teamRole === "administrador" && !u.isSoloCoach
+    u.role === "club"
+    && (u.teamRole === "administrador" || u.teamRole === "coordinador")
+    && !u.isSoloCoach
   );
 
-  const activePlayers = players.filter((u) =>
-    ["active", "trialing", "comp", "demo"].includes(String(u.subscriptionStatus || "active"))
-  );
-  const activeClubs = clubs.filter((u) =>
-    ["active", "trialing", "comp", "demo"].includes(String(u.subscriptionStatus || "active"))
-  );
+  const withAccess = (u) => canUserLogin(u.subscriptionStatus || "activo");
+  const activePlayers = players.filter(withAccess);
+  const accessClubs = clubs.filter(withAccess);
 
-  const incomePlayers = activePlayers.reduce((s, u) => s + planPrice(u.plan), 0);
-  const incomeClubs = activeClubs.reduce((s, u) => s + planPrice(u.plan), 0);
+  const incomePlayers = activePlayers.reduce((s, u) => s + monthlyBilledAmount(u, planPrice(u.plan)), 0);
+  const incomeClubs = accessClubs.reduce((s, u) => s + monthlyBilledAmount(u, planPrice(u.plan)), 0);
   const incomeTotal = incomePlayers + incomeClubs;
   const discountUsers = users.filter((u) => u.clubCode || u.discountCode).length;
 
   const stats = [
     { label: "Jugadores", value: players.length, icon: Users, color: "#0A36F7", bg: "#EEF1FF" },
     { label: "Entrenadores", value: coaches.length, icon: UserCircle, color: "#3BC21D", bg: "#EAF9E6" },
-    { label: "Clubs activos", value: activeClubs.length, icon: Building2, color: "#F6CC12", bg: "#FEFAE7" },
+    { label: "Clubs con acceso", value: accessClubs.length, icon: Building2, color: "#F6CC12", bg: "#FEFAE7" },
     { label: "Ingresos / mes (est.)", value: euro(incomeTotal), icon: Euro, color: "#FB2C39", bg: "#FEE8EA" },
   ];
 
@@ -100,7 +100,7 @@ export default function AdminOverviewPage() {
           <div className="rounded-xl border border-depro-border p-4">
             <p className="text-[11px] font-bold uppercase text-depro-gray">Aportación clubs</p>
             <p className="text-xl font-black text-depro-dark mt-1">{euro(incomeClubs)}/mes</p>
-            <p className="text-xs text-depro-gray mt-0.5">{activeClubs.length} clubs con acceso</p>
+            <p className="text-xs text-depro-gray mt-0.5">{accessClubs.length} clubs con acceso</p>
           </div>
           <div className="rounded-xl border border-depro-border p-4">
             <p className="text-[11px] font-bold uppercase text-depro-gray flex items-center gap-1">
@@ -110,7 +110,7 @@ export default function AdminOverviewPage() {
             <p className="text-xs text-depro-gray mt-0.5">usuarios con código / club</p>
           </div>
         </div>
-        {activeClubs.length > 0 && (
+        {accessClubs.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -122,12 +122,12 @@ export default function AdminOverviewPage() {
                 </tr>
               </thead>
               <tbody>
-                {activeClubs.slice(0, 8).map((c) => (
+                {accessClubs.slice(0, 8).map((c) => (
                   <tr key={c.id} className="border-b border-depro-border/60">
                     <td className="py-2 font-semibold text-depro-dark">{c.name || c.email}</td>
                     <td className="py-2 text-depro-gray">{c.plan || "—"}</td>
-                    <td className="py-2 font-bold text-depro-dark">{euro(planPrice(c.plan))}/mes</td>
-                    <td className="py-2 text-depro-gray">{c.subscriptionStatus || "active"}</td>
+                    <td className="py-2 font-bold text-depro-dark">{euro(monthlyBilledAmount(c, planPrice(c.plan)))}/mes</td>
+                    <td className="py-2 text-depro-gray">{adminStatusLabel(c.subscriptionStatus)}{formatManualPrice(c.manualPrice) ? ` · ${formatManualPrice(c.manualPrice)}` : ""}</td>
                   </tr>
                 ))}
               </tbody>
