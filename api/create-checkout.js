@@ -31,6 +31,23 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
   const lesionArr = formData?.lesion || [];
   const subArr = formData?.lesionSubtipo || [];
   const dispArr = formData?.disponibles || [];
+  // Prueba gratis 15 días solo en plan Standard (player-essential) individual
+  const withTrial = audience === "player" && planId === "player-essential";
+
+  const subscriptionData = {
+    metadata: {
+      plan: planId,
+      audience,
+      clubCode: clubCode || "",
+      clubId: clubId || "",
+      teamId: formData?.clubTeamId || formData?.teamId || "",
+      email: formData?.email || "",
+      nombre: formData?.nombre || "",
+    },
+  };
+  if (withTrial) {
+    subscriptionData.trial_period_days = TRIAL_PERIOD_DAYS;
+  }
 
   return {
     // Wallets (Apple Pay / Google Pay): Stripe los ofrece si el dominio está verificado
@@ -39,18 +56,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
     mode: "subscription",
     // Siempre pedir tarjeta aunque el trial sea 0 € hoy (no permitir checkout sin PM).
     payment_method_collection: "always",
-    subscription_data: {
-      trial_period_days: TRIAL_PERIOD_DAYS,
-      metadata: {
-        plan: planId,
-        audience,
-        clubCode: clubCode || "",
-        clubId: clubId || "",
-        teamId: formData?.clubTeamId || formData?.teamId || "",
-        email: formData?.email || "",
-        nombre: formData?.nombre || "",
-      },
-    },
+    subscription_data: subscriptionData,
     line_items: [lineItem],
     customer_email: formData?.email || undefined,
     metadata: {
