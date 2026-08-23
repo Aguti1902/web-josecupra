@@ -19,8 +19,11 @@ describe("tipo_registro", () => {
       etiquetas: { objetivo: ["fuerza"], rol: "basico" },
     }), "fuerza");
     assert.ok(fieldsForTipoRegistro("fuerza").includes("weight"));
-    assert.ok(fieldsForTipoRegistro("fuerza").includes("rest"));
-    assert.ok(fieldsForTipoRegistro("velocidad").includes("distance"));
+    assert.ok(fieldsForTipoRegistro("fuerza").includes("reps"));
+    assert.equal(fieldsForTipoRegistro("fuerza").includes("rpe"), false);
+    assert.ok(fieldsForTipoRegistro("velocidad").includes("time"));
+    assert.ok(fieldsForTipoRegistro("velocidad").includes("heartRate"));
+    assert.equal(fieldsForTipoRegistro("velocidad").includes("distance"), false);
     assert.ok(fieldsForTipoRegistro("resistencia").includes("heartRate"));
   });
 });
