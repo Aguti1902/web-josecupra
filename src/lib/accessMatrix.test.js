@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { PLAYER_ADDONS, featuresForAddon, addonById } from "./playerAddons.js";
 import { TRIAL_PDF_MAX } from "./trialPdfLimit.js";
 import { PREMIUM_PLAYER_CAP } from "./premiumCapacity.js";
+import { evaluateFeatureAccess } from "./featureAccess.js";
 
 describe("accesos Standard / Premium / extras", () => {
   it("carrito de extras: 3 items a 5€ (PDF, tests, mis cargas)", () => {
@@ -31,5 +32,56 @@ describe("accesos Standard / Premium / extras", () => {
     assert.ok(PLANS["player-pro"].features.some((f) => /sin prueba/i.test(f)));
     assert.ok(/sin prueba/i.test(PLANS["player-pro"].tagline));
     assert.ok(PLANS["player-essential"].features.some((f) => /15 días/i.test(f)));
+  });
+
+  it("feedback solo Premium: Standard manual y trial bloqueados", () => {
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "player",
+        planId: "player-essential",
+        billingSource: "manual",
+        featureId: "feedback",
+      }),
+      false,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "player",
+        planId: "player-essential",
+        billingSource: "manual",
+        featureId: "ranking",
+      }),
+      true,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "player",
+        planId: "player-pro",
+        billingSource: "manual",
+        isPro: true,
+        featureId: "feedback",
+      }),
+      true,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "player",
+        planId: "player-essential",
+        billingSource: "stripe",
+        isTrial: true,
+        featureId: "feedback",
+      }),
+      false,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "player",
+        planId: "player-essential",
+        billingSource: "stripe",
+        isTrial: true,
+        featureId: "ranking",
+      }),
+      true,
+    );
   });
 });

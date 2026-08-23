@@ -61,7 +61,7 @@ Prueba gratuita: 15 días con tarjeta (0 € hoy). Configuración del club en "M
     {
       keywords: ["feedback", "comentario", "entrenador"],
       roles: ["player"],
-      answer: "En **Feedback** (/dashboard/feedback) puedes valorar cada sesión: intensidad percibida, molestias y comentarios. Tu entrenador lo ve en su panel.",
+      answer: "En **Feedback** (/dashboard/feedback) ves los mensajes de tu preparador. Solo está incluido en **Premium**; en Standard te pedirá actualizar el plan.",
     },
     {
       keywords: ["ranking", "clasificación", "puntos"],
