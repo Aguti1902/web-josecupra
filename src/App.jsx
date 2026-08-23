@@ -107,7 +107,7 @@ function ClientRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "admin" && isDraftLoginBlocked(user.subscriptionStatus)) {
+  if (user.role !== "admin" && !user.impersonating && isDraftLoginBlocked(user.subscriptionStatus)) {
     return <Navigate to="/login" replace />;
   }
   // Usuarios Google/legacy marcados como pendingPayment no deben entrar al panel sin pagar
@@ -154,6 +154,9 @@ function AdminRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.impersonating) {
+    return <Navigate to="/dashboard" replace />;
+  }
   if (user.role !== "admin") return <Navigate to="/dashboard" replace />;
   return children;
 }
