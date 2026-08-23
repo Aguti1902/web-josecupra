@@ -138,8 +138,13 @@ export default function SubscriptionPage() {
     setAddonLoading(addonId);
     setMsg(null);
     const res = await purchaseAddon(user, addonId);
+    setAddonLoading(null);
+    if (res.ok && res.inline) {
+      setMsg({ type: "ok", text: t("subscription.addon_success") });
+      await refreshUser();
+      return;
+    }
     if (!res.ok) {
-      setAddonLoading(null);
       setMsg({ type: "error", text: res.error || t("subscription.addon_error") });
     }
   };

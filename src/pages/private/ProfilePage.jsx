@@ -309,14 +309,19 @@ export default function ProfilePage() {
   const handleBuyAddonFromProfile = async (addon) => {
     if (!addon?.id || !user) return;
     const ok = window.confirm(
-      `¿Añadir «${addon.name}» por ${addon.price}€${addon.period || "/ mes"}?\nSe abrirá el pago seguro con Stripe.`,
+      `¿Añadir «${addon.name}» por ${addon.price}€${addon.period || "/ mes"}?\nSe cargará en tu suscripción Stripe (prorrateo si aplica).`,
     );
     if (!ok) return;
     setAddonLoading(addon.id);
-    showAccountMsg("ok", "Redirigiendo al pago…");
+    showAccountMsg("ok", "Procesando pago con Stripe…");
     const res = await purchaseAddon(user, addon.id);
     setAddonLoading(null);
-    if (!res.ok) showAccountMsg("error", res.error || "No se pudo iniciar el pago del extra.");
+    if (res.ok && res.inline) {
+      await refreshUser();
+      showAccountMsg("ok", `«${addon.name}» activado en tu cuenta ✓`);
+      return;
+    }
+    if (!res.ok) showAccountMsg("error", res.error || "No se pudo añadir el extra.");
   };
 
   const handleUpgradePremiumFromProfile = async () => {
