@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { WEEK_DAYS } from "../../lib/sessionBlocks";
-import { buildPlayerPlan } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildFourWeekPlan } from "../../lib/playerPlanEngine";
 import {
   canRegenerateFromProfile,
   recordProfileRegen,
@@ -16,7 +16,7 @@ import {
   PLAN_CYCLE_DAYS,
   isSuccessfulGeneratedPlan,
 } from "../../lib/planSwapLimits";
-import { loadPlayerPlan, fetchPlayerPlan, savePlayerPlan, persistPlayerPlanRemote } from "../../lib/playerPlanStorage";
+import { loadPlayerPlan, fetchPlayerPlan, savePlayerPlan, persistPlayerPlanRemote, normalizePlayerPlan } from "../../lib/playerPlanStorage";
 import { openBillingPortal, isSubscriptionActive } from "../../lib/subscription";
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import {
@@ -538,26 +538,16 @@ export default function ProfilePage() {
     };
   };
 
-  const persistTrainingMetadata = async (nextData) => {
+  const persistTrainingMetadata = async (nextData, { planOverride = null } = {}) => {
     const metaPayload = trainingFieldsToAuthMetadata(nextData);
     await supabase.auth.updateUser({ data: metaPayload });
 
-    const existingPlan = planForProfile || loadPlayerPlan(user.id);
+    const existingPlan = planOverride || planForProfile || loadPlayerPlan(user.id);
     if (existingPlan) {
       const snap = trainingProfileSnapshotFromAny(nextData);
       existingPlan.profileSnapshot = snap;
       savePlayerPlan(user.id, existingPlan);
       setPlanForProfile(existingPlan);
-      if (existingPlan.weeks) {
-        await persistPlayerPlanRemote(user.id, {
-          weeks: existingPlan.weeks,
-          profileSnapshot: snap,
-          assignment: existingPlan.assignment || null,
-          source: existingPlan.source || "admin_manual",
-          startDate: existingPlan.startDate || null,
-          assignedTo: user.id,
-        });
-      }
     }
 
     trainingDirtyRef.current = false;
@@ -568,23 +558,61 @@ export default function ProfilePage() {
 
   const runSuccessfulRegen = async (nextData) => {
     const newUser = { ...user, ...nextData };
-    // Generar SIN borrar el plan actual hasta confirmar éxito (no gasta cupo si falla).
-    const newPlan = buildPlayerPlan(newUser);
-    if (!isSuccessfulGeneratedPlan(newPlan)) {
-      const msg = newPlan?.planError
+    // Generar SIN tocar el plan actual hasta confirmar éxito (no gasta cupo si falla).
+    const probe = buildPlayerPlan(newUser);
+    if (!isSuccessfulGeneratedPlan(probe)) {
+      const msg = probe?.planError
         || "No se pudo generar la rutina con esos datos. Revisa los campos e inténtalo de nuevo (no se ha gastado el cupo).";
       setDaysMsg(msg);
       return false;
     }
 
-    newPlan.profileSnapshot = trainingProfileSnapshotFromAny(nextData);
-    newPlan.source = "profile_regen";
-    newPlan.profileRegenAt = new Date().toISOString();
-    resetCycleCounters(user.id, newPlan.startDate);
-    recordProfileRegen(user.id, newPlan);
-    savePlayerPlan(user.id, newPlan);
-    setPlanForProfile(newPlan);
-    await persistTrainingMetadata(nextData);
+    const weeks = buildFourWeekPlan(newUser);
+    const hasWork = (weeks || []).some((w) => isSuccessfulGeneratedPlan(w.days || w));
+    if (!hasWork) {
+      setDaysMsg("No se pudo generar la rutina con esos datos. No se ha gastado el cupo.");
+      return false;
+    }
+
+    const snap = trainingProfileSnapshotFromAny(nextData);
+    const startDate = probe.startDate || new Date().toISOString().slice(0, 10);
+    const profileRegenAt = new Date().toISOString();
+    const payload = {
+      weeks,
+      startDate,
+      source: "profile_regen",
+      profileRegenAt,
+      profileSnapshot: snap,
+      assignedTo: user.id,
+      premiumPending: false,
+      planPendingManual: false,
+    };
+
+    resetCycleCounters(user.id, startDate);
+    recordProfileRegen(user.id, { startDate, source: "profile_regen", profileRegenAt });
+
+    const normalized = normalizePlayerPlan(payload);
+    if (normalized) {
+      normalized.profileSnapshot = snap;
+      normalized.source = "profile_regen";
+      normalized.profileRegenAt = profileRegenAt;
+      normalized.startDate = startDate;
+    }
+    savePlayerPlan(user.id, normalized || payload);
+    setPlanForProfile(normalized || payload);
+
+    const remote = await persistPlayerPlanRemote(user.id, payload);
+    if (!remote.ok) {
+      // Local ya está; avisamos pero no revertimos el cupo (la rutina sí cambió en este dispositivo)
+      setDaysMsg(`Rutina regenerada en este dispositivo, pero no se pudo sincronizar: ${remote.error || "error de red"}`);
+    }
+
+    await supabase.auth.updateUser({ data: trainingFieldsToAuthMetadata(nextData) });
+    trainingDirtyRef.current = false;
+    const key = trainingFieldsKey(nextData);
+    trainingHydratedKeyRef.current = key;
+    setTrainingHydratedKey(key);
+
     await refreshUser();
     setDaysMsg("Perfil actualizado · rutina regenerada correctamente (1 cambio este mesociclo) ✓");
     setTimeout(() => setDaysMsg(""), 5000);
@@ -602,10 +630,19 @@ export default function ProfilePage() {
     const prevMerged = mergeTrainingSources(user || {}, planForProfile || loadPlayerPlan(user?.id));
     const prevData = {
       ...prevMerged,
+      frecuencia: normalizeFrecuencia(prevMerged.frecuencia) || prevMerged.frecuencia,
+      objetivos: filterCatalogObjetivos(prevMerged.objetivos),
       lesion: prevMerged.lesion.includes("Ninguna") ? [] : prevMerged.lesion,
       lesionSubtipo: prevMerged.lesion.includes("Ninguna") ? [] : prevMerged.lesionSubtipo,
     };
-    const changed = profileTrainingFingerprint(nextData) !== profileTrainingFingerprint(prevData);
+    const nextForFp = {
+      ...nextData,
+      frecuencia: normalizeFrecuencia(nextData.frecuencia) || nextData.frecuencia,
+      objetivos: filterCatalogObjetivos(nextData.objetivos),
+      lesion: nextData.lesion || [],
+    };
+    const changed = profileTrainingFingerprint(nextForFp) !== profileTrainingFingerprint(prevData);
+    const plan = planForProfile || loadPlayerPlan(user.id);
 
     if (!changed) {
       setDaysSaving(true);
@@ -613,27 +650,8 @@ export default function ProfilePage() {
       try {
         await persistTrainingMetadata(nextData);
         await refreshUser();
-        setDaysMsg("Perfil de entrenamiento guardado (sin cambios en la rutina).");
+        setDaysMsg("Perfil de entrenamiento guardado (sin cambios que regeneren la rutina).");
         setTimeout(() => setDaysMsg(""), 4000);
-      } catch {
-        setDaysMsg("No se pudo guardar. Inténtalo de nuevo.");
-      } finally {
-        setDaysSaving(false);
-      }
-      return;
-    }
-
-    const plan = planForProfile || loadPlayerPlan(user.id);
-
-    // Plan del preparador: solo guardar datos, no regenerar
-    if (plan?.source === "admin_manual") {
-      setDaysSaving(true);
-      setDaysMsg("");
-      try {
-        await persistTrainingMetadata(nextData);
-        await refreshUser();
-        setDaysMsg("Perfil actualizado. Tu plan asignado por el preparador se mantiene ✓");
-        setTimeout(() => setDaysMsg(""), 5000);
       } catch {
         setDaysMsg("No se pudo guardar. Inténtalo de nuevo.");
       } finally {
@@ -657,7 +675,7 @@ export default function ProfilePage() {
       return;
     }
 
-    // Paso intermedio: confirmar antes de gastar el cupo
+    // Siempre pedir confirmación si hay cambios que regeneran (motor, cuestionario o essential)
     setPendingRegenData(nextData);
     setRegenConfirmOpen(true);
     setDaysMsg("");
@@ -666,7 +684,7 @@ export default function ProfilePage() {
   const handleCancelRegenConfirm = () => {
     setRegenConfirmOpen(false);
     setPendingRegenData(null);
-    setDaysMsg("Regeneración cancelada. No se ha gastado el cupo ni se ha cambiado la rutina.");
+    setDaysMsg("Cancelado. No se ha regenerado la rutina ni se ha gastado el cupo.");
     setTimeout(() => setDaysMsg(""), 4000);
   };
 
@@ -680,7 +698,6 @@ export default function ProfilePage() {
         setRegenConfirmOpen(false);
         setPendingRegenData(null);
       }
-      // Si falla la generación, el modal sigue abierto y el cupo no se gasta
     } catch {
       setDaysMsg("No se pudo regenerar. Inténtalo de nuevo (no se ha gastado el cupo).");
     } finally {
@@ -1045,6 +1062,9 @@ export default function ProfilePage() {
             {daysSaving ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
             Guardar cambios de entrenamiento
           </button>
+          <p className="text-xs text-depro-gray mt-2">
+            Si hay cambios, te pediremos confirmación antes de regenerar la rutina.
+          </p>
         </div>
       )}
 
@@ -1056,14 +1076,15 @@ export default function ProfilePage() {
                 <AlertCircle size={20} className="text-amber-600" />
               </div>
               <div>
-                <h3 className="font-bold text-depro-dark text-lg">¿Regenerar la rutina?</h3>
+                <h3 className="font-bold text-depro-dark text-lg">¿Estás seguro?</h3>
                 <p className="text-sm text-depro-gray mt-1">
-                  Vas a generar un plan nuevo con los datos del perfil. Solo puedes hacerlo
+                  Se va a <strong className="text-depro-dark">regenerar tu rutina</strong> con los datos del perfil
+                  (sustituye la actual). Solo puedes hacerlo
                   {" "}<strong className="text-depro-dark">1 vez cada mesociclo (~{PLAN_CYCLE_DAYS} días)</strong>.
-                  Después no podrás volver a regenerarla hasta el siguiente ciclo.
+                  Después no podrás volver a modificarla desde el perfil hasta el siguiente ciclo.
                 </p>
                 <p className="text-sm text-depro-gray mt-2">
-                  El cupo solo se gasta si la rutina se genera correctamente. Si falta algún dato o falla, podrás corregirlo e intentarlo de nuevo.
+                  El cupo solo se gasta si la rutina se genera correctamente.
                 </p>
               </div>
             </div>

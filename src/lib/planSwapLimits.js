@@ -140,19 +140,28 @@ export function profileTrainingFingerprint(data = {}) {
   const objetivos = Array.isArray(data.objetivos)
     ? [...data.objetivos].map(String).sort().join(",")
     : String(data.objetivo || data.objetivos || "");
-  const lesiones = Array.isArray(data.lesion)
-    ? [...data.lesion].map(String).sort().join(",")
-    : String(data.lesion || "");
+  const lesionesRaw = Array.isArray(data.lesion)
+    ? [...data.lesion].map(String)
+    : String(data.lesion || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const lesiones = lesionesRaw
+    .filter((l) => l && !/^ninguna$/i.test(l))
+    .sort()
+    .join(",");
   const subtipos = Array.isArray(data.lesionSubtipo)
     ? [...data.lesionSubtipo].map(String).sort().join(",")
     : String(data.lesionSubtipo || "");
+  const freqRaw = String(data.frecuencia || "");
+  const freqN = parseInt(freqRaw.replace(/\D/g, ""), 10);
+  const frecuencia = Number.isFinite(freqN) && freqN > 0
+    ? `${Math.min(5, freqN)}d`
+    : freqRaw;
   return [
     days,
     mat,
     String(data.experiencia || ""),
     String(data.edad || ""),
     String(data.deporte || ""),
-    String(data.frecuencia || ""),
+    frecuencia,
     objetivos,
     lesiones,
     subtipos,
