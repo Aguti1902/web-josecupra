@@ -5,6 +5,7 @@ import {
   compareUsersForAdminList,
   canImpersonateUser,
   canDeleteUser,
+  isRealAdminUser,
 } from "./adminImpersonation.js";
 
 describe("adminImpersonation", () => {
@@ -31,5 +32,11 @@ describe("adminImpersonation", () => {
     assert.equal(canDeleteUser(admin, "otro@depro.es"), false);
     assert.equal(canDeleteUser({ id: "x", email: "yo@depro.es", type: "player" }, "yo@depro.es"), false);
     assert.equal(canDeleteUser({ id: "x", email: "p@depro.es", type: "player" }, "yo@depro.es"), true);
+  });
+
+  it("reconoce admin por email aunque el rol del perfil no sea admin", () => {
+    assert.equal(isRealAdminUser({ role: "player", email: "jose@depro.es" }), true);
+    assert.equal(isRealAdminUser({ role: "admin", email: "otro@x.com" }), true);
+    assert.equal(isRealAdminUser({ role: "player", email: "p@x.com" }), false);
   });
 });

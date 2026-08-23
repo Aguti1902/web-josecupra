@@ -15,7 +15,6 @@ import AiAssistantWidget from "./AiAssistantWidget";
 import PanelSearch from "../shared/PanelSearch";
 import { getPlanLabel, isInTrial, mustPayToContinue, getTrialDaysLeft } from "../../lib/subscription";
 import { isClubAdmin, isClubGlobalView, canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
-import { stopImpersonation } from "../../lib/adminImpersonation";
 
 function luminance(hex) {
   try {
@@ -327,7 +326,7 @@ function AppLayoutInner({ children }) {
     : rawNavItems.filter((item) => item.to !== "/dashboard/subscription");
   const isPlayer = user?.role === "player";
   const playerPlanLabel = user?.plan ? getPlanLabel(user.plan) : "Jugador";
-  const paywallActive = mustPayToContinue(user) && canManageClubBilling(user) && canSeeClubPricing(user);
+  const paywallActive = !user?.impersonating && mustPayToContinue(user) && canManageClubBilling(user) && canSeeClubPricing(user);
   const displayNavItems = paywallActive ? [subscriptionNav] : navItems;
 
   if (paywallActive && pathname !== "/dashboard/subscription") {
@@ -358,26 +357,7 @@ function AppLayoutInner({ children }) {
   }
 
   return (
-    <div className={`flex h-screen dashboard-bg overflow-hidden ${user?.impersonating ? "pt-11" : ""}`}>
-      {user?.impersonating && (
-        <div className="fixed top-0 left-0 right-0 z-[70] bg-amber-400 text-amber-950 px-4 py-2.5 flex items-center justify-between gap-3 shadow-sm">
-          <p className="text-xs sm:text-sm font-semibold truncate">
-            Viendo el panel de <strong>{user.name || user.email}</strong>
-            {user.email ? <span className="font-normal opacity-80"> · {user.email}</span> : null}
-            . Ves la misma información que esa cuenta.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              stopImpersonation();
-              window.location.assign("/admin/users");
-            }}
-            className="shrink-0 px-3 py-1.5 rounded-lg bg-white text-amber-950 text-xs font-bold hover:bg-amber-50"
-          >
-            Volver a admin
-          </button>
-        </div>
-      )}
+    <div className="flex h-screen dashboard-bg overflow-hidden">
       {/* Sidebar premium */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-[17.5rem] flex flex-col transition-transform duration-300 lg:relative lg:translate-x-0 dash-sidebar ${

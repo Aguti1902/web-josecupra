@@ -941,7 +941,8 @@ function JugadorDashboard({ user, club }) {
   }, [user?.id, user?.objetivo, user?.frecuencia, user?.material, user?.lesion, user?.hasAssignedPlan]);
 
   const todayName = getTodayName();
-  const todayDay = playerPlan?.find((d) => d.day === todayName);
+  const weekDays = Array.isArray(playerPlan) ? playerPlan : [];
+  const todayDay = weekDays.find((d) => d.day === todayName);
   const todaySession = todayDay?.sessions?.[0] ?? null;
 
   const freqNum = parseInt(String(user?.frecuencia || user?.training_days || 3).replace(/\D/g, "")) || 3;
@@ -951,7 +952,7 @@ function JugadorDashboard({ user, club }) {
   const wk = weekKey();
 
   const trainingSessionsByDay = {};
-  (playerPlan || []).forEach((d) => {
+  weekDays.forEach((d) => {
     if (d.sessions?.[0]) trainingSessionsByDay[d.day] = d.sessions[0];
   });
 

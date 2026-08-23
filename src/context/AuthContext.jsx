@@ -10,7 +10,7 @@ import {
   resolveEdad,
   normalizeFrecuencia,
 } from "../lib/playerTrainingProfile";
-import { getImpersonationSnapshot, stopImpersonation } from "../lib/adminImpersonation";
+import { getImpersonationSnapshot, stopImpersonation, isRealAdminUser } from "../lib/adminImpersonation";
 
 const AuthContext = createContext(null);
 
@@ -162,9 +162,15 @@ function buildUser(authUser, profile) {
       }
     }
 
+    const resolvedRole =
+      email === "jose@depro.es" || meta.role === "admin" || profile.role === "admin"
+        ? "admin"
+        : (profile.role ?? meta.role ?? "player");
+
     return {
       ...profile,
       email,
+      role: resolvedRole,
       club,
       team,
       team_role: teamRole,
@@ -339,7 +345,7 @@ function snapshotToAuthUser(snap) {
 
 function withImpersonation(realUser) {
   const snap = getImpersonationSnapshot();
-  if (!snap || !realUser || realUser.role !== "admin") return realUser;
+  if (!snap || !realUser || !isRealAdminUser(realUser)) return realUser;
   const built = buildUser(snapshotToAuthUser(snap), null);
   const isCoach = snap.type === "coach" || snap.isSoloCoach || String(snap.clubId || "").startsWith("coach_");
   if (isCoach) {
