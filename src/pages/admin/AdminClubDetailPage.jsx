@@ -40,6 +40,7 @@ import {
   BookOpen,
   Sparkles,
   Layers,
+  Wallet,
 } from "lucide-react";
 import AdminClubCalentamientosPage from "./AdminClubCalentamientosPage";
 import AdminClubTareasPage from "./AdminClubTareasPage";
@@ -49,6 +50,7 @@ import AdminCatalogPage from "./AdminCatalogPage";
 import AdminTestsPage from "./AdminTestsPage";
 import { loadClubs, saveClub, saveClubDetail, loadClubDetail, createClubUser, updateUserByEmail } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect, ManualPriceField } from "../../components/admin/PlanSelectField";
+import ClubEconomyFields from "../../components/admin/ClubEconomyFields";
 import { PLANS as CHECKOUT_PLANS } from "../../lib/checkoutPlans";
 import {
   ADMIN_STATUS_STYLES,
@@ -57,6 +59,12 @@ import {
   parseManualPrice,
   canUserLogin,
 } from "../../lib/adminAccountStatus";
+import {
+  clubDiscountCode,
+  clubCommissionPct,
+  withSyncedDiscountCode,
+} from "../../lib/clubEconomy";
+import { isWideClubRole } from "../../lib/clubRoles";
 import { normalizeBlock, adminDefaultBlocks, adminSessionBlocks, flattenBlocksToExercises, ADMIN_BLOCK_TYPES } from "../../lib/sessionBlocks";
 import BlockExerciseEditor from "../../components/admin/BlockExerciseEditor";
 import CoachAutoQuestionnaire, {
@@ -72,6 +80,7 @@ import { clearCoachGeneratedPlans } from "../../lib/coachSessionsStorage";
 const Youtube = PlayCircle;
 
 const ROLES = [
+  { id: "administrador", label: "Administrador", icon: Wallet, color: "text-amber-700 bg-amber-50" },
   { id: "coordinador", label: "Coordinador", icon: Crown, color: "text-depro-blue bg-depro-blue/10" },
   { id: "entrenador", label: "Entrenador", icon: UserCheck, color: "text-green-600 bg-green-50" },
   { id: "ayudante", label: "Ayudante técnico", icon: Dumbbell, color: "text-orange-500 bg-orange-50" },
@@ -170,7 +179,7 @@ function generatePassword() {
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 
-function NewTeamModal({ onClose, onCreate, clubId, clubPlan, clubStatus, clubManualPrice }) {
+function NewTeamModal({ onClose, onCreate, clubId, clubPlan, clubStatus }) {
   const [form, setForm] = useState({
     name: "", category: "Sub-16", season: "2025/26",
     coachName: "", coachEmail: "", coachPassword: generatePassword(),
@@ -213,7 +222,6 @@ function NewTeamModal({ onClose, onCreate, clubId, clubPlan, clubStatus, clubMan
         plan: clubPlan,
         subscriptionStatus: normalizeAdminStatus(clubStatus || "activo"),
         billingSource: "manual",
-        manualPrice: parseManualPrice(clubManualPrice),
       });
       userCreated = !!(result.ok || result.alreadyExists);
       userError = userCreated ? null : result.error;
@@ -539,7 +547,7 @@ function EditTeamModal({ team, onClose, onSave, clubId }) {
   );
 }
 
-function NewUserModal({ teams, clubId, clubPlan, clubStatus, clubManualPrice, onClose, onCreate, onAccessActivated }) {
+function NewUserModal({ teams, clubId, clubPlan, clubStatus, onClose, onCreate, onAccessActivated }) {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -548,7 +556,6 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, clubManualPrice, on
     managedTeamIds: [],
     password: generatePassword(),
     subscriptionStatus: normalizeAdminStatus(clubStatus || "activo"),
-    manualPrice: clubManualPrice ?? "",
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null); // { ok, email, password, error, formSnapshot }
@@ -570,13 +577,12 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, clubManualPrice, on
     email: form.email,
     role: form.role,
     team: selectedTeam?.name || null,
-    teamId: form.role === "coordinador" ? null : (form.teamId || null),
-    managedTeamIds: form.role === "coordinador" ? form.managedTeamIds : [],
+    teamId: isWideClubRole(form.role) ? null : (form.teamId || null),
+    managedTeamIds: isWideClubRole(form.role) ? form.managedTeamIds : [],
     active: true,
     lastLogin: "nunca",
     password: form.password,
     subscriptionStatus: normalizeAdminStatus(form.subscriptionStatus),
-    manualPrice: parseManualPrice(form.manualPrice),
   });
 
   const activateAccess = async (snapshot = form) => {
@@ -586,13 +592,12 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, clubManualPrice, on
       name: snapshot.name || snapshot.email,
       role: "club",
       clubId,
-      teamId: snapshot.role === "coordinador" ? undefined : (snapshot.teamId || undefined),
+      teamId: isWideClubRole(snapshot.role) ? undefined : (snapshot.teamId || undefined),
       teamRole: snapshot.role,
-      managedTeamIds: snapshot.role === "coordinador" ? snapshot.managedTeamIds : undefined,
+      managedTeamIds: isWideClubRole(snapshot.role) ? snapshot.managedTeamIds : undefined,
       plan: clubPlan,
       subscriptionStatus: normalizeAdminStatus(snapshot.subscriptionStatus || clubStatus || "activo"),
       billingSource: "manual",
-      manualPrice: parseManualPrice(snapshot.manualPrice ?? clubManualPrice),
     });
     const active = !!(res.ok || res.alreadyExists);
     if (active) onAccessActivated?.(snapshot.email);
@@ -760,9 +765,14 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, clubManualPrice, on
               })}
             </div>
           </div>
+          {form.role === "administrador" && (
+            <p className="text-xs text-depro-gray -mt-2">
+              Ve la cuota del club, el código de descuento y lo generado con las planificaciones individuales.
+            </p>
+          )}
           {/* Equipo(s) asignado(s) */}
           {teams.length > 0 && (
-            form.role === "coordinador" ? (
+            isWideClubRole(form.role) ? (
               <div>
                 <label className="block text-sm font-medium text-depro-dark mb-1">
                   Equipos que coordina <span className="text-depro-gray font-normal text-xs">(multiselección)</span>
@@ -827,10 +837,6 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, clubManualPrice, on
           <SubscriptionStatusSelect
             value={form.subscriptionStatus}
             onChange={(v) => setForm((f) => ({ ...f, subscriptionStatus: v }))}
-          />
-          <ManualPriceField
-            value={form.manualPrice}
-            onChange={(v) => setForm((f) => ({ ...f, manualPrice: v }))}
           />
         </div>
         <div className="flex gap-3 p-6 border-t border-depro-border">
@@ -908,11 +914,12 @@ function EditClubUserModal({ user, teams, onClose, onSave }) {
           <input className="admin-input w-full" placeholder="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <input className="admin-input w-full" type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           <select className="admin-input w-full" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+            <option value="administrador">Administrador (economía)</option>
             <option value="entrenador">Entrenador</option>
             <option value="coordinador">Coordinador</option>
             <option value="ayudante">Ayudante</option>
           </select>
-          {form.role === "coordinador" ? (
+          {isWideClubRole(form.role) ? (
             <div className="space-y-2">
               <p className="text-xs font-bold text-depro-gray uppercase">Equipos que gestiona</p>
               {teams.map((t) => (
@@ -933,7 +940,13 @@ function EditClubUserModal({ user, teams, onClose, onSave }) {
         <div className="flex gap-3 p-6 border-t border-depro-border">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm">Cancelar</button>
           <button
-            onClick={() => onSave({ ...user, ...form, team: teams.find((t) => t.id === form.teamId)?.name || user.team })}
+            onClick={() => onSave({
+              ...user,
+              ...form,
+              teamId: isWideClubRole(form.role) ? null : form.teamId,
+              managedTeamIds: isWideClubRole(form.role) ? form.managedTeamIds : [],
+              team: isWideClubRole(form.role) ? null : (teams.find((t) => t.id === form.teamId)?.name || user.team),
+            })}
             disabled={!form.email}
             className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold disabled:opacity-40"
           >
@@ -2010,6 +2023,10 @@ export default function AdminClubDetailPage() {
   const [planId, setPlanId] = useState("club-inicial");
   const [subscriptionStatus, setSubscriptionStatus] = useState("activo");
   const [manualPrice, setManualPrice] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
+  const [commissionPct, setCommissionPct] = useState("10");
+  const [payoutIban, setPayoutIban] = useState("");
+  const [payoutAccountName, setPayoutAccountName] = useState("");
   const [planSaving, setPlanSaving] = useState(false);
   const [planMsg, setPlanMsg] = useState(null);
 
@@ -2030,6 +2047,10 @@ export default function AdminClubDetailPage() {
         setPlanId(merged.plan || "club-inicial");
         setSubscriptionStatus(normalizeAdminStatus(merged.subscriptionStatus || merged.status || "activo"));
         setManualPrice(merged.manualPrice ?? merged.precioCobrado ?? "");
+        setDiscountCode(clubDiscountCode(merged));
+        setCommissionPct(String(clubCommissionPct(merged)));
+        setPayoutIban(merged.payoutIban || "");
+        setPayoutAccountName(merged.payoutAccountName || "");
       } else {
         setClub(null);
       }
@@ -2059,7 +2080,7 @@ export default function AdminClubDetailPage() {
   }
 
   const copyCode = () => {
-    navigator.clipboard.writeText(club.login_code || club.loginCode || "");
+    navigator.clipboard.writeText(clubDiscountCode(club) || club.login_code || club.loginCode || "");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -2152,7 +2173,6 @@ export default function AdminClubDetailPage() {
       plan: club.plan || planId,
       subscriptionStatus: normalizeAdminStatus(user.subscriptionStatus || club.subscriptionStatus || subscriptionStatus),
       billingSource: "manual",
-      manualPrice: parseManualPrice(user.manualPrice ?? club.manualPrice ?? manualPrice),
     });
     setActivatingUserEmail(null);
     if (result.ok || result.alreadyExists) {
@@ -2221,8 +2241,18 @@ export default function AdminClubDetailPage() {
     setPlanMsg(null);
     const status = normalizeAdminStatus(subscriptionStatus);
     const price = parseManualPrice(manualPrice);
-    const updated = { ...club, plan: planId, subscriptionStatus: status, status, manualPrice: price };
+    const updated = withSyncedDiscountCode({
+      ...club,
+      plan: planId,
+      subscriptionStatus: status,
+      status,
+      manualPrice: price,
+      referralCommissionPct: clubCommissionPct({ referralCommissionPct: commissionPct }),
+      payoutIban: payoutIban.trim().toUpperCase(),
+      payoutAccountName: payoutAccountName.trim(),
+    }, discountCode);
     setClub(updated);
+    setDiscountCode(clubDiscountCode(updated));
     await persistClub(updated, plans);
     await saveClub(updated);
 
@@ -2430,8 +2460,8 @@ export default function AdminClubDetailPage() {
             <div className="flex items-center gap-2 bg-depro-gray-light rounded-xl px-4 py-3 shrink-0">
               <Lock size={14} className="text-depro-gray" />
               <div>
-                <p className="text-xs text-depro-gray">Código de acceso</p>
-                <p className="font-mono font-bold text-depro-dark">{club.loginCode}</p>
+                <p className="text-xs text-depro-gray">Código de descuento</p>
+                <p className="font-mono font-bold text-depro-dark">{clubDiscountCode(club) || club.loginCode || "—"}</p>
               </div>
               <button
                 onClick={copyCode}
@@ -2537,6 +2567,21 @@ export default function AdminClubDetailPage() {
             <SubscriptionStatusSelect value={subscriptionStatus} onChange={setSubscriptionStatus} />
             <ManualPriceField value={manualPrice} onChange={setManualPrice} />
           </div>
+          <div className="rounded-xl border border-depro-border bg-depro-gray-light/40 p-4">
+            <h4 className="text-sm font-semibold text-depro-dark mb-3">Código de descuento y transferencia</h4>
+            <ClubEconomyFields
+              discountCode={discountCode}
+              commissionPct={commissionPct}
+              payoutIban={payoutIban}
+              payoutAccountName={payoutAccountName}
+              onChange={(patch) => {
+                if (patch.discountCode != null) setDiscountCode(patch.discountCode);
+                if (patch.referralCommissionPct != null) setCommissionPct(patch.referralCommissionPct);
+                if (patch.payoutIban != null) setPayoutIban(patch.payoutIban);
+                if (patch.payoutAccountName != null) setPayoutAccountName(patch.payoutAccountName);
+              }}
+            />
+          </div>
           {planMsg && (
             <p className={`text-sm ${planMsg.ok ? "text-green-700" : "text-red-600"}`}>{planMsg.text}</p>
           )}
@@ -2547,7 +2592,7 @@ export default function AdminClubDetailPage() {
               disabled={planSaving}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark disabled:opacity-50"
             >
-              {planSaving ? "Guardando…" : "Guardar plan"}
+              {planSaving ? "Guardando…" : "Guardar plan y economía"}
             </button>
           </div>
         </div>
@@ -2905,7 +2950,6 @@ export default function AdminClubDetailPage() {
           clubId={club.id}
           clubPlan={club.plan || planId}
           clubStatus={club.subscriptionStatus || subscriptionStatus}
-          clubManualPrice={club.manualPrice ?? manualPrice}
         />
       )}
       {editingTeam && (
@@ -2922,7 +2966,6 @@ export default function AdminClubDetailPage() {
           clubId={club.id}
           clubPlan={club.plan || planId}
           clubStatus={club.subscriptionStatus || subscriptionStatus}
-          clubManualPrice={club.manualPrice ?? manualPrice}
           onClose={() => setShowNewUser(false)}
           onCreate={addUser}
           onAccessActivated={markUserAccessActive}

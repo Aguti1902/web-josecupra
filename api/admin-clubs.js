@@ -1,4 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
+import {
+  clubDiscountCode,
+  withSyncedDiscountCode,
+} from "../src/lib/clubEconomy.js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
 const SERVICE_ROLE_KEY =
@@ -27,7 +31,7 @@ async function resolveCaller(req, admin) {
     teamRole: meta.teamRole || null,
     clubId: meta.clubId || null,
     isAdmin: role === "admin" || data.user.email === "jose@depro.es",
-    isCoordinator: role === "club" && meta.teamRole === "coordinador" && !!meta.clubId,
+    isCoordinator: role === "club" && (meta.teamRole === "coordinador" || meta.teamRole === "administrador") && !!meta.clubId,
     isClubUser: role === "club" && !!meta.clubId,
   };
 }
@@ -118,21 +122,46 @@ export default async function handler(req, res) {
       }
     }
 
+    const { data: existingRow } = await admin.from("clubs_detail").select("data").eq("club_id", clubId).maybeSingle();
+    const existing = existingRow?.data || {};
+
+    let payload = { ...club };
+    if (!caller.isAdmin && Object.keys(existing).length) {
+      payload = {
+        ...payload,
+        loginCode: existing.loginCode || existing.login_code || payload.loginCode,
+        login_code: existing.login_code || existing.loginCode || payload.login_code,
+        discountCode: existing.discountCode || existing.loginCode || existing.login_code,
+        referralCommissionPct: existing.referralCommissionPct,
+        payoutIban: existing.payoutIban,
+        payoutAccountName: existing.payoutAccountName,
+        manualPrice: existing.manualPrice,
+      };
+    } else {
+      payload = withSyncedDiscountCode(
+        payload,
+        payload.discountCode || payload.loginCode || payload.login_code,
+      );
+      if (payload.referralCommissionPct != null && payload.referralCommissionPct !== "") {
+        payload.referralCommissionPct = Number(payload.referralCommissionPct);
+      }
+    }
+
     const registryRow = {
       id:           clubId,
-      name:         club.name         || "Sin nombre",
-      abbreviation: club.abbreviation || null,
-      city:         club.city         || null,
-      status:       club.status       || "activo",
-      plan:         club.plan         || "personalizado",
-      login_code:   club.loginCode    || club.login_code || null,
-      created_at:   club.created_at   || new Date().toISOString(),
+      name:         payload.name         || "Sin nombre",
+      abbreviation: payload.abbreviation || null,
+      city:         payload.city         || null,
+      status:       payload.status       || "activo",
+      plan:         payload.plan         || "personalizado",
+      login_code:   clubDiscountCode(payload) || null,
+      created_at:   payload.created_at   || new Date().toISOString(),
     };
     try {
       await admin.from("clubs").upsert(registryRow, { onConflict: "id" });
     } catch (_) { /* non-fatal */ }
 
-    const fullDetail = detail ? { ...club, ...detail } : club;
+    const fullDetail = detail ? { ...payload, ...detail } : payload;
     const result = await upsertClubDetail(admin, clubId, fullDetail);
 
     if (!result.ok) {

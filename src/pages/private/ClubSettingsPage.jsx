@@ -2,14 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import {
   Building2, Users, UserPlus, Plus, Trash2, Pencil, Copy, CheckCircle,
-  ImagePlus, Palette, Save, X, RefreshCw, Loader2, KeyRound, Gift, Sparkles,
+  ImagePlus, Palette, Save, X, RefreshCw, Loader2, KeyRound, Wallet, Sparkles,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import {
   loadClubDetail, saveClubDetail, createClubUser,
 } from "../../lib/adminStorage";
-import ClubReferralPanel from "../../components/private/ClubReferralPanel";
-import { canAccessClubSettings } from "../../lib/clubRoles";
+import ClubEconomyPanel from "../../components/private/ClubEconomyPanel";
+import { canAccessClubSettings, canSeeClubEconomy } from "../../lib/clubRoles";
+import { clubDiscountCode } from "../../lib/clubEconomy";
 import CoachAutoQuestionnaire, {
   questionnaireToCoachConfig,
 } from "../../components/shared/CoachAutoQuestionnaire";
@@ -434,7 +435,7 @@ export default function ClubSettingsPage() {
     return result;
   };
 
-  const loginCode = club.login_code || club.loginCode || "—";
+  const loginCode = clubDiscountCode(club) || "—";
 
   const handleIdentitySave = async () => {
     await persist({ ...club });
@@ -509,7 +510,7 @@ export default function ClubSettingsPage() {
     { id: "identidad", label: "Identidad", icon: Building2 },
     { id: "equipos", label: "Equipos", icon: Users },
     { id: "staff", label: "Staff", icon: UserPlus },
-    { id: "referidos", label: "Referidos", icon: Gift },
+    ...(canSeeClubEconomy(user) ? [{ id: "economia", label: "Economía", icon: Wallet }] : []),
   ];
 
   return (
@@ -522,7 +523,7 @@ export default function ClubSettingsPage() {
         <div className="flex items-center gap-2 rounded-xl border border-depro-border bg-white px-3 py-2">
           <KeyRound size={14} className="text-depro-blue" />
           <div>
-            <p className="text-[10px] font-bold uppercase text-depro-gray tracking-wide">Código jugadores</p>
+            <p className="text-[10px] font-bold uppercase text-depro-gray tracking-wide">Código de descuento</p>
             <p className="font-mono font-black text-depro-dark">{loginCode}</p>
           </div>
           <button
@@ -716,11 +717,8 @@ export default function ClubSettingsPage() {
         </div>
       )}
 
-      {tab === "referidos" && (
-        <ClubReferralPanel
-          clubId={clubId}
-          loginCode={loginCode}
-        />
+      {tab === "economia" && (
+        <ClubEconomyPanel club={club} />
       )}
 
       {showTeamModal && (

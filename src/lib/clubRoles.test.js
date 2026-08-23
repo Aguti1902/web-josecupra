@@ -1,0 +1,37 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import {
+  isClubAdmin,
+  isWideClubRole,
+  canSeeClubEconomy,
+  canSeeClubPricing,
+  canViewClubReferrals,
+} from "./clubRoles.js";
+
+describe("clubRoles economía", () => {
+  const adminClub = { role: "club", team_role: "administrador" };
+  const coord = { role: "club", team_role: "coordinador" };
+  const coach = { role: "club", team_role: "entrenador" };
+  const depro = { role: "admin", email: "jose@depro.es" };
+
+  it("administrador del club es rol amplio y ve economía", () => {
+    assert.equal(isClubAdmin(adminClub), true);
+    assert.equal(isWideClubRole("administrador"), true);
+    assert.equal(isWideClubRole("coordinador"), true);
+    assert.equal(isWideClubRole("entrenador"), false);
+    assert.equal(canSeeClubEconomy(adminClub), true);
+    assert.equal(canViewClubReferrals(adminClub), true);
+  });
+
+  it("coordinador y entrenador no ven economía ni precios Stripe", () => {
+    assert.equal(canSeeClubEconomy(coord), false);
+    assert.equal(canSeeClubEconomy(coach), false);
+    assert.equal(canSeeClubPricing(coord), false);
+    assert.equal(canSeeClubPricing(adminClub), false);
+  });
+
+  it("admin DEPRO ve economía y catálogo de precios", () => {
+    assert.equal(canSeeClubEconomy(depro), true);
+    assert.equal(canSeeClubPricing(depro), true);
+  });
+});

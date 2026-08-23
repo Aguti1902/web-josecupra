@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, Activity, MessageSquare, LogOut, Menu, X,
   ChevronRight, Trophy, ClipboardList, Users as UsersIcon, User, TrendingUp,
-  Building2, HelpCircle, Bell, CreditCard, HeartPulse,
+  Building2, HelpCircle, Bell, CreditCard, HeartPulse, Wallet,
 } from "lucide-react";
 import TrialBanner from "./TrialBanner";
 import { useTranslation } from "react-i18next";
@@ -45,6 +45,7 @@ function tourIdForRoute(to) {
     "/dashboard/physical": "nav-physical",
     "/dashboard/feedback": "nav-feedback",
     "/dashboard/club-settings": "nav-club-settings",
+    "/dashboard/club-economia": "nav-club-economia",
     "/dashboard/profile": "nav-profile",
     "/dashboard/club-profile": "nav-profile",
     "/dashboard/subscription": "nav-subscription",
@@ -269,9 +270,9 @@ function AppLayoutInner({ children }) {
 
   const administradorNav = [
     { to: "/dashboard", icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dashboard/club-economia", icon: Wallet, label: "Economía" },
     { to: "/dashboard/squad", icon: UsersIcon, label: t("nav.squad") },
     { to: "/dashboard/club-settings", icon: Building2, label: "Mi Club" },
-    subscriptionNav,
     { to: "/dashboard/club-profile", icon: User, label: t("nav.my_profile") },
   ];
 

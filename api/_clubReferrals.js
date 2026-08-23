@@ -1,5 +1,19 @@
+import {
+  clubCommissionRate,
+  clubCommissionPct,
+  clubDiscountCode,
+  commissionCents,
+  DEFAULT_CLUB_COMMISSION_PCT,
+} from "../src/lib/clubEconomy.js";
+
 const REGISTRY_ID = "CLUB_REFERRAL_REGISTRY";
-export const REFERRAL_COMMISSION_RATE = 0.10;
+export const REFERRAL_COMMISSION_RATE = DEFAULT_CLUB_COMMISSION_PCT / 100;
+
+export async function loadClubEconomy(admin, clubId) {
+  if (!clubId) return {};
+  const { data } = await admin.from("clubs_detail").select("data").eq("club_id", clubId).maybeSingle();
+  return data?.data || {};
+}
 
 export async function loadReferralRegistry(admin) {
   const { data } = await admin.from("clubs_detail").select("data").eq("club_id", REGISTRY_ID).maybeSingle();
@@ -69,8 +83,11 @@ export async function recordReferralPayment(admin, {
   if (!clubId || !amountPaidCents || amountPaidCents <= 0) return { ok: false, reason: "invalid_input" };
 
   const registry = await loadReferralRegistry(admin);
+  const club = await loadClubEconomy(admin, clubId);
   const bucket = ensureClubBucket(registry, clubId);
-  const commission = Math.round(amountPaidCents * (bucket.commissionRate ?? REFERRAL_COMMISSION_RATE));
+  const rate = clubCommissionRate(club);
+  bucket.commissionRate = rate;
+  const commission = commissionCents(amountPaidCents, clubCommissionPct(club));
   const dedupeKey = stripeInvoiceId || stripeSessionId;
   if (dedupeKey && bucket.referrals.some((r) => r.stripeInvoiceId === dedupeKey || r.stripeSessionId === dedupeKey)) {
     return { ok: true, duplicate: true };

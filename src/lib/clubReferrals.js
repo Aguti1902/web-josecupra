@@ -1,7 +1,9 @@
 /** Cliente para estadísticas de referidos del club */
 
 /** Comisión del club sobre planificaciones individuales con su código. */
-export const REFERRAL_COMMISSION_PCT = 10;
+import { DEFAULT_CLUB_COMMISSION_PCT } from "./clubEconomy";
+
+export const REFERRAL_COMMISSION_PCT = DEFAULT_CLUB_COMMISSION_PCT;
 
 export function formatEuros(cents) {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format((cents || 0) / 100);

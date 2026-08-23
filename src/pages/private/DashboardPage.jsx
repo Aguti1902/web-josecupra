@@ -18,9 +18,8 @@ import {
   distributeMesocycleForTeam, getCurrentWeekIndex, isMesocicloActive, getMesocicloWeeks,
 } from "../../lib/periodization";
 import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/sessionBlocks";
-import PlanUsageCard from "../../components/private/PlanUsageCard";
 import CoachDashboard from "../../components/private/CoachDashboard";
-import ClubReferralPanel from "../../components/private/ClubReferralPanel";
+import ClubEconomyPanel from "../../components/private/ClubEconomyPanel";
 import ClubPlayersMonitor from "../../components/private/ClubPlayersMonitor";
 import { isClubAdmin } from "../../lib/clubRoles";
 
@@ -314,7 +313,7 @@ function CoachAvatar({ coach, safeAccent }) {
 // ════════════════════════════════════════════════════════════
 // COORDINADOR DASHBOARD
 // ════════════════════════════════════════════════════════════
-function CoordinadorDashboard({ club, accent, secondColor, onViewTeam, showReferrals = false }) {
+function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
   const { user } = useAuth();
   const allTeams = club?.teams || [];
   const managedTeamIds = user?.managedTeamIds || [];
@@ -356,14 +355,6 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam, showRefer
         <StatCard label="Microciclos" value={(club?.plans || []).length} sub="planificados" icon={ClipboardList} accent={accent} secondary={secondColor} />
         <StatCardSecondary label="Sesiones" value={totalSessions} sub="en planificación" icon={Calendar} accent={accent} secondary={secondColor} />
       </div>
-
-      {showReferrals && (
-        <ClubReferralPanel
-          clubId={club?.id}
-          loginCode={club?.login_code || club?.loginCode}
-          compact
-        />
-      )}
 
       {/* Equipos */}
       <div>
@@ -1318,7 +1309,7 @@ export default function DashboardPage() {
           secondColor={secondColor}
         />
         {isClubAdmin(user) && !selectedTeam && (
-          <PlanUsageCard club={club} user={user} audience="club" />
+          <ClubEconomyPanel club={club} compact />
         )}
         {(teamRole === "administrador" && !selectedTeam)
           ? <CoordinadorDashboard
@@ -1326,7 +1317,6 @@ export default function DashboardPage() {
               accent={accent}
               secondColor={secondColor}
               onViewTeam={handleViewTeam}
-              showReferrals
             />
           : (teamRole === "coordinador" && !selectedTeam)
           ? <CoordinadorDashboard

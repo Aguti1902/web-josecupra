@@ -39,6 +39,7 @@ function classifyUser(meta = {}, email) {
     const tr = meta.teamRole || "coordinador";
     if (tr === "entrenador") return { type: "club_entrenador", label: "Club · Entrenador" };
     if (tr === "ayudante") return { type: "club_ayudante", label: "Club · Ayudante" };
+    if (tr === "administrador") return { type: "club_administrador", label: "Club · Administrador" };
     return { type: "club_coordinador", label: "Club · Coordinador" };
   }
   return { type: role, label: role };
