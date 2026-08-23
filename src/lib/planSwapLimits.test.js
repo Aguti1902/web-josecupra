@@ -45,7 +45,7 @@ describe("planSwapLimits — ciclo mensual", () => {
 
   it("límites de swap y perfil por ciclo", () => {
     const user = { id: "u1" };
-    const plan = { startDate: "2026-08-17" };
+    const plan = { startDate: "2026-08-17", source: "profile_regen", profileRegenAt: "2026-08-17T12:00:00.000Z" };
     resetCycleCounters("u1", "2026-08-17");
     assert.equal(canSwapExercise(user, plan), true);
     assert.equal(canRegenerateFromProfile("u1", plan), true);
