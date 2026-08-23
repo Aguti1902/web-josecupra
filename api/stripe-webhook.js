@@ -2,6 +2,7 @@ import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 import { syncCheckoutSession, syncSubscriptionToUser } from "./_stripeSync.js";
 import { recordReferralPayment } from "./_clubReferrals.js";
+import { getStripeWebhookSecretFallback } from "./_stripeWebhookSecret.js";
 
 export const config = {
   api: {
@@ -23,7 +24,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = (process.env.STRIPE_WEBHOOK_SECRET || getStripeWebhookSecretFallback() || "").trim();
   if (!webhookSecret) {
     console.error("stripe-webhook: falta STRIPE_WEBHOOK_SECRET");
     return res.status(500).json({ error: "Webhook no configurado" });

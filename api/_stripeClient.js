@@ -72,8 +72,11 @@ export async function getStripe() {
   return _stripe;
 }
 
+/** Dominio canónico de producción (fallback si falta SITE_URL en Vercel). */
+export const DEFAULT_SITE_URL = "https://www.deprotrain.com";
+
 export function getSiteUrl() {
-  const raw = process.env.SITE_URL || process.env.VERCEL_URL || "https://web-josecupra.vercel.app";
+  const raw = process.env.SITE_URL || process.env.VERCEL_URL || DEFAULT_SITE_URL;
   if (raw.startsWith("http")) return raw.replace(/\/$/, "");
   return `https://${raw}`.replace(/\/$/, "");
 }
