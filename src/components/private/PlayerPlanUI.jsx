@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   ArrowLeft, CheckCircle, Clock, Dumbbell, FileText, Flame, Gauge, Info,
-  Layers, Pause, Target, Video, Wind, X, RefreshCw,
+  Layers, Pause, Repeat2, Target, Video, Wind, X, RefreshCw,
 } from "lucide-react";
 import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS } from "../../lib/sessionBlocks";
 import { getYouTubeId } from "../../lib/youtube";
@@ -140,7 +140,7 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
         <div className="flex flex-wrap items-center gap-2 mb-5">
           <ConditionPill Icon={Clock} label={exercise.duration} color={accent} />
           {exercise.sets && <ConditionPill Icon={Gauge} label={`${exercise.sets} series`} />}
-          {exercise.reps && <ConditionPill Icon={Pause} label={exercise.reps} />}
+          {exercise.reps && <ConditionPill Icon={Repeat2} label={exercise.reps} />}
           {loadPrescription && <ConditionPill Icon={Dumbbell} label={`Carga: ${loadPrescription}`} color={accent} />}
           {exercise.rest && <ConditionPill Icon={Pause} label={`Descanso: ${exercise.rest}`} />}
         </div>
@@ -340,7 +340,7 @@ function BlockExerciseList({ exercises, accentColor, onSelect }) {
               <div className="flex flex-wrap items-center gap-1.5 mt-1">
                 {ex.duration && <ConditionPill Icon={Clock} label={ex.duration} color={accentColor} />}
                 {ex.sets && <ConditionPill Icon={Gauge} label={`${ex.sets} series`} />}
-                {ex.reps && <ConditionPill Icon={Pause} label={ex.reps} />}
+                {ex.reps && <ConditionPill Icon={Repeat2} label={ex.reps} />}
                 {(ex.load || ex.weight || ex.peso) && (
                   <ConditionPill Icon={Dumbbell} label={`Carga: ${ex.load || ex.weight || ex.peso}`} color={accentColor} />
                 )}
