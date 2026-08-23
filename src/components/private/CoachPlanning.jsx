@@ -41,16 +41,24 @@ export default function CoachPlanning({ club, team }) {
   const [libraryReady, setLibraryReady] = useState(false);
   const [mesociclo, setMesociclo] = useState(null);
   const [openWeek, setOpenWeek] = useState(currentWeekIdx + 1);
+  const [genError, setGenError] = useState(null);
 
   useEffect(() => { loadCoachLibrary().then(() => setLibraryReady(true)); }, []);
 
   useEffect(() => {
     if (!clubId || !teamId) return;
-    const library = getCachedCoachLibrary();
-    const m = loadOrGenerateMesociclo({
-      clubId, teamId, config, startDate: bounds.startDate, endDate: bounds.endDate, library,
-    });
-    setMesociclo(m);
+    try {
+      const library = getCachedCoachLibrary();
+      const m = loadOrGenerateMesociclo({
+        clubId, teamId, config, startDate: bounds.startDate, endDate: bounds.endDate, library,
+      });
+      setMesociclo(m);
+      setGenError(null);
+    } catch (err) {
+      console.warn("[DEPRO] no se pudo generar el mesociclo", err);
+      setMesociclo(null);
+      setGenError(err?.message || "No se pudo generar el mesociclo.");
+    }
   }, [clubId, teamId, config, libraryReady, bounds.startDate, bounds.endDate]);
 
   function updateWeekMeta(weekNumber, patch) {
@@ -61,7 +69,25 @@ export default function CoachPlanning({ club, team }) {
     saveMesociclo({ clubId, teamId, data: next });
   }
 
-  if (!clubId || !teamId) return null;
+  if (!clubId || !teamId) {
+    return (
+      <div className="bg-white border border-depro-border rounded-2xl p-8 text-center space-y-3">
+        <Calendar size={28} className="mx-auto text-depro-gray/40" />
+        <h2 className="text-xl font-black text-depro-dark">Mesociclo</h2>
+        <p className="text-sm text-depro-gray">
+          {!clubId
+            ? "Guarda el cuestionario en Mi perfil para crear tu club y generar el mesociclo."
+            : "Elige un equipo desde el dashboard para ver su mesociclo."}
+        </p>
+        <Link
+          to={!clubId ? "/dashboard/club-profile" : "/dashboard"}
+          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-depro-blue text-white text-sm font-bold"
+        >
+          {!clubId ? "Ir a Mi perfil" : "Ver equipos"}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -75,6 +101,10 @@ export default function CoachPlanning({ club, team }) {
           {formatDate(bounds.startDate)} → {formatDate(bounds.endDate)} · Calendario del mes con la sesión de cada día
         </p>
       </div>
+
+      {genError && (
+        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-xl p-3">{genError}</p>
+      )}
 
       {!mesociclo ? null : (
         <>

@@ -2087,7 +2087,7 @@ export default function AdminClubDetailPage() {
 
   // Persistir cambios del club cuando cambia — devuelve promesa con { ok, error }
   const persistClub = useCallback((updatedClub, updatedPlans) => {
-    return saveClubDetail(id, { ...updatedClub, plans: updatedPlans });
+    return saveClubDetail(id, { ...updatedClub, plans: updatedPlans, plansSource: "club" });
   }, [id]);
 
   if (loading) {

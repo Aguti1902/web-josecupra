@@ -102,6 +102,9 @@ function loadClubDataFromStorage(meta, userEmail) {
       const lc = userEmail.toLowerCase();
       team = allTeams.find((t) => t.coach?.email?.toLowerCase() === lc) || null;
     }
+    if (!team && allTeams.length > 0 && club.isSoloCoach) {
+      team = allTeams[0];
+    }
 
     return { club, team, teamRole };
   } catch {
