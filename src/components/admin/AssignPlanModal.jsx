@@ -3,6 +3,7 @@ import { CheckCircle2, Search, X, AlertCircle, Loader2 } from "lucide-react";
 import {
   fetchAssignablePlayers,
   fetchAssignableClubTargets,
+  listAssignablePlayers,
   assignPlanToPlayer,
   assignClubAutoPlan,
 } from "../../lib/adminAssignPlan";
@@ -31,6 +32,9 @@ export default function AssignPlanModal({
   profile = null,
   questionnaire = null,
   defaultCycles = 1,
+  /** Preselecciona este jugador/destino al abrir (p. ej. tras alta admin). */
+  defaultSelectedId = "",
+  defaultSelectedLabel = "",
 }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -46,7 +50,7 @@ export default function AssignPlanModal({
   useEffect(() => {
     if (!open) return;
     setQuery("");
-    setSelectedId("");
+    setSelectedId(defaultSelectedId || "");
     setStartDate(todayISO());
     setCycles(Math.min(6, Math.max(1, Number(defaultCycles) || 1)));
     setError(null);
@@ -55,10 +59,38 @@ export default function AssignPlanModal({
     setLoadingTargets(true);
     const load = mode === "club" ? fetchAssignableClubTargets() : fetchAssignablePlayers();
     load
-      .then((list) => setTargets(list || []))
+      .then((list) => {
+        let merged = list || [];
+        if (mode === "player") {
+          const local = listAssignablePlayers();
+          const map = new Map();
+          for (const t of [...local, ...merged]) {
+            if (t?.id) map.set(t.id, t);
+          }
+          merged = [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
+        }
+        setTargets(merged);
+        if (defaultSelectedId) {
+          if (merged.some((t) => t.id === defaultSelectedId)) {
+            setSelectedId(defaultSelectedId);
+          } else {
+            // Jugador recién creado: aún no en API; mantener preselección sintética
+            setTargets((prev) => [
+              {
+                id: defaultSelectedId,
+                name: defaultSelectedLabel || "Jugador recién creado",
+                email: "",
+                role: "player",
+              },
+              ...prev.filter((t) => t.id !== defaultSelectedId),
+            ]);
+            setSelectedId(defaultSelectedId);
+          }
+        }
+      })
       .catch(() => setTargets([]))
       .finally(() => setLoadingTargets(false));
-  }, [open, defaultCycles, mode]);
+  }, [open, defaultCycles, mode, defaultSelectedId, defaultSelectedLabel]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
