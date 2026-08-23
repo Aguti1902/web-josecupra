@@ -7,9 +7,12 @@ import {
   generateClubAutoFourWeeks,
   validateCoachQuestionnaire,
   TRAIN_DAYS,
+  monthKeyFromDate,
+  weekOffsetInMonth,
+  variantIndexForWeek,
 } from "./clubAutoEngine.js";
 
-export { TRAIN_DAYS, validateCoachQuestionnaire };
+export { TRAIN_DAYS, validateCoachQuestionnaire, monthKeyFromDate, weekOffsetInMonth, variantIndexForWeek };
 
 export const CLUB_AUTO_NIVELES = [
   { id: "A", label: "A · 9–12 años", category: "Sub-11" },
@@ -40,12 +43,11 @@ export const CLUB_AUTO_PLAYER_COUNTS = [
 ];
 
 export const CLUB_AUTO_MATERIALS = [
-  "Conos",
-  "Picas",
-  "Mini vallas",
+  "Sin material",
   "Gomas",
-  "Balones",
-  "Porterías",
+  "Mancuernas",
+  "Barra",
+  "Gimnasio completo",
 ];
 
 /**
@@ -95,6 +97,7 @@ export function usesClubAutoEngine(clubOrConfig) {
 export function coachConfigFingerprint(config = {}) {
   const q = coachConfigToQuestionnaire(config);
   const auto = usesClubAutoEngine(config) || usesClubAutoEngine({ coachConfig: config });
+  const monthKey = monthKeyFromDate(new Date());
   return JSON.stringify({
     engine: auto ? "club_auto" : "legacy",
     nivel: q.nivel,
@@ -102,6 +105,8 @@ export function coachConfigFingerprint(config = {}) {
     days: [...(q.dias_exactos_entrenamiento || [])].sort(),
     match: q.dia_partido,
     gym: q.acceso_gimnasio === true || q.acceso_gimnasio === "si" ? "si" : "no",
+    material: [...(q.material || [])].map(String).sort(),
+    monthKey,
   });
 }
 
@@ -176,23 +181,31 @@ export function adaptClubAutoWeek(result, weekStart) {
   };
 }
 
-export function generateClubAutoWeekForCoach(config, { weekStart, weekOffset = 0 } = {}) {
+export function generateClubAutoWeekForCoach(config, { weekStart, weekOffset } = {}) {
   const q = coachConfigToQuestionnaire(config);
+  const monthKey = monthKeyFromDate(weekStart || new Date());
+  const offset = weekOffset ?? weekOffsetInMonth(weekStart);
+  const variant = variantIndexForWeek(offset);
   const result = generateClubAutoMicrociclo(q, {
-    weekOffset,
-    seed: `${weekStart || "w"}|${weekOffset}|${q.nivel}`,
+    weekOffset: offset,
+    monthKey,
+    variant,
+    weekStart,
+    seed: `${monthKey}|v${variant}|${q.nivel}`,
   });
   return adaptClubAutoWeek(result, weekStart);
 }
 
 export function generateClubAutoMesocicloForCoach(config, { startDate, numWeeks = 4 } = {}) {
   const q = coachConfigToQuestionnaire(config);
-  const weeksRaw = generateClubAutoFourWeeks(q);
+  const monthKey = monthKeyFromDate(startDate || new Date());
+  const weeksRaw = generateClubAutoFourWeeks(q, { monthKey });
   const nivelLabel = CLUB_AUTO_NIVELES.find((n) => n.id === q.nivel)?.label || q.nivel;
   const base = startDate ? new Date(`${startDate}T00:00:00`) : new Date();
   return {
     engine: "club_auto",
     startDate,
+    monthKey,
     numWeeks,
     objetivoLabel: `Planificación mensual · Nivel ${nivelLabel}`,
     weeks: weeksRaw.map((w, i) => {

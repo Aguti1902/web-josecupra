@@ -22,8 +22,8 @@ describe("_addonCatalog", () => {
     assert.ok(item.price || item.price_data);
   });
 
-  it("catálogo alineado con 3 extras de producción", () => {
-    const ids = ["addon-pdf", "addon-cargas", "addon-progression"];
+  it("catálogo alineado con extras jugador y coach", () => {
+    const ids = ["addon-pdf", "addon-cargas", "addon-progression", "addon-coach-ball-refresh", "addon-coach-teams"];
     ids.forEach((id) => {
       assert.ok(ADDON_CATALOG[id]);
       assert.equal(ADDON_CATALOG[id].amount, 500);

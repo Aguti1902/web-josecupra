@@ -49,7 +49,8 @@ export default function PlanUsageCard({ club, user, audience = "club", highlight
   const canSeePricing = canSeeClubPricing(user);
 
   const plan = useMemo(() => resolveCurrentPlan(user, club), [user, club]);
-  const limits = plan ? getPlanLimits(plan.id) : { maxTeams: null, maxPlayers: null };
+  const purchased = user?.purchasedAddons || [];
+  const limits = plan ? getPlanLimits(plan.id, { purchasedAddons: purchased }) : { maxTeams: null, maxPlayers: null };
   const nextPlan = plan ? getNextPlan(plan.id) : null;
 
   const teamsUsed = (club?.teams || []).length;

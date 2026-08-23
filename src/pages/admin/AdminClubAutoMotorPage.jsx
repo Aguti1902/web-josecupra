@@ -69,7 +69,7 @@ export default function AdminClubAutoMotorPage() {
     dia_partido: "sabado",
     duracion_sesion: "75",
     num_jugadores: "14-18",
-    material: ["Conos", "Balones", "Picas"],
+    material: ["Sin material", "Gomas"],
     acceso_gimnasio: "no",
   });
   const [result, setResult] = useState(null);

@@ -18,7 +18,7 @@ export const WEBSITE_FAQ = [
   },
   {
     keywords: ["precio", "precios", "cuesta", "plan", "€", "euro"],
-    answer: "Los planes empiezan desde **14,99 €/mes** (Coach Pro). Hay opciones para entrenadores individuales y clubs. Consulta la página de [Precios](/precios) para comparar funcionalidades.",
+    answer: "Los planes de entrenador empiezan desde **30 €/mes** (Standard). Hay extras +5€ y un Premium a 45€. Consulta la página de [Precios](/precios) para comparar.",
   },
   {
     keywords: ["club", "clubs", "coordinador", "multi-equipo"],

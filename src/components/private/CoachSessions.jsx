@@ -12,6 +12,8 @@ import {
 import { loadFavorites, toggleFavorite } from "../../lib/coachFavorites";
 import { PROTOCOLOS, CATEGORY_PROTOCOLS } from "../../data/coachExerciseLibrary";
 import { usesClubAutoEngine } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { selectBallWarmup } from "../../lib/clubAuto/clubAutoTaskSelector";
+import { hasFeatureAccess } from "../../lib/subscription";
 import ClubAutoSessionView from "./ClubAutoSessionView";
 
 function lum(hex) {
@@ -183,7 +185,7 @@ function CustomExerciseModal({ accent, clubId, onClose, onCreated }) {
   );
 }
 
-export default function CoachSessions({ club, team }) {
+export default function CoachSessions({ club, team, user }) {
   const accent = safeAccent(club?.primaryColor || "#0A36F7");
   const config = useMemo(() => club?.coachConfig || {}, [club?.coachConfig]);
   const clubId = club?.id;
@@ -324,8 +326,10 @@ export default function CoachSessions({ club, team }) {
           </div>
           <p className="text-sm text-depro-gray">
             {isClubAuto
-              ? "Estructura: calentamiento → balón → protocolo → tarea principal → observaciones."
-              : "Generadas por el motor DEPRO a partir de tu configuración."}
+              ? "Microciclo según tu cuestionario. Dos sesiones por tipo de entreno, repartidas en el mes. Al cambiar de mes se generan otras nuevas."
+              : isPersonalizado
+                ? "Añade, duplica y edita tus propias sesiones."
+                : "Sesión del día generada por DEPRO."}
           </p>
         </div>
         <div className="flex items-center gap-2 bg-white border border-depro-border rounded-xl px-2 py-1.5">
@@ -437,7 +441,27 @@ export default function CoachSessions({ club, team }) {
 
               <div className="p-5 space-y-3">
                 {(isClubAuto || activeSession.engine === "club_auto") && activeSession.structure?.length ? (
-                  <ClubAutoSessionView session={activeSession} accent={accent} />
+                  <ClubAutoSessionView
+                    session={activeSession}
+                    accent={accent}
+                    canRefreshBall={hasFeatureAccess(user, "unlimited_ball_warmups")}
+                    refreshBallLocked="Incluido en Premium o con el extra de refresco ilimitado con balón."
+                    onRefreshBall={() => {
+                      if (!hasFeatureAccess(user, "unlimited_ball_warmups")) return;
+                      const next = selectBallWarmup({
+                        nivel: config.nivel || "B",
+                        protocolo: activeSession.protocol || "A",
+                        seed: `${Date.now()}|refresh`,
+                        avoidId: activeSession.structure?.find((b) => b.type === "calentamiento_balon")?.item?.id,
+                      });
+                      applyUpdate(activeSession.id, (s) => ({
+                        ...s,
+                        structure: (s.structure || []).map((b) => (
+                          b.type === "calentamiento_balon" ? { ...b, item: next } : b
+                        )),
+                      }));
+                    }}
+                  />
                 ) : (
                 <div className="space-y-3">
                   {(activeSession.exercises || []).map((ex, idx) => (

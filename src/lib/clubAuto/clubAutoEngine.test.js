@@ -30,7 +30,7 @@ describe("clubAutoEngine — cuestionario", () => {
       acceso_gimnasio: false,
       duracion_sesion: "75",
       num_jugadores: "14-18",
-      material: ["Conos", "Balones", "Picas"],
+      material: ["Sin material", "Gomas"],
     });
     assert.equal(ok.ok, true);
     assert.equal(ok.normalized.nivel, "B");
@@ -99,7 +99,7 @@ describe("clubAutoEngine — generación sesión completa", () => {
       acceso_gimnasio: "no",
       duracion_sesion: "75",
       num_jugadores: "14-18",
-      material: ["Conos", "Balones"],
+      material: ["Sin material", "Gomas"],
     });
     assert.equal(result.ok, true);
     assert.equal(result.sessions.length, 3);
@@ -122,7 +122,7 @@ describe("clubAutoEngine — generación sesión completa", () => {
       acceso_gimnasio: "si",
       duracion_sesion: "90",
       num_jugadores: "18-24",
-      material: ["Balones", "Conos"],
+      material: ["Gomas", "Gimnasio completo"],
     });
     assert.equal(result.ok, true);
     const proto = result.sessions[0].structure.find((b) => b.type === "protocolo");
@@ -137,7 +137,7 @@ describe("clubAutoEngine — generación sesión completa", () => {
       acceso_gimnasio: "no",
       duracion_sesion: "75",
       num_jugadores: "14-18",
-      material: ["Conos", "Balones", "Picas"],
+      material: ["Sin material", "Gomas"],
     });
     assert.equal(result.ok, true);
     assert.equal(result.sessions.length, 3);

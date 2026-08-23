@@ -77,7 +77,7 @@ const DEFAULT_AUTO_Q = {
   dia_partido: "sabado",
   duracion_sesion: "75",
   num_jugadores: "14-18",
-  material: ["Conos", "Balones"],
+  material: ["Sin material", "Gomas"],
   acceso_gimnasio: "no",
 };
 

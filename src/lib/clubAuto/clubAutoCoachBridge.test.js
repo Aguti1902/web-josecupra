@@ -5,8 +5,9 @@ import {
   coachConfigToQuestionnaire,
   generateClubAutoWeekForCoach,
   categoryForNivel,
+  CLUB_AUTO_MATERIALS,
 } from "./clubAutoCoachBridge.js";
-import { CLUB_MAIN_TASKS } from "../../data/clubAutoCatalog.js";
+import { CLUB_MAIN_TASKS, CLUB_TASK_FOLDERS } from "../../data/clubAutoCatalog.js";
 
 describe("clubAutoCoachBridge", () => {
   it("detecta engine club_auto y respeta modo personalizado/manual", () => {
@@ -68,15 +69,17 @@ describe("clubAutoCoachBridge", () => {
     assert.equal(categoryForNivel("C"), "Juvenil");
   });
 
-  it("catálogo tiene 45 tareas únicas por carpeta", () => {
-    assert.equal(CLUB_MAIN_TASKS.length, 45);
-    const names = new Set(CLUB_MAIN_TASKS.map((t) => t.nombre));
-    assert.equal(names.size, 45);
-    for (const nivel of ["A", "B", "C"]) {
-      for (const grupo of ["regenerativo", "carga_alta", "prepartido"]) {
-        const n = CLUB_MAIN_TASKS.filter((t) => t.nivel === nivel && t.grupo_microciclo === grupo).length;
-        assert.equal(n, 5, `${nivel}/${grupo}`);
-      }
-    }
+  it("carpetas de tareas con balón vacías y etiquetas de sesión", () => {
+    assert.equal(CLUB_MAIN_TASKS.length, 0);
+    assert.ok(CLUB_TASK_FOLDERS.length >= 6);
+    const rondo = CLUB_TASK_FOLDERS.find((f) => f.id === "rondo");
+    const posesion = CLUB_TASK_FOLDERS.find((f) => f.id === "posesion");
+    const circuito = CLUB_TASK_FOLDERS.find((f) => f.id === "circuito");
+    assert.deepEqual(rondo.tipos_sesion, ["extensiva", "intensiva"]);
+    assert.deepEqual(posesion.tipos_sesion, ["intensiva"]);
+    assert.deepEqual(circuito.tipos_sesion, ["extensiva", "intensiva"]);
+    assert.ok(CLUB_AUTO_MATERIALS.includes("Gomas"));
+    assert.ok(CLUB_AUTO_MATERIALS.includes("Gimnasio completo"));
+    assert.ok(!CLUB_AUTO_MATERIALS.includes("Conos"));
   });
 });

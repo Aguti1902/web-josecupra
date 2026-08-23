@@ -8,9 +8,9 @@ import { isStripeTestMode } from "./_stripeMode.js";
 export const TRIAL_PERIOD_DAYS = 15;
 
 export const PRICES = {
-  "coach-starter":    { amount: 1499,  name: "DEPRO Entrenador Starter",   description: "1 equipo · hasta 25 jugadores · microciclo IA" },
-  "coach-pro":        { amount: 2999,  name: "DEPRO Entrenador Pro",       description: "3 equipos · hasta 60 jugadores · control de carga" },
-  "coach-premium":    { amount: 4999,  name: "DEPRO Entrenador Premium",   description: "Equipos ilimitados · GPS · diagramas IA" },
+  "coach-starter":    { amount: 3000,  name: "DEPRO Entrenador Standard",  description: "Sesiones automáticas · 1 equipo · extras +5€" },
+  "coach-pro":        { amount: 3000,  name: "DEPRO Entrenador Standard",  description: "Sesiones automáticas · 1 equipo (plan legado Pro)" },
+  "coach-premium":    { amount: 4500,  name: "DEPRO Entrenador Premium",   description: "Standard + extras con descuento · hasta 4 equipos" },
   "club-inicial":     { amount: 19900, name: "DEPRO Club Inicial",         description: "Hasta 3 equipos · white-label · referidos" },
   "club-pro":         { amount: 39900, name: "DEPRO Club Profesional",     description: "Hasta 8 equipos · GPS · módulo médico" },
   "club-elite":       { amount: 69900, name: "DEPRO Club Elite",           description: "Equipos ilimitados · API · SLA dedicado" },

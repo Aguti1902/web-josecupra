@@ -154,8 +154,11 @@ export default function CoachAutoQuestionnaire({ value, onChange, showErrors = t
 
       <div>
         <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-2 flex items-center gap-1.5">
-          <Package size={12} /> ¿Qué material tenéis disponible? *
+          <Package size={12} /> ¿Qué material tenéis para los ejercicios? *
         </label>
+        <p className="text-xs text-depro-gray mb-2">
+          Igual que en las planificaciones individuales: sirve para elegir ejercicios (gimnasio, gomas, mancuernas…). No se usan conos ni vallas.
+        </p>
         <div className="flex flex-wrap gap-2">
           {CLUB_AUTO_MATERIALS.map((m) => (
             <Chip key={m} active={form.material.includes(m)} onClick={() => toggleMaterial(m)}>

@@ -4,6 +4,7 @@
  */
 import { FEATURES, planIncludesFeature } from "./planFeatures.js";
 import { featuresForAddon } from "./playerAddons.js";
+import { coachFeaturesForAddon } from "./coachAddons.js";
 
 /** Features Premium-only (sin extra comprable). */
 const PREMIUM_ONLY_FEATURES = new Set(["feedback", "coach_contact"]);
@@ -36,9 +37,13 @@ export function evaluateFeatureAccess({
   if (billingSource === "manual" && audience !== "player") return true;
 
   if (feature.addonId && purchasedAddons.includes(feature.addonId)) return true;
-  if (purchasedAddons.some((aid) => featuresForAddon(aid).includes(featureId))) return true;
+  if (purchasedAddons.some((aid) => {
+    const fromPlayer = featuresForAddon(aid).includes(featureId);
+    const fromCoach = coachFeaturesForAddon(aid).includes(featureId);
+    return audience === "coach" ? (fromCoach || fromPlayer) : fromPlayer;
+  })) return true;
 
-  if (audience === "player" && isPro && !isTrial) return true;
+  if ((audience === "player" || audience === "coach") && isPro && !isTrial) return true;
 
   // Trial Standard: extras visibles, feedback/preparador solo Premium
   if (isTrial) {

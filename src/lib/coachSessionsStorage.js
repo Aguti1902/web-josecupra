@@ -99,10 +99,8 @@ export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, num
   const key = mesoKeyFor(clubId, teamId);
   const fp = coachConfigFingerprint(config);
   const cached = lsGet(key, null);
-  if (cached && cached.startDate === startDate) {
-    if (cached.configFingerprint && cached.configFingerprint !== fp) {
-      // invalid — regenerate below
-    } else if (!(usesClubAutoEngine(config) && cached.engine !== "club_auto")) {
+  if (cached && cached.startDate === startDate && cached.configFingerprint === fp) {
+    if (!(usesClubAutoEngine(config) && cached.engine !== "club_auto")) {
       return cached;
     }
   }

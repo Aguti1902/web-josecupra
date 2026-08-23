@@ -28,7 +28,7 @@ export default function AdminProvisionProfileModal({ audience, onClose, onCreate
     name: "",
     email: "",
     password: generatePassword(),
-    planId: audience === "coach" ? "coach-pro" : "player-essential",
+    planId: audience === "coach" ? "coach-starter" : "player-essential",
     subscriptionStatus: "activo",
     teamName: "Mi equipo",
     category: "Sub-16",

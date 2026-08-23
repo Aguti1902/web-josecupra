@@ -8,8 +8,8 @@ const STORAGE_PREFIX = "depro_subscription_";
 export const TRIAL_PERIOD_DAYS = 15;
 
 export const PLAN_LABELS = {
-  "coach-starter": "Entrenador Starter",
-  "coach-pro": "Entrenador Pro",
+  "coach-starter": "Entrenador Standard",
+  "coach-pro": "Entrenador Standard",
   "coach-premium": "Entrenador Premium",
   "club-inicial": "Club Inicial",
   "club-pro": "Club Profesional",
@@ -21,9 +21,9 @@ export const PLAN_LABELS = {
 };
 
 export const PLAN_PRICES = {
-  "coach-starter": "14,99€/mes",
-  "coach-pro": "29,99€/mes",
-  "coach-premium": "49,99€/mes",
+  "coach-starter": "30€/mes",
+  "coach-pro": "30€/mes",
+  "coach-premium": "45€/mes",
   "club-inicial": "199€/mes",
   "club-pro": "399€/mes",
   "club-elite": "699€/mes",
@@ -196,6 +196,11 @@ export function isPlayerPro(user) {
   return p === "player-pro" || p === "premium" || p === "pro";
 }
 
+export function isCoachPremium(user) {
+  const plan = user?.plan || getSubscriptionFromUser(user)?.plan;
+  return String(plan || "").toLowerCase() === "coach-premium";
+}
+
 /** Acceso a una funcionalidad concreta (plan + trial + extras comprados). */
 export function hasFeatureAccess(user, featureId) {
   if (!user) return false;
@@ -214,7 +219,7 @@ export function hasFeatureAccess(user, featureId) {
     planId,
     billingSource,
     isTrial: isInTrial(user),
-    isPro: isPlayerPro(user),
+    isPro: isPlayerPro(user) || isCoachPremium(user),
     purchasedAddons: purchased,
     featureId,
   });
@@ -396,10 +401,11 @@ export { getPlanLimits, getNextPlan };
  */
 export function resolveCurrentPlan(user, club) {
   if (user?.plan && PLANS[user.plan]) return PLANS[user.plan];
+  const solo = !!(club?.isSoloCoach || user?.club?.isSoloCoach);
   if (user?.role === "club") {
-    return resolvePlanForClub(club?.plan, "club");
+    return resolvePlanForClub(club?.plan, solo ? "coach" : "club");
   }
-  if (club?.plan) return resolvePlanForClub(club.plan, "club");
+  if (club?.plan) return resolvePlanForClub(club.plan, solo ? "coach" : "club");
   return null;
 }
 

@@ -85,3 +85,60 @@ describe("accesos Standard / Premium / extras", () => {
     );
   });
 });
+
+describe("entrenador Standard / Premium / extras", () => {
+  it("carrito coach: 4 extras a 5€ y planes 30 / 45", async () => {
+    const { COACH_ADDONS } = await import("./coachAddons.js");
+    const { PLANS, getPlanLimits, plansForAudience } = await import("./checkoutPlans.js");
+    assert.equal(COACH_ADDONS.length, 4);
+    COACH_ADDONS.forEach((a) => assert.equal(a.price, 5));
+    assert.equal(PLANS["coach-starter"].price, 30);
+    assert.equal(PLANS["coach-premium"].price, 45);
+    assert.deepEqual(plansForAudience("coach").map((p) => p.id), ["coach-starter", "coach-premium"]);
+    assert.equal(getPlanLimits("coach-starter").maxTeams, 1);
+    assert.equal(getPlanLimits("coach-starter", { purchasedAddons: ["addon-coach-teams"] }).maxTeams, 4);
+    assert.equal(getPlanLimits("coach-premium").maxTeams, 4);
+  });
+
+  it("tests y cargas bloqueados en Standard, abiertos con extra o Premium", () => {
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "coach",
+        planId: "coach-starter",
+        billingSource: "stripe",
+        featureId: "team_tests",
+      }),
+      false,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "coach",
+        planId: "coach-starter",
+        billingSource: "stripe",
+        purchasedAddons: ["addon-progression"],
+        featureId: "team_tests",
+      }),
+      true,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "coach",
+        planId: "coach-premium",
+        billingSource: "stripe",
+        isPro: true,
+        featureId: "cargas",
+      }),
+      true,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "coach",
+        planId: "coach-starter",
+        billingSource: "stripe",
+        purchasedAddons: ["addon-coach-ball-refresh"],
+        featureId: "unlimited_ball_warmups",
+      }),
+      true,
+    );
+  });
+});

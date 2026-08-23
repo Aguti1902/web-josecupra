@@ -1,49 +1,147 @@
 /**
  * Capa paralela club_* — NO la lee el motor individual.
- * El motor club puede importar getClubTagsForExercise / buildClubExerciseTagIndex.
+ * Etiquetas alineadas con los slots de plantilla club (Campo/Gym A-B-C).
  */
 import { EXERCISES } from "../exerciseCatalog.js";
 
+function pats(e) {
+  return e.etiquetas?.patron || [];
+}
+function secs(e) {
+  return e.etiquetas?.accion_secundaria || [];
+}
+function nameOf(e) {
+  return String(e.nombre || "");
+}
+
 /** Slots club alineados con protocolos Campo/Gym A-B-C */
-const SLOT_RULES = [
-  { slot: "club_slot_movilidad_cadera", match: (e) => e.carpeta === "movilidad" && ["cadera"].includes(e.etiquetas?.grupo_principal) },
-  { slot: "club_slot_movilidad_tobillo", match: (e) => e.carpeta === "movilidad" && e.etiquetas?.grupo_principal === "tobillo" },
-  { slot: "club_slot_movilidad_toracica", match: (e) => e.carpeta === "movilidad" && /torac|escapular|hombro/i.test(e.nombre) },
-  { slot: "club_slot_activacion_gluteo", match: (e) => /glute|puente|hip thrust|bridge/i.test(e.nombre) },
-  { slot: "club_slot_activacion_cadena_posterior", match: (e) => (e.etiquetas?.patron || []).includes("cadena_posterior") && e.etiquetas?.grupo_principal !== "biceps" },
-  { slot: "club_slot_core_control", match: (e) => e.carpeta === "core" && (e.etiquetas?.patron || []).includes("isometrico") },
-  { slot: "club_slot_equilibrio", match: (e) => (e.etiquetas?.accion_secundaria || []).includes("equilibrio") || /equilibrio|unipodal/i.test(e.nombre) },
-  { slot: "club_slot_desplazamiento_controlado", match: (e) => /lateral walk|monster walk|desplazamiento|marcha a/i.test(e.nombre) },
-  { slot: "club_slot_fuerza_bilateral_anterior", match: (e) => e.carpeta === "fuerza_tren_inferior" && (e.etiquetas?.patron || []).includes("cadena_anterior") && !/unilateral|split|zancada|step/i.test(e.nombre) },
-  { slot: "club_slot_fuerza_unilateral", match: (e) => e.carpeta === "fuerza_tren_inferior" && /zancada|split|step-up|unilateral|búlgara|bulgara/i.test(e.nombre) },
-  { slot: "club_slot_cadena_posterior", match: (e) => (e.etiquetas?.patron || []).includes("cadena_posterior") },
-  { slot: "club_slot_core_estabilidad", match: (e) => e.carpeta === "core" },
-  { slot: "club_slot_pliometria", match: (e) => e.carpeta === "pliometria" },
-  { slot: "club_slot_aceleracion", match: (e) => (e.etiquetas?.patron || []).includes("aceleracion") },
-  { slot: "club_slot_coordinacion_pies", match: (e) => /pies|skipping|escalera|coordin/i.test(e.nombre) },
-  { slot: "club_slot_reaccion", match: (e) => (e.etiquetas?.patron || []).includes("reaccion") || /reacci[oó]n/i.test(e.nombre) },
-  { slot: "club_slot_COD", match: (e) => !e.esTest && ((e.etiquetas?.patron || []).includes("COD") || /cod|slalom|zig.?zag/i.test(e.nombre)) },
-  { slot: "club_slot_fuerza_principal_anterior", match: (e) => e.carpeta === "fuerza_tren_inferior" && (e.etiquetas?.patron || []).includes("cadena_anterior") && e.etiquetas?.rol === "basico" },
-  { slot: "club_slot_fuerza_principal_posterior", match: (e) => e.carpeta === "fuerza_tren_inferior" && (e.etiquetas?.patron || []).includes("cadena_posterior") && e.etiquetas?.rol === "basico" },
-  { slot: "club_slot_fuerza_rapida", match: (e) => (e.etiquetas?.patron || []).includes("fuerza_explosiva") || e.carpeta === "pliometria" },
-  { slot: "club_slot_locomocion_tecnica", match: (e) => /marcha a|skipping|t[eé]cnica de carrera|farmer/i.test(e.nombre) },
+export const SLOT_RULES = [
+  {
+    slot: "club_slot_movilidad_cadera",
+    label: "Movilidad de cadera",
+    match: (e) => e.carpeta === "movilidad" && (e.etiquetas?.grupo_principal === "cadera" || /cadera/i.test(nameOf(e))),
+  },
+  {
+    slot: "club_slot_movilidad_tobillo",
+    label: "Movilidad de tobillo o bisagra",
+    match: (e) =>
+      (e.carpeta === "movilidad" && (e.etiquetas?.grupo_principal === "tobillo" || /tobillo|bisagra|hinge/i.test(nameOf(e))))
+      || /bisagra|good morning|buenos d[ií]as/i.test(nameOf(e)),
+  },
+  {
+    slot: "club_slot_movilidad_toracica",
+    label: "Movilidad torácica",
+    match: (e) => e.carpeta === "movilidad" && /torac|escapular|hombro|rotaci[oó]n/i.test(nameOf(e)),
+  },
+  {
+    slot: "club_slot_activacion_gluteo",
+    label: "Activación cadena posterior / glúteo",
+    match: (e) => /glute|puente|hip thrust|bridge/i.test(nameOf(e)),
+  },
+  {
+    slot: "club_slot_activacion_cadena_posterior",
+    label: "Activación cadena posterior / glúteo",
+    match: (e) => pats(e).includes("cadena_posterior") && e.etiquetas?.grupo_principal !== "biceps",
+  },
+  {
+    slot: "club_slot_core_control",
+    label: "Core control",
+    match: (e) => e.carpeta === "core" && (pats(e).includes("isometrico") || /dead bug|bird dog|hollow|plancha/i.test(nameOf(e))),
+  },
+  {
+    slot: "club_slot_equilibrio",
+    label: "Equilibrio / propiocepción",
+    match: (e) => secs(e).includes("equilibrio") || /equilibrio|unipodal|propiocep/i.test(nameOf(e)),
+  },
+  {
+    slot: "club_slot_desplazamiento_controlado",
+    label: "Desplazamiento controlado",
+    match: (e) => /lateral walk|monster walk|desplazamiento|marcha a|zancada lateral/i.test(nameOf(e)),
+  },
+  {
+    slot: "club_slot_fuerza_bilateral_anterior",
+    label: "Fuerza bilateral anterior",
+    match: (e) => e.carpeta === "fuerza_tren_inferior" && pats(e).includes("cadena_anterior") && !/unilateral|split|zancada|step|b[uú]lgara/i.test(nameOf(e)),
+  },
+  {
+    slot: "club_slot_fuerza_unilateral",
+    label: "Fuerza unilateral",
+    match: (e) => e.carpeta === "fuerza_tren_inferior" && /zancada|split|step-up|unilateral|b[uú]lgara/i.test(nameOf(e)),
+  },
+  {
+    slot: "club_slot_cadena_posterior",
+    label: "Cadena posterior",
+    match: (e) => pats(e).includes("cadena_posterior"),
+  },
+  {
+    slot: "club_slot_core_estabilidad",
+    label: "Core / estabilidad",
+    match: (e) => e.carpeta === "core",
+  },
+  {
+    slot: "club_slot_pliometria",
+    label: "Pliometría",
+    match: (e) => e.carpeta === "pliometria",
+  },
+  {
+    slot: "club_slot_aceleracion",
+    label: "Aceleración / sprint corto",
+    match: (e) => pats(e).includes("aceleracion") || /acelerac|sprint|salidas/i.test(nameOf(e)),
+  },
+  {
+    slot: "club_slot_coordinacion_pies",
+    label: "Coordinación de pies",
+    match: (e) => /pies|skipping|escalera|coordin/i.test(nameOf(e)),
+  },
+  {
+    slot: "club_slot_reaccion",
+    label: "Reacción",
+    match: (e) => pats(e).includes("reaccion") || /reacci[oó]n/i.test(nameOf(e)),
+  },
+  {
+    slot: "club_slot_COD",
+    label: "COD / sprint corto + frenada",
+    match: (e) => !e.esTest && (pats(e).includes("COD") || /cod|slalom|zig.?zag|frenada/i.test(nameOf(e))),
+  },
+  {
+    slot: "club_slot_fuerza_principal_anterior",
+    label: "Fuerza principal anterior",
+    match: (e) => e.carpeta === "fuerza_tren_inferior" && pats(e).includes("cadena_anterior") && e.etiquetas?.rol === "basico",
+  },
+  {
+    slot: "club_slot_fuerza_principal_posterior",
+    label: "Fuerza principal posterior",
+    match: (e) => e.carpeta === "fuerza_tren_inferior" && pats(e).includes("cadena_posterior") && e.etiquetas?.rol === "basico",
+  },
+  {
+    slot: "club_slot_fuerza_rapida",
+    label: "Fuerza rápida / técnica",
+    match: (e) => pats(e).includes("fuerza_explosiva") || e.carpeta === "pliometria",
+  },
+  {
+    slot: "club_slot_locomocion_tecnica",
+    label: "Locomoción / aceleración suave",
+    match: (e) => /marcha a|skipping|t[eé]cnica de carrera|farmer/i.test(nameOf(e)),
+  },
 ];
+
+export const CLUB_SLOT_LABELS = Object.fromEntries(SLOT_RULES.map((r) => [r.slot, r.label]));
 
 function entornoFor(ex) {
   const mats = ex.etiquetas?.material || [];
-  const gym = mats.some((m) => String(m).startsWith("maquina") || m === "barra");
+  const gym = mats.some((m) => String(m).startsWith("maquina") || m === "barra" || m === "gym_completo");
   return gym ? ["club_gym", "club_campo"] : ["club_campo", "club_gym"];
 }
 
 function protocoloHints(ex) {
   const out = [];
-  if (ex.carpeta === "movilidad" || ex.carpeta === "core" || (ex.etiquetas?.accion_secundaria || []).includes("equilibrio")) {
+  if (ex.carpeta === "movilidad" || ex.carpeta === "core" || secs(ex).includes("equilibrio")) {
     out.push("club_protocolo_A");
   }
   if (ex.carpeta === "fuerza_tren_inferior" || ex.carpeta === "fuerza_tren_superior" || ex.carpeta === "pliometria") {
     out.push("club_protocolo_B");
   }
-  if (ex.carpeta === "velocidad" || (ex.etiquetas?.patron || []).some((p) => ["COD", "reaccion", "aceleracion"].includes(p))) {
+  if (ex.carpeta === "velocidad" || pats(ex).some((p) => ["COD", "reaccion", "aceleracion"].includes(p))) {
     out.push("club_protocolo_C");
   }
   return out.length ? out : ["club_protocolo_B"];
@@ -51,7 +149,7 @@ function protocoloHints(ex) {
 
 function intensidadDia(ex) {
   if (ex.carpeta === "movilidad" || ex.carpeta === "core") return ["club_regenerativo"];
-  if (ex.carpeta === "velocidad" && (ex.etiquetas?.patron || []).includes("COD")) return ["club_prepartido"];
+  if (ex.carpeta === "velocidad" && pats(ex).includes("COD")) return ["club_prepartido"];
   if (ex.carpeta === "pliometria" || ex.etiquetas?.intensidad === "alta") return ["club_carga_alta"];
   return ["club_carga_alta"];
 }
@@ -89,24 +187,27 @@ export const CLUB_TAG_VALUES = {
   club_protocolo: ["club_protocolo_A", "club_protocolo_B", "club_protocolo_C"],
   club_intensidad_dia: ["club_regenerativo", "club_carga_alta", "club_prepartido"],
   club_material: [
-    "club_material_conos",
-    "club_material_picas",
-    "club_material_mini_vallas",
+    "club_material_sin_material",
     "club_material_gomas",
-    "club_material_balones",
-    "club_material_porterias",
+    "club_material_mancuernas",
+    "club_material_barra",
+    "club_material_gym_completo",
   ],
   club_slot: SLOT_RULES.map((r) => r.slot),
 };
 
-/** Mapeo UI cuestionario → tags club_material_* */
+/** Mapeo UI cuestionario (igual que planificaciones individuales) → tags club_material_* */
 export const CLUB_MATERIAL_TAG_MAP = {
-  Conos: "club_material_conos",
-  Picas: "club_material_picas",
-  "Mini vallas": "club_material_mini_vallas",
+  "Sin material": "club_material_sin_material",
   Gomas: "club_material_gomas",
-  Balones: "club_material_balones",
-  Porterías: "club_material_porterias",
+  Mancuernas: "club_material_mancuernas",
+  Barra: "club_material_barra",
+  "Gimnasio completo": "club_material_gym_completo",
+  sin_material: "club_material_sin_material",
+  gomas: "club_material_gomas",
+  mancuernas: "club_material_mancuernas",
+  barra: "club_material_barra",
+  gym_completo: "club_material_gym_completo",
 };
 
 export function materialsToClubTags(materials = []) {

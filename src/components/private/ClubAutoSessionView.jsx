@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Dumbbell, Clock, Target, Sparkles, StickyNote, Activity, BarChart2, Flame, ListChecks, PencilRuler, ExternalLink } from "lucide-react";
 import { sessionTextsFor } from "../../data/sessionTypeTexts";
 import { sessionTypeForProtocol } from "../../lib/clubAuto/clubAutoTaskSelector";
+import { CLUB_SIN_BALON_INTRO } from "../../data/clubAutoCatalog";
 
 function youtubeEmbed(url) {
   if (!url) return null;
@@ -59,14 +60,36 @@ function ProtocolSlots({ exercises, accent }) {
   );
 }
 
-function ContentCard({ title, item, icon: Icon, accent }) {
-  if (!item) return null;
+function ContentCard({ title, item, icon: Icon, accent, emptyText, onRefresh, canRefresh, refreshLocked }) {
+  if (!item) {
+    return (
+      <div className="rounded-xl border border-dashed border-depro-border p-4">
+        <p className="text-[11px] font-black uppercase tracking-wide text-depro-gray flex items-center gap-1.5">
+          {Icon && <Icon size={12} style={{ color: accent }} />} {title}
+        </p>
+        <p className="text-xs text-depro-gray mt-2 italic">{emptyText || "Aún no hay contenido en esta carpeta."}</p>
+      </div>
+    );
+  }
   const embed = youtubeEmbed(item.videoUrl || item.video);
   return (
     <div className="rounded-xl border border-depro-border p-4 space-y-2">
-      <p className="text-[11px] font-black uppercase tracking-wide text-depro-gray flex items-center gap-1.5">
-        {Icon && <Icon size={12} style={{ color: accent }} />} {title}
-      </p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] font-black uppercase tracking-wide text-depro-gray flex items-center gap-1.5">
+          {Icon && <Icon size={12} style={{ color: accent }} />} {title}
+        </p>
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={canRefresh ? onRefresh : undefined}
+            disabled={!canRefresh}
+            title={refreshLocked || ""}
+            className="text-[10px] font-bold px-2 py-1 rounded-lg border border-depro-border text-depro-blue disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Cambiar
+          </button>
+        )}
+      </div>
       <p className="font-bold text-sm text-depro-dark">{item.nombre || item.name}</p>
       {(item.descripcion || item.duracion) && (
         <p className="text-xs text-depro-gray leading-relaxed">{item.descripcion || item.duracion}</p>
@@ -92,7 +115,13 @@ function ContentCard({ title, item, icon: Icon, accent }) {
 /**
  * @param {{ session: object, accent?: string }} props
  */
-export default function ClubAutoSessionView({ session, accent = "#0A36F7" }) {
+export default function ClubAutoSessionView({
+  session,
+  accent = "#0A36F7",
+  onRefreshBall,
+  canRefreshBall = false,
+  refreshBallLocked = "",
+}) {
   const [tab, setTab] = useState("resumen");
   const structure = session?.structure || [];
   const byType = Object.fromEntries(structure.map((b) => [b.type, b]));
@@ -175,9 +204,28 @@ export default function ClubAutoSessionView({ session, accent = "#0A36F7" }) {
           <h4 className="text-sm font-black text-depro-dark flex items-center gap-2">
             <Sparkles size={14} style={{ color: accent }} /> Calentamiento
           </h4>
+          <div className="rounded-xl border border-depro-border bg-depro-blue-light/20 p-4">
+            <p className="text-sm font-bold text-depro-dark">{CLUB_SIN_BALON_INTRO.titulo}</p>
+            <p className="text-xs text-depro-gray mt-1 leading-relaxed">{CLUB_SIN_BALON_INTRO.descripcion}</p>
+          </div>
           <div className="grid sm:grid-cols-2 gap-3">
-            <ContentCard title="General · sin balón" item={warm?.item} icon={Sparkles} accent={accent} />
-            <ContentCard title="Específico · con balón" item={ball?.item} icon={Activity} accent={accent} />
+            <ContentCard
+              title={warm?.item?.nombre || "Vídeo · sin balón"}
+              item={warm?.item?.placeholder ? null : warm?.item}
+              icon={Sparkles}
+              accent={accent}
+              emptyText="Cuando el admin suba vídeos, aquí saldrá Calentamiento 1, 2, 3…"
+            />
+            <ContentCard
+              title="Con balón"
+              item={ball?.item}
+              icon={Activity}
+              accent={accent}
+              emptyText="Cuando el admin añada tareas en las carpetas, aparecerán aquí."
+              onRefresh={onRefreshBall}
+              canRefresh={canRefreshBall}
+              refreshLocked={refreshBallLocked}
+            />
           </div>
         </section>
       )}

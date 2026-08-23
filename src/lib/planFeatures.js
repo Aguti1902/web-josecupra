@@ -62,7 +62,7 @@ export const FEATURES = {
     labelKey: "features.cargas",
     descKey: "features.cargas_desc",
     audiences: ["player", "coach", "club"],
-    minPlan: { player: "player-pro", coach: "coach-pro", club: "club-pro" },
+    minPlan: { player: "player-pro", coach: "coach-premium", club: "club-pro" },
     trialLocked: false,
     addonId: "addon-cargas",
     upsellBenefits: ["Registro de cargas por ejercicio", "Histórico y gráficos", "Sincronizado con tus sesiones"],
@@ -72,7 +72,8 @@ export const FEATURES = {
     labelKey: "features.team_tests",
     descKey: "features.team_tests_desc",
     audiences: ["coach", "club"],
-    minPlan: { coach: "coach-pro", club: "club-inicial" },
+    minPlan: { coach: "coach-premium", club: "club-inicial" },
+    addonId: "addon-progression",
     trialLocked: false,
   },
   coach_contact: {
@@ -112,11 +113,32 @@ export const FEATURES = {
     addonId: "addon-unlimited-exercises",
     upsellBenefits: ["Cambios de ejercicio ilimitados", "Misma planificación base", "Ideal para probar variantes"],
   },
+  unlimited_ball_warmups: {
+    id: "unlimited_ball_warmups",
+    labelKey: "features.unlimited_ball_warmups",
+    descKey: "features.unlimited_ball_warmups_desc",
+    audiences: ["coach", "club"],
+    minPlan: { coach: "coach-premium", club: "club-inicial" },
+    trialLocked: false,
+    addonId: "addon-coach-ball-refresh",
+    upsellBenefits: ["Cambiar tareas con balón sin límite", "Misma sesión, otra variante", "Incluido en Premium"],
+  },
+  extra_teams: {
+    id: "extra_teams",
+    labelKey: "features.extra_teams",
+    descKey: "features.extra_teams_desc",
+    audiences: ["coach"],
+    minPlan: { coach: "coach-premium" },
+    trialLocked: false,
+    addonId: "addon-coach-teams",
+    upsellBenefits: ["Hasta 4 equipos", "+3 equipos extra", "Incluido en Premium"],
+  },
 };
 
 function planIndex(audience, planId) {
+  const canonical = planId === "coach-pro" ? "coach-starter" : planId;
   const order = PLAN_ORDER[audience] || [];
-  const idx = order.indexOf(planId);
+  const idx = order.indexOf(canonical);
   return idx === -1 ? order.length : idx;
 }
 
