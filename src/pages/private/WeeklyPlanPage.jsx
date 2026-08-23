@@ -76,7 +76,7 @@ function ExerciseModal({ exercise, onClose, accent }) {
         <div className="flex flex-wrap items-center gap-2 mb-5">
           <ConditionPill Icon={Clock} label={exercise.duration} color={accent} />
           <ConditionPill Icon={Gauge} label={`${exercise.sets} series`} />
-          <ConditionPill Icon={Pause} label={exercise.reps} />
+          <ConditionPill Icon={Repeat2} label={exercise.reps} />
           {exercise.rest && <ConditionPill Icon={Pause} label={`Descanso: ${exercise.rest}`} />}
         </div>
 
@@ -175,7 +175,7 @@ function BlockExerciseList({ exercises, accentColor, onSelect }) {
               <div className="flex flex-wrap items-center gap-1.5 mt-1">
                 {ex.duration && <ConditionPill Icon={Clock} label={ex.duration} color={accentColor} />}
                 {ex.sets && <ConditionPill Icon={Gauge} label={`${ex.sets} series`} />}
-                {ex.reps && <ConditionPill Icon={Pause} label={ex.reps} />}
+                {ex.reps && <ConditionPill Icon={Repeat2} label={ex.reps} />}
               </div>
             </div>
             <span className="text-[10px] text-depro-gray opacity-0 group-hover:opacity-100 transition-opacity shrink-0 flex items-center gap-1">
