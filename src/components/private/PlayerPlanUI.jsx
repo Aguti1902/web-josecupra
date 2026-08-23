@@ -8,9 +8,7 @@ import { getYouTubeId } from "../../lib/youtube";
 import { saveLoadLog } from "../../lib/loadLogs";
 import {
   loadFieldsForExercise,
-  exerciseNeedsWeight,
   blockAllowsLoadLogging,
-  objectiveAllowsLoadLogging,
   loadLoggingMode,
   getTipoRegistro,
   isLoadRegistrable,
@@ -46,7 +44,14 @@ function ConditionPill({ Icon, label, color = "#6B7280" }) {
 
 function parseSetCount(exercise) {
   const n = parseInt(String(exercise?.sets ?? "").replace(/[^\d]/g, ""), 10);
-  return Number.isFinite(n) && n > 0 ? Math.min(n, 8) : 3;
+  // Máximo 4 series de registro (pedido producto)
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 4) : 3;
+}
+
+function isBodyweightExercise(exercise) {
+  const mats = exercise?.etiquetas?.material || exercise?.materiales || [exercise?.material];
+  const list = (Array.isArray(mats) ? mats : [mats]).map((m) => String(m || "").toLowerCase());
+  return !list.length || list.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno|campo/.test(m));
 }
 
 function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap }) {
@@ -61,16 +66,16 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
     },
   };
   const tipoRegistro = getTipoRegistro(typedExercise);
+  // El registro depende del ejercicio/bloque, no solo del objetivo del cuestionario
   const showLogging = blockAllowsLoadLogging(blockType)
     && isLoadRegistrable(typedExercise)
-    && objectiveAllowsLoadLogging(objective)
     && (blockType === "principal" || blockType === "complementario");
   const mode = loadLoggingMode(objective, typedExercise);
   const fields = loadFieldsForExercise(typedExercise, objective).filter((f) => f !== "completed");
-  const needsWeight = tipoRegistro === "fuerza" || exerciseNeedsWeight(exercise);
+  const bodyweight = isBodyweightExercise(exercise);
   const setCount = parseSetCount(exercise);
   const [series, setSeries] = useState(() =>
-    Array.from({ length: setCount }, () => ({ weight: "", reps: "", rpe: "", rest: "" })),
+    Array.from({ length: setCount }, () => ({ weight: "", reps: "" })),
   );
   const [loadDraft, setLoadDraft] = useState({});
   const [loadSaved, setLoadSaved] = useState(false);
@@ -103,11 +108,13 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
       payload.series = series;
       const filled = series.filter((s) => s.weight || s.reps);
       if (filled.length) {
-        payload.weight = filled.map((s) => s.weight).filter(Boolean).join(" / ");
+        payload.weight = filled.map((s) => s.weight || (bodyweight ? "PC" : "")).filter(Boolean).join(" / ");
         payload.reps = filled.map((s) => s.reps).filter(Boolean).join(" / ");
-        payload.rpe = filled.map((s) => s.rpe).filter(Boolean).join(" / ");
-        payload.rest = filled.map((s) => s.rest).filter(Boolean).join(" / ") || loadDraft.rest || "";
       }
+    }
+    if (mode === "velocidad") {
+      payload.time = loadDraft.time || "";
+      payload.heartRate = loadDraft.heartRate || "";
     }
     saveLoadLog(user?.id, payload);
     setLoadSaved(true);
@@ -115,14 +122,14 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
   };
 
   const fieldLabels = {
-    weight: "Peso (kg)",
+    weight: bodyweight ? "Peso (kg o PC)" : "Peso (kg)",
     sets: "Series",
     reps: "Repeticiones",
     rest: "Descanso",
     rpe: "RPE / RP",
     time: "Tiempo",
     distance: "Metros / distancia",
-    heartRate: "FC (ppm)",
+    heartRate: "FC media (ppm)",
     intensity: "Zona / intensidad",
     feelings: "Sensaciones",
     notes: "Observaciones",
@@ -191,33 +198,39 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
         {showLogging && (
           <div className="rounded-xl border border-depro-border p-4 mb-4 space-y-3">
             <div className="text-sm font-bold text-depro-dark">
-              {mode === "fuerza_series" ? "Registro por series" : mode === "velocidad" ? "Registro de velocidad" : "Registro de resistencia"}
+              {mode === "fuerza_series"
+                ? "Registro de fuerza"
+                : mode === "velocidad"
+                  ? "Registro de velocidad"
+                  : "Registro de resistencia"}
             </div>
             <p className="text-[11px] text-depro-gray -mt-1">
               {mode === "fuerza_series"
-                ? "Anota peso, repeticiones y RPE/RP de cada serie."
+                ? bodyweight
+                  ? "Peso corporal: anota repeticiones (y peso si usas lastre). Máximo 4 series."
+                  : "Anota peso (kg) y repeticiones de cada serie. Máximo 4 series."
                 : mode === "velocidad"
-                  ? "Anota tiempo y RPE/RP. Sin campo de peso."
-                  : "Anota distancia, tiempo y RPE según el ejercicio."}
+                  ? "Anota el tiempo y la frecuencia cardiaca media del estímulo."
+                  : "Anota distancia, tiempo y datos del estímulo."}
             </p>
 
             {mode === "fuerza_series" ? (
               <div className="space-y-2">
                 {series.map((row, idx) => (
-                  <div key={idx} className="grid grid-cols-4 gap-2 items-end">
-                    <p className="text-[10px] font-bold text-depro-gray uppercase col-span-4 sm:col-span-1 sm:pb-2">Serie {idx + 1}</p>
+                  <div key={idx} className="grid grid-cols-3 gap-2 items-end">
+                    <p className="text-[10px] font-bold text-depro-gray uppercase col-span-3">Serie {idx + 1}</p>
                     <div>
-                      <label className="text-[10px] font-bold text-depro-gray uppercase">Peso</label>
+                      <label className="text-[10px] font-bold text-depro-gray uppercase">{fieldLabels.weight}</label>
                       <input
                         className="admin-input w-full text-xs mt-1"
                         inputMode="decimal"
-                        placeholder="kg"
+                        placeholder={bodyweight ? "PC / kg" : "kg"}
                         value={row.weight}
                         onChange={(e) => setSeries((prev) => prev.map((s, i) => (i === idx ? { ...s, weight: e.target.value } : s)))}
                       />
                     </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-depro-gray uppercase">Reps</label>
+                    <div className="col-span-2">
+                      <label className="text-[10px] font-bold text-depro-gray uppercase">Repeticiones</label>
                       <input
                         className="admin-input w-full text-xs mt-1"
                         inputMode="numeric"
@@ -226,30 +239,40 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
                         onChange={(e) => setSeries((prev) => prev.map((s, i) => (i === idx ? { ...s, reps: e.target.value } : s)))}
                       />
                     </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-depro-gray uppercase">RP/RPE</label>
-                      <input
-                        className="admin-input w-full text-xs mt-1"
-                        inputMode="numeric"
-                        placeholder="6"
-                        value={row.rpe}
-                        onChange={(e) => setSeries((prev) => prev.map((s, i) => (i === idx ? { ...s, rpe: e.target.value } : s)))}
-                      />
-                    </div>
                   </div>
                 ))}
-                {fields.includes("rest") && (
-                  <div>
-                    <label className="text-[10px] font-bold text-depro-gray uppercase">{fieldLabels.rest}</label>
-                    <input
-                      className="admin-input w-full text-xs mt-1"
-                      placeholder={exercise.rest || "90\""}
-                      value={loadDraft.rest || ""}
-                      onChange={(e) => setLoadDraft({ ...loadDraft, rest: e.target.value })}
-                    />
-                  </div>
-                )}
                 <div>
+                  <label className="text-[10px] font-bold text-depro-gray uppercase">Observaciones</label>
+                  <textarea
+                    className="admin-input w-full text-xs mt-1"
+                    rows={2}
+                    value={loadDraft.notes || ""}
+                    onChange={(e) => setLoadDraft({ ...loadDraft, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+            ) : mode === "velocidad" ? (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold text-depro-gray uppercase">Tiempo</label>
+                  <input
+                    className="admin-input w-full text-xs mt-1"
+                    placeholder="1.85 s / 12.4 s"
+                    value={loadDraft.time || ""}
+                    onChange={(e) => setLoadDraft({ ...loadDraft, time: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-depro-gray uppercase">FC media (ppm)</label>
+                  <input
+                    className="admin-input w-full text-xs mt-1"
+                    inputMode="numeric"
+                    placeholder="165"
+                    value={loadDraft.heartRate || ""}
+                    onChange={(e) => setLoadDraft({ ...loadDraft, heartRate: e.target.value })}
+                  />
+                </div>
+                <div className="col-span-2">
                   <label className="text-[10px] font-bold text-depro-gray uppercase">Observaciones</label>
                   <textarea
                     className="admin-input w-full text-xs mt-1"
@@ -484,10 +507,46 @@ export function PlayerSessionFullscreen({
   const [selectedEx, setSelectedEx] = useState(null);
   const isDone = session.status === "completed" || session.completion === 100;
   const [completion, setCompletion] = useState(isDone ? 100 : 0);
+  const [sessionRpe, setSessionRpe] = useState("");
+  const [sessionRpeSaved, setSessionRpeSaved] = useState(false);
+  const [sessionRpeNotice, setSessionRpeNotice] = useState("");
 
   useEffect(() => {
     setCompletion(isDone ? 100 : 0);
+    setSessionRpe("");
+    setSessionRpeSaved(false);
+    setSessionRpeNotice("");
   }, [session.id, isDone]);
+
+  const handleSaveSessionRpe = () => {
+    if (!sessionRpe) {
+      setSessionRpeNotice("Indica el RPE general de la sesión (1–10).");
+      return;
+    }
+    if (!canPersistInTrial(user, "save_loads")) {
+      setSessionRpeNotice(trialPersistBlockedMessage());
+      return;
+    }
+    saveLoadLog(user?.id, {
+      exerciseId: `session_rpe_${session.id}`,
+      exerciseName: "RPE sesión",
+      sessionId: session.id,
+      sessionTitle: session.title,
+      weekLabel: dayLabel || new Date().toISOString().slice(0, 10),
+      objective: objective || session.type,
+      tipoRegistro: "session_rpe",
+      rpe: sessionRpe,
+      blockType: "session",
+    });
+    setSessionRpeSaved(true);
+    setSessionRpeNotice("");
+  };
+
+  const handleComplete = () => {
+    if (sessionRpe && !sessionRpeSaved) handleSaveSessionRpe();
+    setCompletion(100);
+    onComplete?.();
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
@@ -580,10 +639,36 @@ export function PlayerSessionFullscreen({
       </main>
 
       <footer className="flex-shrink-0 border-t border-depro-border bg-white p-4 safe-bottom">
-        <div className="max-w-3xl mx-auto w-full space-y-2">
+        <div className="max-w-3xl mx-auto w-full space-y-3">
+          <div className="rounded-xl border border-depro-border p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <div className="text-sm font-bold text-depro-dark">RPE general de la sesión</div>
+                <p className="text-[11px] text-depro-gray">Esfuerzo percibido global (1–10), no por ejercicio.</p>
+              </div>
+              <input
+                className="admin-input w-20 text-center text-sm font-bold"
+                inputMode="numeric"
+                min={1}
+                max={10}
+                placeholder="7"
+                value={sessionRpe}
+                onChange={(e) => { setSessionRpe(e.target.value); setSessionRpeSaved(false); }}
+              />
+            </div>
+            {sessionRpeNotice && <p className="text-xs text-amber-700">{sessionRpeNotice}</p>}
+            {sessionRpeSaved && <p className="text-xs text-green-700">RPE de sesión guardado.</p>}
+            <button
+              type="button"
+              onClick={handleSaveSessionRpe}
+              className="w-full py-2 rounded-xl text-xs font-bold border border-depro-border hover:border-depro-blue hover:text-depro-blue"
+            >
+              Guardar RPE sesión
+            </button>
+          </div>
           <CompletionButton
             completion={completion}
-            onComplete={() => { setCompletion(100); onComplete?.(); }}
+            onComplete={handleComplete}
             onUncomplete={() => { setCompletion(0); onUncomplete?.(); }}
             accentColor={accentColor}
           />

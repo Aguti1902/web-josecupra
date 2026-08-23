@@ -40,7 +40,7 @@ export function clearTrialLoadLogs(userId) {
 export function loadFieldsForObjective(objective) {
   const obj = String(objective || "").toLowerCase();
   if (obj.includes("velocidad")) {
-    return ["time", "distance", "rpe", "notes"];
+    return ["time", "heartRate", "notes"];
   }
   if (obj.includes("resistencia")) {
     return ["distance", "time", "heartRate", "rpe", "notes"];
@@ -48,5 +48,5 @@ export function loadFieldsForObjective(objective) {
   if (obj.includes("movilidad") || obj.includes("prevención") || obj.includes("prevencion")) {
     return ["rpe", "feelings", "notes"];
   }
-  return ["weight", "sets", "reps", "rpe", "notes"];
+  return ["weight", "sets", "reps", "notes"];
 }

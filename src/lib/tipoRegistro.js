@@ -66,9 +66,9 @@ export function getTipoRegistro(exercise) {
 export function fieldsForTipoRegistro(tipo) {
   switch (tipo) {
     case "fuerza":
-      return ["weight", "sets", "reps", "rest", "rpe", "notes"];
+      return ["weight", "sets", "reps", "rest", "notes"];
     case "velocidad":
-      return ["distance", "time", "reps", "rpe", "notes"];
+      return ["time", "heartRate", "notes"];
     case "resistencia":
       return ["time", "distance", "heartRate", "intensity", "rpe", "notes"];
     case "pliometria":

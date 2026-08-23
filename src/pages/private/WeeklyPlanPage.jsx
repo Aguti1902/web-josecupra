@@ -780,7 +780,7 @@ function PlayerWeeklyPlan({ accent }) {
         dayLabel={activeSession.dayName}
         accentColor={accent}
         user={user}
-        objective={user?.objetivo}
+        objective={activeSession.type || activeSession.objective || user?.objetivo}
         onClose={closeSession}
         onComplete={() => handleSessionComplete(microRef.id, microRef.dayName)}
         onUncomplete={() => handleSessionToggle(microRef.id, microRef.dayName)}
