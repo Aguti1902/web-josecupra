@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { loadClubs, saveClub, deleteClub, createClubUser } from "../../lib/adminStorage";
 import PlanSelectField, { SubscriptionStatusSelect, ManualPriceField } from "../../components/admin/PlanSelectField";
+import ClubEconomyFields from "../../components/admin/ClubEconomyFields";
+import { withSyncedDiscountCode, parseCommissionPct } from "../../lib/clubEconomy";
 import AdminProvisionHelp from "../../components/admin/AdminProvisionHelp";
 import {
   ADMIN_STATUS_STYLES,
@@ -84,6 +86,10 @@ function NewClubModal({ onClose, onCreate }) {
     subscriptionStatus: "activo",
     manualPrice: "",
     planningMode: "auto",
+    discountCode: "",
+    referralCommissionPct: "10",
+    payoutIban: "",
+    payoutAccountName: "",
   });
   const [loading, setLoading] = useState(false);
   const [createdCreds, setCreatedCreds] = useState(null);
@@ -155,7 +161,10 @@ function NewClubModal({ onClose, onCreate }) {
         password: form.coordinatorPassword,
         userCreated,
       },
-      loginCode: generatedCode,
+      ...withSyncedDiscountCode({}, form.discountCode.trim() || generatedCode),
+      referralCommissionPct: parseCommissionPct(form.referralCommissionPct),
+      payoutIban: (form.payoutIban || "").trim().toUpperCase(),
+      payoutAccountName: (form.payoutAccountName || "").trim(),
       teams: [], users: [], mediaAssigned: [],
     });
 
@@ -370,23 +379,17 @@ function NewClubModal({ onClose, onCreate }) {
               value={form.manualPrice}
               onChange={(v) => setForm((f) => ({ ...f, manualPrice: v }))}
             />
-          </div>
-
-          {generatedCode && (
-            <div className="flex items-center gap-3 bg-depro-blue/5 border border-depro-blue/20 rounded-xl p-3">
-              <Shield size={16} className="text-depro-blue shrink-0" />
-              <div>
-                <p className="text-xs text-depro-gray">Código de acceso del club</p>
-                <p className="font-bold text-depro-blue font-mono">{generatedCode}</p>
-              </div>
-              <button
-                onClick={() => navigator.clipboard.writeText(generatedCode)}
-                className="ml-auto p-1.5 rounded-lg hover:bg-depro-blue/10 text-depro-blue"
-              >
-                <Copy size={14} />
-              </button>
+            <div className="rounded-xl border border-depro-border bg-depro-gray-light/40 p-4">
+              <p className="text-sm font-semibold text-depro-dark mb-3">Código de descuento y transferencia</p>
+              <ClubEconomyFields
+                discountCode={form.discountCode || generatedCode}
+                commissionPct={form.referralCommissionPct}
+                payoutIban={form.payoutIban}
+                payoutAccountName={form.payoutAccountName}
+                onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+              />
             </div>
-          )}
+          </div>
         </div>
 
         <div className="flex gap-3 p-6 border-t border-depro-border">

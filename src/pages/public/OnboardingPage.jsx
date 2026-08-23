@@ -13,6 +13,7 @@ import { useAuth } from "../../context/AuthContext";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
 import TeamBrandingFields, { saveCoachBrandingDraft } from "../../components/shared/TeamBrandingFields";
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
+import { clubMatchesDiscountCode } from "../../lib/clubEconomy";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
 import CoachAutoQuestionnaire from "../../components/shared/CoachAutoQuestionnaire";
@@ -416,7 +417,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
     try {
       const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
       const code = codeRaw.trim().toUpperCase();
-      const found = clubs.find((c) => (c.loginCode || c.login_code || "").toUpperCase() === code);
+      const found = clubs.find((c) => clubMatchesDiscountCode(c, code));
       if (!found) {
         setClubTeams([]);
         setClubCodeMsg("Código no encontrado");
@@ -568,7 +569,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
 
             <div>
               <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
-                Código de club <span className="text-depro-gray font-normal normal-case">(opcional · descuento 10%)</span>
+                Código de descuento del club <span className="text-depro-gray font-normal normal-case">(opcional)</span>
               </label>
               <input
                 type="text" value={form.clubCode}

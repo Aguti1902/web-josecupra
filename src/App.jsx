@@ -51,6 +51,7 @@ import WellnessPage from "./pages/private/WellnessPage";
 import CoachOnboardingPage from "./pages/private/CoachOnboardingPage";
 import ClubOnboardingPage from "./pages/private/ClubOnboardingPage";
 import ClubSettingsPage from "./pages/private/ClubSettingsPage";
+import ClubEconomyPage from "./pages/private/ClubEconomyPage";
 
 // Admin panel
 import AdminLayout from "./components/admin/AdminLayout";
@@ -241,6 +242,7 @@ function AppRoutes() {
       <Route path="/dashboard/wellness"     element={<ClientRoute><AppLayout><WellnessPage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/club-profile" element={<ClientRoute><AppLayout><ClubProfilePage /></AppLayout></ClientRoute>} />
       <Route path="/dashboard/club-settings" element={<ClientRoute><AppLayout><ClubSettingsPage /></AppLayout></ClientRoute>} />
+      <Route path="/dashboard/club-economia" element={<ClientRoute><AppLayout><ClubEconomyPage /></AppLayout></ClientRoute>} />
 
       {/* ── Admin Panel ────────────────────────────────────────── */}
       <Route path="/admin" element={<AdminRoute><AdminLayout><AdminOverviewPage /></AdminLayout></AdminRoute>} />

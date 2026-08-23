@@ -10,6 +10,10 @@ export function isClubCoordinator(user) {
   return user?.role === "club" && user?.team_role === CLUB_COORD_ROLE;
 }
 
+export function isWideClubRole(teamRole) {
+  return teamRole === CLUB_ADMIN_ROLE || teamRole === CLUB_COORD_ROLE;
+}
+
 export function isClubGlobalView(user, viewingTeam) {
   if (user?.role !== "club" || user?.club?.isSoloCoach) return false;
   if (viewingTeam) return false;
@@ -23,12 +27,19 @@ export function canManageClubBilling(user) {
 }
 
 /**
- * Visibilidad de precios / plan / suscripción.
- * Depro 2.0 §8: ningún usuario final ve info económica — solo rol admin DEPRO.
+ * Catálogo Stripe / cambiar plan: solo admin DEPRO.
+ * El administrador del club ve la cuota y comisiones en el panel Economía.
  */
 export function canSeeClubPricing(user) {
   if (!user) return false;
   return user.role === "admin";
+}
+
+/** Cuota del club, código de descuento y comisiones de planificaciones individuales. */
+export function canSeeClubEconomy(user) {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  return isClubAdmin(user);
 }
 
 export function canEditClubBranding(user) {

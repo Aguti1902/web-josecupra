@@ -9,11 +9,18 @@ import {
   REFERRAL_COMMISSION_PCT,
 } from "../../lib/clubReferrals";
 
-export default function ClubReferralPanel({ clubId, loginCode, compact = false }) {
+export default function ClubReferralPanel({
+  clubId,
+  loginCode,
+  compact = false,
+  commissionPct,
+  payoutIban,
+  payoutAccountName,
+}) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [iban, setIban] = useState("");
+  const [iban, setIban] = useState(payoutIban || "");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -31,6 +38,10 @@ export default function ClubReferralPanel({ clubId, loginCode, compact = false }
   useEffect(() => {
     load();
   }, [clubId]);
+
+  useEffect(() => {
+    if (payoutIban) setIban(payoutIban);
+  }, [payoutIban]);
 
   const copyCode = () => {
     if (!code || code === "—") return;
@@ -63,7 +74,7 @@ export default function ClubReferralPanel({ clubId, loginCode, compact = false }
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10 text-depro-gray">
-        <Loader2 size={20} className="animate-spin mr-2" /> Cargando referidos…
+        <Loader2 size={20} className="animate-spin mr-2" /> Cargando comisiones…
       </div>
     );
   }
@@ -84,16 +95,16 @@ export default function ClubReferralPanel({ clubId, loginCode, compact = false }
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Gift size={18} className="text-depro-blue" />
-            <h3 className="font-black text-depro-dark">Programa de referidos</h3>
+            <h3 className="font-black text-depro-dark">Código de descuento</h3>
           </div>
           <p className="text-sm text-depro-gray max-w-xl">
-            Comparte tu código con jugadores. Cuando se registren y paguen con él, el club recibe un{" "}
-            <strong>{REFERRAL_COMMISSION_PCT}%</strong> de comisión en cada pago.
+            Cuando un jugador compra una planificación individual con este código, el club recibe un{" "}
+            <strong>{commissionPct ?? data?.commissionPct ?? REFERRAL_COMMISSION_PCT}%</strong> de lo pagado.
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-xl border border-depro-border bg-white px-3 py-2 shrink-0">
           <div>
-            <p className="text-[10px] font-bold uppercase text-depro-gray tracking-wide">Código referido</p>
+            <p className="text-[10px] font-bold uppercase text-depro-gray tracking-wide">Código de descuento</p>
             <p className="font-mono font-black text-depro-dark">{code}</p>
           </div>
           <button
@@ -108,10 +119,10 @@ export default function ClubReferralPanel({ clubId, loginCode, compact = false }
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Jugadores activos", value: stats.activePlayers, icon: Users },
+          { label: "Jugadores con código", value: stats.activePlayers, icon: Users },
           { label: "Comisión pendiente", value: formatEuros(stats.pending), icon: Wallet },
           { label: "Este mes", value: formatEuros(stats.monthPending), icon: TrendingUp },
-          { label: "Total acumulado", value: formatEuros(stats.totalEarned), icon: Gift },
+          { label: "Total generado", value: formatEuros(stats.totalEarned), icon: Gift },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="rounded-xl border border-depro-border bg-depro-gray-light/40 p-3">
             <Icon size={14} className="text-depro-blue mb-1" />
@@ -126,13 +137,17 @@ export default function ClubReferralPanel({ clubId, loginCode, compact = false }
           <p className="text-sm font-bold text-depro-dark">
             Transferencia mensual · {formatEuros(stats.monthPending)} pendientes
           </p>
+          {payoutAccountName && (
+            <p className="text-xs text-depro-gray">Titular: <strong className="text-depro-dark">{payoutAccountName}</strong></p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="text"
-              placeholder="IBAN (opcional)"
+              placeholder="IBAN"
               value={iban}
               onChange={(e) => setIban(e.target.value)}
-              className="border border-depro-border rounded-xl px-3 py-2.5 text-sm bg-white"
+              readOnly={!!payoutIban}
+              className="border border-depro-border rounded-xl px-3 py-2.5 text-sm bg-white font-mono uppercase disabled:bg-depro-gray-light"
             />
             <input
               type="text"

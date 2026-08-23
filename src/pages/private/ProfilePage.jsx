@@ -17,6 +17,7 @@ import {
   isSuccessfulGeneratedPlan,
 } from "../../lib/planSwapLimits";
 import { loadPlayerPlan, fetchPlayerPlan, savePlayerPlan, persistPlayerPlanRemote, normalizePlayerPlan } from "../../lib/playerPlanStorage";
+import { clubMatchesDiscountCode } from "../../lib/clubEconomy";
 import { openBillingPortal, isSubscriptionActive, purchaseAddon, changePlan, fetchPremiumCapacity, hasFeatureAccess, isPlayerPro, isInTrial } from "../../lib/subscription";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
 import { PLANS, formatPrice } from "../../lib/checkoutPlans";
@@ -436,9 +437,7 @@ export default function ProfilePage() {
 
     const clubs = lsGet("depro_clubs", []);
     const code  = clubCode.trim().toUpperCase();
-    const found = clubs.find(
-      (c) => (c.loginCode || c.login_code || "").toUpperCase() === code
-    );
+    const found = clubs.find((c) => clubMatchesDiscountCode(c, code));
 
     if (!found) {
       setCodeStatus("error");

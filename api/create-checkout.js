@@ -3,6 +3,7 @@ import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem } from "./_planCatalog
 import { buildAddonLineItem, getAddonDef } from "./_addonCatalog.js";
 import { getStripe, getSiteUrl } from "./_stripeClient.js";
 import { SUPABASE_SERVICE_ROLE_FALLBACK } from "./_serviceRoleKey.js";
+import { clubMatchesDiscountCode } from "../src/lib/clubEconomy.js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_ROLE_FALLBACK;
@@ -18,12 +19,9 @@ async function validateClubCode(code) {
     const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
     const { data: clubs } = await sb.from("clubs").select("id, login_code").eq("login_code", code.toUpperCase()).limit(1);
     if (clubs?.length) return { valid: true, clubId: clubs[0].id };
-    const { data: details } = await sb.from("clubs_detail").select("id, data");
-    const found = (details || []).find((d) => {
-      const lc = d.data?.loginCode || d.data?.login_code;
-      return lc && String(lc).toUpperCase() === code.toUpperCase();
-    });
-    if (found) return { valid: true, clubId: found.id };
+    const { data: details } = await sb.from("clubs_detail").select("club_id, data");
+    const found = (details || []).find((d) => clubMatchesDiscountCode(d.data, code));
+    if (found) return { valid: true, clubId: found.club_id || found.id };
   } catch { /* ignore */ }
   return { valid: false };
 }

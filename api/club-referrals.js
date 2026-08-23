@@ -1,10 +1,16 @@
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 import {
   loadReferralRegistry,
+  loadClubEconomy,
   summarizeReferrals,
   markReferralPayout,
-  REFERRAL_COMMISSION_RATE,
 } from "./_clubReferrals.js";
+import {
+  clubCommissionPct,
+  clubCommissionRate,
+  clubDiscountCode,
+  clubPayoutAccount,
+} from "../src/lib/clubEconomy.js";
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -25,13 +31,23 @@ export default async function handler(req, res) {
       if (!clubId) return res.status(400).json({ error: "clubId required" });
 
       const registry = await loadReferralRegistry(admin);
+      const club = await loadClubEconomy(admin, clubId);
+      const rate = clubCommissionRate(club);
       const bucket = registry.byClubId[clubId] || {
-        commissionRate: REFERRAL_COMMISSION_RATE,
+        commissionRate: rate,
         referrals: [],
         payouts: [],
       };
-
-      return res.status(200).json(summarizeReferrals(bucket));
+      const payout = clubPayoutAccount(club);
+      return res.status(200).json({
+        ...summarizeReferrals({ ...bucket, commissionRate: rate }),
+        commissionPct: clubCommissionPct(club),
+        discountCode: clubDiscountCode(club),
+        payoutIban: payout.iban,
+        payoutAccountName: payout.accountName,
+        clubFee: club.manualPrice ?? null,
+        clubPlan: club.plan || null,
+      });
     }
 
     if (req.method === "POST") {
