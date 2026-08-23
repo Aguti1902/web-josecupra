@@ -9,18 +9,26 @@ export function playerPlanKey(userId) {
 
 /**
  * Normaliza el payload del motor (weeks[]) al formato día-array que consume
- * WeeklyPlanPage / Dashboard. Conserva weeks/assignment como meta en el array.
+ * WeeklyPlanPage / Dashboard. Conserva weeks/assignment/profileSnapshot como meta.
  */
 export function normalizePlayerPlan(raw) {
   if (!raw) return null;
   if (raw.premiumPending || raw.planPendingManual || raw.planError) return raw;
+
+  const attachSnapshot = (view, source) => {
+    const snap = source?.profileSnapshot
+      || (Array.isArray(source) ? source.profileSnapshot : null)
+      || null;
+    if (snap) view.profileSnapshot = snap;
+    return view;
+  };
 
   // Ya es semana día-array
   if (Array.isArray(raw) && (raw.length === 0 || raw[0]?.day != null || raw[0]?.sessions != null)) {
     if (raw.startDate == null && raw._meta?.startDate) {
       raw.startDate = raw._meta.startDate;
     }
-    return raw;
+    return attachSnapshot(raw, raw);
   }
 
   // Objeto con weeks del motor / asignación admin
@@ -50,7 +58,7 @@ export function normalizePlayerPlan(raw) {
       if (days.sesiones_pendientes_compensar) {
         view.sesiones_pendientes_compensar = days.sesiones_pendientes_compensar;
       }
-      return view;
+      return attachSnapshot(view, raw);
     }
 
     // Fallback: construir días desde sessions planas de la semana
@@ -75,11 +83,11 @@ export function normalizePlayerPlan(raw) {
       view.startDate = raw.startDate || current?.startDate || weeks[0]?.startDate || null;
       view.premiumPending = false;
       view.planPendingManual = false;
-      return view;
+      return attachSnapshot(view, raw);
     }
   }
 
-  return raw;
+  return attachSnapshot(raw, raw);
 }
 
 export function loadPlayerPlan(userId) {

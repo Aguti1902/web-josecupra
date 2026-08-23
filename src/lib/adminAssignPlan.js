@@ -6,6 +6,7 @@ import { savePlayerPlan, loadPlayerPlan, normalizePlayerPlan, persistPlayerPlanR
 import { buildFourWeekPlan, buildPlayerPlan } from "./playerPlanEngine.js";
 import { generateClubAutoFourWeeks } from "./clubAuto/clubAutoEngine.js";
 import { supabase } from "./supabase.js";
+import { trainingProfileSnapshotFromAny } from "./playerTrainingProfile.js";
 
 const ASSIGNMENTS_KEY = "depro_admin_plan_assignments";
 const CLUB_ASSIGN_KEY = "depro_admin_club_plan_assignments";
@@ -257,6 +258,10 @@ export async function assignPlanToPlayer({
   }
   if (!assigned) throw new Error("Plan o perfil requerido");
 
+  const profileSnapshot = profile
+    ? trainingProfileSnapshotFromAny(profile)
+    : (assigned.profileSnapshot || null);
+
   const meta = {
     startDate: startDate || new Date().toISOString().slice(0, 10),
     endDate: endDate || null,
@@ -271,6 +276,7 @@ export async function assignPlanToPlayer({
     source: "admin_manual",
     premiumPending: false,
     planPendingManual: false,
+    ...(profileSnapshot ? { profileSnapshot } : {}),
   };
 
   // Guardar forma canónica (weeks + días) en servidor; local = normalizado para UI admin
