@@ -130,7 +130,8 @@ function makeExerciseFromV2(ex, ei, blockType) {
     catalogId: ex.id,
     pool: ex.pool,
     name: ex.nombre,
-    duration: blockType === "calentamiento" ? "8–10 min" : blockType === "vuelta_calma" ? "5 min" : "40\"",
+    duration: ex.duration
+      || (blockType === "calentamiento" ? "8–10 min" : blockType === "vuelta_calma" ? "5 min" : "40\""),
     sets: ex.sets,
     reps: isIso ? "25–30\"" : ex.reps,
     rest: ex.rest,
