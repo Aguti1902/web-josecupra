@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
-import { loadClubDetail, saveClubDetail } from "../../lib/adminStorage";
+import { loadClubDetail, saveClubDetail, saveClub } from "../../lib/adminStorage";
 import { clearCoachGeneratedPlans } from "../../lib/coachSessionsStorage";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import { canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
@@ -18,7 +18,11 @@ import CoachAutoQuestionnaire, {
 import {
   coachConfigToQuestionnaire,
   categoryForNivel,
+  isProCoachUser,
+  parseCoachAutoFromMeta,
+  loadCoachAutoDraftFromStorage,
 } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { markQuestionnaireCompleted } from "../../lib/questionnaireState";
 
 // Comprime imagen de perfil a 200×200
 function compressAvatar(file) {
@@ -48,6 +52,24 @@ function compressAvatar(file) {
 const ROLE_LABEL = { administrador: "Administrador", coordinador: "Coordinador", entrenador: "Entrenador", ayudante: "Ayudante técnico" };
 const ROLE_ICON  = { administrador: Crown, coordinador: Crown, entrenador: UserCheck, ayudante: Dumbbell };
 
+function initialCoachQuestionnaire(user) {
+  const fromClub = coachConfigToQuestionnaire(user?.club?.coachConfig || {});
+  if (fromClub?.nivel && (user?.club?.coachConfig?.nivel || (fromClub.dias_exactos_entrenamiento || []).length)) {
+    return fromClub;
+  }
+  const fromMeta = user?.coachAuto && typeof user.coachAuto === "object"
+    ? user.coachAuto
+    : parseCoachAutoFromMeta(user?.coachAuto);
+  if (fromMeta?.nivel) return { ...fromClub, ...fromMeta };
+  const fromDraft = loadCoachAutoDraftFromStorage();
+  if (fromDraft?.nivel) return { ...fromClub, ...fromDraft };
+  return fromClub;
+}
+
+function genCoachId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export default function ClubProfilePage() {
   const { user, refreshUser } = useAuth();
   const accent     = user?.club?.primaryColor || "#0A36F7";
@@ -71,10 +93,10 @@ export default function ClubProfilePage() {
     secondaryColor: user?.club?.secondaryColor || "#ffffff",
   });
   const [savingBranding, setSavingBranding] = useState(false);
-  const [autoQ, setAutoQ] = useState(() => coachConfigToQuestionnaire(user?.club?.coachConfig || {}));
+  const [autoQ, setAutoQ] = useState(() => initialCoachQuestionnaire(user));
   const [savingAutoQ, setSavingAutoQ] = useState(false);
   const photoRef = useRef();
-  const isSoloCoach = !!user?.club?.isSoloCoach;
+  const isSoloCoach = isProCoachUser(user);
   const showBilling = canManageClubBilling(user) && canSeeClubPricing(user);
 
   const showMsg = (type, text) => {
@@ -83,9 +105,10 @@ export default function ClubProfilePage() {
   };
 
   useEffect(() => {
-    setAutoQ(coachConfigToQuestionnaire(user?.club?.coachConfig || {}));
+    const next = initialCoachQuestionnaire(user);
+    setAutoQ(next);
     setMode(user?.club?.mode || "depro");
-  }, [user?.club?.coachConfig, user?.club?.mode]);
+  }, [user?.club?.coachConfig, user?.club?.mode, user?.coachAuto]);
 
   const handleChangeMode = async (nextMode) => {
     if (nextMode === mode || !user?.club?.id) return;
@@ -124,34 +147,87 @@ export default function ClubProfilePage() {
   };
 
   const handleSaveAutoQuestionnaire = async () => {
-    if (!user?.club?.id) return;
     const packed = questionnaireToCoachConfig(autoQ);
     if (!packed.ok) {
       showMsg("error", packed.errors.join(" "));
       return;
     }
     setSavingAutoQ(true);
-    const detail = loadClubDetail(user.club.id) || user.club;
-    const teams = Array.isArray(detail.teams) ? detail.teams.map((t) => (
-      t.id === user.teamId
-        ? {
-            ...t,
-            trainingDays: packed.config.dias_exactos_entrenamiento,
-            category: categoryForNivel(packed.config.nivel),
-          }
-        : t
-    )) : detail.teams;
-    await saveClubDetail(user.club.id, {
-      ...detail,
-      mode: "depro",
-      planningMode: "auto",
-      coachConfig: { ...(detail.coachConfig || {}), ...packed.config, mode: "depro", engine: "club_auto" },
-      teams,
-    });
-    clearCoachGeneratedPlans(user.club.id, user.teamId);
-    await refreshUser();
-    setSavingAutoQ(false);
-    showMsg("ok", "Cuestionario guardado. Se regenerará el microciclo automático.");
+    try {
+      let clubId = user?.club?.id;
+      const cfg = { ...packed.config, mode: "depro", engine: "club_auto" };
+      const category = categoryForNivel(cfg.nivel);
+
+      if (!clubId) {
+        clubId = genCoachId("coach_club");
+        const teamId = genCoachId("coach_team");
+        const club = {
+          id: clubId,
+          name: `${user?.name || "Entrenador"} · DEPRO Coach`,
+          abbreviation: (user?.name || "EC").trim().slice(0, 2).toUpperCase(),
+          city: "",
+          country: "",
+          status: "activo",
+          plan: user?.plan || "coach-starter",
+          isSoloCoach: true,
+          origen: "automatico",
+          planningMode: "auto",
+          mode: "depro",
+          coachConfig: cfg,
+          logo: branding.logo || user?.club?.logo || null,
+          primaryColor: branding.primaryColor || user?.club?.primaryColor || "#0A36F7",
+          secondaryColor: branding.secondaryColor || user?.club?.secondaryColor || "#ffffff",
+          coordinator: null,
+          teams: [
+            {
+              id: teamId,
+              name: user?.team?.name || "Mi equipo",
+              category,
+              season: "2025/2026",
+              trainingDays: cfg.dias_exactos_entrenamiento,
+              coach: { name: user?.name || "", email: user?.email || "" },
+              squad: [],
+            },
+          ],
+          plans: [],
+          created_at: new Date().toISOString(),
+        };
+        await saveClub(club);
+        const { error: updErr } = await supabase.auth.updateUser({
+          data: { role: "club", clubId, teamId, teamRole: "entrenador", isSoloCoach: true },
+        });
+        if (updErr) throw updErr;
+        markQuestionnaireCompleted("coach", user?.id || user?.email);
+      } else {
+        const detail = loadClubDetail(clubId) || user.club;
+        const teams = Array.isArray(detail.teams) ? detail.teams.map((t) => (
+          t.id === user.teamId
+            ? {
+                ...t,
+                trainingDays: packed.config.dias_exactos_entrenamiento,
+                category,
+              }
+            : t
+        )) : detail.teams;
+        await saveClubDetail(clubId, {
+          ...detail,
+          isSoloCoach: true,
+          mode: "depro",
+          planningMode: "auto",
+          origen: detail.origen || "automatico",
+          coachConfig: { ...(detail.coachConfig || {}), ...cfg },
+          teams,
+        });
+        clearCoachGeneratedPlans(clubId, user.teamId);
+      }
+      setMode("depro");
+      await refreshUser();
+      showMsg("ok", "Cuestionario guardado. Se regenerará el microciclo automático.");
+    } catch (e) {
+      showMsg("error", e.message || "No se pudo guardar el cuestionario.");
+    } finally {
+      setSavingAutoQ(false);
+    }
   };
 
   // Cargar foto guardada en localStorage
@@ -299,6 +375,30 @@ export default function ClubProfilePage() {
         </div>
       </div>
 
+      {/* Cuestionario del motor automático — siempre visible en ProCoach para generar la rutina */}
+      {isSoloCoach && (
+        <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
+          <div>
+            <h3 className="font-bold text-depro-dark mb-1 flex items-center gap-2">
+              <Sparkles size={16} className="text-depro-blue" /> Cuestionario del entrenador
+            </h3>
+            <p className="text-xs text-depro-gray">
+              Nivel, días de entreno, día de partido, material y gimnasio. Al guardar se genera (o regenera) la rutina automática.
+              {mode === "personalizado" ? " Si estás en «Llevado por mí», guardar el cuestionario vuelve al modo automático." : ""}
+            </p>
+          </div>
+          <CoachAutoQuestionnaire value={autoQ} onChange={setAutoQ} />
+          <button
+            type="button"
+            onClick={handleSaveAutoQuestionnaire}
+            disabled={savingAutoQ}
+            className="btn-primary flex items-center gap-2 disabled:opacity-50"
+          >
+            <Save size={15} /> {savingAutoQ ? "Guardando…" : "Guardar y regenerar microciclo"}
+          </button>
+        </div>
+      )}
+
       {/* Identidad del equipo — solo entrenador individual (no tiene ClubSettings) */}
       {isSoloCoach && (
         <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
@@ -313,31 +413,10 @@ export default function ClubProfilePage() {
           <button
             type="button"
             onClick={handleSaveBranding}
-            disabled={savingBranding}
+            disabled={savingBranding || !user?.club?.id}
             className="btn-primary flex items-center gap-2 disabled:opacity-50"
           >
             <Save size={15} /> {savingBranding ? "Guardando…" : "Guardar identidad"}
-          </button>
-        </div>
-      )}
-
-      {/* Cuestionario corto del motor automático (punto 4 del documento) */}
-      {isSoloCoach && mode !== "personalizado" && (
-        <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
-          <div>
-            <h3 className="font-bold text-depro-dark mb-1">Cuestionario del entrenador</h3>
-            <p className="text-xs text-depro-gray">
-              Nivel, días de entreno, día de partido y gimnasio. Sin metodología ni número de jugadores.
-            </p>
-          </div>
-          <CoachAutoQuestionnaire value={autoQ} onChange={setAutoQ} />
-          <button
-            type="button"
-            onClick={handleSaveAutoQuestionnaire}
-            disabled={savingAutoQ}
-            className="btn-primary flex items-center gap-2 disabled:opacity-50"
-          >
-            <Save size={15} /> {savingAutoQ ? "Guardando…" : "Guardar y regenerar microciclo"}
           </button>
         </div>
       )}
@@ -384,7 +463,7 @@ export default function ClubProfilePage() {
 
       {showBilling && (
         <>
-          <PlanUsageCard club={user?.club} user={user} audience={user?.club?.isSoloCoach ? "coach" : "club"} />
+          <PlanUsageCard club={user?.club} user={user} audience={isSoloCoach ? "coach" : "club"} />
           <Link
             to="/dashboard/subscription"
             className="flex items-center justify-between gap-3 bg-white border border-depro-border rounded-2xl p-4 hover:border-depro-blue transition-colors group"

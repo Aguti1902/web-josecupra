@@ -7,7 +7,7 @@ import {
 import {
   loadCoachLibrary, upsertExercise, deleteExercise, approveExercise,
 } from "../../lib/coachLibraryStorage";
-import { BLOQUES, PROTOCOLOS, MATERIALES, CATEGORY_PROTOCOLS } from "../../data/coachExerciseLibrary";
+import { BLOQUES, BLOQUE_LABELS, PROTOCOLOS, MATERIALES, CATEGORY_PROTOCOLS } from "../../data/coachExerciseLibrary";
 
 const CATEGORIAS = Object.keys(CATEGORY_PROTOCOLS);
 const COMPLEJIDADES = ["baja", "media", "alta"];
@@ -124,7 +124,7 @@ function ExerciseFormModal({ exercise, onSave, onClose }) {
               {BLOQUES.map((b) => (
                 <button key={b} type="button" onClick={() => set("bloquesPermitidos", toggleInArray(form.bloquesPermitidos, b))}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${form.bloquesPermitidos.includes(b) ? "bg-depro-blue text-white border-depro-blue" : "border-depro-border text-depro-gray"}`}>
-                  {b}
+                  {BLOQUE_LABELS[b] || b}
                 </button>
               ))}
             </div>
@@ -381,7 +381,7 @@ export default function AdminCoachLibraryPage({ embedded = false }) {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-depro-dark text-sm truncate">{ex.nombre}</span>
                           {(ex.bloquesPermitidos || []).map((b) => (
-                            <span key={b} className="text-[10px] px-2 py-0.5 rounded-full bg-depro-blue/10 text-depro-blue font-medium">{b}</span>
+                            <span key={b} className="text-[10px] px-2 py-0.5 rounded-full bg-depro-blue/10 text-depro-blue font-medium">{BLOQUE_LABELS[b] || b}</span>
                           ))}
                         </div>
                         <div className="text-[11px] text-depro-gray mt-0.5">

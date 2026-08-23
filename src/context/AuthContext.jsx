@@ -11,6 +11,7 @@ import {
   normalizeFrecuencia,
 } from "../lib/playerTrainingProfile";
 import { getImpersonationSnapshot, stopImpersonation, isRealAdminUser } from "../lib/adminImpersonation";
+import { parseCoachAutoFromMeta } from "../lib/clubAuto/clubAutoCoachBridge";
 
 const AuthContext = createContext(null);
 
@@ -27,7 +28,7 @@ function loadClubDataFromStorage(meta, userEmail) {
 
     // Fallback: si el ID no coincide (bug de IDs desfasados), buscar por email
     // Solo para usuarios de club (tienen teamRole o role=club en meta)
-    const isClubUser = !!teamRole || meta?.role === "club";
+    const isClubUser = !!teamRole || meta?.role === "club" || meta?.role === "coach" || meta?.isSoloCoach;
     if (!baseClub && userEmail && isClubUser) {
       const lc = userEmail.toLowerCase();
       if (!teamRole || teamRole === "coordinador" || teamRole === "administrador") {
@@ -210,6 +211,7 @@ function buildUser(authUser, profile) {
       purchasedAddons: meta.purchasedAddons ?? cached?.purchasedAddons ?? [],
       pendingPayment: meta.pendingPayment === true,
       manualPrice: meta.manualPrice ?? cached?.manualPrice ?? null,
+      coachAuto: parseCoachAutoFromMeta(meta.coachAuto),
     };
   }
 
@@ -261,6 +263,7 @@ function buildUser(authUser, profile) {
     purchasedAddons: meta.purchasedAddons ?? cached?.purchasedAddons ?? [],
     pendingPayment: meta.pendingPayment === true,
     manualPrice: meta.manualPrice ?? cached?.manualPrice ?? null,
+    coachAuto: parseCoachAutoFromMeta(meta.coachAuto),
   };
 }
 

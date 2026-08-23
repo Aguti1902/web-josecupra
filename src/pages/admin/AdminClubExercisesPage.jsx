@@ -1,10 +1,17 @@
 import { useMemo, useState } from "react";
-import { Dumbbell, Search, X } from "lucide-react";
-import { getClubExerciseCatalog, clubSlotLabel, SLOT_RULES } from "../../lib/clubAuto/clubExerciseCatalog";
+import { Dumbbell, Search, X, ChevronDown, ChevronUp, Info } from "lucide-react";
+import {
+  getClubExerciseCatalog,
+  clubSlotLabel,
+  SLOT_RULES,
+  protocolsUsingClubSlot,
+  AGE_BLOCK_LABELS,
+} from "../../lib/clubAuto/clubExerciseCatalog";
 
-export default function AdminClubExercisesPage() {
+export default function AdminClubExercisesPage({ standalone = false }) {
   const [search, setSearch] = useState("");
   const [slotFilter, setSlotFilter] = useState("");
+  const [collapsed, setCollapsed] = useState({});
 
   const catalog = useMemo(() => getClubExerciseCatalog(), []);
 
@@ -17,19 +24,59 @@ export default function AdminClubExercisesPage() {
     });
   }, [catalog, search, slotFilter]);
 
+  const grouped = useMemo(() => {
+    const map = {};
+    SLOT_RULES.forEach((r) => { map[r.slot] = []; });
+    const untagged = [];
+    for (const ex of filtered) {
+      if (!ex.clubSlots.length) {
+        untagged.push(ex);
+        continue;
+      }
+      const slots = slotFilter
+        ? ex.clubSlots.filter((s) => s.id === slotFilter)
+        : ex.clubSlots;
+      for (const s of slots) {
+        if (!map[s.id]) map[s.id] = [];
+        map[s.id].push(ex);
+      }
+    }
+    return { map, untagged };
+  }, [filtered, slotFilter]);
+
   const tagged = catalog.filter((ex) => ex.clubSlots.length).length;
+  const toggleCollapsed = (key) => setCollapsed((c) => ({ ...c, [key]: !c[key] }));
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="font-bold text-depro-dark flex items-center gap-2">
-          <Dumbbell size={18} className="text-depro-blue" />
-          Ejercicios (versión club)
-        </h2>
-        <p className="text-sm text-depro-gray mt-1">
-          Mismos ejercicios que las planificaciones individuales, con etiquetas de plantilla club
-          (movilidad de cadera, tobillo/bisagra, activación glúteo, etc.).
-          {` ${tagged} de ${catalog.length} con al menos una etiqueta de slot.`}
+      {!standalone && (
+        <div>
+          <h2 className="font-bold text-depro-dark flex items-center gap-2">
+            <Dumbbell size={18} className="text-depro-blue" />
+            Catálogo de ejercicios (clubs)
+          </h2>
+          <p className="text-sm text-depro-gray mt-1">
+            Mismos ejercicios que las planificaciones individuales, etiquetados por slot de plantilla
+            para que el motor automático sepa dónde colocarlos.
+            {` ${tagged} de ${catalog.length} con al menos una etiqueta.`}
+          </p>
+        </div>
+      )}
+
+      {standalone && (
+        <p className="text-sm text-depro-gray">
+          {tagged} de {catalog.length} ejercicios con etiqueta de plantilla.
+          Niveles de edad: {Object.values(AGE_BLOCK_LABELS).join(" · ")}.
+        </p>
+      )}
+
+      <div className="flex items-start gap-3 bg-depro-blue-light/30 border border-depro-blue/20 rounded-2xl px-4 py-3">
+        <Info size={16} className="text-depro-blue flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-depro-dark/70">
+          Cada grupo es un <strong>slot de plantilla</strong> (no «Bloque 1/2/3»).
+          Las etiquetas Campo/Gym A·B·C indican en qué protocolo automático entra el ejercicio:
+          A regenerativo, B carga/fuerza, C prepartido. Los niveles de edad son{" "}
+          <strong>A · 9–12 años</strong>, <strong>B · 12–15 años</strong> y <strong>C · 16+ años</strong>.
         </p>
       </div>
 
@@ -62,24 +109,79 @@ export default function AdminClubExercisesPage() {
 
       <p className="text-xs text-depro-gray">{filtered.length} ejercicios</p>
 
-      <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
-        {filtered.map((ex) => (
-          <div key={ex.id} className="rounded-xl border border-depro-border p-3">
-            <p className="text-sm font-semibold text-depro-dark">{ex.nombre}</p>
-            <p className="text-[11px] text-depro-gray mt-0.5">
-              {ex.carpeta} · {(ex.etiquetas?.material || []).join(", ") || "sin material"}
-            </p>
-            <div className="flex flex-wrap gap-1 mt-2">
-              {ex.clubSlots.length ? ex.clubSlots.map((s) => (
-                <span key={s.id} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-depro-blue/10 text-depro-blue border border-depro-blue/20">
-                  {s.label}
-                </span>
-              )) : (
-                <span className="text-[10px] text-depro-gray">Sin slot de plantilla</span>
+      <div className="space-y-3">
+        {SLOT_RULES.map((rule) => {
+          const exercises = grouped.map[rule.slot] || [];
+          if (!exercises.length) return null;
+          const usedIn = protocolsUsingClubSlot(rule.slot);
+          const isCollapsed = collapsed[rule.slot];
+          return (
+            <div key={rule.slot} className="bg-white rounded-2xl border border-depro-border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => toggleCollapsed(rule.slot)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 text-left"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-black text-depro-dark">{rule.label}</p>
+                  <p className="text-[11px] text-depro-gray mt-0.5">
+                    {exercises.length} ejercicios
+                    {usedIn.length ? ` · plantillas: ${usedIn.map((p) => p.short).join(", ")}` : ""}
+                  </p>
+                  {usedIn.length > 0 && (
+                    <p className="text-[11px] text-depro-gray/80 mt-0.5 truncate">
+                      {usedIn.map((p) => p.title).join(" · ")}
+                    </p>
+                  )}
+                </div>
+                {isCollapsed ? <ChevronDown size={16} className="text-depro-gray shrink-0" /> : <ChevronUp size={16} className="text-depro-gray shrink-0" />}
+              </button>
+              {!isCollapsed && (
+                <div className="border-t border-depro-border/50 divide-y divide-depro-border/30">
+                  {exercises.map((ex) => (
+                    <div key={`${rule.slot}-${ex.id}`} className="px-4 py-3">
+                      <p className="text-sm font-semibold text-depro-dark">{ex.nombre}</p>
+                      <p className="text-[11px] text-depro-gray mt-0.5">
+                        {ex.carpeta} · {(ex.etiquetas?.material || []).join(", ") || "sin material"}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {ex.clubSlots.map((s) => (
+                          <span
+                            key={s.id}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              s.id === rule.slot
+                                ? "bg-depro-blue/10 text-depro-blue border-depro-blue/20"
+                                : "bg-slate-50 text-slate-600 border-slate-200"
+                            }`}
+                          >
+                            {s.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
+          );
+        })}
+
+        {!slotFilter && grouped.untagged.length > 0 && (
+          <div className="bg-white rounded-2xl border border-dashed border-depro-border overflow-hidden">
+            <div className="px-4 py-3">
+              <p className="font-bold text-depro-dark">Sin slot de plantilla</p>
+              <p className="text-[11px] text-depro-gray">{grouped.untagged.length} ejercicios aún no etiquetados para el motor club</p>
+            </div>
+            <div className="border-t border-depro-border/50 divide-y divide-depro-border/30 max-h-64 overflow-y-auto">
+              {grouped.untagged.map((ex) => (
+                <div key={ex.id} className="px-4 py-2.5">
+                  <p className="text-sm text-depro-dark">{ex.nombre}</p>
+                  <p className="text-[11px] text-depro-gray">{ex.carpeta}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

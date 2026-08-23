@@ -13,6 +13,17 @@
 
 export const BLOQUES = ["Bloque 1", "Bloque 2", "Bloque 3"];
 
+/** Etiquetas humanas: no usar «Bloque 1/2/3» sin decir la edad. */
+export const BLOQUE_LABELS = {
+  "Bloque 1": "A · 9–12 años (fútbol base)",
+  "Bloque 2": "B · 12–15 años",
+  "Bloque 3": "C · 16+ años",
+};
+
+export function bloqueLabel(bloque) {
+  return BLOQUE_LABELS[bloque] || bloque;
+}
+
 export const PROTOCOLOS = ["A", "B", "C"];
 
 /** Estructura fija de cada protocolo (nunca aleatoria) — orden de categorías por slot */

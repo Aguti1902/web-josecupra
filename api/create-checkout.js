@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem } from "./_planCatalog.js";
+import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem, planHasCheckoutTrial } from "./_planCatalog.js";
 import { buildAddonLineItem, getAddonDef } from "./_addonCatalog.js";
 import { getStripe, getSiteUrl } from "./_stripeClient.js";
 import { SUPABASE_SERVICE_ROLE_FALLBACK } from "./_serviceRoleKey.js";
 import { clubMatchesDiscountCode } from "../src/lib/clubEconomy.js";
+import { serializeCoachAutoForMeta } from "../src/lib/clubAuto/clubAutoCoachBridge.js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_ROLE_FALLBACK;
@@ -30,8 +31,8 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
   const lesionArr = formData?.lesion || [];
   const subArr = formData?.lesionSubtipo || [];
   const dispArr = formData?.disponibles || [];
-  // Prueba gratis 15 días solo en plan Standard (player-essential) individual
-  const withTrial = audience === "player" && planId === "player-essential";
+  // Prueba gratis 15 días: Standard jugador y Standard entrenador. Premium y clubs se cobran al confirmar.
+  const withTrial = planHasCheckoutTrial(planId);
 
   const subscriptionData = {
     metadata: {
@@ -87,6 +88,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
       // Colores (hex cortos; el escudo va en localStorage, no cabe en metadata)
       primaryColor: formData?.primaryColor || "",
       secondaryColor: formData?.secondaryColor || "",
+      coachAuto: serializeCoachAutoForMeta(formData?.coachAuto),
     },
     locale: "es",
   };

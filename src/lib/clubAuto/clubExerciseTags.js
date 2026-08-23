@@ -35,12 +35,12 @@ export const SLOT_RULES = [
   },
   {
     slot: "club_slot_activacion_gluteo",
-    label: "Activación cadena posterior / glúteo",
+    label: "Activación glúteo",
     match: (e) => /glute|puente|hip thrust|bridge/i.test(nameOf(e)),
   },
   {
     slot: "club_slot_activacion_cadena_posterior",
-    label: "Activación cadena posterior / glúteo",
+    label: "Activación cadena posterior",
     match: (e) => pats(e).includes("cadena_posterior") && e.etiquetas?.grupo_principal !== "biceps",
   },
   {

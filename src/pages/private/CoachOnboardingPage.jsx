@@ -10,6 +10,8 @@ import {
   CLUB_AUTO_NIVELES,
   CLUB_AUTO_MATCH_DAYS,
   categoryForNivel,
+  loadCoachAutoDraftFromStorage,
+  parseCoachAutoFromMeta,
 } from "../../lib/clubAuto/clubAutoCoachBridge";
 import TeamBrandingFields, {
   loadCoachBrandingDraft,
@@ -81,6 +83,16 @@ const DEFAULT_AUTO_Q = {
   acceso_gimnasio: "no",
 };
 
+function initialAutoQ(user) {
+  const fromMeta = user?.coachAuto && typeof user.coachAuto === "object"
+    ? user.coachAuto
+    : parseCoachAutoFromMeta(user?.coachAuto);
+  if (fromMeta?.nivel) return { ...DEFAULT_AUTO_Q, ...fromMeta };
+  const fromDraft = loadCoachAutoDraftFromStorage();
+  if (fromDraft?.nivel) return { ...DEFAULT_AUTO_Q, ...fromDraft };
+  return DEFAULT_AUTO_Q;
+}
+
 /**
  * Cuestionario corto del documento + escudo/colores del registro.
  * nivel A/B/C · 2/3/4 · días exactos · partido · gimnasio · branding opcional.
@@ -94,7 +106,7 @@ export default function CoachOnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState(() => initialForm(user));
-  const [autoQ, setAutoQ] = useState(DEFAULT_AUTO_Q);
+  const [autoQ, setAutoQ] = useState(() => initialAutoQ(user));
   const [qReady, setQReady] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 

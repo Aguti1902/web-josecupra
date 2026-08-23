@@ -15,6 +15,7 @@ import AiAssistantWidget from "./AiAssistantWidget";
 import PanelSearch from "../shared/PanelSearch";
 import { getPlanLabel, isInTrial, mustPayToContinue, getTrialDaysLeft } from "../../lib/subscription";
 import { isClubAdmin, isClubGlobalView, canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
+import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 function luminance(hex) {
   try {
@@ -240,7 +241,7 @@ function AppLayoutInner({ children }) {
   useEffect(() => {
     const load = () => {
       if (!user?.id) return;
-      const key = user.role === "club"
+      const key = user.role === "club" || user.role === "coach"
         ? `depro_club_profile_${user.id}`
         : `depro_player_photo_${user.id}`;
       setProfilePhoto(localStorage.getItem(key) || null);
@@ -293,7 +294,7 @@ function AppLayoutInner({ children }) {
   ];
 
   const club = user?.club;
-  const isSoloCoach = !!club?.isSoloCoach;
+  const isSoloCoach = isProCoachUser(user);
 
   const coachNav = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -314,12 +315,12 @@ function AppLayoutInner({ children }) {
   const isGlobalClubView = isClubGlobalView(user, viewingTeam);
   const isClubOverviewRole = user?.team_role === "coordinador" || user?.team_role === "administrador";
   const isCoordViewingTeam = isClubOverviewRole && !!viewingTeam;
-  const rawNavItems = user?.role === "club"
-    ? (isSoloCoach
-      ? coachNav
-      : (isClubAdmin(user) && isGlobalClubView
+  const rawNavItems = user?.role === "coach" || isSoloCoach
+    ? coachNav
+    : user?.role === "club"
+    ? (isClubAdmin(user) && isGlobalClubView
         ? administradorNav
-        : (user?.team_role === "coordinador" && isGlobalClubView ? coordinadorNav : entrenadorNav)))
+        : (user?.team_role === "coordinador" && isGlobalClubView ? coordinadorNav : entrenadorNav))
     : playerNav;
   // Staff no-admin en clubs manuales no ve precios / suscripción
   const navItems = canSeeClubPricing(user)
@@ -334,7 +335,9 @@ function AppLayoutInner({ children }) {
     return <Navigate to="/dashboard/subscription" replace />;
   }
 
-  const profilePath = user?.role === "club" ? "/dashboard/club-profile" : "/dashboard/profile";
+  const profilePath = user?.role === "club" || user?.role === "coach" || isSoloCoach
+    ? "/dashboard/club-profile"
+    : "/dashboard/profile";
 
   if (user?.role === "club" && club?.status === "inactivo") {
     return (

@@ -22,6 +22,7 @@ import CoachDashboard from "../../components/private/CoachDashboard";
 import ClubEconomyPanel from "../../components/private/ClubEconomyPanel";
 import ClubPlayersMonitor from "../../components/private/ClubPlayersMonitor";
 import { isClubAdmin } from "../../lib/clubRoles";
+import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -1286,7 +1287,7 @@ export default function DashboardPage() {
     setViewingTeam(null);
   };
 
-  if (user?.role === "club" && club?.isSoloCoach) {
+  if (isProCoachUser(user)) {
     return (
       <div className="dash-page space-y-6">
         <CoachDashboard club={club} team={team} user={user} />

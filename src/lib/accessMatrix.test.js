@@ -98,6 +98,9 @@ describe("entrenador Standard / Premium / extras", () => {
     assert.equal(getPlanLimits("coach-starter").maxTeams, 1);
     assert.equal(getPlanLimits("coach-starter", { purchasedAddons: ["addon-coach-teams"] }).maxTeams, 4);
     assert.equal(getPlanLimits("coach-premium").maxTeams, 4);
+    const { planHasCheckoutTrial } = await import("./checkoutPlans.js");
+    assert.equal(planHasCheckoutTrial("coach-starter"), true);
+    assert.equal(planHasCheckoutTrial("coach-premium"), false);
   });
 
   it("tests y cargas bloqueados en Standard, abiertos con extra o Premium", () => {

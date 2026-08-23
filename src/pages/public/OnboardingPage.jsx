@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import {
   AUDIENCES, PLANS, resolvePlanId, plansForAudience, formatPrice, applyClubDiscount,
+  planHasCheckoutTrial,
 } from "../../lib/checkoutPlans";
 import { useAuth } from "../../context/AuthContext";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
@@ -1054,8 +1055,8 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
   const hasDiscount = !!form.clubCode && plan.audience === "player";
   const discount    = hasDiscount ? Math.round((plan.price - applyClubDiscount(plan.price)) * 100) / 100 : 0;
   const total       = (hasDiscount ? applyClubDiscount(plan.price) : plan.price) + addonsTotal;
-  const isPlayerPremium =
-    plan.audience === "player" && (plan.id === "player-pro" || plan.id === "premium");
+  const hasTrial = planHasCheckoutTrial(plan.id);
+  const isImmediateCharge = !hasTrial;
 
   const profileRows = [
     ["Nombre", form.nombre],
@@ -1080,15 +1081,15 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
       <div className="mb-8">
         <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Finaliza tu suscripción</h2>
         <p className="text-depro-gray text-sm">
-          {isPlayerPremium ? (
+          {isImmediateCharge ? (
             <>
-              El plan <strong className="text-depro-dark">Premium no incluye prueba gratuita</strong>.
-              Se cobra desde el primer día al confirmar el pago.
+              Este plan <strong className="text-depro-dark">no incluye prueba gratuita</strong>.
+              Se cobra <strong className="text-depro-dark">{formatPrice(total)}</strong>/mes desde el primer día al confirmar el pago.
             </>
           ) : (
             <>
               Introduce tu método de pago para activar <strong className="text-depro-dark">15 días de prueba gratis</strong>.
-              Hoy se autoriza la tarjeta con <strong className="text-depro-dark">0 €</strong>; el primer cargo llega al terminar el trial.
+              Hoy se autoriza la tarjeta con <strong className="text-depro-dark">0 €</strong>; el primer cargo de {formatPrice(total)}/mes llega al terminar el trial.
             </>
           )}
         </p>
@@ -1101,13 +1102,13 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
             <div className="p-5 border-b border-depro-border">
               <div
                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold mb-3 ${
-                  isPlayerPremium
+                  isImmediateCharge
                     ? "bg-amber-50 text-amber-800"
                     : "bg-depro-green/10 text-depro-green"
                 }`}
               >
                 <BadgeCheck size={12} />
-                {isPlayerPremium ? "Sin prueba gratis · cobro desde el día 1" : "15 días gratis · 0 € hoy"}
+                {isImmediateCharge ? "Sin prueba gratis · cobro desde el día 1" : "15 días gratis · 0 € hoy"}
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: plan.bg }}>
@@ -1118,13 +1119,18 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
                   <div className="text-xs text-depro-gray truncate">{plan.tagline}</div>
                 </div>
               </div>
-              {plan.audience !== "player" && (
+              {hasTrial && plan.audience !== "player" && (
                 <p className="text-xs text-depro-gray mt-3 leading-relaxed">
                   Resumen de tu suscripción {plan.audience === "club" ? "de club" : "de entrenador"}:
                   {" "}{formatPrice(plan.price)}/mes tras {15} días de trial.
                 </p>
               )}
-              {isPlayerPremium && (
+              {isImmediateCharge && plan.audience !== "player" && (
+                <p className="text-xs text-amber-800 mt-3 leading-relaxed">
+                  Se cobra {formatPrice(total)}/mes al confirmar el pago. Cancela cuando quieras.
+                </p>
+              )}
+              {isImmediateCharge && plan.audience === "player" && (
                 <p className="text-xs text-amber-800 mt-3 leading-relaxed">
                   Premium es acceso inmediato con seguimiento humano. No hay periodo de prueba.
                 </p>
@@ -1152,7 +1158,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
                 <span className="text-2xl font-black text-depro-dark">{formatPrice(total)}</span>
               </div>
               <p className="text-[11px] text-depro-gray pt-1">
-                {isPlayerPremium
+                {isImmediateCharge
                   ? "Se cobra el plan al confirmar el pago. Cancela cuando quieras."
                   : "Se pide tarjeta ahora (cargo 0 €). Primer cobro tras 15 días. Cancela cuando quieras."}
               </p>
@@ -1235,10 +1241,10 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
             </div>
             <h3 className="font-black text-depro-dark text-lg">Método de pago</h3>
             <p className="text-sm text-depro-gray">
-              {isPlayerPremium ? (
+              {isImmediateCharge ? (
                 <>
-                  Añade tu tarjeta para activar <strong className="text-depro-dark">Premium</strong>.
-                  {" "}<strong className="text-depro-dark">No hay prueba gratis</strong>: el cobro empieza al confirmar el pago.
+                  Añade tu tarjeta para activar <strong className="text-depro-dark">{plan.name}</strong>.
+                  {" "}<strong className="text-depro-dark">No hay prueba gratis</strong>: el cobro de {formatPrice(total)}/mes empieza al confirmar el pago.
                 </>
               ) : (
                 <>

@@ -38,6 +38,7 @@ const navGroups = [
       { to: "/admin/club-plantillas", icon: Layers, label: "Plantillas", hint: "Campo/Gym A·B·C" },
       { to: "/admin/club-calentamientos", icon: Flame, label: "Sin balón", hint: "YouTube · aleatorio" },
       { to: "/admin/club-tareas", icon: Layers, label: "Calent. con balón", hint: "Tareas · filtros sesión/edad" },
+      { to: "/admin/club-catalog", icon: BookOpen, label: "Catálogo ejercicios", hint: "Mismos ejercicios · etiquetas de plantilla" },
       { to: "/admin/planificacion", icon: CalendarDays, label: "Planificación" },
       { to: "/admin/tests", icon: ClipboardList, label: "Tests físicos" },
     ],
@@ -50,7 +51,7 @@ const navGroups = [
       { to: "/admin/clients", icon: Users, label: "Clientes jugadores", hint: "Automáticos / Llevados por mí" },
       { to: "/admin/plan-builder", icon: Brain, label: "Motor de planes" },
       { to: "/admin/templates", icon: Layers, label: "Plantillas F_*" },
-      { to: "/admin/catalog", icon: BookOpen, label: "Catálogo ejercicios", hint: "Base compartida + club_*" },
+      { to: "/admin/catalog", icon: BookOpen, label: "Catálogo ejercicios", hint: "Planificaciones individuales" },
     ],
   },
   {

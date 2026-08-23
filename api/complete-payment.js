@@ -79,6 +79,7 @@ export default async function handler(req, res) {
         stripeCustomerId,
         trialEndsAt,
         billingSource: "stripe",
+        coachAuto: meta.coachAuto || "",
         // Premium: rutina pendiente de intervención humana
         planPendingManual: meta.plan === "player-pro" || meta.plan === "premium",
       };

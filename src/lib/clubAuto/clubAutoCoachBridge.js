@@ -93,6 +93,72 @@ export function usesClubAutoEngine(clubOrConfig) {
   return false;
 }
 
+const ONBOARDING_DRAFT_KEY = "depro_onboarding_draft_v1";
+
+/** True si este usuario es DEPRO Coach / entrenador individual (ProCoach). */
+export function isProCoachUser(user) {
+  if (!user) return false;
+  const club = user.club;
+  return !!(
+    club?.isSoloCoach
+    || club?.metadata?.isSoloCoach
+    || user.role === "coach"
+    || String(user.clubId || club?.id || "").startsWith("coach_")
+    || String(user.plan || "").startsWith("coach-")
+  );
+}
+
+/** Compacta el cuestionario para metadata Stripe (~500 chars). */
+export function serializeCoachAutoForMeta(q = {}) {
+  if (!q || typeof q !== "object") return "";
+  try {
+    const packed = {
+      nivel: q.nivel || "",
+      dias: Array.isArray(q.dias_exactos_entrenamiento) ? q.dias_exactos_entrenamiento.join(",") : "",
+      partido: q.dia_partido || "",
+      gym: q.acceso_gimnasio === true || q.acceso_gimnasio === "si" ? "si" : "no",
+      material: Array.isArray(q.material) ? q.material.join(",") : "",
+      duracion: q.duracion_sesion || "",
+      jugadores: q.num_jugadores || "",
+    };
+    return JSON.stringify(packed).slice(0, 490);
+  } catch {
+    return "";
+  }
+}
+
+export function parseCoachAutoFromMeta(raw) {
+  if (!raw) return null;
+  try {
+    const o = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!o || typeof o !== "object") return null;
+    const days = String(o.dias || "").split(",").map((s) => s.trim()).filter(Boolean);
+    return {
+      nivel: o.nivel || "B",
+      dias_exactos_entrenamiento: days,
+      dias_entrenamiento_semana: days.length || Number(o.dias_entrenamiento_semana) || 3,
+      dia_partido: o.partido || o.dia_partido || "sabado",
+      acceso_gimnasio: o.gym || o.acceso_gimnasio || "no",
+      material: String(o.material || "").split(",").map((s) => s.trim()).filter(Boolean),
+      duracion_sesion: o.duracion || o.duracion_sesion || "75",
+      num_jugadores: o.jugadores || o.num_jugadores || "14-18",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function loadCoachAutoDraftFromStorage() {
+  try {
+    const raw = localStorage.getItem(ONBOARDING_DRAFT_KEY);
+    const state = raw ? JSON.parse(raw) : null;
+    if (state?.form?.coachAuto && typeof state.form.coachAuto === "object") {
+      return state.form.coachAuto;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 /** Huella del cuestionario para invalidar microciclos congelados. */
 export function coachConfigFingerprint(config = {}) {
   const q = coachConfigToQuestionnaire(config);
