@@ -145,13 +145,28 @@ export function saveMesociclo({ clubId, teamId, data }) {
   saveClubDetail(clubId, { ...detail, coachMesociclo }).catch(() => {});
 }
 
+function listLocalStorageKeys() {
+  const keys = [];
+  try {
+    if (typeof localStorage.length === "number" && typeof localStorage.key === "function") {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k) keys.push(k);
+      }
+      if (keys.length) return keys;
+    }
+    keys.push(...Object.keys(localStorage));
+  } catch { /* ignore */ }
+  return keys;
+}
+
 /** Invalida microciclos/mesociclos congelados tras cambiar el cuestionario. */
 export function clearCoachGeneratedPlans(clubId, teamId) {
   if (!clubId) return;
   try {
     const prefixWeek = `depro_coach_week_${clubId}_${teamId || ""}`;
     const prefixMeso = `depro_coach_meso_${clubId}_${teamId || ""}`;
-    Object.keys(localStorage).forEach((key) => {
+    listLocalStorageKeys().forEach((key) => {
       if (key.startsWith(prefixWeek) || key.startsWith(`depro_coach_week_${clubId}_`)) {
         if (!teamId || key.includes(`_${teamId}_`) || key.endsWith(`_${teamId}`)) {
           localStorage.removeItem(key);

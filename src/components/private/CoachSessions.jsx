@@ -501,6 +501,7 @@ export default function CoachSessions({ club, team, user }) {
                   <ClubAutoSessionView
                     session={activeSession}
                     accent={accent}
+                    taskStorageKey={clubId && teamId ? `depro_coach_tasks_${clubId}_${teamId}_${activeSession.id}` : ""}
                     canRefreshBall={hasFeatureAccess(user, "unlimited_ball_warmups")}
                     refreshBallLocked="Incluido en Premium o con el extra de refresco ilimitado con balón."
                     onRefreshBall={() => {

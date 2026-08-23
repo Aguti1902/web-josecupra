@@ -35,6 +35,9 @@ export default function AssignPlanModal({
   /** Preselecciona este jugador/destino al abrir (p. ej. tras alta admin). */
   defaultSelectedId = "",
   defaultSelectedLabel = "",
+  defaultKind = "",
+  defaultClubId = "",
+  defaultTeamId = "",
 }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -71,26 +74,32 @@ export default function AssignPlanModal({
         }
         setTargets(merged);
         if (defaultSelectedId) {
+          const synthetic = {
+            id: defaultSelectedId,
+            name: defaultSelectedLabel || (mode === "club" ? "Entrenador recién creado" : "Jugador recién creado"),
+            email: "",
+            role: mode === "club" ? "coach" : "player",
+            kind: defaultKind || (mode === "club" ? "entrenador" : "player"),
+            clubId: defaultClubId || null,
+            teamId: defaultTeamId || null,
+            isSoloCoach: mode === "club",
+          };
           if (merged.some((t) => t.id === defaultSelectedId)) {
+            setTargets((prev) => prev.map((t) => (
+              t.id === defaultSelectedId
+                ? { ...t, ...synthetic, name: t.name || synthetic.name, clubId: t.clubId || synthetic.clubId, teamId: t.teamId || synthetic.teamId }
+                : t
+            )));
             setSelectedId(defaultSelectedId);
           } else {
-            // Jugador recién creado: aún no en API; mantener preselección sintética
-            setTargets((prev) => [
-              {
-                id: defaultSelectedId,
-                name: defaultSelectedLabel || "Jugador recién creado",
-                email: "",
-                role: "player",
-              },
-              ...prev.filter((t) => t.id !== defaultSelectedId),
-            ]);
+            setTargets((prev) => [synthetic, ...prev.filter((t) => t.id !== defaultSelectedId)]);
             setSelectedId(defaultSelectedId);
           }
         }
       })
       .catch(() => setTargets([]))
       .finally(() => setLoadingTargets(false));
-  }, [open, defaultCycles, mode, defaultSelectedId, defaultSelectedLabel]);
+  }, [open, defaultCycles, mode, defaultSelectedId, defaultSelectedLabel, defaultKind, defaultClubId, defaultTeamId]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

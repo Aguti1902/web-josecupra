@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
-  Sparkles, RefreshCw, ChevronDown, ChevronUp, Dumbbell, CheckCircle2,
+  Sparkles, RefreshCw, ChevronDown, ChevronUp, Dumbbell, CheckCircle2, User,
 } from "lucide-react";
 import {
   validateCoachQuestionnaire,
@@ -62,6 +63,14 @@ function SessionCard({ session }) {
 }
 
 export default function AdminClubAutoMotorPage() {
+  const [searchParams] = useSearchParams();
+  const preselectUserId = searchParams.get("userId") || "";
+  const preselectClubId = searchParams.get("clubId") || "";
+  const preselectTeamId = searchParams.get("teamId") || "";
+  const preselectName = searchParams.get("name") || "";
+  const preselectId = preselectUserId || preselectClubId;
+  const preselectKind = preselectUserId ? "entrenador" : (preselectClubId ? "club" : "");
+
   const [form, setForm] = useState({
     nivel: "B",
     dias_entrenamiento_semana: 3,
@@ -101,6 +110,17 @@ export default function AdminClubAutoMotorPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {preselectId && (
+        <div className="rounded-xl bg-depro-blue text-white px-5 py-3 text-sm flex flex-wrap items-center gap-2">
+          <User size={16} className="shrink-0" />
+          <span>
+            Destino: <strong>{preselectName || "DEPRO Coach"}</strong>
+          </span>
+          <span className="text-xs opacity-90">
+            · Completa el cuestionario, genera el microciclo y pulsa Asignar.
+          </span>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-depro-dark">Motor automático clubs / entrenadores</h1>
         <p className="text-sm text-depro-gray mt-0.5">
@@ -136,6 +156,14 @@ export default function AdminClubAutoMotorPage() {
             >
               4 semanas
             </button>
+            <button
+              type="button"
+              disabled={!validation.ok}
+              onClick={() => setAssignOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-depro-blue text-depro-blue text-sm font-bold hover:bg-depro-blue-light disabled:opacity-50"
+            >
+              Asignar
+            </button>
           </div>
         </div>
 
@@ -167,12 +195,17 @@ export default function AdminClubAutoMotorPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
+                  disabled={!validation.ok}
                   onClick={() => setAssignOpen(true)}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-depro-blue text-white text-xs font-bold hover:bg-depro-blue-dark"
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-depro-blue text-white text-xs font-bold hover:bg-depro-blue-dark disabled:opacity-50"
                 >
                   Asignar
                 </button>
-                <span className="text-[11px] text-depro-gray">Asignar a club / equipo / entrenador / coordinador</span>
+                <span className="text-[11px] text-depro-gray">
+                  {preselectName
+                    ? `Asignar a ${preselectName}`
+                    : "Asignar a club / equipo / entrenador / coordinador"}
+                </span>
               </div>
 
               {weeks && (
@@ -224,6 +257,11 @@ export default function AdminClubAutoMotorPage() {
         mode="club"
         questionnaire={form}
         defaultCycles={1}
+        defaultSelectedId={preselectId}
+        defaultSelectedLabel={preselectName}
+        defaultKind={preselectKind}
+        defaultClubId={preselectClubId}
+        defaultTeamId={preselectTeamId}
       />
     </div>
   );

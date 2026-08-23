@@ -3,11 +3,13 @@
  * Resumen | Calentamiento | Parte principal (hasta 6 huecos) | Diseñador de tareas
  */
 import { useState, useEffect } from "react";
-import { Dumbbell, Clock, Target, Sparkles, StickyNote, Activity, BarChart2, Flame, ListChecks, PencilRuler, ExternalLink } from "lucide-react";
+import { Dumbbell, Clock, Sparkles, StickyNote, Activity, BarChart2, Flame, ListChecks, PencilRuler, ExternalLink, Layers } from "lucide-react";
 import { sessionTextsFor } from "../../data/sessionTypeTexts";
 import { sessionTypeForProtocol } from "../../lib/clubAuto/clubAutoTaskSelector";
 import { CLUB_SIN_BALON_INTRO } from "../../data/clubAutoCatalog";
 import { prefetchCatalogMedia, resolveExerciseVideo, youtubeEmbedUrl } from "../../lib/catalogMedia";
+import DisenarTareas, { SESSION_FRAMEWORK_UI, FRAMEWORK_TO_SESSION_TEXT } from "../shared/DisenarTareas";
+import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
 
 function youtubeEmbed(url) {
   return youtubeEmbedUrl(url);
@@ -120,6 +122,7 @@ export default function ClubAutoSessionView({
   onRefreshBall,
   canRefreshBall = false,
   refreshBallLocked = "",
+  taskStorageKey = "",
 }) {
   const [tab, setTab] = useState("resumen");
   const [, setMediaReady] = useState(0);
@@ -131,11 +134,16 @@ export default function ClubAutoSessionView({
   const warm = byType.calentamiento_general;
   const ball = byType.calentamiento_balon;
   const proto = byType.protocolo;
-  const task = byType.tarea_principal;
   const obs = byType.observaciones;
 
-  const sessionType = sessionTypeForProtocol(session?.protocol || "A");
-  const texts = sessionTextsFor(sessionType);
+  const framework = session?.framework || session?.protocol || "A";
+  const st = SESSION_FRAMEWORK_UI[framework] || SESSION_FRAMEWORK_UI.A;
+  const StIcon = st.Icon;
+  const sessionType = sessionTypeForProtocol(session?.protocol || framework);
+  const texts = sessionTextsFor(FRAMEWORK_TO_SESSION_TEXT[framework] || sessionType || "extensiva");
+  const duration = session.duration || session.duracionEstimada || "75 min";
+  const intensity = session.intensity || st.label;
+  const exerciseCount = (proto?.exercises || []).filter((ex) => !ex.missing && (ex.nombre || ex.name)).length;
 
   const TABS = [
     { id: "resumen", label: "Resumen", Icon: BarChart2 },
@@ -165,36 +173,51 @@ export default function ClubAutoSessionView({
 
       {tab === "resumen" && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-depro-border p-4 flex flex-wrap gap-3 items-center">
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: `${accent}15`, color: accent }}>
-              <Target size={12} /> {session.protocolLabel || `Protocolo ${session.protocol}`} · {sessionType}
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-depro-gray">
-              <Clock size={12} /> {session.duracionEstimada || "75–90 min"}
-            </span>
-            {session.intensityDay && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-depro-gray">
-                <Activity size={12} /> {session.intensityDay}
-              </span>
-            )}
-            {session.assignedDay && (
-              <span className="text-xs text-depro-gray ml-auto">{session.assignedDay}</span>
-            )}
+          <div className="rounded-2xl p-5 flex items-center gap-5 border"
+            style={{ background: `linear-gradient(135deg,${st.bg} 0%,white 80%)`, borderColor: st.color + "25" }}>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border"
+              style={{ backgroundColor: st.color + "18", borderColor: st.color + "30" }}>
+              <StIcon size={28} style={{ color: st.color }} />
+            </div>
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-depro-gray mb-0.5">Sesión del día</div>
+              <div className="font-black text-depro-dark text-2xl leading-none">{session.templateKey || framework}</div>
+              <div className="text-sm font-semibold mt-1" style={{ color: st.color }}>{st.label}</div>
+              {session.assignedDay && (
+                <div className="text-xs text-depro-gray mt-1">{session.assignedDay}</div>
+              )}
+            </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: "Duración", value: duration, Icon: Clock },
+              { label: "Intensidad", value: intensity, Icon: Activity },
+              { label: "Dinámica", value: st.label, Icon: StIcon },
+              { label: "Ejercicios", value: `${exerciseCount} tareas`, Icon: Layers },
+            ].map(({ label, value, Icon: MIcon }) => (
+              <div key={label} className="bg-depro-gray-light rounded-xl p-4 border border-depro-border">
+                <MIcon size={16} className="mb-2" style={{ color: accent }} />
+                <div className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">{label}</div>
+                <div className="text-sm font-black text-depro-dark mt-0.5">{value}</div>
+              </div>
+            ))}
+          </div>
+
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="rounded-xl border border-depro-border p-4">
               <p className="text-[11px] font-black uppercase text-depro-gray mb-2">{texts.warmup.title}</p>
-              <ul className="space-y-1.5">
-                {texts.warmup.bullets.map((b) => (
-                  <li key={b} className="text-xs text-depro-dark leading-relaxed">· {b}</li>
+              <ul className="space-y-1">
+                {texts.warmup.bullets.slice(0, 3).map((b) => (
+                  <li key={b} className="text-xs text-depro-dark">· {b}</li>
                 ))}
               </ul>
             </div>
             <div className="rounded-xl border border-depro-border p-4">
               <p className="text-[11px] font-black uppercase text-depro-gray mb-2">{texts.main.title}</p>
-              <ul className="space-y-1.5">
+              <ul className="space-y-1">
                 {texts.main.bullets.map((b) => (
-                  <li key={b} className="text-xs text-depro-dark leading-relaxed">· {b}</li>
+                  <li key={b} className="text-xs text-depro-dark">· {b}</li>
                 ))}
               </ul>
             </div>
@@ -249,23 +272,27 @@ export default function ClubAutoSessionView({
       )}
 
       {tab === "tareas" && (
-        <section className="space-y-3">
-          <h4 className="text-sm font-black text-depro-dark flex items-center gap-2">
-            <PencilRuler size={14} style={{ color: accent }} /> Diseñador de tareas
-          </h4>
-          <ContentCard title="Tarea principal del día" item={task?.item} icon={Target} accent={accent} />
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-depro-dark space-y-2">
-            <p className="text-[11px] font-black uppercase text-amber-800 flex items-center gap-1.5">
-              <StickyNote size={12} /> Observaciones / adaptaciones
-            </p>
-            <p>{obs?.item?.observaciones || session.observaciones || "Sin observaciones adicionales."}</p>
-            {obs?.item?.adaptaciones_jugadores && (
-              <p className="text-xs text-depro-gray"><strong>Jugadores:</strong> {obs.item.adaptaciones_jugadores}</p>
-            )}
-            {obs?.item?.adaptaciones_espacio && (
-              <p className="text-xs text-depro-gray"><strong>Espacio:</strong> {obs.item.adaptaciones_espacio}</p>
-            )}
-          </div>
+        <section className="space-y-4">
+          <DisenarTareas
+            accentColor={accent}
+            sessionType={framework}
+            storageKey={taskStorageKey}
+            taskDesigner={session.taskDesigner || createDefaultTaskDesigner()}
+          />
+          {(obs?.item?.observaciones || session.observaciones) && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-depro-dark space-y-2">
+              <p className="text-[11px] font-black uppercase text-amber-800 flex items-center gap-1.5">
+                <StickyNote size={12} /> Observaciones / adaptaciones
+              </p>
+              <p>{obs?.item?.observaciones || session.observaciones}</p>
+              {obs?.item?.adaptaciones_jugadores && (
+                <p className="text-xs text-depro-gray"><strong>Jugadores:</strong> {obs.item.adaptaciones_jugadores}</p>
+              )}
+              {obs?.item?.adaptaciones_espacio && (
+                <p className="text-xs text-depro-gray"><strong>Espacio:</strong> {obs.item.adaptaciones_espacio}</p>
+              )}
+            </div>
+          )}
         </section>
       )}
     </div>

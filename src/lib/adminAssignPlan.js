@@ -5,6 +5,14 @@
 import { savePlayerPlan, loadPlayerPlan, normalizePlayerPlan, persistPlayerPlanRemote } from "./playerPlanStorage.js";
 import { buildFourWeekPlan, buildPlayerPlan } from "./playerPlanEngine.js";
 import { generateClubAutoFourWeeks } from "./clubAuto/clubAutoEngine.js";
+import {
+  questionnaireToCoachConfig,
+  generateClubAutoWeekForCoach,
+  generateClubAutoMesocicloForCoach,
+  coachConfigFingerprint,
+  startOfIsoWeek,
+  addDaysIso,
+} from "./clubAuto/clubAutoCoachBridge.js";
 import { supabase } from "./supabase.js";
 import { trainingProfileSnapshotFromAny } from "./playerTrainingProfile.js";
 
@@ -141,6 +149,8 @@ export function listAssignableClubTargets() {
         name: c.name || c.nombre || c.email || c.id,
         email: c.email || "",
         clubId: c.clubId || null,
+        teamId: c.teamId || null,
+        isSoloCoach: !!c.isSoloCoach,
       });
     } else if (isCoord) {
       out.push({
@@ -186,6 +196,8 @@ export async function fetchAssignableClubTargets() {
           name: u.name || u.email || u.id,
           email: u.email || "",
           clubId: u.clubId || null,
+          teamId: u.teamId || null,
+          isSoloCoach: !!u.isSoloCoach || u.type === "coach",
         };
         map.set(`${t.kind}:${t.id}`, t);
       } else if (u.type === "club_coordinador") {
@@ -307,7 +319,97 @@ export async function assignPlanToPlayer({
 }
 
 /**
+ * Resuelve clubId + teamId reales para persistir en el panel ProCoach / club.
+ * El panel lee `depro_coach_week_${clubId}_${teamId}_${weekStart}`, no el registro admin.
+ */
+export function resolveClubAutoAssignIds({ kind, clubId, teamId, targetId } = {}) {
+  const clubs = readJson("depro_clubs", []);
+  const clients = readJson("depro_admin_clients", []);
+  let cid = clubId || null;
+  let tid = teamId || null;
+
+  if (!cid && kind === "club") {
+    cid = targetId || null;
+  }
+  if (!cid && kind === "equipo" && String(targetId || "").includes("::")) {
+    const [clubPart, teamPart] = String(targetId).split("::");
+    cid = clubPart;
+    tid = tid || teamPart;
+  }
+  if (!cid) {
+    const client = clients.find((c) => c.id === targetId);
+    if (client?.clubId) cid = client.clubId;
+    if (!tid && client?.teamId) tid = client.teamId;
+  }
+  if (!cid && String(targetId || "").startsWith("coach_")) cid = targetId;
+
+  const club = (cid && (clubs.find((c) => c.id === cid) || readJson(`depro_club_${cid}`, null))) || null;
+  if (!tid && club?.teams?.length) {
+    tid = club.teams[0].id || club.teams[0].name || null;
+  }
+  return { clubId: cid || null, teamId: tid || null, club };
+}
+
+function persistAssignedWeeksToCoachPanel({
+  clubId,
+  teamId,
+  config,
+  cycles,
+  startDate,
+  meta,
+}) {
+  if (!clubId || !teamId || !config) return;
+
+  const detail = readJson(`depro_club_${clubId}`, { id: clubId });
+  const fp = coachConfigFingerprint(config);
+  const monday = startOfIsoWeek(startDate);
+  const nWeeks = Math.max(1, cycles) * 4;
+  const coachWeeks = { ...(detail.coachWeeks || {}) };
+  const prefix = `${teamId}_`;
+  Object.keys(coachWeeks).forEach((k) => {
+    if (k.startsWith(prefix)) delete coachWeeks[k];
+  });
+
+  for (let i = 0; i < nWeeks; i++) {
+    const weekStart = addDaysIso(monday, i * 7);
+    const week = generateClubAutoWeekForCoach(config, { weekStart, weekOffset: i });
+    const data = { ...week, configFingerprint: fp, assignment: meta };
+    writeJson(`depro_coach_week_${clubId}_${teamId}_${weekStart}`, data);
+    coachWeeks[`${teamId}_${weekStart}`] = data;
+  }
+
+  const meso = generateClubAutoMesocicloForCoach(config, {
+    startDate: monday,
+    numWeeks: nWeeks,
+  });
+  const mesoData = { ...meso, configFingerprint: fp, assignment: meta };
+  writeJson(`depro_coach_meso_${clubId}_${teamId}`, mesoData);
+
+  const nextDetail = {
+    ...detail,
+    id: clubId,
+    coachConfig: { ...(detail.coachConfig || {}), ...config },
+    planningMode: "auto",
+    mode: "depro",
+    origen: detail.origen || "automatico",
+    coachWeeks,
+    coachMesociclo: { ...(detail.coachMesociclo || {}), [teamId]: mesoData },
+  };
+  writeJson(`depro_club_${clubId}`, nextDetail);
+  const clubs = readJson("depro_clubs", []);
+  const idx = clubs.findIndex((c) => c.id === clubId);
+  if (idx >= 0) {
+    clubs[idx] = { ...clubs[idx], ...nextDetail };
+    writeJson("depro_clubs", clubs);
+  }
+  import("./adminStorage.js").then(({ saveClubDetail }) => {
+    saveClubDetail(clubId, nextDetail).catch(() => {});
+  }).catch(() => {});
+}
+
+/**
  * Asigna microciclo/mesociclo club-auto a club / equipo / entrenador / coordinador.
+ * Persiste en el panel (coachWeeks / coachConfig) para que el ProCoach lo vea al entrar.
  */
 export function assignClubAutoPlan({
   targetId,
@@ -322,9 +424,15 @@ export function assignClubAutoPlan({
   if (!targetId) throw new Error("targetId requerido");
   if (!questionnaire) throw new Error("cuestionario requerido");
 
+  const packed = questionnaireToCoachConfig(questionnaire);
+  if (!packed.ok) {
+    throw new Error((packed.errors || []).join(" ") || "Cuestionario inválido");
+  }
+
   const n = Math.max(1, Math.min(6, Number(cycles) || 1));
   const generated = generateClubAutoFourWeeks(questionnaire, { cycles: n });
   const weeks = Array.isArray(generated) ? generated : generated?.weeks || [];
+  const resolved = resolveClubAutoAssignIds({ kind, clubId, teamId, targetId });
 
   const meta = {
     startDate: startDate || new Date().toISOString().slice(0, 10),
@@ -332,8 +440,8 @@ export function assignClubAutoPlan({
     assignedAt: new Date().toISOString(),
     assignedBy: "admin",
     kind: kind || "club",
-    clubId: clubId || null,
-    teamId: teamId || null,
+    clubId: resolved.clubId || clubId || null,
+    teamId: resolved.teamId || teamId || null,
     targetId,
     cycles: n,
   };
@@ -348,20 +456,26 @@ export function assignClubAutoPlan({
   const key = `depro_club_auto_plan_${targetId}`;
   writeJson(key, payload);
 
-  // Bridge a coach sessions si el destino es entrenador, equipo o coordinador
-  if (kind === "entrenador" || kind === "equipo" || kind === "coordinador") {
-    try {
-      const existing = readJson(`depro_coach_sessions_${targetId}`, null);
-      const sessions = weeks.flatMap((w) => w.sessions || w.days || []);
-      writeJson(`depro_coach_assigned_plan_${targetId}`, {
-        ...payload,
-        sessions,
-        previous: existing ? "kept" : null,
-      });
-    } catch {
-      /* ignore */
-    }
+  try {
+    const existing = readJson(`depro_coach_sessions_${targetId}`, null);
+    const sessions = weeks.flatMap((w) => w.sessions || w.days || []);
+    writeJson(`depro_coach_assigned_plan_${targetId}`, {
+      ...payload,
+      sessions,
+      previous: existing ? "kept" : null,
+    });
+  } catch {
+    /* ignore */
   }
+
+  persistAssignedWeeksToCoachPanel({
+    clubId: meta.clubId,
+    teamId: meta.teamId,
+    config: packed.config,
+    cycles: n,
+    startDate: meta.startDate,
+    meta,
+  });
 
   const registry = readJson(CLUB_ASSIGN_KEY, []);
   registry.unshift(meta);
@@ -381,4 +495,5 @@ export default {
   fetchAssignableClubTargets,
   assignPlanToPlayer,
   assignClubAutoPlan,
+  resolveClubAutoAssignIds,
 };
