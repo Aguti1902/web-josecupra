@@ -162,14 +162,14 @@
   },
   "feedback": {
     "title": "Feedback",
-    "subtitle": "Notas de tu entrenador",
+    "subtitle": "Mensajes de tu preparador físico",
     "no_feedback": "Sin feedback disponible aún.",
     "week": "Semana",
     "load": "Carga",
-    "technique": "Técnica",
+    "technique": "Valoración",
     "attitude": "Actitud",
-    "notes": "Notas",
-    "adjustment": "Ajuste de carga"
+    "notes": "Valoración media",
+    "adjustment": "Foco físico"
   },
   "profile": {
     "title": "Mi perfil",

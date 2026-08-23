@@ -475,28 +475,8 @@ export const physicalContent = [
   },
 ];
 
-export const coachFeedback = [
-  {
-    id: 1,
-    date: "18 abr 2025",
-    week: "Semana 15",
-    coach: "Coach DEPRO",
-    message: "Gran mejora en el primer toque esta semana. Las sesiones de rondo están dando resultado. Sigo viendo algo de duda antes de finalizar — la semana que viene trabajaremos la toma de decisiones en el último tercio.",
-    adjustments: ["Sesiones extra de finalización mar/mié", "Mayor intensidad en pressing", "Nuevo módulo de duelos 1v1"],
-    rating: 8,
-    nextFocus: "Toma de decisiones en zona de remate",
-  },
-  {
-    id: 2,
-    date: "11 abr 2025",
-    week: "Semana 14",
-    coach: "Coach DEPRO",
-    message: "Excelente semana a nivel físico. Los sprints han subido un 12% respecto a la base. A nivel técnico conviene reforzar la pierna menos hábil — empezamos a añadir ejercicios específicos.",
-    adjustments: ["Ejercicios pierna mala en calentamiento", "Protocolo de sprint ajustado", "Sesión de recuperación movida al miércoles"],
-    rating: 7,
-    nextFocus: "Desarrollo de pierna menos hábil",
-  },
-];
+/** @deprecated Ya no se usan mocks de feedback. Persistencia en playerFeedback.js */
+export const coachFeedback = [];
 
 export const testimonials = [
   {

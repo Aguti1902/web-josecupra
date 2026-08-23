@@ -643,34 +643,30 @@ export function PlayerSessionFullscreen({
         </div>
       </main>
 
-      <footer className="flex-shrink-0 border-t border-depro-border bg-white p-4 safe-bottom">
-        <div className="max-w-3xl mx-auto w-full space-y-3">
-          <div className="rounded-xl border border-depro-border p-3 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <div className="text-sm font-bold text-depro-dark">RPE general de la sesión</div>
-                <p className="text-[11px] text-depro-gray">Esfuerzo percibido global (1–10), no por ejercicio.</p>
-              </div>
-              <input
-                className="admin-input w-20 text-center text-sm font-bold"
-                inputMode="numeric"
-                min={1}
-                max={10}
-                placeholder="7"
-                value={sessionRpe}
-                onChange={(e) => { setSessionRpe(e.target.value); setSessionRpeSaved(false); }}
-              />
-            </div>
-            {sessionRpeNotice && <p className="text-xs text-amber-700">{sessionRpeNotice}</p>}
-            {sessionRpeSaved && <p className="text-xs text-green-700">RPE de sesión guardado.</p>}
+      <footer className="flex-shrink-0 border-t border-depro-border bg-white px-4 py-3 safe-bottom">
+        <div className="max-w-3xl mx-auto w-full space-y-2.5">
+          <div className="flex items-center gap-2 rounded-lg bg-depro-gray-light/80 px-2.5 py-1.5">
+            <span className="text-[11px] font-semibold text-depro-gray shrink-0">RPE sesión</span>
+            <input
+              className="w-12 h-7 rounded-md border border-depro-border bg-white text-center text-xs font-bold text-depro-dark"
+              inputMode="numeric"
+              min={1}
+              max={10}
+              placeholder="—"
+              value={sessionRpe}
+              onChange={(e) => { setSessionRpe(e.target.value); setSessionRpeSaved(false); }}
+              aria-label="RPE general de la sesión (1-10)"
+            />
+            <span className="text-[10px] text-depro-gray hidden sm:inline">1–10</span>
             <button
               type="button"
               onClick={handleSaveSessionRpe}
-              className="w-full py-2 rounded-xl text-xs font-bold border border-depro-border hover:border-depro-blue hover:text-depro-blue"
+              className="ml-auto text-[11px] font-bold text-depro-blue hover:underline shrink-0"
             >
-              Guardar RPE sesión
+              {sessionRpeSaved ? "Guardado" : "Guardar"}
             </button>
           </div>
+          {sessionRpeNotice && <p className="text-[11px] text-amber-700 px-0.5">{sessionRpeNotice}</p>}
           <CompletionButton
             completion={completion}
             onComplete={handleComplete}
@@ -679,8 +675,8 @@ export function PlayerSessionFullscreen({
           />
           {onDownloadPdf && (
             <button type="button" onClick={onDownloadPdf}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
-              <FileText size={14} /> Descargar PDF
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-depro-border text-xs font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
+              <FileText size={13} /> Descargar PDF
             </button>
           )}
         </div>

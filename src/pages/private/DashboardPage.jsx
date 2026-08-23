@@ -12,7 +12,7 @@ import { getAdherenceReminder, countCompletedSessions, weekKey, toggleSessionCom
 import { hasFeatureAccess, getPlanLabel, isInTrial } from "../../lib/subscription";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
-import { coachFeedback } from "../../data/mockData";
+import { getLatestPlayerFeedback } from "../../lib/playerFeedback";
 import { ensurePlayerPlan, hydratePlayerPlan, DAY_ORDER, buildMinimalSession } from "../../lib/playerPlanEngine";
 import {
   distributeMesocycleForTeam, getCurrentWeekIndex, isMesocicloActive, getMesocicloWeeks,
@@ -922,7 +922,7 @@ function JugadorDashboard({ user, club }) {
   const accent    = club?.primaryColor || "#0A36F7";
   const safeAccent = visibleOnWhite(accent, "#0A36F7");
   const isPremium = hasFeatureAccess(user, "coach_contact");
-  const lastFeedback = coachFeedback[0];
+  const lastFeedback = getLatestPlayerFeedback(user?.id);
 
   const planKey = `depro_plan_${user?.id}`;
   const [playerPlan, setPlayerPlan] = useState(null);
@@ -1122,7 +1122,13 @@ function JugadorDashboard({ user, club }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard label="Sesiones esta semana" value={`${completedDays}/${displayTotal}`} sub={`${progressPct}% completado`} icon={CheckCircle} accent="#3BC21D" />
         <StatCard label="Frecuencia semanal" value={freqNum} sub="días de entreno" icon={Calendar} accent={safeAccent} />
-        <StatCard label="Valoración coach" value={`${lastFeedback.rating}/10`} sub="última revisión" icon={Trophy} accent="#F6CC12" />
+        <StatCard
+          label="Valoración coach"
+          value={lastFeedback?.rating != null ? `${lastFeedback.rating}/10` : "—"}
+          sub={lastFeedback ? "última revisión" : "sin feedback aún"}
+          icon={Trophy}
+          accent="#F6CC12"
+        />
         <StatCard label="Plan actual" value={getPlanLabel(user?.plan) || "—"} sub={isInTrial(user) ? "periodo de prueba" : "activo"} icon={Zap} accent="#0A36F7" />
       </div>
 
@@ -1224,25 +1230,38 @@ function JugadorDashboard({ user, club }) {
           <div>
             <h3 className="font-bold text-depro-dark mb-1">Último feedback</h3>
             <p className="text-xs text-depro-gray mb-3">
-              Revisión semanal del preparador: resume tu progreso, qué mejorar y el foco del próximo entrenamiento.
+              Revisiones reales de tu preparador físico sobre cargas y progresión.
             </p>
-            <div className="bg-white border border-depro-border rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-xl bg-depro-blue/10 flex items-center justify-center"><Target size={14} className="text-depro-blue" /></div>
-                <div>
-                  <div className="text-sm font-bold text-depro-dark">{lastFeedback.coach}</div>
-                  <div className="text-xs text-depro-gray">{lastFeedback.week} · {lastFeedback.date}</div>
+            {lastFeedback ? (
+              <div className="bg-white border border-depro-border rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-xl bg-depro-blue/10 flex items-center justify-center"><Target size={14} className="text-depro-blue" /></div>
+                  <div>
+                    <div className="text-sm font-bold text-depro-dark">{lastFeedback.coach || "Preparador"}</div>
+                    <div className="text-xs text-depro-gray">{lastFeedback.week} · {lastFeedback.date}</div>
+                  </div>
                 </div>
+                <p className="text-sm text-depro-gray leading-relaxed line-clamp-3">{lastFeedback.message}</p>
+                {lastFeedback.nextFocus && (
+                  <div className="mt-3 pt-3 border-t border-depro-border">
+                    <div className="text-xs text-depro-gray mb-1">Foco físico:</div>
+                    <div className="text-xs font-bold text-depro-dark">{lastFeedback.nextFocus}</div>
+                  </div>
+                )}
+                <Link to="/dashboard/feedback" className="inline-flex items-center gap-1 text-xs font-bold text-depro-blue mt-3 hover:underline">
+                  Ver todo el feedback <ArrowRight size={12} />
+                </Link>
               </div>
-              <p className="text-sm text-depro-gray leading-relaxed line-clamp-3">{lastFeedback.message}</p>
-              <div className="mt-3 pt-3 border-t border-depro-border">
-                <div className="text-xs text-depro-gray mb-1">Próximo foco:</div>
-                <div className="text-xs font-bold text-depro-dark">{lastFeedback.nextFocus}</div>
+            ) : (
+              <div className="bg-white border border-depro-border rounded-xl p-4 text-center">
+                <p className="text-sm text-depro-gray mb-3">
+                  Aún no hay mensajes de tu preparador. Aquí solo aparecen revisiones realmente enviadas.
+                </p>
+                <Link to="/dashboard/feedback" className="inline-flex items-center gap-1 text-xs font-bold text-depro-blue hover:underline">
+                  Ir a Feedback <ArrowRight size={12} />
+                </Link>
               </div>
-              <Link to="/dashboard/feedback" className="inline-flex items-center gap-1 text-xs font-bold text-depro-blue mt-3 hover:underline">
-                Ver todo el feedback <ArrowRight size={12} />
-              </Link>
-            </div>
+            )}
           </div>
         </div>
       </div>
