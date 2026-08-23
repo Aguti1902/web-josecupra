@@ -28,7 +28,7 @@ import { canDownloadTrialPdf, recordTrialPdfDownload, trialPdfLimitMessage } fro
 import { savePlayerPlan } from "../../lib/playerPlanStorage";
 import CoachSessions from "../../components/private/CoachSessions";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
-import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans } from "../../lib/clubManualPlans";
+import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans, filterPlansForTeam } from "../../lib/clubManualPlans";
 import DisenarTareas from "../../components/shared/DisenarTareas";
 import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
@@ -1318,7 +1318,7 @@ function ClubMicrocycles({ accent }) {
           try { localStorage.setItem("depro_global_plans", JSON.stringify(apiPlans)); } catch {}
         }
         const picked = pickPlansFromAdminClubsResponse(data.clubs, user?.club, apiPlans || []);
-        if (picked.length) setAllPlans(picked.map(normalizePlan));
+        setAllPlans(picked.map(normalizePlan));
       })
       .catch(() => {});
   }, [user?.club?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1327,10 +1327,7 @@ function ClubMicrocycles({ accent }) {
   // Sistema nuevo: filtra por ageBlock. Sistema antiguo (fallback): filtra por teamId.
   const visiblePlans = isCoordinator
     ? allPlans
-    : allPlans.filter((m) => {
-        if (m.ageBlock && userAgeBlock) return m.ageBlock === userAgeBlock;
-        return !m.teamId || m.teamId === userTeamId;
-      });
+    : filterPlansForTeam(allPlans, userTeamCategory);
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const micro = visiblePlans[selectedIdx] ?? visiblePlans[0];

@@ -18,7 +18,7 @@ import { getSessionDisplayKey } from "../../lib/mesocycleTemplates";
 import CoachPlanning from "../../components/private/CoachPlanning";
 import MesocycleCalendar from "../../components/private/MesocycleCalendar";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
-import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans } from "../../lib/clubManualPlans";
+import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans, filterPlansForTeam } from "../../lib/clubManualPlans";
 
 /* ── Contraste seguro ───────────────────────────────────── */
 function lum(hex) {
@@ -203,16 +203,13 @@ export default function MesocyclePage() {
           try { localStorage.setItem("depro_global_plans", JSON.stringify(globalEntry.plans)); } catch {}
         }
         const picked = pickPlansFromAdminClubsResponse(data.clubs, user?.club, globalEntry?.plans || []);
-        if (picked.length) setAllPlans(picked);
+        setAllPlans(picked);
       })
       .catch(() => {});
   }, [user?.club?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isCoach = isProCoachUser(user);
-  const blockPlans = allPlans.filter((p) => {
-    if (p.ageBlock && userAgeBlock) return p.ageBlock === userAgeBlock;
-    return true;
-  });
+  const blockPlans = filterPlansForTeam(allPlans, teamCategory);
 
   const [selectedPlanIdx, setSelectedPlanIdx] = useState(0);
   const activePlan = blockPlans[selectedPlanIdx] ?? blockPlans[0];

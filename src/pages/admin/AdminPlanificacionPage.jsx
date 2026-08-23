@@ -19,7 +19,7 @@ import {
   intensityFromFramework, buildTemplateKeyOptions,
   ensureSessionTemplateFields, filterSessionsByFramework,
 } from "../../lib/mesocycleTemplates";
-import { broadcastGlobalPlansToManualClubs } from "../../lib/clubManualPlans";
+import { persistGlobalPlans } from "../../lib/adminStorage";
 
 /* ── Constantes globales ─────────────────────────────────── */
 const AGE_BLOCKS = [
@@ -60,21 +60,9 @@ function loadGlobalPlans() {
 async function saveGlobalPlans(plans) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
   try {
-    const res = await fetch("/api/admin-clubs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        club: { id: GLOBAL_CLUB_ID, name: "Global Plans" },
-        detail: { plans },
-      }),
-    });
-    if (!res.ok) console.warn("[DEPRO] saveGlobalPlans API error", await res.text());
+    const { ok, data } = await persistGlobalPlans(plans);
+    if (!ok) console.warn("[DEPRO] saveGlobalPlans API error", data?.error);
   } catch (e) { console.warn("[DEPRO] saveGlobalPlans fetch error", e); }
-  try {
-    await broadcastGlobalPlansToManualClubs(plans);
-  } catch (e) {
-    console.warn("[DEPRO] broadcast a clubs manuales falló", e);
-  }
 }
 
 async function fetchGlobalPlansFromAPI() {
@@ -751,7 +739,7 @@ export default function AdminPlanificacionPage() {
         <div>
           <h1 className="text-2xl font-black text-depro-dark">Planificación global</h1>
           <p className="text-depro-gray text-sm mt-1">
-            Crea los microciclos de cada bloque. Se asignan a todos los clubs llevados por mí; si editas la planificación dentro de un club, solo cambia ese club.
+            Las sesiones de cada bloque salen en todos los clubs llevados por mí cuya categoría coincida (Bloque 1, 2 o 3).
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">

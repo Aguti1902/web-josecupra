@@ -354,6 +354,15 @@ export async function saveClubDetail(clubId, data) {
   return { ok: true };
 }
 
+/** Una sola fuente de verdad para clubs academia (llevados por mí y automáticos). */
+export async function persistGlobalPlans(plans) {
+  const list = Array.isArray(plans) ? plans : [];
+  lsSet("depro_global_plans", list);
+  return apiClubs("POST", {
+    club: { id: "GLOBAL_PLANS", name: "Global Plans", plans: list },
+  });
+}
+
 // ════════════════════════════════════════════════════════════
 // MEDIA LIBRARY
 // ════════════════════════════════════════════════════════════

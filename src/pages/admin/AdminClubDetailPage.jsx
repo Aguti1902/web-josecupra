@@ -2086,8 +2086,9 @@ export default function AdminClubDetailPage() {
   }, [id]);
 
   // Persistir cambios del club cuando cambia — devuelve promesa con { ok, error }
-  const persistClub = useCallback((updatedClub, updatedPlans) => {
-    return saveClubDetail(id, { ...updatedClub, plans: updatedPlans, plansSource: "club" });
+  const persistClub = useCallback((updatedClub) => {
+    const { plans: _plans, plansSource: _src, ...rest } = updatedClub || {};
+    return saveClubDetail(id, rest);
   }, [id]);
 
   if (loading) {
@@ -2760,14 +2761,19 @@ export default function AdminClubDetailPage() {
             )}
             {contenidoMode === "automatico" && !clubIsManual && contenidoPanel === "motor" && <AdminClubAutoMotorPage />}
             {(contenidoMode === "manual" || clubIsManual) && contenidoPanel === "planificacion" && (
-              <PlanificacionSection
-                plans={plans}
-                teams={club.teams || []}
-                onAddSession={addSession}
-                onDeleteSession={deleteSession}
-                onDeleteMicrocycle={deleteMicrocycle}
-                onCreateMicrocycle={addMicrocycle}
-              />
+              <div className="space-y-3">
+                <p className="text-sm text-depro-dark font-semibold">Planificación compartida</p>
+                <p className="text-sm text-depro-gray">
+                  Este club usa la misma planificación que el resto de clubs llevados por mí.
+                  Las sesiones se crean en Planificación (menú admin) y el entrenador las ve filtradas por la categoría de su equipo.
+                </p>
+                <Link
+                  to="/admin/planificacion"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold"
+                >
+                  <ClipboardList size={14} /> Abrir planificación global
+                </Link>
+              </div>
             )}
             {(contenidoMode === "manual" || clubIsManual) && contenidoPanel === "tests" && (
               <div className="space-y-3">
