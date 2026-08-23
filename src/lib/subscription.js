@@ -262,10 +262,25 @@ export async function activateSubscriptionNow(user) {
   }
 }
 
-/** Compra un extra (upsell) vía Stripe Checkout. */
+/** Compra un extra (upsell): primero en la suscripción Stripe existente; si no, checkout. */
 export async function purchaseAddon(user, addonId) {
   if (!user?.id) return { ok: false, error: "Usuario no válido" };
   try {
+    const addRes = await fetch("/api/add-addon-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, addonId }),
+    });
+    const addData = await addRes.json().catch(() => ({}));
+    if (addRes.ok && addData.ok) {
+      return { ok: true, inline: true, addonId: addData.addonId };
+    }
+    if (addRes.status !== 409 || addData.error !== "no_subscription") {
+      if (addData.error && addData.error !== "no_subscription") {
+        return { ok: false, error: addData.error || addData.message || "No se pudo añadir el extra" };
+      }
+    }
+
     const res = await fetch("/api/create-addon-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -281,7 +296,7 @@ export async function purchaseAddon(user, addonId) {
       return { ok: false, error: data.error || "No se pudo iniciar el pago" };
     }
     window.location.href = data.url;
-    return { ok: true };
+    return { ok: true, checkout: true };
   } catch (e) {
     return { ok: false, error: e.message || "Error de red" };
   }

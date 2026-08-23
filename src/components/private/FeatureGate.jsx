@@ -60,8 +60,9 @@ export default function FeatureGate({
   const handleBuyAddon = async () => {
     if (!trialAddon) return;
     setActionLoading(true);
-    await purchaseAddon(user, trialAddon.id);
+    const res = await purchaseAddon(user, trialAddon.id);
     setActionLoading(false);
+    if (res.ok && res.inline) await refreshUser();
   };
 
   if (compact) {

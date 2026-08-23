@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem } from "./_planCatalog.js";
+import { buildAddonLineItem, getAddonDef } from "./_addonCatalog.js";
 import { getStripe, getSiteUrl } from "./_stripeClient.js";
 import { SUPABASE_SERVICE_ROLE_FALLBACK } from "./_serviceRoleKey.js";
 
@@ -27,7 +28,7 @@ async function validateClubCode(code) {
   return { valid: false };
 }
 
-function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPassword, finalAmount, lineItem }) {
+function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPassword, lineItems }) {
   const lesionArr = formData?.lesion || [];
   const subArr = formData?.lesionSubtipo || [];
   const dispArr = formData?.disponibles || [];
@@ -57,7 +58,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
     // Siempre pedir tarjeta aunque el trial sea 0 € hoy (no permitir checkout sin PM).
     payment_method_collection: "always",
     subscription_data: subscriptionData,
-    line_items: [lineItem],
+    line_items: lineItems,
     customer_email: formData?.email || undefined,
     metadata: {
       audience,
@@ -91,6 +92,19 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
     },
     locale: "es",
   };
+}
+
+function buildLineItems(planId, finalAmount, formData) {
+  const planItem = buildCheckoutLineItem(planId, finalAmount);
+  if (!planItem) return null;
+  const items = [planItem];
+  const selected = Array.isArray(formData?.selectedAddons) ? formData.selectedAddons : [];
+  for (const addonId of selected) {
+    if (!getAddonDef(addonId)) continue;
+    const addonItem = buildAddonLineItem(addonId);
+    if (addonItem) items.push(addonItem);
+  }
+  return items;
 }
 
 async function createCheckoutSession(stripe, params, embedded, origin) {
@@ -157,14 +171,14 @@ export default async function handler(req, res) {
 
   try {
     const stripe = await getStripe();
-    const lineItem = buildCheckoutLineItem(planId, finalAmount);
-    if (!lineItem) {
+    const lineItems = buildLineItems(planId, finalAmount, formData);
+    if (!lineItems?.length) {
       return res.status(400).json({ error: "Plan no válido" });
     }
 
     const session = await createCheckoutSession(
       stripe,
-      buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPassword, finalAmount, lineItem }),
+      buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPassword, lineItems }),
       embedded,
       origin,
     );

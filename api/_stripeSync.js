@@ -1,4 +1,5 @@
 import { findUserByStripeCustomer } from "./_supabaseAdmin.js";
+import { addonIdsFromSubscriptionItems } from "./_addonCatalog.js";
 
 function planIdFromSubscription(sub) {
   const metaPlan = sub.metadata?.plan;
@@ -50,6 +51,13 @@ export async function syncSubscriptionToUser(supabaseAdmin, subscription, emailH
 
   const meta = user.user_metadata || {};
   const payload = subscriptionPayload(subscription, {});
+
+  const fromItems = addonIdsFromSubscriptionItems(subscription.items?.data || []);
+  if (meta.billingSource === "stripe" || meta.stripeSubscriptionId) {
+    payload.purchasedAddons = fromItems;
+  } else if (fromItems.length) {
+    payload.purchasedAddons = Array.from(new Set([...(meta.purchasedAddons || []), ...fromItems]));
+  }
 
   await supabaseAdmin.auth.admin.updateUserById(user.id, {
     user_metadata: { ...meta, ...payload },

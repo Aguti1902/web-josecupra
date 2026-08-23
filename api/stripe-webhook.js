@@ -85,7 +85,9 @@ export default async function handler(req, res) {
           const subId = typeof session.subscription === "string"
             ? session.subscription
             : session.subscription.id;
-          const sub = await stripe.subscriptions.retrieve(subId);
+          const sub = await stripe.subscriptions.retrieve(subId, {
+            expand: ["items.data.price.product"],
+          });
           await syncSubscriptionToUser(
             supabaseAdmin,
             sub,
@@ -97,7 +99,10 @@ export default async function handler(req, res) {
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const sub = event.data.object;
-        await syncSubscriptionToUser(supabaseAdmin, sub);
+        const full = await stripe.subscriptions.retrieve(sub.id, {
+          expand: ["items.data.price.product"],
+        });
+        await syncSubscriptionToUser(supabaseAdmin, full);
         break;
       }
       case "invoice.payment_failed": {

@@ -45,6 +45,12 @@ const PRICES = {
   "player-pro":       { amount: 9900,  name: "DEPRO Jugador Premium",      description: "Seguimiento humano · videollamada · WhatsApp · 30 plazas" },
 };
 
+const ADDONS = {
+  "addon-pdf": { amount: 500, name: "DEPRO · Descarga en PDF", description: "PDF de sesiones y plan mensual" },
+  "addon-cargas": { amount: 500, name: "DEPRO · Mis cargas", description: "Registro de cargas e histórico" },
+  "addon-progression": { amount: 500, name: "DEPRO · Tests con registro", description: "Tests físicos con registro" },
+};
+
 const WEBHOOK_EVENTS = [
   "checkout.session.completed",
   "customer.subscription.updated",
@@ -184,6 +190,36 @@ async function ensureBillingPortal() {
   }
 }
 
+async function ensureAddonProduct(addonId, def) {
+  const search = await stripe.products.search({
+    query: `metadata['depro_addon_id']:'${addonId}'`,
+    limit: 1,
+  });
+  if (search.data[0]) return search.data[0];
+
+  return stripe.products.create({
+    name: def.name,
+    description: def.description,
+    metadata: { depro_addon_id: addonId },
+  });
+}
+
+async function ensureAddonPrice(addonId, productId, def) {
+  const existing = await stripe.prices.list({ product: productId, active: true, limit: 20 });
+  const match = existing.data.find(
+    (p) => p.unit_amount === def.amount && p.recurring?.interval === "month",
+  );
+  if (match) return match;
+
+  return stripe.prices.create({
+    product: productId,
+    currency: "eur",
+    unit_amount: def.amount,
+    recurring: { interval: "month" },
+    metadata: { depro_addon_id: addonId },
+  });
+}
+
 async function main() {
   console.log(`🔧 Configurando Stripe DEPRO (${mode.toUpperCase()})…`);
   console.log(`   Site: ${siteUrl}`);
@@ -193,6 +229,13 @@ async function main() {
     const price = await ensurePrice(planId, product.id, def);
     pricesOut[planId] = price.id;
     console.log(`✅ ${planId} → ${price.id} (${(def.amount / 100).toFixed(2)} €/mes)`);
+  }
+
+  for (const [addonId, def] of Object.entries(ADDONS)) {
+    const product = await ensureAddonProduct(addonId, def);
+    const price = await ensureAddonPrice(addonId, product.id, def);
+    pricesOut[addonId] = price.id;
+    console.log(`✅ extra ${addonId} → ${price.id} (${(def.amount / 100).toFixed(2)} €/mes)`);
   }
 
   writeFileSync(pricesPath, `${JSON.stringify(pricesOut, null, 2)}\n`);
