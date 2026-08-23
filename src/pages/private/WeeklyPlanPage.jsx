@@ -29,6 +29,7 @@ import { savePlayerPlan } from "../../lib/playerPlanStorage";
 import CoachSessions from "../../components/private/CoachSessions";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 import DisenarTareas from "../../components/shared/DisenarTareas";
+import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
@@ -36,10 +37,6 @@ import { getSessionBlocks, BLOCK_LABELS, BLOCK_COLORS, ADMIN_BLOCK_TYPES, sessio
 import { WeekCalendar, PlayerSessionFullscreen, MesoMonthCalendar } from "../../components/private/PlayerPlanUI";
 import { resolveBlockGuideItems } from "../../lib/blockGuideItems";
 import { getYouTubeId, youtubeEmbedUrl, youtubeThumbUrl } from "../../lib/youtube";
-import { sessionTextsFor } from "../../data/sessionTypeTexts";
-
-const FRAMEWORK_TO_SESSION_TEXT = { A: "extensiva", B: "intensiva", C: "reactiva" };
-
 const Youtube = PlayCircle;
 
 const intensityColor = { Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
@@ -1188,30 +1185,6 @@ function ClubSessionCard({
                   ))}
                 </div>
 
-                {(() => {
-                  const texts = sessionTextsFor(FRAMEWORK_TO_SESSION_TEXT[sessionType] || "extensiva");
-                  return (
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-depro-border p-4">
-                        <p className="text-[11px] font-black uppercase text-depro-gray mb-2">{texts.warmup.title}</p>
-                        <ul className="space-y-1">
-                          {texts.warmup.bullets.slice(0, 3).map((b) => (
-                            <li key={b} className="text-xs text-depro-dark">· {b}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="rounded-xl border border-depro-border p-4">
-                        <p className="text-[11px] font-black uppercase text-depro-gray mb-2">{texts.main.title}</p>
-                        <ul className="space-y-1">
-                          {texts.main.bullets.map((b) => (
-                            <li key={b} className="text-xs text-depro-dark">· {b}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  );
-                })()}
-
                 {!readOnly && (
                   <CompletionButton
                     completion={completion}
@@ -1271,7 +1244,7 @@ function ClubSessionCard({
                 accentColor={accentColor}
                 sessionType={sessionType}
                 storageKey={taskStorageKey}
-                taskDesigner={session.taskDesigner}
+                taskDesigner={session.taskDesigner || createDefaultTaskDesigner()}
               />
             )}
           </div>
@@ -1637,6 +1610,7 @@ function contrastText(hex) {
 
 export default function WeeklyPlanPage() {
   const { user } = useAuth();
+  const activeTeam = useActiveTeam();
   const raw    = user?.club?.primaryColor || "#0A36F7";
   const accent = safeColor(raw);
 
@@ -1644,7 +1618,7 @@ export default function WeeklyPlanPage() {
   if (isProCoachUser(user)) {
     content = (
       <div className="dash-page">
-        <CoachSessions club={user.club} team={user.team} user={user} />
+        <CoachSessions club={user.club} team={activeTeam || user.team} user={user} />
       </div>
     );
   } else if (user?.role === "club") {

@@ -35,7 +35,10 @@ function getTodayName() { return DAY_ORDER[(new Date().getDay() + 6) % 7]; }
 
 export default function CoachDashboard({ club, team, user }) {
   const accent = safeAccent(club?.primaryColor || "#0A36F7");
-  const config = club?.coachConfig || {};
+  const config = {
+    ...(club?.coachConfig || {}),
+    ...(team?.trainingDays?.length ? { dias_exactos_entrenamiento: team.trainingDays } : {}),
+  };
   const [squad, setSquad] = useState([]);
   const [, forceLibrary] = useState(0);
 

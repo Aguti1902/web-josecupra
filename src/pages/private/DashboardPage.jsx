@@ -359,12 +359,25 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
 
       {/* Equipos */}
       <div>
-        <SectionHeading title="Equipos del club" safeAccent={sa} count={teams.length} />
+        <div className="flex items-center justify-between gap-3 mb-0">
+          <SectionHeading title="Equipos del club" safeAccent={sa} count={teams.length} />
+          {club?.isSoloCoach && (
+            <Link
+              to="/dashboard/club-profile"
+              className="text-xs font-bold mb-4 hover:underline"
+              style={{ color: sa }}
+            >
+              Añadir equipo
+            </Link>
+          )}
+        </div>
         {teams.length === 0 ? (
           <div className="text-center py-14 border-2 border-dashed rounded-2xl" style={{ borderColor: sa + "40" }}>
             <Shield size={36} className="mx-auto mb-3" style={{ color: sa + "60" }} />
             <p className="font-medium text-depro-dark">Sin equipos todavía</p>
-            <p className="text-sm mt-1 text-depro-gray">Aún no hay equipos. Créalos desde Mi Club.</p>
+            <p className="text-sm mt-1 text-depro-gray">
+              {club?.isSoloCoach ? "Añádelos desde Mi perfil." : "Aún no hay equipos. Créalos desde Mi Club."}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1288,9 +1301,22 @@ export default function DashboardPage() {
   };
 
   if (isProCoachUser(user)) {
+    const teams = club?.teams || [];
+    if (teams.length > 1 && !selectedTeam) {
+      return (
+        <div className="dash-page space-y-6">
+          <CoordinadorDashboard
+            club={club}
+            accent={accent}
+            secondColor={secondColor}
+            onViewTeam={handleViewTeam}
+          />
+        </div>
+      );
+    }
     return (
       <div className="dash-page space-y-6">
-        <CoachDashboard club={club} team={team} user={user} />
+        <CoachDashboard club={club} team={selectedTeam || team} user={user} />
       </div>
     );
   }

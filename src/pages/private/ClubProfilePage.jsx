@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   User, Camera, Lock, Mail, CheckCircle, AlertCircle,
-  Eye, EyeOff, Save, Shield, Crown, UserCheck, Dumbbell,
-  Sparkles, SlidersHorizontal, CreditCard,
+  Eye, EyeOff, Save, Crown, UserCheck, Dumbbell,
+  Sparkles, CreditCard, Plus, Trash2, Users, X,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -11,6 +11,9 @@ import { loadClubDetail, saveClubDetail, saveClub } from "../../lib/adminStorage
 import { clearCoachGeneratedPlans } from "../../lib/coachSessionsStorage";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import { canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
+import { hasFeatureAccess } from "../../lib/subscription";
+import { getPlanLimits } from "../../lib/checkoutPlans";
+import { COACH_STANDARD_MAX_TEAMS, COACH_TEAMS_WITH_ADDON } from "../../lib/coachAddons";
 import TeamBrandingFields from "../../components/shared/TeamBrandingFields";
 import CoachAutoQuestionnaire, {
   questionnaireToCoachConfig,
@@ -59,8 +62,14 @@ function compressAvatar(file) {
   });
 }
 
-const ROLE_LABEL = { administrador: "Administrador", coordinador: "Coordinador", entrenador: "Entrenador", ayudante: "Ayudante técnico" };
 const ROLE_ICON  = { administrador: Crown, coordinador: Crown, entrenador: UserCheck, ayudante: Dumbbell };
+const AGE_BLOCKS = [
+  { label: "Bloque 1", ages: ["Sub-9", "Sub-10", "Sub-11", "Sub-12"] },
+  { label: "Bloque 2", ages: ["Sub-13", "Sub-14", "Sub-15"] },
+  { label: "Bloque 3", ages: ["Sub-16", "Juvenil", "Amateur"] },
+];
+const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 
 function initialCoachQuestionnaire(user) {
   const fromClub = coachConfigToQuestionnaire(user?.club?.coachConfig || {});
@@ -95,8 +104,6 @@ export default function ClubProfilePage() {
   const [showPw, setShowPw]     = useState(false);
   const [msg, setMsg]           = useState(null); // { type: "ok"|"error", text }
   const [saving, setSaving]     = useState(false);
-  const [mode, setMode]         = useState(user?.club?.mode || "depro");
-  const [savingMode, setSavingMode] = useState(false);
   const [branding, setBranding] = useState({
     logo: user?.club?.logo || "",
     primaryColor: user?.club?.primaryColor || "#0A36F7",
@@ -105,9 +112,11 @@ export default function ClubProfilePage() {
   const [savingBranding, setSavingBranding] = useState(false);
   const [autoQ, setAutoQ] = useState(() => initialCoachQuestionnaire(user));
   const [savingAutoQ, setSavingAutoQ] = useState(false);
+  const [teamForm, setTeamForm] = useState({ open: false, name: "", category: "Sub-16", days: [] });
+  const [savingTeam, setSavingTeam] = useState(false);
   const photoRef = useRef();
   const isSoloCoach = isProCoachUser(user);
-  const showBilling = canManageClubBilling(user) && canSeeClubPricing(user);
+  const showBilling = isSoloCoach || (canManageClubBilling(user) && canSeeClubPricing(user));
   const cyclePlan = {
     startDate: user?.club?.coachMesociclo?.[user?.teamId]?.startDate
       || `${monthKeyFromDate(new Date())}-01`,
@@ -115,6 +124,15 @@ export default function ClubProfilePage() {
   const profileRegensUsed = user?.id ? getProfileRegenCount(user.id, cyclePlan) : 0;
   const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, cyclePlan) : false;
   const hadAutoConfig = !!(user?.club?.coachConfig?.nivel);
+  const purchasedAddons = user?.purchasedAddons || user?.club?.purchasedAddons || [];
+  const extraTeamsUnlocked = hasFeatureAccess(user, "extra_teams");
+  const teamLimits = getPlanLimits(user?.plan || user?.club?.plan || "coach-starter", { purchasedAddons });
+  const maxTeams = extraTeamsUnlocked
+    ? (teamLimits.maxTeams || COACH_TEAMS_WITH_ADDON)
+    : COACH_STANDARD_MAX_TEAMS;
+  const clubTeams = user?.club?.teams || [];
+  const canAddTeam = clubTeams.length < maxTeams;
+  const needsTeamsAddon = !extraTeamsUnlocked && clubTeams.length >= COACH_STANDARD_MAX_TEAMS;
 
   const showMsg = (type, text) => {
     setMsg({ type, text });
@@ -124,29 +142,7 @@ export default function ClubProfilePage() {
   useEffect(() => {
     const next = initialCoachQuestionnaire(user);
     setAutoQ(next);
-    setMode(user?.club?.mode || "depro");
   }, [user?.club?.coachConfig, user?.club?.mode, user?.coachAuto]);
-
-  const handleChangeMode = async (nextMode) => {
-    if (nextMode === mode || !user?.club?.id) return;
-    setSavingMode(true);
-    setMode(nextMode);
-    const detail = loadClubDetail(user.club.id) || user.club;
-    const prevCfg = detail.coachConfig || {};
-    const nextCfg = nextMode === "personalizado"
-      ? { ...prevCfg, mode: "personalizado", engine: "manual" }
-      : { ...prevCfg, mode: "depro", engine: "club_auto" };
-    await saveClubDetail(user.club.id, {
-      ...detail,
-      mode: nextMode,
-      planningMode: nextMode === "personalizado" ? "manual" : "auto",
-      coachConfig: nextCfg,
-    });
-    clearCoachGeneratedPlans(user.club.id, user.teamId);
-    await refreshUser();
-    setSavingMode(false);
-    showMsg("ok", nextMode === "personalizado" ? "Modo «Llevado por mí» activado." : "Modo automático activado.");
-  };
 
   const handleSaveBranding = async () => {
     if (!user?.club?.id) return;
@@ -255,7 +251,6 @@ export default function ClubProfilePage() {
           }
         }
       }
-      setMode("depro");
       await supabase.auth.updateUser({
         data: { coachAuto: serializeCoachAutoForMeta(autoQ) },
       });
@@ -270,6 +265,102 @@ export default function ClubProfilePage() {
       showMsg("error", e.message || "No se pudo guardar el cuestionario.");
     } finally {
       setSavingAutoQ(false);
+    }
+  };
+
+  const openTeamForm = () => {
+    const defaults = clubTeams[0]?.trainingDays
+      || user?.club?.coachConfig?.dias_exactos_entrenamiento
+      || [];
+    setTeamForm({
+      open: true,
+      name: "",
+      category: clubTeams[0]?.category || "Sub-16",
+      days: Array.isArray(defaults) ? [...defaults] : [],
+    });
+  };
+
+  const toggleTeamDay = (day) => {
+    setTeamForm((f) => ({
+      ...f,
+      days: f.days.includes(day) ? f.days.filter((d) => d !== day) : [...f.days, day],
+    }));
+  };
+
+  const handleAddTeam = async () => {
+    if (!teamForm.name.trim()) {
+      showMsg("error", "Pon un nombre al equipo.");
+      return;
+    }
+    if (![2, 3, 4].includes(teamForm.days.length)) {
+      showMsg("error", "Elige entre 2 y 4 días de entrenamiento.");
+      return;
+    }
+    if (!user?.club?.id) {
+      showMsg("error", "Guarda primero el cuestionario para crear tu club.");
+      return;
+    }
+    if (!canAddTeam) {
+      showMsg(
+        "error",
+        needsTeamsAddon
+          ? "Desbloquea «Tres equipos más» en Suscripción para añadir hasta 4 equipos."
+          : `Has alcanzado el máximo de ${maxTeams} equipos.`,
+      );
+      return;
+    }
+    setSavingTeam(true);
+    try {
+      const detail = loadClubDetail(user.club.id) || user.club;
+      const existing = Array.isArray(detail.teams) ? detail.teams : [];
+      const nextTeam = {
+        id: genCoachId("coach_team"),
+        name: teamForm.name.trim(),
+        category: teamForm.category,
+        season: existing[0]?.season || "2026/2027",
+        trainingDays: teamForm.days,
+        coach: { name: user?.name || "", email: user?.email || "" },
+        squad: [],
+      };
+      await saveClubDetail(user.club.id, {
+        ...detail,
+        isSoloCoach: true,
+        teams: [...existing, nextTeam],
+      });
+      setTeamForm({ open: false, name: "", category: "Sub-16", days: [] });
+      await refreshUser();
+      showMsg(
+        "ok",
+        existing.length >= 1
+          ? "Equipo añadido. En el dashboard verás todos tus equipos, como un coordinador."
+          : "Equipo añadido.",
+      );
+    } catch (e) {
+      showMsg("error", e.message || "No se pudo añadir el equipo.");
+    } finally {
+      setSavingTeam(false);
+    }
+  };
+
+  const handleDeleteTeam = async (teamId) => {
+    if (clubTeams.length <= 1) {
+      showMsg("error", "Debes conservar al menos un equipo.");
+      return;
+    }
+    setSavingTeam(true);
+    try {
+      const detail = loadClubDetail(user.club.id) || user.club;
+      const remaining = (detail.teams || []).filter((t) => t.id !== teamId);
+      await saveClubDetail(user.club.id, { ...detail, teams: remaining });
+      if (user.teamId === teamId && remaining[0]?.id) {
+        await supabase.auth.updateUser({ data: { teamId: remaining[0].id } });
+      }
+      await refreshUser();
+      showMsg("ok", "Equipo eliminado.");
+    } catch (e) {
+      showMsg("error", e.message || "No se pudo eliminar el equipo.");
+    } finally {
+      setSavingTeam(false);
     }
   };
 
@@ -430,7 +521,6 @@ export default function ClubProfilePage() {
               {hadAutoConfig
                 ? ` Puedes actualizar el cuestionario y regenerar el plan una vez cada ~${PLAN_CYCLE_DAYS} días.`
                 : " La primera vez genera la rutina automática (no consume el cupo)."}
-              {mode === "personalizado" ? " Si estás en «Llevado por mí», guardar el cuestionario vuelve al modo automático." : ""}
             </p>
             {hadAutoConfig && (
               <p className={`text-xs font-bold mt-2 ${canProfileRegen ? "text-depro-blue" : "text-amber-700"}`}>
@@ -480,42 +570,154 @@ export default function ClubProfilePage() {
         </div>
       )}
 
-      {/* Modo de trabajo — solo entrenador individual */}
+      {/* Equipos — ProCoach: 1 incluido, +3 con el extra (hasta 4) */}
       {isSoloCoach && (
-        <div className="bg-white border border-depro-border rounded-2xl p-6">
-          <h3 className="font-bold text-depro-dark mb-1 flex items-center gap-2">
-            <SlidersHorizontal size={16} className="text-depro-blue" /> Modo de trabajo
-          </h3>
-          <p className="text-xs text-depro-gray mb-4">Elige cómo quieres planificar tus sesiones.</p>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <button
-              onClick={() => handleChangeMode("depro")}
-              disabled={savingMode}
-              className={`text-left p-4 rounded-xl border-2 transition-all ${
-                mode === "depro" ? "border-depro-blue bg-depro-blue/5" : "border-depro-border hover:border-depro-blue/40"
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1.5">
-                <Sparkles size={15} className="text-depro-blue" />
-                <span className="font-bold text-sm text-depro-dark">Automático</span>
-                {mode === "depro" && <CheckCircle size={14} className="text-depro-blue ml-auto" />}
+        <div className="bg-white border border-depro-border rounded-2xl p-6 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-depro-dark mb-1 flex items-center gap-2">
+                <Users size={16} className="text-depro-blue" /> Equipos
+              </h3>
+              <p className="text-xs text-depro-gray">
+                {extraTeamsUnlocked
+                  ? `Hasta ${maxTeams} equipos. Con varios equipos el dashboard se ve como el del coordinador de club.`
+                  : "Un equipo incluido. El extra «Tres equipos más» (5 €/mes) te deja hasta 4 y abre la vista de coordinador."}
+              </p>
+              <p className="text-xs font-bold text-depro-blue mt-1">
+                {clubTeams.length}/{maxTeams} equipos
+              </p>
+            </div>
+            {canAddTeam ? (
+              <button
+                type="button"
+                onClick={openTeamForm}
+                disabled={!user?.club?.id || savingTeam}
+                className="btn-primary flex items-center gap-2 text-sm disabled:opacity-50"
+              >
+                <Plus size={14} /> Añadir equipo
+              </button>
+            ) : needsTeamsAddon ? (
+              <Link
+                to="/dashboard/subscription"
+                className="btn-primary flex items-center gap-2 text-sm"
+              >
+                <Plus size={14} /> Añadir equipos
+              </Link>
+            ) : null}
+          </div>
+
+          {!user?.club?.id && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3">
+              Guarda el cuestionario para crear tu primer equipo. Después podrás añadir más.
+            </p>
+          )}
+
+          {clubTeams.length > 0 && (
+            <div className="space-y-2">
+              {clubTeams.map((team) => (
+                <div
+                  key={team.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl border border-depro-border"
+                >
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm text-depro-dark truncate">{team.name}</p>
+                    <p className="text-xs text-depro-gray">
+                      {team.category}
+                      {team.trainingDays?.length ? ` · ${team.trainingDays.join(", ")}` : ""}
+                    </p>
+                  </div>
+                  {clubTeams.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTeam(team.id)}
+                      disabled={savingTeam}
+                      className="p-2 rounded-lg text-depro-gray hover:text-depro-red hover:bg-red-50 disabled:opacity-50"
+                      title="Eliminar equipo"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isSoloCoach && teamForm.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-depro-border">
+              <h2 className="font-bold text-depro-dark">Añadir equipo</h2>
+              <button
+                type="button"
+                onClick={() => setTeamForm((f) => ({ ...f, open: false }))}
+                className="text-depro-gray hover:text-depro-dark"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-depro-dark mb-1">Nombre *</label>
+                <input
+                  className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm"
+                  value={teamForm.name}
+                  onChange={(e) => setTeamForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Juvenil A"
+                />
               </div>
-              <p className="text-xs text-depro-gray">Motor automático clubs: microciclo A/B/C según días de entrenamiento y partido. Calentamiento → balón → protocolo → tarea.</p>
-            </button>
-            <button
-              onClick={() => handleChangeMode("personalizado")}
-              disabled={savingMode}
-              className={`text-left p-4 rounded-xl border-2 transition-all ${
-                mode === "personalizado" ? "border-depro-blue bg-depro-blue/5" : "border-depro-border hover:border-depro-blue/40"
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1.5">
-                <SlidersHorizontal size={15} className="text-depro-blue" />
-                <span className="font-bold text-sm text-depro-dark">Llevado por mí</span>
-                {mode === "personalizado" && <CheckCircle size={14} className="text-depro-blue ml-auto" />}
+              <div>
+                <label className="block text-sm font-medium text-depro-dark mb-1">Categoría</label>
+                <select
+                  className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm"
+                  value={teamForm.category}
+                  onChange={(e) => setTeamForm((f) => ({ ...f, category: e.target.value }))}
+                >
+                  {AGE_BLOCKS.map((b) => (
+                    <optgroup key={b.label} label={b.label}>
+                      {b.ages.map((a) => <option key={a}>{a}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
               </div>
-              <p className="text-xs text-depro-gray">Planificación manual: crea tus propias sesiones, duplica, favoritos y ejercicios propios (línea premium gestionada a mano).</p>
-            </button>
+              <div>
+                <label className="block text-sm font-medium text-depro-dark mb-2">Días de entrenamiento (2–4)</label>
+                <div className="flex gap-1.5 flex-wrap">
+                  {DAYS.map((day, i) => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleTeamDay(day)}
+                      className={`w-9 h-9 rounded-lg text-xs font-semibold border ${
+                        teamForm.days.includes(day)
+                          ? "bg-depro-blue border-depro-blue text-white"
+                          : "border-depro-border text-depro-gray"
+                      }`}
+                    >
+                      {DAY_SHORT[i]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 p-5 border-t border-depro-border">
+              <button
+                type="button"
+                onClick={() => setTeamForm((f) => ({ ...f, open: false }))}
+                className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleAddTeam}
+                disabled={savingTeam || !teamForm.name.trim() || ![2, 3, 4].includes(teamForm.days.length)}
+                className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold disabled:opacity-40"
+              >
+                {savingTeam ? "Guardando…" : "Crear equipo"}
+              </button>
+            </div>
           </div>
         </div>
       )}

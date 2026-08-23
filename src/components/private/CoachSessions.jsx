@@ -186,7 +186,13 @@ function CustomExerciseModal({ accent, clubId, onClose, onCreated }) {
 
 export default function CoachSessions({ club, team, user }) {
   const accent = safeAccent(club?.primaryColor || "#0A36F7");
-  const config = useMemo(() => club?.coachConfig || {}, [club?.coachConfig]);
+  const config = useMemo(() => {
+    const base = club?.coachConfig || {};
+    if (team?.trainingDays?.length) {
+      return { ...base, dias_exactos_entrenamiento: team.trainingDays };
+    }
+    return base;
+  }, [club?.coachConfig, team?.trainingDays]);
   const clubId = club?.id;
   const teamId = team?.id;
   const isPersonalizado = club?.mode === "personalizado";

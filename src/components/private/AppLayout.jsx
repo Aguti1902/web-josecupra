@@ -14,7 +14,7 @@ import { TutorialProvider, useTutorial } from "./DashboardTutorial";
 import AiAssistantWidget from "./AiAssistantWidget";
 import PanelSearch from "../shared/PanelSearch";
 import { getPlanLabel, isInTrial, mustPayToContinue, getTrialDaysLeft, hasFeatureAccess } from "../../lib/subscription";
-import { isClubAdmin, isClubGlobalView, canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
+import { isClubAdmin, isClubGlobalView, canManageClubBilling, canSeeClubPricing, clubRoleLabel, isProCoachOverview } from "../../lib/clubRoles";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 function luminance(hex) {
@@ -314,18 +314,28 @@ function AppLayoutInner({ children }) {
   const sidebarAccent = visibleOnWhite(rawAccent, visibleOnWhite(rawSecondary, "#0A36F7"));
   const isGlobalClubView = isClubGlobalView(user, viewingTeam);
   const isClubOverviewRole = user?.team_role === "coordinador" || user?.team_role === "administrador";
-  const isCoordViewingTeam = isClubOverviewRole && !!viewingTeam;
-  const rawNavItems = user?.role === "coach" || isSoloCoach
+  const coachOverview = isProCoachOverview(user, viewingTeam);
+  const isCoordViewingTeam = (isClubOverviewRole && !!viewingTeam) || (isSoloCoach && !!viewingTeam && (user?.club?.teams?.length || 0) > 1);
+  const rawNavItems = coachOverview
+    ? [
+        { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+        { to: "/dashboard/squad", icon: UsersIcon, label: "Plantilla" },
+        subscriptionNav,
+        { to: "/dashboard/club-profile", icon: User, label: "Mi perfil" },
+      ]
+    : user?.role === "coach" || isSoloCoach
     ? coachNav
     : user?.role === "club"
     ? (isClubAdmin(user) && isGlobalClubView
         ? administradorNav
         : (user?.team_role === "coordinador" && isGlobalClubView ? coordinadorNav : entrenadorNav))
     : playerNav;
-  // Staff no-admin en clubs manuales no ve precios / suscripción
-  const navItems = canSeeClubPricing(user)
-    ? rawNavItems
-    : rawNavItems.filter((item) => item.to !== "/dashboard/subscription");
+  // Staff de academia no ve el catálogo Stripe (va por Economía).
+  // ProCoach y jugador sí gestionan extras (equipos, PDF, cargas) en Suscripción.
+  const hideClubStaffPricing = user?.role === "club" && !isSoloCoach && !canSeeClubPricing(user);
+  const navItems = hideClubStaffPricing
+    ? rawNavItems.filter((item) => item.to !== "/dashboard/subscription")
+    : rawNavItems;
   const isPlayer = user?.role === "player";
   const playerPlanLabel = user?.plan ? getPlanLabel(user.plan) : "Jugador";
   const paywallActive = !user?.impersonating && mustPayToContinue(user) && canManageClubBilling(user) && canSeeClubPricing(user);
@@ -396,7 +406,8 @@ function AppLayoutInner({ children }) {
                 className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 dash-role-badge"
                 style={{ backgroundColor: sidebarAccent, color: contrastText(sidebarAccent) }}
               >
-                {isSoloCoach ? (user?.team?.name || "Mi equipo")
+                {isSoloCoach
+                  ? (viewingTeam?.name || (coachOverview ? "Todos los equipos" : (user?.team?.name || "Mi equipo")))
                   : user?.role === "club"
                   ? (viewingTeam ? viewingTeam.name : clubRoleLabel(user?.team_role))
                   : playerPlanLabel}

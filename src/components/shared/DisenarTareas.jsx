@@ -64,7 +64,11 @@ export default function DisenarTareas({ accentColor, sessionType = "A", storageK
 
   useEffect(() => {
     if (!storageKey) return;
-    localStorage.setItem(storageKey, JSON.stringify({ tasks: selectedTasks, sessionType, savedAt: Date.now() }));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ tasks: selectedTasks, sessionType, savedAt: Date.now() }));
+    } catch {
+      /* cupo lleno: no tumbar el diseñador */
+    }
   }, [selectedTasks, storageKey, sessionType]);
 
   const toggleTask = (t) => {

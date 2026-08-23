@@ -13,6 +13,7 @@ import { resolveCurrentPlan, getPlanLimits } from "../../lib/subscription";
 import { canSeeClubPricing } from "../../lib/clubRoles";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import ChangePlanModal from "../../components/private/ChangePlanModal";
+import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 // ── Constantes ───────────────────────────────────────────────
 const POSITIONS = [
@@ -519,8 +520,13 @@ export default function SquadPage() {
   const teamRole  = user?.team_role;
   const clubId    = club?.id;
   // Si el coordinador está viendo un equipo específico → no es "coordinador general"
-  const isCoord   = (teamRole === "coordinador" || teamRole === "administrador") && !viewingTeam;
-  const canEdit   = teamRole !== "coordinador" && teamRole !== "administrador";
+  const isProCoach = isProCoachUser(user);
+  const multiTeamCoach = isProCoach && (club?.teams || []).length > 1;
+  const isCoord   = ((teamRole === "coordinador" || teamRole === "administrador") && !viewingTeam)
+    || (multiTeamCoach && !viewingTeam);
+  const canEdit   = isProCoach
+    ? !isCoord
+    : (teamRole !== "coordinador" && teamRole !== "administrador");
 
   const rawAccent = club?.primaryColor   || "#0A36F7";
   const rawSec    = club?.secondaryColor || "#ffffff";
