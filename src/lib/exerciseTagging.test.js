@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { EXERCISES, CATALOG_CARPETAS } from "./exerciseCatalog.js";
-import { matchSlotTags } from "./exerciseSelector.js";
+import { matchSlotTags, selectExerciseForSlot } from "./exerciseSelector.js";
 import { SESSION_TEMPLATES } from "./sessionTemplatesV2.js";
 import { blockAllowsLoadLogging, objectiveAllowsLoadLogging } from "./loadAnalytics.js";
 import { buildClubExerciseTagIndex, CLUB_TAG_VALUES } from "./clubAuto/clubExerciseTags.js";
@@ -203,5 +203,29 @@ describe("registro de carga — ubicación", () => {
     assert.equal(objectiveAllowsLoadLogging("fuerza"), true);
     assert.equal(objectiveAllowsLoadLogging("velocidad"), true);
     assert.equal(objectiveAllowsLoadLogging("movilidad"), false);
+  });
+});
+
+describe("filtro de material", () => {
+  it("jalón al pecho es máquina; con mancuernas no se cuela en tracción básica", () => {
+    const jalon = EXERCISES.find((e) => e.nombre === "Jalón al pecho");
+    assert.ok(jalon);
+    assert.ok(jalon.etiquetas.material.includes("maquina"), `jalón mat=${jalon.etiquetas.material}`);
+    const remo = EXERCISES.find((e) => e.nombre === "Remo con mancuerna");
+    assert.ok(remo);
+    assert.equal(remo.etiquetas.rol, "basico");
+
+    const slot = { qty: 1, rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion", slotId: "fs_b2" };
+    const profile = { material: ["mancuernas"], experiencia: "intermedio", edad: 25 };
+    for (let seed = 0; seed < 20; seed++) {
+      const picked = selectExerciseForSlot(slot, profile, [], `seed-${seed}`);
+      assert.ok(picked, "debe haber ejercicio");
+      assert.equal(/jal[oó]n/i.test(picked.nombre), false, `no debe salir jalón: ${picked.nombre}`);
+      const mat = picked.etiquetas.material || [];
+      assert.ok(
+        mat.includes("mancuernas") || mat.includes("sin_material"),
+        `material inválido para perfil mancuernas: ${picked.nombre} [${mat}]`,
+      );
+    }
   });
 });
