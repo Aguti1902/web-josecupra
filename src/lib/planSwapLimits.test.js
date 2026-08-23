@@ -11,6 +11,7 @@ import {
   resetCycleCounters,
   cycleEndDate,
   PLAN_CYCLE_DAYS,
+  isSuccessfulGeneratedPlan,
 } from "./planSwapLimits.js";
 import { refreshExerciseAcrossPlan } from "./playerPlanEngine.js";
 
@@ -44,7 +45,7 @@ describe("planSwapLimits — ciclo mensual", () => {
 
   it("límites de swap y perfil por ciclo", () => {
     const user = { id: "u1" };
-    const plan = { startDate: "2026-08-17" };
+    const plan = { startDate: "2026-08-17", source: "profile_regen", profileRegenAt: "2026-08-17T12:00:00.000Z" };
     resetCycleCounters("u1", "2026-08-17");
     assert.equal(canSwapExercise(user, plan), true);
     assert.equal(canRegenerateFromProfile("u1", plan), true);
@@ -95,6 +96,34 @@ describe("planSwapLimits — ciclo mensual", () => {
       },
     });
     assert.notEqual(a, c);
+  });
+
+  it("isSuccessfulGeneratedPlan no cuenta errores ni planes vacíos", () => {
+    assert.equal(isSuccessfulGeneratedPlan(null), false);
+    assert.equal(isSuccessfulGeneratedPlan({ planError: "bloqueado" }), false);
+    assert.equal(isSuccessfulGeneratedPlan([{ day: "Lunes", sessions: [{ exercises: [] }] }]), false);
+    assert.equal(
+      isSuccessfulGeneratedPlan([{
+        day: "Lunes",
+        sessions: [{ exercises: [{ id: "1", name: "Press" }] }],
+      }]),
+      true,
+    );
+  });
+
+  it("recordProfileRegen solo tras éxito deja el cupo a 1", () => {
+    const plan = { startDate: "2026-08-17" };
+    resetCycleCounters("u2", "2026-08-17");
+    assert.equal(canRegenerateFromProfile("u2", plan), true);
+    // Simula intento fallido: no se llama recordProfileRegen
+    assert.equal(canRegenerateFromProfile("u2", plan), true);
+    recordProfileRegen("u2", plan);
+    // Sin evidencia de éxito en el plan → gracia para reintentar
+    assert.equal(canRegenerateFromProfile("u2", plan), true);
+    assert.equal(
+      canRegenerateFromProfile("u2", { ...plan, source: "profile_regen", profileRegenAt: "2026-08-17T12:00:00.000Z" }),
+      false,
+    );
   });
 });
 
