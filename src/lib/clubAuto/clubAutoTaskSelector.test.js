@@ -8,7 +8,7 @@ import {
 } from "./clubAutoTaskSelector.js";
 import { CLUB_SIN_BALON_INTRO } from "../../data/clubAutoCatalog.js";
 import { selectProtocolExercises } from "./clubAutoProtocolSelector.js";
-import { getClubExerciseCatalog, SLOT_RULES } from "./clubExerciseCatalog.js";
+import { getClubExerciseCatalog, SLOT_RULES, protocolsUsingClubSlot } from "./clubExerciseCatalog.js";
 import { variantIndexForWeek, generateClubAutoMicrociclo } from "./clubAutoEngine.js";
 
 describe("clubAutoTaskSelector · filtros Depro 2.0", () => {
@@ -62,6 +62,9 @@ describe("catálogo club · etiquetas de plantilla", () => {
     assert.ok([...labels].some((l) => /tobillo|bisagra/i.test(l)));
     assert.ok([...labels].some((l) => /glúteo|gluteo|posterior/i.test(l)));
     assert.ok(SLOT_RULES.some((r) => r.slot === "club_slot_movilidad_cadera"));
+    const cadera = protocolsUsingClubSlot("club_slot_movilidad_cadera");
+    assert.ok(cadera.some((p) => p.short === "Campo A"));
+    assert.ok(!SLOT_RULES.some((r) => /^Bloque \d$/.test(r.label)));
   });
 });
 

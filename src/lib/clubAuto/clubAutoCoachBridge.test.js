@@ -6,6 +6,9 @@ import {
   generateClubAutoWeekForCoach,
   categoryForNivel,
   CLUB_AUTO_MATERIALS,
+  isProCoachUser,
+  serializeCoachAutoForMeta,
+  parseCoachAutoFromMeta,
 } from "./clubAutoCoachBridge.js";
 import { CLUB_MAIN_TASKS, CLUB_TASK_FOLDERS } from "../../data/clubAutoCatalog.js";
 
@@ -81,5 +84,29 @@ describe("clubAutoCoachBridge", () => {
     assert.ok(CLUB_AUTO_MATERIALS.includes("Gomas"));
     assert.ok(CLUB_AUTO_MATERIALS.includes("Gimnasio completo"));
     assert.ok(!CLUB_AUTO_MATERIALS.includes("Conos"));
+  });
+
+  it("detecta ProCoach por role, isSoloCoach o clubId coach_", () => {
+    assert.equal(isProCoachUser({ role: "coach" }), true);
+    assert.equal(isProCoachUser({ role: "club", club: { isSoloCoach: true } }), true);
+    assert.equal(isProCoachUser({ role: "club", clubId: "coach_abc" }), true);
+    assert.equal(isProCoachUser({ role: "player", plan: "player-essential" }), false);
+  });
+
+  it("serializa y recupera el cuestionario compacto", () => {
+    const raw = serializeCoachAutoForMeta({
+      nivel: "B",
+      dias_exactos_entrenamiento: ["Lunes", "Miércoles"],
+      dia_partido: "sabado",
+      acceso_gimnasio: "si",
+      material: ["Gomas"],
+      duracion_sesion: "75",
+      num_jugadores: "14-18",
+    });
+    assert.ok(raw.length < 500);
+    const q = parseCoachAutoFromMeta(raw);
+    assert.equal(q.nivel, "B");
+    assert.deepEqual(q.dias_exactos_entrenamiento, ["Lunes", "Miércoles"]);
+    assert.equal(q.acceso_gimnasio, "si");
   });
 });

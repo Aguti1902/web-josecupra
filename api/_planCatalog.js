@@ -4,8 +4,17 @@
 import stripePricesLive from "./stripe-prices.live.json" with { type: "json" };
 import stripePricesTest from "./stripe-prices.test.json" with { type: "json" };
 import { isStripeTestMode } from "./_stripeMode.js";
+import { planHasCheckoutTrial } from "../src/lib/checkoutPlans.js";
 
 export const TRIAL_PERIOD_DAYS = 15;
+export { planHasCheckoutTrial };
+
+/** Price IDs de entrenador en stripe-prices.*.json son de importes antiguos (14,99 / 29,99 / 49,99). */
+const COACH_PLANS_REQUIRE_STORED_AMOUNT = new Set([
+  "coach-starter",
+  "coach-pro",
+  "coach-premium",
+]);
 
 export const PRICES = {
   "coach-starter":    { amount: 3000,  name: "DEPRO Entrenador Standard",  description: "Sesiones automáticas · 1 equipo · extras +5€" },
@@ -22,48 +31,66 @@ function stripePricesMap() {
   return isStripeTestMode() ? stripePricesTest : stripePricesLive;
 }
 
+export function getStripePriceRecord(planId) {
+  const rec = stripePricesMap()[planId];
+  if (!rec) return { priceId: null, amount: null };
+  if (typeof rec === "string") return { priceId: rec, amount: null };
+  return {
+    priceId: rec.priceId || rec.id || null,
+    amount: rec.amount != null ? Number(rec.amount) : null,
+  };
+}
+
 export function getStripePriceId(planId) {
-  return stripePricesMap()[planId] || null;
+  return getStripePriceRecord(planId).priceId;
+}
+
+function canReuseStripePriceId(planId, finalAmountCents) {
+  const price = PRICES[planId];
+  if (!price) return false;
+  const rec = getStripePriceRecord(planId);
+  if (!rec.priceId) return false;
+  if (Number(finalAmountCents) !== Number(price.amount)) return false;
+  if (COACH_PLANS_REQUIRE_STORED_AMOUNT.has(planId)) {
+    return rec.amount != null && Number(rec.amount) === Number(finalAmountCents);
+  }
+  return true;
+}
+
+function catalogPriceData(price, amountCents) {
+  return {
+    currency: "eur",
+    unit_amount: amountCents,
+    recurring: { interval: "month" },
+    product_data: {
+      name: price.name,
+      description: price.description,
+    },
+  };
 }
 
 /** Line item para Checkout: Price ID fijo solo si el importe coincide; si hay descuento → price_data. */
 export function buildCheckoutLineItem(planId, finalAmountCents) {
   const price = PRICES[planId];
   if (!price) return null;
-  const priceId = getStripePriceId(planId);
-  // Si el importe final difiere del catálogo (p. ej. −10% club), ignorar Price ID fijo
-  if (priceId && Number(finalAmountCents) === Number(price.amount)) {
-    return { price: priceId, quantity: 1 };
+  if (canReuseStripePriceId(planId, finalAmountCents)) {
+    return { price: getStripePriceId(planId), quantity: 1 };
   }
   return {
-    price_data: {
-      currency: "eur",
-      unit_amount: finalAmountCents,
-      recurring: { interval: "month" },
-      product_data: {
-        name: price.name,
-        description: price.description,
-      },
-    },
+    price_data: catalogPriceData(price, finalAmountCents),
     quantity: 1,
   };
 }
 
 /** Item de suscripción para update: Price ID o price_data. */
 export function buildSubscriptionItemUpdate(planId, itemId) {
-  const priceId = getStripePriceId(planId);
   const price = PRICES[planId];
-  if (priceId) {
-    return { id: itemId, price: priceId };
+  if (canReuseStripePriceId(planId, price?.amount)) {
+    return { id: itemId, price: getStripePriceId(planId) };
   }
   return {
     id: itemId,
-    price_data: {
-      currency: "eur",
-      unit_amount: price.amount,
-      recurring: { interval: "month" },
-      product_data: { name: price.name, description: price.description },
-    },
+    price_data: catalogPriceData(price, price.amount),
   };
 }
 

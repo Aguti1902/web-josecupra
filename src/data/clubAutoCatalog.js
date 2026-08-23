@@ -168,6 +168,18 @@ export const GRUPO_TO_SESION = {
 /** Nivel A/B/C → bloque de edad 1/2/3. */
 export const NIVEL_TO_BLOQUE = { A: "1", B: "2", C: "3" };
 
+/** No mostrar «Bloque 1» a secas: la IA y el admin necesitan la edad. */
+export const AGE_BLOCK_LABELS = {
+  "1": "A · 9–12 años",
+  "2": "B · 12–15 años",
+  "3": "C · 16+ años",
+};
+
+export function ageBlockLabel(blockOrNivel) {
+  const key = NIVEL_TO_BLOQUE[String(blockOrNivel || "").toUpperCase()] || String(blockOrNivel || "");
+  return AGE_BLOCK_LABELS[key] || `Nivel ${blockOrNivel}`;
+}
+
 /** Catálogo sistema vacío: las tareas las sube el admin. */
 export const CLUB_MAIN_TASKS = [];
 export const CLUB_MAIN_TASKS_COUNT = 0;

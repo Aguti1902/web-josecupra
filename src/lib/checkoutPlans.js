@@ -172,6 +172,11 @@ const PLAN_SLUGS = {
   player: { essential: "player-essential", pro: "player-pro", basic: "player-essential", premium: "player-pro" },
 };
 
+/** Trial de 15 días en checkout: Standard jugador y Standard entrenador. Premium y clubs se cobran al confirmar. */
+export function planHasCheckoutTrial(planId) {
+  return planId === "player-essential" || planId === "coach-starter" || planId === "coach-pro";
+}
+
 export function resolvePlanId(audience, planSlug) {
   if (!audience || !planSlug) return "";
   return PLAN_SLUGS[audience]?.[planSlug] || "";

@@ -5,13 +5,34 @@
  */
 import { EXERCISES } from "../exerciseCatalog.js";
 import { getClubTagsForExercise, CLUB_SLOT_LABELS, SLOT_RULES } from "./clubExerciseTags.js";
+import { CLUB_AUTO_PROTOCOL_TEMPLATES, PROTOCOL_DAY_META } from "./clubAutoTemplates.js";
+import { AGE_BLOCK_LABELS } from "../../data/clubAutoCatalog.js";
 
-export { CLUB_SLOT_LABELS, SLOT_RULES };
+export { CLUB_SLOT_LABELS, SLOT_RULES, AGE_BLOCK_LABELS };
 
 export function clubSlotLabel(slotId) {
   if (CLUB_SLOT_LABELS[slotId]) return CLUB_SLOT_LABELS[slotId];
   const key = String(slotId || "").replace(/^club_slot_/, "");
   return CLUB_SLOT_LABELS[`club_slot_${key}`] || key.replace(/_/g, " ");
+}
+
+/** Plantillas Campo/Gym A·B·C que usan este slot (para que la IA sepa dónde va). */
+export function protocolsUsingClubSlot(slotId) {
+  const key = String(slotId || "").replace(/^club_slot_/, "");
+  const out = [];
+  for (const t of Object.values(CLUB_AUTO_PROTOCOL_TEMPLATES)) {
+    const hit = (t.slots || []).some((s) => s.slot === key || (s.alt || []).includes(key));
+    if (!hit) continue;
+    const env = t.entorno === "gym" ? "Gym" : "Campo";
+    const day = PROTOCOL_DAY_META[t.protocolo]?.label || t.protocolo;
+    out.push({
+      id: t.id,
+      short: `${env} ${t.protocolo}`,
+      title: t.title,
+      day,
+    });
+  }
+  return out;
 }
 
 /** Ejercicios individuales duplicados a la vista club, con etiquetas de plantilla. */

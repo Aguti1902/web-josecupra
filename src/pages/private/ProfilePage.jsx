@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera, CreditCard, Sparkles, Calendar, RefreshCw, Lock, Mail, Eye, EyeOff, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { WEEK_DAYS } from "../../lib/sessionBlocks";
@@ -38,6 +38,7 @@ import {
   trainingProfileSnapshotFromAny,
   CATALOG_OBJECTIVES,
 } from "../../lib/playerTrainingProfile";
+import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 const SPORTS = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const FREQUENCY = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem", "5 días / sem"];
@@ -788,6 +789,10 @@ export default function ProfilePage() {
   };
 
   const accent = safeColor(currentClub?.primaryColor);
+
+  if (isProCoachUser(user)) {
+    return <Navigate to="/dashboard/club-profile" replace />;
+  }
 
   return (
     <div className="dash-page space-y-6">
