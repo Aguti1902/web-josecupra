@@ -218,7 +218,9 @@ export function hasFeatureAccess(user, featureId) {
   // Premium incluye todos los extras cuando no está en trial
   if (audience === "player" && isPlayerPro(user) && !isInTrial(user)) return true;
 
-  if (isInTrial(user) && feature.trialLocked) return false;
+  // Prueba gratuita 15 días: acceso de prueba a TODAS las funcionalidades individuales
+  // (la persistencia a largo plazo sigue dependiendo del plan/contratación)
+  if (isInTrial(user)) return true;
 
   if (!planId) return true;
   return planIncludesFeature(planId, audience, feature);

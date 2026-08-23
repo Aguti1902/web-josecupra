@@ -1,24 +1,58 @@
 import { Link } from "react-router-dom";
-import { Users, Video, FileText, MessageSquare, ArrowRight, Clock, Star, TrendingUp, Calendar, Upload, StickyNote } from "lucide-react";
+import {
+  Users, ArrowRight, TrendingUp, Euro, Building2, Percent, UserCircle,
+} from "lucide-react";
 import { useAdmin } from "../../context/AdminContext";
+import { PLANS } from "../../lib/checkoutPlans";
+
+function planPrice(planId) {
+  return PLANS[planId]?.price ?? 0;
+}
+
+function euro(n) {
+  return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
+}
 
 export default function AdminOverviewPage() {
-  const { clients, clientFeedback, clientContent } = useAdmin();
+  const { clients, allUsers = [] } = useAdmin();
 
-  const totalVideos = Object.values(clientContent).reduce((a, c) => a + (c.videos?.length || 0), 0);
-  const totalPdfs = Object.values(clientContent).reduce((a, c) => a + (c.pdfs?.length || 0), 0);
-  const totalFeedbacks = Object.values(clientFeedback).reduce((a, f) => a + f.length, 0);
+  const users = allUsers.length
+    ? allUsers
+    : clients.map((c) => ({ ...c, type: "player", role: "player" }));
+
+  const players = users.filter((u) => u.type === "player" || u.role === "player");
+  const coaches = users.filter((u) =>
+    u.role === "coach"
+    || u.type === "coach"
+    || (u.role === "club" && (u.teamRole === "entrenador" || u.isSoloCoach))
+  );
+  const clubs = users.filter((u) =>
+    u.role === "club" && u.teamRole === "administrador" && !u.isSoloCoach
+  );
+
+  const activePlayers = players.filter((u) =>
+    ["active", "trialing", "comp", "demo"].includes(String(u.subscriptionStatus || "active"))
+  );
+  const activeClubs = clubs.filter((u) =>
+    ["active", "trialing", "comp", "demo"].includes(String(u.subscriptionStatus || "active"))
+  );
+
+  const incomePlayers = activePlayers.reduce((s, u) => s + planPrice(u.plan), 0);
+  const incomeClubs = activeClubs.reduce((s, u) => s + planPrice(u.plan), 0);
+  const incomeTotal = incomePlayers + incomeClubs;
+  const discountUsers = users.filter((u) => u.clubCode || u.discountCode).length;
 
   const stats = [
-    { label: "Clientes activos", value: clients.length, icon: Users, color: "#0A36F7", bg: "#EEF1FF" },
-    { label: "Vídeos subidos", value: totalVideos, icon: Video, color: "#3BC21D", bg: "#EAF9E6" },
-    { label: "PDFs compartidos", value: totalPdfs, icon: FileText, color: "#F6CC12", bg: "#FEFAE7" },
-    { label: "Revisiones enviadas", value: totalFeedbacks, icon: MessageSquare, color: "#FB2C39", bg: "#FEE8EA" },
+    { label: "Jugadores", value: players.length, icon: Users, color: "#0A36F7", bg: "#EEF1FF" },
+    { label: "Entrenadores", value: coaches.length, icon: UserCircle, color: "#3BC21D", bg: "#EAF9E6" },
+    { label: "Clubs activos", value: activeClubs.length, icon: Building2, color: "#F6CC12", bg: "#FEFAE7" },
+    { label: "Ingresos / mes (est.)", value: euro(incomeTotal), icon: Euro, color: "#FB2C39", bg: "#FEE8EA" },
   ];
+
+  const directory = [...players, ...coaches].slice(0, 12);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-depro-dark">Panel DEPRO</h1>
@@ -29,7 +63,6 @@ export default function AdminOverviewPage() {
         <img src="/logo.png" alt="DEPRO" className="h-7 w-auto opacity-20" />
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => (
           <div key={s.label} className="card">
@@ -45,97 +78,99 @@ export default function AdminOverviewPage() {
         ))}
       </div>
 
-      {/* Clients */}
+      {/* Panel económico */}
+      <div className="card space-y-4">
+        <div className="flex items-center gap-2">
+          <Euro size={18} className="text-depro-blue" />
+          <h2 className="font-bold text-depro-dark">Panel económico</h2>
+        </div>
+        <p className="text-sm text-depro-gray">
+          Registro financiero interno (estimación mensual según planes activos). No es un dashboard de uso.
+        </p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="rounded-xl border border-depro-border p-4">
+            <p className="text-[11px] font-bold uppercase text-depro-gray">Ingresos totales</p>
+            <p className="text-xl font-black text-depro-dark mt-1">{euro(incomeTotal)}/mes</p>
+          </div>
+          <div className="rounded-xl border border-depro-border p-4">
+            <p className="text-[11px] font-bold uppercase text-depro-gray">Planes individuales</p>
+            <p className="text-xl font-black text-depro-dark mt-1">{euro(incomePlayers)}/mes</p>
+            <p className="text-xs text-depro-gray mt-0.5">{activePlayers.length} activos</p>
+          </div>
+          <div className="rounded-xl border border-depro-border p-4">
+            <p className="text-[11px] font-bold uppercase text-depro-gray">Aportación clubs</p>
+            <p className="text-xl font-black text-depro-dark mt-1">{euro(incomeClubs)}/mes</p>
+            <p className="text-xs text-depro-gray mt-0.5">{activeClubs.length} clubs con acceso</p>
+          </div>
+          <div className="rounded-xl border border-depro-border p-4">
+            <p className="text-[11px] font-bold uppercase text-depro-gray flex items-center gap-1">
+              <Percent size={12} /> Códigos descuento
+            </p>
+            <p className="text-xl font-black text-depro-dark mt-1">{discountUsers}</p>
+            <p className="text-xs text-depro-gray mt-0.5">usuarios con código / club</p>
+          </div>
+        </div>
+        {activeClubs.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[11px] uppercase text-depro-gray border-b border-depro-border">
+                  <th className="py-2 font-bold">Club</th>
+                  <th className="py-2 font-bold">Plan</th>
+                  <th className="py-2 font-bold">Aportación</th>
+                  <th className="py-2 font-bold">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeClubs.slice(0, 8).map((c) => (
+                  <tr key={c.id} className="border-b border-depro-border/60">
+                    <td className="py-2 font-semibold text-depro-dark">{c.name || c.email}</td>
+                    <td className="py-2 text-depro-gray">{c.plan || "—"}</td>
+                    <td className="py-2 font-bold text-depro-dark">{euro(planPrice(c.plan))}/mes</td>
+                    <td className="py-2 text-depro-gray">{c.subscriptionStatus || "active"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <div>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-bold text-depro-dark">Tus clientes</h2>
-          <Link to="/admin/clients" className="text-sm text-depro-blue hover:underline flex items-center gap-1">
+          <h2 className="font-bold text-depro-dark">Jugadores y entrenadores</h2>
+          <Link to="/admin/users" className="text-sm text-depro-blue hover:underline flex items-center gap-1">
             Ver todos <ArrowRight size={13} />
           </Link>
         </div>
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {clients.map((client) => {
-            const accent = client.club?.primaryColor || "#0A36F7";
-            const lastFb = clientFeedback[client.id]?.[0];
-            const videos = clientContent[client.id]?.videos?.length || 0;
-            const pdfs = clientContent[client.id]?.pdfs?.length || 0;
-
+          {directory.map((user) => {
+            const isPlayer = user.type === "player" || user.role === "player";
             return (
               <Link
-                key={client.id}
-                to={`/admin/clients/${client.id}`}
-                className="card hover:shadow-card-hover group overflow-hidden"
+                key={user.id}
+                to={isPlayer ? `/admin/clients/${user.id}` : "/admin/users"}
+                className="card hover:shadow-card-hover group"
               >
-                <div className="h-1 rounded-full mb-5 -mx-6 -mt-6" style={{ backgroundColor: accent }} />
-                <div className="flex items-start gap-3 mb-4">
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0"
-                    style={{ backgroundColor: accent + "15", color: accent }}
-                  >
-                    {client.club?.logo || "—"}
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 bg-depro-blue/10 text-depro-blue">
+                    {(user.name || "?").slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-depro-dark truncate">{client.name}</div>
-                    <div className="text-xs text-depro-gray truncate">{client.club?.name}</div>
-                    <span className="inline-block mt-1 text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: accent + "15", color: accent }}>
-                      {client.plan}
+                    <div className="font-bold text-depro-dark truncate">{user.name || user.email}</div>
+                    <div className="text-xs text-depro-gray truncate">{user.email}</div>
+                    <span className="inline-block mt-1 text-xs font-bold px-2 py-0.5 rounded-full bg-depro-gray-light text-depro-dark">
+                      {isPlayer ? "Jugador" : "Entrenador"}{user.plan ? ` · ${user.plan}` : ""}
                     </span>
                   </div>
                   <ArrowRight size={15} className="text-depro-border group-hover:text-depro-blue transition-colors mt-1 flex-shrink-0" />
                 </div>
-
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {[
-                    { label: "Vídeos", value: videos },
-                    { label: "PDFs", value: pdfs },
-                    { label: "Reviews", value: clientFeedback[client.id]?.length || 0 },
-                  ].map((s) => (
-                    <div key={s.label} className="bg-depro-gray-light rounded-xl p-2 text-center">
-                      <div className="text-base font-black text-depro-dark">{s.value}</div>
-                      <div className="text-xs text-depro-gray">{s.label}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {lastFb && (
-                  <div className="border-t border-depro-border pt-3">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Clock size={11} className="text-depro-gray" />
-                      <span className="text-xs text-depro-gray">{lastFb.date}</span>
-                      <div className="ml-auto flex gap-0.5">
-                        {Array(5).fill(0).map((_, i) => (
-                          <Star key={i} size={10} className={i < Math.round(lastFb.rating / 2) ? "fill-depro-yellow text-depro-yellow" : "text-depro-border"} />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-xs text-depro-gray line-clamp-2">{lastFb.message}</p>
-                  </div>
-                )}
               </Link>
             );
           })}
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      <div>
-        <h2 className="font-bold text-depro-dark mb-4">Acciones rápidas</h2>
-        <div className="grid sm:grid-cols-3 gap-4">
-          {[
-            { Icon: Calendar,  label: "Editar plan semanal", desc: "Modifica sesiones y ejercicios de cualquier cliente", color: "#0A36F7", bg: "#EEF1FF" },
-            { Icon: Upload,    label: "Subir contenido",     desc: "Añade vídeos y PDFs a la biblioteca de un cliente",  color: "#F6CC12", bg: "#FEFAE7" },
-            { Icon: StickyNote,label: "Enviar feedback",     desc: "Escribe la revisión semanal de un cliente",           color: "#3BC21D", bg: "#EAF9E6" },
-          ].map((a) => (
-            <Link key={a.label} to="/admin/clients" className="card hover:shadow-card-hover group flex items-start gap-4 transition-all">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: a.bg }}>
-                <a.Icon size={18} style={{ color: a.color }} />
-              </div>
-              <div>
-                <div className="font-semibold text-depro-dark text-sm mb-1 group-hover:text-depro-blue transition-colors">{a.label}</div>
-                <div className="text-xs text-depro-gray leading-relaxed">{a.desc}</div>
-              </div>
-            </Link>
-          ))}
+          {directory.length === 0 && (
+            <p className="text-sm text-depro-gray col-span-full">Aún no hay usuarios listados.</p>
+          )}
         </div>
       </div>
     </div>

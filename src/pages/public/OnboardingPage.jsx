@@ -16,6 +16,8 @@ import TeamBrandingFields, { saveCoachBrandingDraft } from "../../components/sha
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
+import CoachAutoQuestionnaire from "../../components/shared/CoachAutoQuestionnaire";
+import { validateCoachQuestionnaire } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 const ONBOARDING_STORAGE_KEY = "depro_onboarding";
 const ONBOARDING_DRAFT_KEY = "depro_onboarding_draft_v1";
@@ -35,7 +37,7 @@ const COMPETITION_DAYS = COMPETITION_DAY_OPTIONS;
 const WEEK_DAYS  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const EXPERIENCE = ["Nunca he entrenado", "Menos de 6 meses", "6–12 meses", "1–3 años", "Más de 3 años"];
 const STEPS_PLAYER = ["Plan", "Tu cuenta", "Tus datos", "Tu entrenamiento", "Pago"];
-const STEPS_STAFF  = ["Plan", "Tu cuenta", "Tus datos", "Pago"];
+const STEPS_STAFF  = ["Plan", "Tu cuenta", "Equipo / Microciclo", "Pago"];
 
 /* ─────────────────────────────────────────────
    COMPONENTES AUX
@@ -431,6 +433,10 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
   if (!email?.trim()) missing.push("email");
   if (!isPlayer && !form.club?.trim()) missing.push(audience === "club" ? "nombre del club" : "club / academia");
   if (isPremiumPlayer && !String(form.phone || "").trim()) missing.push("teléfono de contacto");
+  if ((audience === "coach" || audience === "club")) {
+    const q = validateCoachQuestionnaire(form.coachAuto || {});
+    if (!q.ok) missing.push("cuestionario de equipo / microciclo");
+  }
   // Código de club inválido: aviso, pero no bloquea el avance (se puede quitar)
   const clubCodeBlocking = !!(form.clubCode?.trim() && !(form.clubId && form.clubTeamId));
   const valid = missing.length === 0;
@@ -642,6 +648,22 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
                   secondaryColor: b.secondaryColor,
                 }))}
               />
+            )}
+
+            {(audience === "coach" || audience === "club") && (
+              <div className="pt-4 border-t border-depro-border space-y-3">
+                <div>
+                  <h3 className="font-bold text-depro-dark text-sm">Equipo / Microciclo</h3>
+                  <p className="text-xs text-depro-gray mt-0.5">
+                    Completa el cuestionario antes del pago para generar la planificación automática.
+                  </p>
+                </div>
+                <CoachAutoQuestionnaire
+                  value={form.coachAuto || {}}
+                  onChange={(coachAuto) => setForm((f) => ({ ...f, coachAuto }))}
+                  showErrors
+                />
+              </div>
             )}
           </>
         )}

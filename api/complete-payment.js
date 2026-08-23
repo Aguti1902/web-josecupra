@@ -83,13 +83,27 @@ export default async function handler(req, res) {
         planPendingManual: meta.plan === "player-pro" || meta.plan === "premium",
       };
 
+      const selectedAddons = meta.selectedAddons
+        ? meta.selectedAddons.split("|").map((s) => s.trim()).filter(Boolean)
+        : [];
+
+      const mergeAddons = (prev = []) => {
+        if (!selectedAddons.length) return undefined;
+        return Array.from(new Set([...(Array.isArray(prev) ? prev : []), ...selectedAddons]));
+      };
+
       if (authUserId) {
         const { data: byId, error: getErr } = await supabaseAdmin.auth.admin.getUserById(authUserId);
         if (getErr) return res.status(400).json({ error: getErr.message });
         if (!byId?.user) return res.status(404).json({ error: "Usuario no encontrado" });
         userId = byId.user.id;
+        const purchasedAddons = mergeAddons(byId.user.user_metadata?.purchasedAddons);
         await supabaseAdmin.auth.admin.updateUserById(userId, {
-          user_metadata: { ...byId.user.user_metadata, ...userMeta },
+          user_metadata: {
+            ...byId.user.user_metadata,
+            ...userMeta,
+            ...(purchasedAddons ? { purchasedAddons } : {}),
+          },
         });
       } else {
         const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
@@ -97,14 +111,23 @@ export default async function handler(req, res) {
 
         if (found) {
           userId = found.id;
+          const purchasedAddons = mergeAddons(found.user_metadata?.purchasedAddons);
           await supabaseAdmin.auth.admin.updateUserById(found.id, {
-            user_metadata: { ...found.user_metadata, ...userMeta },
+            user_metadata: {
+              ...found.user_metadata,
+              ...userMeta,
+              ...(purchasedAddons ? { purchasedAddons } : {}),
+            },
           });
         } else {
+          const purchasedAddons = mergeAddons([]);
           const { data, error } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
-            user_metadata: userMeta,
+            user_metadata: {
+              ...userMeta,
+              ...(purchasedAddons ? { purchasedAddons } : {}),
+            },
             email_confirm: true,
           });
           if (error) return res.status(400).json({ error: error.message });

@@ -54,12 +54,28 @@ export const CLUB_AUTO_MATERIALS = [
  */
 export function usesClubAutoEngine(clubOrConfig) {
   if (!clubOrConfig) return false;
+
+  // Config suelta del cuestionario (engine/nivel) — comprobar ANTES de la heurística club.
+  // questionnaireToCoachConfig escribe mode:"depro" + engine:"club_auto"; si tratamos
+  // mode!=null como "club" sin coachConfig anidado, cfg queda {} y el motor nunca corre.
+  if (clubOrConfig.engine === "club_auto") return true;
+  if (
+    clubOrConfig.nivel
+    && ["A", "B", "C"].includes(String(clubOrConfig.nivel).toUpperCase())
+    && clubOrConfig.coachConfig == null
+    && clubOrConfig.origen == null
+    && clubOrConfig.planningMode == null
+    && clubOrConfig.isSoloCoach == null
+  ) {
+    return clubOrConfig.mode !== "personalizado" && clubOrConfig.engine !== "manual";
+  }
+
   const looksLikeClub =
     clubOrConfig.coachConfig != null
     || clubOrConfig.planningMode != null
-    || clubOrConfig.mode != null
     || clubOrConfig.origen != null
-    || clubOrConfig.isSoloCoach != null;
+    || clubOrConfig.isSoloCoach != null
+    || (clubOrConfig.mode != null && clubOrConfig.coachConfig != null);
   const club = looksLikeClub ? clubOrConfig : null;
   const cfg = (club?.coachConfig || (!looksLikeClub ? clubOrConfig : {}) || {});
 
@@ -71,7 +87,6 @@ export function usesClubAutoEngine(clubOrConfig) {
   if (club?.origen === "automatico") return true;
   if (cfg.engine === "club_auto") return true;
   if (club?.planningMode === "auto" && (club.isSoloCoach || cfg.nivel)) return true;
-  // Config suelta (tests / llamadas con solo coachConfig)
   if (!club && cfg.nivel && ["A", "B", "C"].includes(String(cfg.nivel).toUpperCase())) return true;
   return false;
 }

@@ -104,6 +104,7 @@ export function AdminProvider({ children }) {
   const [clients, setClients] = useState(
     initialClients.filter((c) => c.role !== "admin")
   );
+  const [allUsers, setAllUsers] = useState([]);
   const [clientsLoading, setClientsLoading] = useState(false);
 
   const ensureClientAssets = useCallback((clientIds) => {
@@ -159,13 +160,29 @@ export function AdminProvider({ children }) {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) return;
-      const players = (json.users || [])
-        .filter((u) => u.type === "player")
+      const list = (json.users || []);
+      const players = list
+        .filter((u) => u.type === "player" || u.role === "player")
         .map(mapPlayerToClient);
       setClients(players);
+      setAllUsers(list.map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role || (u.type === "player" ? "player" : u.role),
+        teamRole: u.teamRole,
+        tipo: u.type,
+        type: u.type,
+        clubId: u.clubId,
+        plan: u.plan,
+        subscriptionStatus: u.subscriptionStatus,
+        billingSource: u.billingSource,
+        clubCode: u.clubCode,
+        isSoloCoach: u.isSoloCoach,
+      })));
       try {
         localStorage.setItem("depro_admin_clients", JSON.stringify(
-          (json.users || []).map((u) => ({
+          list.map((u) => ({
             id: u.id,
             name: u.name,
             email: u.email,
@@ -341,6 +358,7 @@ export function AdminProvider({ children }) {
     <AdminContext.Provider
       value={{
         clients,
+        allUsers,
         clientsLoading,
         refreshClients,
         clientPlans,

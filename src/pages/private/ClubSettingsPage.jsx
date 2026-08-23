@@ -86,6 +86,7 @@ function TeamModal({ team, clubId, onClose, onSave }) {
     coachName: team?.coach?.name || "",
     coachEmail: team?.coach?.email || "",
     coachPassword: generatePassword(),
+    questionnaireBy: "club", // club | coach — Depro 2.0 §5.2
   });
   const [loading, setLoading] = useState(false);
   const [creds, setCreds] = useState(null);
@@ -105,6 +106,7 @@ function TeamModal({ team, clubId, onClose, onSave }) {
     const teamId = team?.id || genId("team");
     let userCreated = false;
     let userError = null;
+    let coachUserId = null;
 
     if (form.coachEmail && form.coachPassword) {
       const result = await createClubUser({
@@ -118,6 +120,17 @@ function TeamModal({ team, clubId, onClose, onSave }) {
       });
       userCreated = !!(result.ok || result.alreadyExists);
       userError = userCreated ? null : result.error;
+      coachUserId = result.userId || result.id || null;
+      if (!userCreated) {
+        setLoading(false);
+        setCreds({
+          email: form.coachEmail,
+          password: form.coachPassword,
+          userCreated: false,
+          userError: userError || "No se pudo crear el acceso del entrenador",
+        });
+        return;
+      }
     }
 
     onSave({
@@ -127,9 +140,25 @@ function TeamModal({ team, clubId, onClose, onSave }) {
       season: form.season,
       trainingDays: form.trainingDays,
       coach: form.coachEmail
-        ? { name: form.coachName, email: form.coachEmail, role: "entrenador", userCreated }
+        ? {
+          id: coachUserId,
+          name: form.coachName,
+          email: form.coachEmail,
+          role: "entrenador",
+          userCreated,
+        }
         : (team?.coach || null),
       squad: team?.squad || [],
+      // Señal para que el padre añada el coach a club.users (Staff)
+      _staffToAdd: form.coachEmail && userCreated
+        ? {
+          id: coachUserId || genId("user"),
+          name: form.coachName || form.coachEmail,
+          email: form.coachEmail,
+          role: "entrenador",
+          teamIds: [teamId],
+        }
+        : null,
     });
 
     if (form.coachEmail && !isEdit) {
@@ -205,6 +234,37 @@ function TeamModal({ team, clubId, onClose, onSave }) {
           </div>
           {!isEdit && (
             <div className="pt-2 border-t border-depro-border space-y-3">
+              <div>
+                <p className="text-sm font-medium text-depro-dark mb-2">¿Quién rellena el cuestionario del equipo?</p>
+                <div className="space-y-2">
+                  <label className={`flex gap-3 p-3 rounded-xl border cursor-pointer ${form.questionnaireBy === "club" ? "border-depro-blue bg-depro-blue/5" : "border-depro-border"}`}>
+                    <input
+                      type="radio"
+                      name="questionnaireBy"
+                      checked={form.questionnaireBy === "club"}
+                      onChange={() => setForm((f) => ({ ...f, questionnaireBy: "club" }))}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block text-sm font-bold text-depro-dark">Opción A — Lo rellena el club/administrador</span>
+                      <span className="block text-xs text-depro-gray mt-0.5">Tú completas el cuestionario de este equipo desde el panel del club.</span>
+                    </span>
+                  </label>
+                  <label className={`flex gap-3 p-3 rounded-xl border cursor-pointer ${form.questionnaireBy === "coach" ? "border-depro-blue bg-depro-blue/5" : "border-depro-border"}`}>
+                    <input
+                      type="radio"
+                      name="questionnaireBy"
+                      checked={form.questionnaireBy === "coach"}
+                      onChange={() => setForm((f) => ({ ...f, questionnaireBy: "coach" }))}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block text-sm font-bold text-depro-dark">Opción B — Lo rellena el entrenador</span>
+                      <span className="block text-xs text-depro-gray mt-0.5">Al entrar por primera vez con su usuario, verá el cuestionario y se generará su planificación.</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
               <p className="text-sm font-medium text-depro-dark">Entrenador (opcional)</p>
               <input className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm" placeholder="Nombre" value={form.coachName} onChange={(e) => setForm((f) => ({ ...f, coachName: e.target.value }))} />
               <input type="email" className="w-full border border-depro-border rounded-lg px-3 py-2 text-sm" placeholder="Email de acceso" value={form.coachEmail} onChange={(e) => setForm((f) => ({ ...f, coachEmail: e.target.value }))} />
@@ -289,7 +349,7 @@ function StaffModal({ teams, clubId, onClose, onCreate }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-depro-border">
-          <h2 className="font-bold text-depro-dark">Invitar staff</h2>
+          <h2 className="font-bold text-depro-dark">Crear staff</h2>
           <button onClick={onClose}><X size={18} className="text-depro-gray" /></button>
         </div>
         <div className="p-5 space-y-3">
@@ -311,7 +371,7 @@ function StaffModal({ teams, clubId, onClose, onCreate }) {
           <button onClick={handleCreate} disabled={!form.email || !form.teamId || form.password.length < 6 || loading}
             className="flex-1 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-2">
             {loading ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
-            Invitar
+            Crear
           </button>
         </div>
       </div>
@@ -408,11 +468,26 @@ export default function ClubSettingsPage() {
   };
 
   const handleAddOrUpdateTeam = async (team) => {
-    const exists = (club.teams || []).some((t) => t.id === team.id);
+    const { _staffToAdd, ...cleanTeam } = team;
+    const exists = (club.teams || []).some((t) => t.id === cleanTeam.id);
     const teams = exists
-      ? club.teams.map((t) => (t.id === team.id ? team : t))
-      : [...(club.teams || []), team];
-    await persist({ ...club, teams });
+      ? club.teams.map((t) => (t.id === cleanTeam.id ? { ...t, ...cleanTeam } : t))
+      : [...(club.teams || []), cleanTeam];
+
+    let users = [...(club.users || [])];
+    if (_staffToAdd?.email) {
+      const email = String(_staffToAdd.email).toLowerCase();
+      const idx = users.findIndex((u) => String(u.email || "").toLowerCase() === email);
+      if (idx >= 0) {
+        const prev = users[idx];
+        const teamIds = Array.from(new Set([...(prev.teamIds || []), ...(_staffToAdd.teamIds || [])]));
+        users[idx] = { ...prev, ..._staffToAdd, teamIds };
+      } else {
+        users.push(_staffToAdd);
+      }
+    }
+
+    await persist({ ...club, teams, users });
   };
 
   const handleRemoveTeam = async (tid) => {
@@ -615,7 +690,7 @@ export default function ClubSettingsPage() {
           <div className="flex justify-end">
             <button onClick={() => setShowStaffModal(true)} disabled={(club.teams || []).length === 0}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold disabled:opacity-40">
-              <UserPlus size={15} /> Invitar staff
+              <UserPlus size={15} /> Crear staff
             </button>
           </div>
           {(club.users || []).length === 0 ? (

@@ -1,10 +1,15 @@
 import { getStripe, getSiteUrl } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 
+/** Alineado con src/lib/playerAddons.js (ids actuales + legacy). */
 const ADDONS = {
-  "addon-pdf": { name: "Export PDF DEPRO", amount: 500, featureId: "pdf_export" },
-  "addon-progression": { name: "Progresión avanzada DEPRO", amount: 500, featureId: "progression" },
+  "addon-pdf": { name: "PDF DEPRO", amount: 500, featureId: "pdf_export" },
+  "addon-cargas": { name: "Registro de cargas DEPRO", amount: 500, featureId: "cargas" },
+  "addon-progression": { name: "Progresión y test DEPRO", amount: 500, featureId: "progression" },
+  "addon-unlimited-exercises": { name: "Ejercicios ilimitados + carpeta", amount: 500, featureId: "unlimited_exercises" },
+  // Legacy
   "addon-library": { name: "Biblioteca ampliada DEPRO", amount: 500, featureId: "exercise_library" },
+  "addon-physical-tests": { name: "Tests físicos DEPRO", amount: 500, featureId: "physical_tests" },
 };
 
 export default async function handler(req, res) {

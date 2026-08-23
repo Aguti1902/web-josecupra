@@ -116,15 +116,15 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
   const exp = userProfile.experiencia || "intermedio";
   const expLevel = EXP_LEVELS[exp] || 2;
   const dayIntensity = userProfile.dayIntensity || null;
+  // Material = prioridad, no filtro rígido (Depro 2.0 §9.1)
+  const materialStrict = userProfile.materialStrict === true;
 
   return exercises.filter((ex) => {
     const et = tagsOf(ex);
-    if (!materialMatches(et.material, mats)) return false;
+    if (materialStrict && !materialMatches(et.material, mats)) return false;
 
     const exExp = et.experiencia || [];
     if (exExp.length) {
-      // El ejercicio es apto si su lista de experiencia incluye el nivel del jugador
-      // o niveles inferiores (novato puede hacer ejercicios marcados novato/intermedio).
       if (!exExp.includes(exp)) {
         const minEx = Math.min(...exExp.map((e) => EXP_LEVELS[e] || 2));
         if (minEx > expLevel) return false;
@@ -146,6 +146,28 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
     if (ex.edadMinima && (userProfile.edad || 18) < ex.edadMinima) return false;
     return true;
   });
+}
+
+/** Prioriza material del perfil; fallback a peso corporal / sin material. */
+export function rankByMaterialPreference(candidates, userProfile = {}) {
+  const mats = normalizeMaterialList(userProfile.material);
+  const fullGym = mats.some((m) => /gimnasio|gym|completo/i.test(String(m)));
+  const preferFree = fullGym || mats.some((m) => /barra|mancuern/i.test(String(m)));
+
+  const score = (ex) => {
+    const et = tagsOf(ex);
+    const em = asArray(et.material).map((x) => String(x).toLowerCase());
+    const body = !em.length || em.some((m) => /sin.?material|peso.?corporal|bodyweight|ninguno/.test(m));
+    if (mats.length && materialMatches(et.material, mats)) {
+      if (preferFree && em.some((m) => /barra|mancuern/.test(m))) return 300;
+      if (preferFree && em.some((m) => /maquina|máquina|polea/.test(m))) return 180;
+      return 250;
+    }
+    if (body) return 100;
+    return 40;
+  };
+
+  return [...candidates].sort((a, b) => score(b) - score(a));
 }
 
 /**
@@ -260,7 +282,12 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
   }
 
   if (!candidates.length) return null;
-  return pickFrom(candidates, userProfile, slot, usedExerciseIds, seedExtra);
+  const ranked = rankByMaterialPreference(candidates, userProfile);
+  // Preferir material del perfil: tomar el top score band primero
+  const mats = normalizeMaterialList(userProfile.material);
+  const preferMatched = ranked.filter((ex) => materialMatches(tagsOf(ex).material, mats));
+  const pool = preferMatched.length ? preferMatched : ranked;
+  return pickFrom(pool, userProfile, slot, usedExerciseIds, seedExtra);
 }
 
 function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensity = null) {
@@ -477,6 +504,7 @@ export { GYM_UNLOCK, MACHINE_MATERIALS };
 
 export default {
   filterExercisesForUser,
+  rankByMaterialPreference,
   selectExerciseForSlot,
   fillBlockSlots,
   refreshExercise,

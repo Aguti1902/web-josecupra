@@ -78,7 +78,7 @@ export function validateCoachQuestionnaire(q = {}) {
   if (!["6-10", "10-14", "14-18", "18-24", "24+"].includes(numJugadores)) {
     errors.push("Número de jugadores no válido.");
   }
-  if (!material.length) errors.push("Selecciona al menos un material disponible.");
+  // Material opcional: vacío = catálogo general (prioridad/fallback en selección)
 
   return {
     ok: errors.length === 0,
