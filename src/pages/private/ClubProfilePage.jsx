@@ -160,8 +160,6 @@ export default function ClubProfilePage() {
       showMsg("error", res.error || "No se pudo cancelar.");
     }
   };
-    setTimeout(() => setMsg(null), 4000);
-  };
 
   useEffect(() => {
     const next = initialCoachQuestionnaire(user);
