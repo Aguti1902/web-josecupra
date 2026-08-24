@@ -7,6 +7,8 @@ import {
   filterPlansForTeam,
   resolveClubPanelPlans,
   pickPlansFromAdminClubsResponse,
+  pickGlobalPlansSnapshot,
+  plansRichness,
   GLOBAL_PLANS_CLUB_ID,
 } from "./clubManualPlans.js";
 
@@ -45,6 +47,43 @@ describe("clubManualPlans — una fuente global", () => {
     ];
     const picked = pickPlansFromAdminClubsResponse(clubs, { id: "club_1", planningMode: "manual" }, []);
     assert.equal(picked[0].id, "mc_global");
+  });
+
+  it("una nube vieja no pisa planificación local más nueva o más completa", () => {
+    const local = [{ id: "mc1", sessions: [{ id: "s1" }, { id: "s2" }] }];
+    const remote = [{ id: "mc1", sessions: [{ id: "s1" }] }];
+    const dirty = pickGlobalPlansSnapshot({
+      localPlans: local,
+      localUpdatedAt: 200,
+      remotePlans: remote,
+      remoteUpdatedAt: 100,
+      dirty: true,
+    });
+    assert.equal(dirty.source, "local-dirty");
+    assert.equal(dirty.plans[0].sessions.length, 2);
+
+    const newer = pickGlobalPlansSnapshot({
+      localPlans: local,
+      localUpdatedAt: 200,
+      remotePlans: remote,
+      remoteUpdatedAt: 50,
+    });
+    assert.equal(newer.source, "local-newer");
+
+    const richer = pickGlobalPlansSnapshot({
+      localPlans: local,
+      localUpdatedAt: 0,
+      remotePlans: remote,
+      remoteUpdatedAt: 0,
+    });
+    assert.equal(richer.source, "local-richer");
+    assert.equal(plansRichness(local) > plansRichness(remote), true);
+
+    const emptyRemote = pickGlobalPlansSnapshot({
+      localPlans: local,
+      remotePlans: [],
+    });
+    assert.equal(emptyRemote.source, "local");
   });
 
   it("clonePlans no comparte referencia", () => {

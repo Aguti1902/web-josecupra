@@ -17,11 +17,9 @@ export function useActiveTeam() {
   return null;
 }
 
-/** true si el rol actual es coordinador (no puede editar) */
+/** El coordinador, al entrar en un equipo, edita igual que el entrenador. */
 export function useIsReadOnly() {
-  const { user } = useAuth();
-  const { viewingTeam } = useView();
-  return user?.team_role === "coordinador" && !!viewingTeam;
+  return false;
 }
 
 export function ViewProvider({ children }) {

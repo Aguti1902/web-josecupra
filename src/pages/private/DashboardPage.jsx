@@ -23,6 +23,7 @@ import ClubEconomyPanel from "../../components/private/ClubEconomyPanel";
 import ClubPlayersMonitor from "../../components/private/ClubPlayersMonitor";
 import { isClubAdmin } from "../../lib/clubRoles";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { ingestRemoteGlobalPlans, readLocalGlobalPlans } from "../../lib/clubManualPlans";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -57,8 +58,7 @@ function getAgeBlock(category) {
 
 /* ── Carga planes globales desde localStorage + API ─────── */
 function loadGlobalPlans() {
-  try { return JSON.parse(localStorage.getItem("depro_global_plans") || "[]"); }
-  catch { return []; }
+  return readLocalGlobalPlans().plans;
 }
 
 // Luminancia 0–1
@@ -619,10 +619,8 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
       .then((data) => {
         if (!data) return;
         const entry = (data.clubs || []).find((c) => c.id === "GLOBAL_PLANS");
-        if (entry?.plans?.length > 0) {
-          localStorage.setItem("depro_global_plans", JSON.stringify(entry.plans));
-          setGlobalPlans(entry.plans);
-        }
+        const picked = ingestRemoteGlobalPlans(entry?.plans, entry?.updatedAt);
+        if (picked.plans.length) setGlobalPlans(picked.plans);
       })
       .catch(() => {});
   }, []);

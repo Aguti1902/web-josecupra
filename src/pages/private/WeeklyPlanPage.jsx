@@ -15,7 +15,7 @@ import {
 import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
+import { useActiveTeam, useIsReadOnly, useView } from "../../context/ViewContext";
 import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, hydratePlayerPlan, buildMinimalSession, refreshExerciseAcrossPlan, normalizeLesions, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
 import PlanCompatibilityModal from "../../components/private/PlanCompatibilityModal";
 import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "../../lib/sessionProgress";
@@ -28,7 +28,7 @@ import { canDownloadTrialPdf, recordTrialPdfDownload, trialPdfLimitMessage } fro
 import { savePlayerPlan } from "../../lib/playerPlanStorage";
 import CoachSessions from "../../components/private/CoachSessions";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
-import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans, filterPlansForTeam } from "../../lib/clubManualPlans";
+import { resolveClubPanelPlans, filterPlansForTeam, ingestRemoteGlobalPlans, readLocalGlobalPlans } from "../../lib/clubManualPlans";
 import DisenarTareas from "../../components/shared/DisenarTareas";
 import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
@@ -1287,13 +1287,14 @@ function ClubMicrocycles({ accent }) {
   const { user } = useAuth();
   const activeTeam = useActiveTeam();
   const isReadOnly = useIsReadOnly();
+  const { viewingTeam } = useView();
   const [searchParams, setSearchParams] = useSearchParams();
   const targetSessionId = searchParams.get("session");
   const targetTab = searchParams.get("tab") || "resumen";
   const targetWeekParam = searchParams.get("week");
   const sessionRefs = useRef({});
-  // Coordinador viendo equipo → tratar como entrenador de ese equipo
-  const isCoordinator = !isReadOnly && (user?.team_role === "coordinador" || !user?.team);
+  // Vista global del coordinador: todos los planes. Dentro de un equipo: como el entrenador.
+  const isCoordinator = (user?.team_role === "coordinador" || user?.team_role === "administrador") && !viewingTeam;
   const userTeamId = activeTeam?.id ?? null;
   const userTeamCategory = activeTeam?.category ?? null;
   const userAgeBlock = getAgeBlock(userTeamCategory);
@@ -1303,8 +1304,7 @@ function ClubMicrocycles({ accent }) {
   // Manual: club.plans. Automático: GLOBAL_PLANS. Fallback local.
   const [allPlans, setAllPlans] = useState(() => {
     try {
-      const global = JSON.parse(localStorage.getItem("depro_global_plans") || "[]");
-      return resolveClubPanelPlans(user?.club, global).map(normalizePlan);
+      return resolveClubPanelPlans(user?.club, readLocalGlobalPlans().plans).map(normalizePlan);
     } catch { return []; }
   });
   useEffect(() => {
@@ -1313,12 +1313,8 @@ function ClubMicrocycles({ accent }) {
       .then((data) => {
         if (!data) return;
         const globalEntry = (data.clubs || []).find((c) => c.id === "GLOBAL_PLANS");
-        const apiPlans = globalEntry?.plans;
-        if (apiPlans?.length > 0) {
-          try { localStorage.setItem("depro_global_plans", JSON.stringify(apiPlans)); } catch {}
-        }
-        const picked = pickPlansFromAdminClubsResponse(data.clubs, user?.club, apiPlans || []);
-        setAllPlans(picked.map(normalizePlan));
+        const picked = ingestRemoteGlobalPlans(globalEntry?.plans, globalEntry?.updatedAt);
+        setAllPlans(picked.plans.map(normalizePlan));
       })
       .catch(() => {});
   }, [user?.club?.id]); // eslint-disable-line react-hooks/exhaustive-deps

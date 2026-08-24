@@ -10,7 +10,7 @@ import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 import { getEvalValues, getRatingForEval } from "../../lib/teamTestRatings";
 import { resolveCurrentPlan, getPlanLimits } from "../../lib/subscription";
-import { canSeeClubPricing } from "../../lib/clubRoles";
+import { canSeeClubPricing, canEditClubTeam } from "../../lib/clubRoles";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import ChangePlanModal from "../../components/private/ChangePlanModal";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
@@ -526,7 +526,7 @@ export default function SquadPage() {
     || (multiTeamCoach && !viewingTeam);
   const canEdit   = isProCoach
     ? !isCoord
-    : (teamRole !== "coordinador" && teamRole !== "administrador");
+    : canEditClubTeam(user, viewingTeam);
 
   const rawAccent = club?.primaryColor   || "#0A36F7";
   const rawSec    = club?.secondaryColor || "#ffffff";

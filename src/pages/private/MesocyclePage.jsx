@@ -18,7 +18,7 @@ import { getSessionDisplayKey } from "../../lib/mesocycleTemplates";
 import CoachPlanning from "../../components/private/CoachPlanning";
 import MesocycleCalendar from "../../components/private/MesocycleCalendar";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
-import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans, filterPlansForTeam } from "../../lib/clubManualPlans";
+import { resolveClubPanelPlans, filterPlansForTeam, ingestRemoteGlobalPlans, readLocalGlobalPlans } from "../../lib/clubManualPlans";
 
 /* ── Contraste seguro ───────────────────────────────────── */
 function lum(hex) {
@@ -186,8 +186,7 @@ export default function MesocyclePage() {
 
   const [allPlans, setAllPlans] = useState(() => {
     try {
-      const global = JSON.parse(localStorage.getItem("depro_global_plans") || "[]");
-      return resolveClubPanelPlans(user?.club, global);
+      return resolveClubPanelPlans(user?.club, readLocalGlobalPlans().plans);
     } catch { return []; }
   });
   const [viewMode, setViewMode] = useState("calendar"); // "calendar" | "list"
@@ -199,11 +198,8 @@ export default function MesocyclePage() {
       .then((data) => {
         if (!data) return;
         const globalEntry = (data.clubs || []).find((c) => c.id === "GLOBAL_PLANS");
-        if (globalEntry?.plans?.length > 0) {
-          try { localStorage.setItem("depro_global_plans", JSON.stringify(globalEntry.plans)); } catch {}
-        }
-        const picked = pickPlansFromAdminClubsResponse(data.clubs, user?.club, globalEntry?.plans || []);
-        setAllPlans(picked);
+        const ingested = ingestRemoteGlobalPlans(globalEntry?.plans, globalEntry?.updatedAt);
+        setAllPlans(ingested.plans);
       })
       .catch(() => {});
   }, [user?.club?.id]); // eslint-disable-line react-hooks/exhaustive-deps

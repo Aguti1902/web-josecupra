@@ -12,6 +12,7 @@ export function buildMetaClubPayload(club = {}, detail = null) {
   const payload = { id, name: merged.name || id };
   if (id === "GLOBAL_PLANS") {
     payload.plans = Array.isArray(merged.plans) ? merged.plans : [];
+    if (merged.updatedAt) payload.updatedAt = merged.updatedAt;
   } else if (id === "GLOBAL_TESTS") {
     payload.tests = merged.tests ?? [];
   } else if (id === "CATALOG_OVERRIDES") {

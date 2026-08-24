@@ -4,7 +4,7 @@ import {
   TrendingUp, Minus, User,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { useActiveTeam } from "../../context/ViewContext";
+import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
 import FeatureGate from "../../components/private/FeatureGate";
 import { saveClubDetail, loadClubDetail } from "../../lib/adminStorage";
 import { supabase } from "../../lib/supabase";
@@ -352,7 +352,7 @@ export default function CargasPage() {
   const accent = club?.primaryColor || "#0A36F7";
 
   const ageBlock  = getAgeBlock(team?.category);
-  const isReadOnly = user?.team_role === "coordinador";
+  const isReadOnly = useIsReadOnly();
 
   const storageKey = STORAGE_KEY(club?.id || "x", team?.id || "y");
   const trainingDaysCount = team?.trainingDays?.length || 3;
