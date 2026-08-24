@@ -6,6 +6,9 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import FeatureGate from "../../components/private/FeatureGate";
+import TrialLimitedNotice from "../../components/private/TrialLimitedNotice";
+import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
+import { isInTrial } from "../../lib/subscription";
 import { getYouTubeId } from "../../lib/youtube";
 
 /** Misma fuente que clubs (TeamTestsPage) — no duplicar. */
@@ -179,7 +182,7 @@ function LineChart({ history, color }) {
 }
 
 // ── Panel de detalle (derecha) ────────────────────────────────
-function DetailPanel({ test, userId }) {
+function DetailPanel({ test, userId, user }) {
   const [history, setHistory] = useState(() => loadHistory(userId, test.id));
   const [input,   setInput]   = useState("");
   const [showAll, setShowAll] = useState(false);
@@ -206,6 +209,10 @@ function DetailPanel({ test, userId }) {
   const handleAdd = () => {
     const v = parseFloat(input);
     if (isNaN(v)) return;
+    if (!canPersistInTrial(user, "save_stats")) {
+      alert(trialPersistBlockedMessage());
+      return;
+    }
     const entry = { value: v.toString(), date: new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }) };
     const updated = [...history, entry];
     setHistory(updated);
@@ -439,6 +446,7 @@ export default function PhysicalPage() {
   return (
     <FeatureGate user={user} feature="physical_tests">
     <div className="dash-page">
+      {isInTrial(user) && <TrialLimitedNotice className="mb-4" />}
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs font-bold text-depro-blue uppercase tracking-wide mb-2">
@@ -498,7 +506,7 @@ export default function PhysicalPage() {
 
         {/* Columna derecha — Detalle del test seleccionado */}
         <div className="flex-1 min-w-0">
-          <DetailPanel key={selected} test={activeTest} userId={user?.id} />
+          <DetailPanel key={selected} test={activeTest} userId={user?.id} user={user} />
         </div>
       </div>
 

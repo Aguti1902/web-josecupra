@@ -315,7 +315,7 @@ function CoachAvatar({ coach, safeAccent }) {
 // COORDINADOR DASHBOARD
 // ════════════════════════════════════════════════════════════
 function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const allTeams = club?.teams || [];
   const managedTeamIds = resolveManagedTeamIds(user, club);
   // Si el coordinador tiene equipos asignados, filtra; si no, muestra todos
@@ -327,6 +327,27 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
 
   // Contar jugadores reales desde localStorage (depro_squad_{clubId}_{teamId})
   const [squadCounts, setSquadCounts] = useState({});
+  useEffect(() => {
+    const clubId = club?.id;
+    if (!clubId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin-clubs?id=${encodeURIComponent(clubId)}`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json().catch(() => ({}));
+        const remote = (data.clubs || [])[0];
+        if (!remote) return;
+        try {
+          const local = JSON.parse(localStorage.getItem(`depro_club_${clubId}`) || "null") || {};
+          localStorage.setItem(`depro_club_${clubId}`, JSON.stringify({ ...local, ...remote }));
+        } catch { /* ignore */ }
+        if (!cancelled) await refreshUser();
+      } catch { /* silencioso */ }
+    })();
+    return () => { cancelled = true; };
+  }, [club?.id, refreshUser]);
+
   useEffect(() => {
     if (!club?.id) return;
     const counts = {};
@@ -1336,7 +1357,7 @@ export default function DashboardPage() {
           accent={accent}
           secondColor={secondColor}
         />
-        {canSeeClubDiscountCode(user) && !selectedTeam && (
+        {canSeeClubDiscountCode(user) && (
           <ClubEconomyPanel club={club} compact />
         )}
         {(teamRole === "administrador" && !selectedTeam)

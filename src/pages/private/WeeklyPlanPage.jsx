@@ -472,6 +472,9 @@ function PlayerWeeklyPlan({ accent }) {
 
   const handleSessionToggle = (sessionId, dayLabel) => {
     const persist = canPersistInTrial(user, "save_progress");
+    if (!persist) {
+      alert(trialFeatureLimitedMessage());
+    }
     const updated = toggleSessionCompletion({ userId: user?.id, planKey, sessionId, dayLabel, persist });
     if (updated) setPlan(updated);
     if (persist) touchLastTrain(user?.id);
@@ -1059,6 +1062,7 @@ function ClubSessionCard({
   clubName = "", teamName = "", clubLogo = "", secondaryColor = "",
   canDownloadPdf = false,
 }) {
+  const { user } = useAuth();
   const safeInitialTab = CLUB_VISIBLE_TABS.includes(initialTab) ? initialTab : "resumen";
   const [expanded, setExpanded]       = useState(initialExpanded);
   const [activeBlock, setActiveBlock] = useState(safeInitialTab);
@@ -1203,6 +1207,10 @@ function ClubSessionCard({
                 {canDownloadPdf && (
                 <button type="button"
                   onClick={() => {
+                    if (isInTrial(user) && !canDownloadTrialPdf(user?.id)) {
+                      alert(trialPdfLimitMessage());
+                      return;
+                    }
                     void downloadSessionPdf(buildClubSessionPdfPayload({
                       session,
                       displayKey,
@@ -1214,6 +1222,7 @@ function ClubSessionCard({
                       clubLogo,
                       secondaryColor,
                     }));
+                    if (isInTrial(user)) recordTrialPdfDownload(user?.id);
                   }}
                   className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
                   <FileText size={14} /> Descargar PDF
@@ -1414,6 +1423,7 @@ function ClubMicrocycles({ accent }) {
 
   return (
     <div className="dash-page">
+      {isInTrial(user) && <TrialLimitedNotice className="mb-4" />}
       {isReadOnly && (
         <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs font-medium text-amber-700">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>

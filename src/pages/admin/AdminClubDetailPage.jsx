@@ -2158,6 +2158,15 @@ export default function AdminClubDetailPage() {
     setRecreating(false);
     const alreadyExists = result.alreadyExists || result.error?.includes("already registered") || result.error?.includes("already been registered");
     if (result.ok || alreadyExists) {
+      if (alreadyExists) {
+        await updateUserByEmail({
+          email: club.coordinator.email,
+          name: club.coordinator.name,
+          teamRole: "coordinador",
+          clubId: club.id,
+          managedTeamIds: club.coordinator.managedTeamIds || [],
+        });
+      }
       setRecreateMsg({ ok: true, msg: alreadyExists
         ? `✓ El usuario ya existe. Acceso marcado como activo para: ${club.coordinator.email}`
         : `✓ Acceso creado. El coordinador ya puede entrar con: ${club.coordinator.email}` });

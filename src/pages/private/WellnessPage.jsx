@@ -4,6 +4,9 @@ import {
   ArrowUpRight, ArrowDownRight, Minus,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
+import { isInTrial } from "../../lib/subscription";
+import TrialLimitedNotice from "../../components/private/TrialLimitedNotice";
 import {
   mondayOfDate,
   recentWeekKeys,
@@ -144,6 +147,10 @@ export default function WellnessPage() {
 
   const handleSave = (e) => {
     e.preventDefault();
+    if (!canPersistInTrial(user, "save_stats")) {
+      flash(false, trialPersistBlockedMessage());
+      return;
+    }
     const w = weightKg.trim();
     const waist = waistCm.trim();
     const fat = fatigue;
@@ -182,6 +189,7 @@ export default function WellnessPage() {
 
   return (
     <div className="dash-page space-y-6">
+      {isInTrial(user) && <TrialLimitedNotice />}
       <header
         className="relative overflow-hidden rounded-3xl border border-depro-border px-6 py-8 sm:px-8 sm:py-10 text-white"
         style={{
