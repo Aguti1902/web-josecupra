@@ -260,3 +260,39 @@ describe("filtro de material", () => {
     }
   });
 });
+
+describe("plantilla Velocidad — slots completos", () => {
+  it("COD 5-10-5 encaja en vel_v3 (reacción / COD)", () => {
+    const cod = EXERCISES.find((e) => e.nombre === "COD 5-10-5");
+    assert.ok(cod);
+    const slot = SESSION_TEMPLATES.Velocidad.blocks
+      .flatMap((b) => b.slots || [])
+      .find((s) => s.slotId === "vel_v3");
+    assert.ok(slot);
+    assert.equal(matchSlotTags(cod, slot), true);
+  });
+
+  it("rellena todos los slots de velocidad sin sustituir por fuerza", () => {
+    const tpl = SESSION_TEMPLATES.Velocidad;
+    const profile = { material: ["sin_material"], experiencia: "intermedio", edad: 22 };
+    const used = [];
+    const pickedBySlot = {};
+    for (const b of tpl.blocks || []) {
+      for (const s of b.slots || []) {
+        const picked = selectExerciseForSlot(s, profile, used, s.slotId);
+        assert.ok(picked, `slot vacío: ${s.slotId}`);
+        pickedBySlot[s.slotId] = picked;
+        used.push(picked.id);
+      }
+    }
+    for (const id of ["vel_v1", "vel_v2", "vel_v3"]) {
+      const picked = pickedBySlot[id];
+      assert.ok(picked, `falta ${id}`);
+      const obj = picked.etiquetas?.objetivo || [];
+      assert.ok(
+        obj.includes("velocidad") || picked.carpeta === "velocidad",
+        `${id} no es velocidad: ${picked.nombre} [${obj}]`,
+      );
+    }
+  });
+});

@@ -6,6 +6,9 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam } from "../../context/ViewContext";
 import FeatureGate from "../../components/private/FeatureGate";
+import TrialLimitedNotice from "../../components/private/TrialLimitedNotice";
+import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
+import { isInTrial } from "../../lib/subscription";
 import { saveClubDetail, loadClubDetail } from "../../lib/adminStorage";
 import { supabase } from "../../lib/supabase";
 
@@ -430,6 +433,10 @@ export default function CargasPage() {
   }
 
   function updateWeekData(newData) {
+    if (!canPersistInTrial(user, "save_loads")) {
+      alert(trialPersistBlockedMessage());
+      return;
+    }
     const updated = { ...allData, [activeWeekKey]: newData };
     setAllData(updated);
     try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
@@ -467,6 +474,7 @@ export default function CargasPage() {
   return (
     <FeatureGate user={user} feature="cargas">
     <div className="dash-page">
+      {isInTrial(user) && <TrialLimitedNotice className="mb-4" />}
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-depro-gray mb-1">

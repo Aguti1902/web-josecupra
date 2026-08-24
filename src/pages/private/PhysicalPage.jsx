@@ -6,6 +6,9 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import FeatureGate from "../../components/private/FeatureGate";
+import TrialLimitedNotice from "../../components/private/TrialLimitedNotice";
+import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
+import { isInTrial } from "../../lib/subscription";
 import { getYouTubeId } from "../../lib/youtube";
 
 /** Misma fuente que clubs (TeamTestsPage) — no duplicar. */
@@ -179,7 +182,7 @@ function LineChart({ history, color }) {
 }
 
 // ── Panel de detalle (derecha) ────────────────────────────────
-function DetailPanel({ test, userId }) {
+function DetailPanel({ test, userId, user }) {
   const [history, setHistory] = useState(() => loadHistory(userId, test.id));
   const [input,   setInput]   = useState("");
   const [showAll, setShowAll] = useState(false);
@@ -206,6 +209,10 @@ function DetailPanel({ test, userId }) {
   const handleAdd = () => {
     const v = parseFloat(input);
     if (isNaN(v)) return;
+    if (!canPersistInTrial(user, "save_stats")) {
+      alert(trialPersistBlockedMessage());
+      return;
+    }
     const entry = { value: v.toString(), date: new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }) };
     const updated = [...history, entry];
     setHistory(updated);
@@ -334,12 +341,12 @@ function DetailPanel({ test, userId }) {
 }
 
 function EvaluationProtocols({ adminTests }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const withContent = (adminTests || []).filter((t) => t.videoUrl || t.description);
   if (!withContent.length) return null;
 
   return (
-    <div className="mb-6 bg-white border border-depro-border rounded-2xl overflow-hidden">
+    <div className="mt-6 bg-white border border-depro-border rounded-2xl overflow-hidden">
       <button
         type="button"
         className="w-full flex items-center gap-3 px-5 py-4 hover:bg-[#F8F9FB] transition-colors text-left"
@@ -439,6 +446,7 @@ export default function PhysicalPage() {
   return (
     <FeatureGate user={user} feature="physical_tests">
     <div className="dash-page">
+      {isInTrial(user) && <TrialLimitedNotice className="mb-4" />}
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs font-bold text-depro-blue uppercase tracking-wide mb-2">
@@ -447,8 +455,6 @@ export default function PhysicalPage() {
         <h1 className="text-2xl md:text-3xl font-black text-depro-dark">{t("physical.title")}</h1>
         <p className="text-depro-gray text-sm mt-1">{t("physical.select_test")}</p>
       </div>
-
-      <EvaluationProtocols adminTests={adminTests} />
 
       {/* Layout 2 columnas */}
       <div className="flex flex-col lg:flex-row gap-5">
@@ -500,9 +506,11 @@ export default function PhysicalPage() {
 
         {/* Columna derecha — Detalle del test seleccionado */}
         <div className="flex-1 min-w-0">
-          <DetailPanel key={selected} test={activeTest} userId={user?.id} />
+          <DetailPanel key={selected} test={activeTest} userId={user?.id} user={user} />
         </div>
       </div>
+
+      <EvaluationProtocols adminTests={adminTests} />
     </div>
     </FeatureGate>
   );

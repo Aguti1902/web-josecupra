@@ -215,10 +215,10 @@
     "subscription_cancelled": "Finalizada",
     "subscription_renews": "Renovación mensual",
     "subscription_cancel_btn": "Cancelar suscripción",
-    "subscription_cancel_confirm_title": "¿Cancelar tu suscripción?",
-    "subscription_cancel_confirm_body": "Seguirás teniendo acceso a tu plan hasta el final del periodo de facturación actual. Después no se te volverá a cobrar.",
-    "subscription_cancel_confirm_yes": "Sí, cancelar suscripción",
-    "subscription_cancel_success": "Suscripción cancelada. Tienes acceso hasta el {{date}}.",
+    "subscription_cancel_confirm_title": "¿Estás seguro?",
+    "subscription_cancel_confirm_body": "Al cancelar se cierra tu cuenta y dejas de tener acceso a la planificación. ¿Estás seguro? Esta acción no se puede deshacer.",
+    "subscription_cancel_confirm_yes": "Sí, cancelar y cerrar mi cuenta",
+    "subscription_cancel_success": "Suscripción cancelada.",
     "subscription_cancel_error": "No se pudo cancelar. Inténtalo de nuevo.",
     "subscription_stripe_note": "Gestiona tu tarjeta, facturas y suscripción desde el portal de Stripe.",
     "subscription_manage_billing": "Gestionar pago en Stripe",
@@ -380,7 +380,7 @@
   },
   "trial": {
     "banner_title": "Prueba gratuita · te quedan {{days}} días",
-    "banner_desc": "Algunas secciones están limitadas durante la prueba. Mejora tu plan para desbloquear todo.",
+    "banner_desc": "Puedes explorar la plataforma. Algunas funciones (PDF, registros, cambios de rutina) quedan limitadas hasta activar la suscripción.",
     "banner_cta": "Ver planes",
     "expired_title": "Tu prueba gratuita ha terminado",
     "expired_desc": "Activa una suscripción para seguir usando DEPRO. Elige el plan que prefieras y confirma el pago.",
@@ -388,7 +388,8 @@
     "expired_current_plan": "Tu plan en prueba",
     "watermark": "PRUEBA DEPRO",
     "unlock": "Desbloquear",
-    "view_plans": "Ver suscripción"
+    "view_plans": "Ver suscripción",
+    "limited_message": "Esta función está limitada porque tu suscripción no está activa. Activa tu suscripción para usarla con normalidad."
   },
   "subscription": {
     "page_title": "Suscripción",
@@ -419,9 +420,9 @@
   },
   "features": {
     "locked": "Sección bloqueada",
-    "trial_locked_desc": "Esta sección no está disponible durante los 15 días de prueba gratuita.",
+    "trial_locked_desc": "Esta función está limitada porque tu suscripción no está activa. Activa tu suscripción para usarla con normalidad.",
     "plan_locked_desc": "Tu plan actual no incluye esta funcionalidad.",
-    "trial_note": "Activa tu suscripción para desbloquear esta sección.",
+    "trial_note": "Esta función está limitada porque tu suscripción no está activa. Activa tu suscripción para usarla con normalidad.",
     "upgrade_to": "Mejorar a {{plan}} · {{price}}/mes",
     "feedback": "Feedback del preparador",
     "feedback_desc": "Revisiones semanales personalizadas y seguimiento humano.",

@@ -10,6 +10,36 @@ export function isClubCoordinator(user) {
   return user?.role === "club" && user?.team_role === CLUB_COORD_ROLE;
 }
 
+/**
+ * Equipos asignados. El blob del club manda (es lo que acaba de guardar el admin);
+ * el JWT es caché y puede quedar desfasado hasta el próximo refresh de sesión.
+ */
+export function resolveManagedTeamIds(user, club) {
+  const lc = String(user?.email || "").toLowerCase();
+  if (club && lc) {
+    if (String(club.coordinator?.email || "").toLowerCase() === lc) {
+      if (Array.isArray(club.coordinator.managedTeamIds)) {
+        return club.coordinator.managedTeamIds.filter(Boolean);
+      }
+    }
+    const staff = (club.users || []).find((u) => String(u.email || "").toLowerCase() === lc);
+    if (staff && Array.isArray(staff.managedTeamIds)) {
+      return staff.managedTeamIds.filter(Boolean);
+    }
+  }
+  return Array.isArray(user?.managedTeamIds) ? user.managedTeamIds.filter(Boolean) : [];
+}
+
+/** Código de descuento visible para admin DEPRO, admin/coord/entrenador del club y Pro Coach. */
+export function canSeeClubDiscountCode(user) {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  if (isClubAdmin(user) || isClubCoordinator(user)) return true;
+  if (user.role === "club" && user.team_role === "entrenador") return true;
+  if (user.isSoloCoach || user.club?.isSoloCoach) return true;
+  return false;
+}
+
 export function isWideClubRole(teamRole) {
   return teamRole === CLUB_ADMIN_ROLE || teamRole === CLUB_COORD_ROLE;
 }

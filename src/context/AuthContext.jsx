@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { getCachedSubscription, isInTrial } from "../lib/subscription";
 import { shouldBlockAccountLogin } from "../lib/adminAccountStatus";
@@ -13,6 +13,7 @@ import {
 import { getImpersonationSnapshot, stopImpersonation, isRealAdminUser } from "../lib/adminImpersonation";
 import { parseCoachAutoFromMeta, isProCoachUser } from "../lib/clubAuto/clubAutoCoachBridge";
 import { isSessionPresenceEvent, isSignedOutEvent } from "../lib/authSession";
+import { resolveManagedTeamIds } from "../lib/clubRoles";
 
 const AuthContext = createContext(null);
 
@@ -92,6 +93,12 @@ function loadClubDataFromStorage(meta, userEmail) {
         || String(effectiveClubId || "").startsWith("coach_")
       ),
       manualPrice:    clubDetail?.manualPrice    ?? effectiveBase.manualPrice    ?? null,
+      discountCode:   clubDetail?.discountCode   ?? effectiveBase.discountCode   ?? null,
+      loginCode:      clubDetail?.loginCode      ?? effectiveBase.loginCode      ?? clubDetail?.login_code ?? effectiveBase.login_code ?? null,
+      login_code:     clubDetail?.login_code     ?? effectiveBase.login_code     ?? clubDetail?.loginCode ?? effectiveBase.loginCode ?? null,
+      referralCommissionPct: clubDetail?.referralCommissionPct ?? effectiveBase.referralCommissionPct ?? null,
+      payoutIban:     clubDetail?.payoutIban     ?? effectiveBase.payoutIban     ?? null,
+      payoutAccountName: clubDetail?.payoutAccountName ?? effectiveBase.payoutAccountName ?? null,
     };
 
     // Buscar el equipo dentro de los datos combinados
@@ -214,7 +221,10 @@ function buildUser(authUser, profile) {
       experiencia: profile.experiencia ?? meta.experiencia ?? null,
       diaCompeticion: profile.diaCompeticion ?? meta.diaCompeticion ?? null,
       disponibles: normalizeStringList(profile.disponibles ?? meta.disponibles),
-      managedTeamIds: meta.managedTeamIds ?? profile.managedTeamIds ?? [],
+      managedTeamIds: resolveManagedTeamIds(
+        { email, managedTeamIds: meta.managedTeamIds ?? profile.managedTeamIds ?? [] },
+        club,
+      ),
       edad: resolveEdad({ edad: profile.edad ?? meta.edad, age: profile.age }) || null,
       phone: profile.phone ?? meta.phone ?? meta.telefono ?? null,
       telefono: profile.telefono ?? meta.telefono ?? meta.phone ?? null,
@@ -272,7 +282,10 @@ function buildUser(authUser, profile) {
     phone:     meta.phone ?? meta.telefono ?? null,
     telefono:  meta.telefono ?? meta.phone ?? null,
     posicion:  meta.posicion  ?? null,
-    managedTeamIds: meta.managedTeamIds ?? [],
+    managedTeamIds: resolveManagedTeamIds(
+      { email, managedTeamIds: meta.managedTeamIds ?? [] },
+      club ?? playerClub,
+    ),
     // Club
     team_role: meta.teamRole  ?? null,
     club:      club ?? playerClub,
@@ -467,7 +480,13 @@ export function AuthProvider({ children }) {
                 const base = local ? { ...local, ...remote } : remote;
                 return {
                   id: base.id, name: base.name, abbreviation: base.abbreviation,
-                  login_code: base.login_code, coordinator: base.coordinator,
+                  login_code: base.login_code || base.loginCode || remote.login_code || local?.login_code,
+                  discountCode: remote.discountCode || local?.discountCode || base.discountCode || null,
+                  loginCode: remote.loginCode || local?.loginCode || base.loginCode || null,
+                  referralCommissionPct: remote.referralCommissionPct ?? local?.referralCommissionPct ?? null,
+                  payoutIban: remote.payoutIban ?? local?.payoutIban ?? null,
+                  payoutAccountName: remote.payoutAccountName ?? local?.payoutAccountName ?? null,
+                  coordinator: base.coordinator,
                   status: base.status, plan: base.plan, city: base.city,
                   country: base.country,
                   isSoloCoach: remote.isSoloCoach ?? local?.isSoloCoach ?? false,
@@ -508,6 +527,21 @@ export function AuthProvider({ children }) {
                       mode:           c.mode || localDetail.mode || null,
                       isSoloCoach:    c.isSoloCoach ?? localDetail.isSoloCoach ?? false,
                       manualPrice:    c.manualPrice ?? localDetail.manualPrice ?? null,
+                      discountCode:   c.discountCode || localDetail.discountCode || c.loginCode || localDetail.loginCode || null,
+                      loginCode:      c.loginCode || localDetail.loginCode || c.discountCode || localDetail.discountCode || null,
+                      login_code:     c.login_code || localDetail.login_code || c.loginCode || localDetail.loginCode || null,
+                      referralCommissionPct: c.referralCommissionPct ?? localDetail.referralCommissionPct ?? null,
+                      payoutIban:     c.payoutIban ?? localDetail.payoutIban ?? null,
+                      payoutAccountName: c.payoutAccountName ?? localDetail.payoutAccountName ?? null,
+                      coordinator:    c.coordinator
+                        ? {
+                            ...(localDetail.coordinator || {}),
+                            ...c.coordinator,
+                            managedTeamIds: Array.isArray(c.coordinator.managedTeamIds)
+                              ? c.coordinator.managedTeamIds
+                              : (localDetail.coordinator?.managedTeamIds || []),
+                          }
+                        : localDetail.coordinator,
                     }
                   : c;
                 delete merged.coachWeeks;
@@ -634,7 +668,7 @@ export function AuthProvider({ children }) {
   };
 
   // ── Refresh user (recargar datos sin nuevo login) ──────────
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       await supabase.auth.refreshSession();
       const { data: { session } } = await supabase.auth.getSession();
@@ -644,7 +678,7 @@ export function AuthProvider({ children }) {
       const profile = await fetchProfile(session.user.id);
       if (profile) setUser(withImpersonation(buildUser(session.user, profile)));
     } catch {}
-  };
+  }, []);
 
   // ── Recuperación de contraseña ─────────────────────────────
   const resetPasswordForEmail = async (email) => {

@@ -315,50 +315,43 @@ function billingPeriodEnd(from = new Date()) {
 }
 
 /**
- * Cancela la suscripción localmente y guarda metadata para Stripe futuro.
- * Cuando exista /api/cancel-subscription, se llamará antes del fallback local.
+ * Cancela la suscripción. En jugador individual y Pro Coach elimina la cuenta
+ * (lógica de negocio: al cancelar se cierra el usuario). No borra clubs ni datos ajenos.
  */
 export async function cancelSubscription(user) {
   if (!user?.id) return { ok: false, error: "Usuario no válido" };
 
-  const cancelAt = billingPeriodEnd();
-  const payload = {
-    subscriptionStatus: "cancel_at_period_end",
-    subscriptionCancelAt: cancelAt,
-  };
-
-  // Stripe: cancelar al final del periodo
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
     const res = await fetch("/api/cancel-subscription", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: user.id, email: user.email }),
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ userId: user.id, deleteAccount: true }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok && data.ok) {
-      payload.subscriptionCancelAt = data.cancelAt || cancelAt;
-      if (data.stripeSubscriptionId) payload.stripeSubscriptionId = data.stripeSubscriptionId;
-    } else if (data.error && user.stripeSubscriptionId) {
-      return { ok: false, error: data.error };
+    if (!res.ok || !data.ok) {
+      return { ok: false, error: data.error || "No se pudo cancelar la suscripción" };
     }
-  } catch { /* fallback local si no hay endpoint */ }
-
-  try {
-    const { error } = await supabase.auth.updateUser({ data: payload });
-    if (error) return { ok: false, error: error.message };
+    if (data.deleted) {
+      try { await supabase.auth.signOut(); } catch { /* ignore */ }
+      return { ok: true, deleted: true, cancelAt: data.cancelAt || new Date().toISOString() };
+    }
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          subscriptionStatus: "canceled",
+          subscriptionCancelAt: data.cancelAt || null,
+        },
+      });
+    } catch { /* metadata ya actualizada en servidor */ }
+    return { ok: true, deleted: false, cancelAt: data.cancelAt || null };
   } catch (e) {
-    return { ok: false, error: e.message || "Error al cancelar" };
+    return { ok: false, error: e.message || "Error de red" };
   }
-
-  saveLocalSubscription(user.id, {
-    plan: user.plan,
-    status: "cancel_at_period_end",
-    cancelAt: payload.subscriptionCancelAt,
-    cancelledAt: new Date().toISOString(),
-    stripeSubscriptionId: user.stripeSubscriptionId || null,
-  });
-
-  return { ok: true, cancelAt: payload.subscriptionCancelAt };
 }
 
 export function formatSubscriptionDate(iso, locale = "es-ES") {

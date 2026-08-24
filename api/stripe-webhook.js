@@ -56,7 +56,8 @@ export default async function handler(req, res) {
     const clubId = meta?.clubId || "";
     const clubCode = meta?.clubCode || "";
     const audience = meta?.audience || "player";
-    if (!clubId || !clubCode || audience !== "player" || !amountPaidCents) return;
+    if (!clubId || !clubCode || !amountPaidCents) return;
+    if (audience && audience !== "player" && audience !== "coach") return;
 
     await recordReferralPayment(supabaseAdmin, {
       clubId,

@@ -123,7 +123,7 @@ export const SESSION_TEMPLATES = {
     blocks: [
       block("calentamiento", "Warm-up", "5-6 min", [
         slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_inferior", grupo_muscular: ["tobillo", "gluteos"], description: "Movilidad", slotId: "vel_w1" }),
-        slot({ rol: "calentamiento", segmento: "tren_inferior", grupo_muscular: "cuadriceps", description: "Activación", slotId: "vel_w2" }),
+        slot({ rol: "calentamiento", segmento: "tren_inferior", description: "Activación", slotId: "vel_w2" }),
       ]),
       block("principal", "Fuerza máxima", "12 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Fuerza máx. anterior", slotId: "vel_fm1" }),
@@ -136,7 +136,7 @@ export const SESSION_TEMPLATES = {
       block("principal", "Velocidad", "15 min", [
         slot({ rol: "basico", objetivo: "velocidad", patron: "aceleracion", description: "Aceleración", slotId: "vel_v1" }),
         slot({ rol: "basico", objetivo: "velocidad", patron: "velocidad_pura", description: "Velocidad pura", slotId: "vel_v2" }),
-        slot({ rol: "complementario", objetivo: "velocidad", patronOr: ["reaccion", "COD"], description: "Reacción / COD", slotId: "vel_v3" }),
+        slot({ rol: "basico", objetivo: "velocidad", patronOr: ["reaccion", "COD", "cod"], description: "Reacción / COD", slotId: "vel_v3" }),
       ]),
     ],
   },

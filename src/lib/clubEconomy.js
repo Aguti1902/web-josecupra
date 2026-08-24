@@ -51,6 +51,11 @@ export function clubMatchesDiscountCode(club, code) {
   return candidates.includes(needle);
 }
 
+export function audienceGetsClubDiscount(audience) {
+  const a = String(audience || "").toLowerCase();
+  return a === "player" || a === "coach";
+}
+
 export function withSyncedDiscountCode(club, discountCode) {
   const code = normalizeDiscountCode(discountCode) || clubDiscountCode(club);
   return {

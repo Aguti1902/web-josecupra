@@ -13,7 +13,7 @@ import {
   unarchivePlayerFeedback,
 } from "../../lib/playerFeedback";
 import { getChatMessages, sendChatMessage } from "../../lib/internalChat";
-import { canPersistInTrial } from "../../lib/trialPersistence";
+import { canPersistInTrial, TRIAL_LIMITED_MESSAGE } from "../../lib/trialPersistence";
 import { hasFeatureAccess } from "../../lib/subscription";
 
 function FeedbackCard({ fb, onArchive, onUnarchive, archived }) {
@@ -143,7 +143,7 @@ function InternalChatPanel({ user }) {
       </h3>
       {!canSave && (
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2 mb-3">
-          Modo demo: puedes probar el chat, pero los mensajes no se guardan permanentemente.
+          {TRIAL_LIMITED_MESSAGE}
         </p>
       )}
       <div className="max-h-56 overflow-y-auto space-y-2 mb-3 bg-depro-gray-light rounded-xl p-3 border border-depro-border">

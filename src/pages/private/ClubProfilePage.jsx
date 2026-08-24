@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   User, Camera, Lock, Mail, CheckCircle, AlertCircle,
   Eye, EyeOff, Save, Crown, UserCheck, Dumbbell,
@@ -11,7 +11,8 @@ import { loadClubDetail, saveClubDetail, saveClub } from "../../lib/adminStorage
 import { clearCoachGeneratedPlans } from "../../lib/coachSessionsStorage";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import { canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
-import { hasFeatureAccess } from "../../lib/subscription";
+import { hasFeatureAccess, isInTrial, cancelSubscription } from "../../lib/subscription";
+import { TRIAL_LIMITED_MESSAGE } from "../../lib/trialPersistence";
 import { getPlanLimits } from "../../lib/checkoutPlans";
 import { COACH_STANDARD_MAX_TEAMS, COACH_TEAMS_WITH_ADDON } from "../../lib/coachAddons";
 import TeamBrandingFields from "../../components/shared/TeamBrandingFields";
@@ -90,7 +91,8 @@ function genCoachId(prefix) {
 }
 
 export default function ClubProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
+  const navigate = useNavigate();
   const accent     = user?.club?.primaryColor || "#0A36F7";
   const teamRole   = user?.team_role;
   const RoleIcon   = ROLE_ICON[teamRole] || UserCheck;
@@ -114,6 +116,8 @@ export default function ClubProfilePage() {
   const [savingAutoQ, setSavingAutoQ] = useState(false);
   const [teamForm, setTeamForm] = useState({ open: false, name: "", category: "Sub-16", days: [] });
   const [savingTeam, setSavingTeam] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const photoRef = useRef();
   const isSoloCoach = isProCoachUser(user);
   const showBilling = isSoloCoach || (canManageClubBilling(user) && canSeeClubPricing(user));
@@ -122,7 +126,7 @@ export default function ClubProfilePage() {
       || `${monthKeyFromDate(new Date())}-01`,
   };
   const profileRegensUsed = user?.id ? getProfileRegenCount(user.id, cyclePlan) : 0;
-  const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, cyclePlan) : false;
+  const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, cyclePlan, user) : false;
   const hadAutoConfig = !!(user?.club?.coachConfig?.nivel);
   const purchasedAddons = user?.purchasedAddons || user?.club?.purchasedAddons || [];
   const extraTeamsUnlocked = hasFeatureAccess(user, "extra_teams");
@@ -137,6 +141,24 @@ export default function ClubProfilePage() {
   const showMsg = (type, text) => {
     setMsg({ type, text });
     setTimeout(() => setMsg(null), 4000);
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true);
+    const res = await cancelSubscription(user);
+    setCancelLoading(false);
+    setShowCancelModal(false);
+    if (res.ok && res.deleted) {
+      try { await logout(); } catch { /* already signed out */ }
+      navigate("/", { replace: true });
+      return;
+    }
+    if (res.ok) {
+      showMsg("ok", "Suscripción cancelada.");
+      await refreshUser();
+    } else {
+      showMsg("error", res.error || "No se pudo cancelar.");
+    }
   };
 
   useEffect(() => {
@@ -174,7 +196,9 @@ export default function ClubProfilePage() {
     if (hadAutoConfig && fingerprintChanged && !canProfileRegen) {
       showMsg(
         "error",
-        `Ya usaste tu cambio de plan este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos no se regeneran.`,
+        isInTrial(user)
+          ? TRIAL_LIMITED_MESSAGE
+          : `Ya usaste tu cambio de plan este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos no se regeneran.`,
       );
       return;
     }
@@ -740,7 +764,43 @@ export default function ClubProfilePage() {
             </div>
             <Sparkles size={16} className="text-depro-border group-hover:text-depro-blue" />
           </Link>
+          <button
+            type="button"
+            onClick={() => setShowCancelModal(true)}
+            className="w-full flex items-center justify-center gap-2 bg-white border border-red-200 rounded-2xl p-4 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+          >
+            Cancelar suscripción
+          </button>
         </>
+      )}
+
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-depro w-full max-w-md p-6 border border-depro-border">
+            <h3 className="font-bold text-depro-dark text-lg">¿Estás seguro?</h3>
+            <p className="text-sm text-depro-gray mt-2 mb-6">
+              Al cancelar se cierra tu cuenta y dejas de tener acceso a la planificación. ¿Estás seguro? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancelLoading}
+                className="px-4 py-2.5 rounded-xl border border-depro-border text-sm font-bold"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelSubscription}
+                disabled={cancelLoading}
+                className="px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold disabled:opacity-50"
+              >
+                {cancelLoading ? "…" : "Sí, cancelar y cerrar mi cuenta"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Editar nombre */}

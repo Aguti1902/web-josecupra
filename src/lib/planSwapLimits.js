@@ -4,7 +4,6 @@
  * - Máx. 1 cambio de perfil que regenere el plan
  * - Máx. 5 refrescos de ejercicio (propagados a todo el plan)
  */
-
 export const MAX_PLAN_SWAPS = 5;
 export const MAX_PROFILE_REGENS_PER_CYCLE = 1;
 export const PLAN_CYCLE_DAYS = 28;
@@ -119,8 +118,20 @@ export function hasUnlimitedSwaps(user) {
   return purchased.includes(UNLIMITED_EXERCISES_ADDON);
 }
 
+/** Trial sin importar subscription.js (evita supabase en tests Node). */
+function userIsInTrial(user) {
+  if (!user) return false;
+  if (String(user.billingSource || "").toLowerCase() === "manual") return false;
+  const status = String(user.subscriptionStatus || "").toLowerCase();
+  const trialEnd = user.trialEndsAt ? new Date(user.trialEndsAt) : null;
+  const trialActive = trialEnd ? trialEnd > new Date() : false;
+  if (status === "trialing") return trialActive || !trialEnd;
+  return trialActive;
+}
+
 export function canSwapExercise(user, plan = null) {
   if (!user?.id) return false;
+  if (userIsInTrial(user)) return false;
   if (hasUnlimitedSwaps(user)) return true;
   return getSwapCount(user.id, plan) < MAX_PLAN_SWAPS;
 }
@@ -177,8 +188,9 @@ export function getProfileRegenCount(userId, plan = null) {
   return stored.count || 0;
 }
 
-export function canRegenerateFromProfile(userId, plan = null) {
+export function canRegenerateFromProfile(userId, plan = null, user = null) {
   if (!userId) return false;
+  if (user && userIsInTrial(user)) return false;
   const count = getProfileRegenCount(userId, plan);
   if (count < MAX_PROFILE_REGENS_PER_CYCLE) return true;
   // Gracia: el cupo se marcó sin evidencia de regeneración exitosa desde perfil

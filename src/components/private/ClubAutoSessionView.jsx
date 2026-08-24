@@ -11,6 +11,8 @@ import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
 import { useAuth } from "../../context/AuthContext";
 import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
+import { canDownloadTrialPdf, recordTrialPdfDownload, trialPdfLimitMessage } from "../../lib/trialPdfLimit";
+import TrialLimitedNotice from "./TrialLimitedNotice";
 import { Component } from "react";
 
 class DesignerBoundary extends Component {
@@ -176,6 +178,7 @@ export default function ClubAutoSessionView({
 
   return (
     <div className="space-y-4">
+      {isInTrial(user) && <TrialLimitedNotice />}
       <div className="flex border-b border-depro-border overflow-x-auto">
         {TABS.map(({ id, label, Icon }) => (
           <button
@@ -230,6 +233,10 @@ export default function ClubAutoSessionView({
             <button
               type="button"
               onClick={() => {
+                if (isInTrial(user) && !canDownloadTrialPdf(user?.id)) {
+                  alert(trialPdfLimitMessage());
+                  return;
+                }
                 void downloadSessionPdf(buildClubSessionPdfPayload({
                   session,
                   displayKey: session.templateKey || framework,
@@ -241,6 +248,7 @@ export default function ClubAutoSessionView({
                   clubLogo: user?.club?.logo || "",
                   secondaryColor: user?.club?.secondaryColor || "",
                 }));
+                if (isInTrial(user)) recordTrialPdfDownload(user?.id);
               }}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors"
             >

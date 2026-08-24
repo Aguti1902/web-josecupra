@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { User, Shield, CheckCircle, AlertCircle, Hash, LogOut, ChevronRight, Users, Camera, CreditCard, Sparkles, Calendar, RefreshCw, Lock, Mail, Eye, EyeOff, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { WEEK_DAYS } from "../../lib/sessionBlocks";
@@ -17,8 +17,8 @@ import {
   isSuccessfulGeneratedPlan,
 } from "../../lib/planSwapLimits";
 import { loadPlayerPlan, fetchPlayerPlan, savePlayerPlan, persistPlayerPlanRemote, normalizePlayerPlan } from "../../lib/playerPlanStorage";
-import { clubMatchesDiscountCode } from "../../lib/clubEconomy";
-import { openBillingPortal, isSubscriptionActive, purchaseAddon, changePlan, fetchPremiumCapacity, hasFeatureAccess, isPlayerPro, isInTrial } from "../../lib/subscription";
+import { TRIAL_LIMITED_MESSAGE } from "../../lib/trialPersistence";
+import { openBillingPortal, isSubscriptionActive, purchaseAddon, changePlan, fetchPremiumCapacity, hasFeatureAccess, isPlayerPro, isInTrial, cancelSubscription } from "../../lib/subscription";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
 import { PLANS, formatPrice } from "../../lib/checkoutPlans";
 import { PREMIUM_PLAYER_CAP } from "../../lib/premiumCapacity";
@@ -154,6 +154,7 @@ async function compressImage(file, maxPx = 200, quality = 0.75) {
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const fileRef = useRef(null);
 
   // ── Foto de perfil ──────────────────────────────────────────
@@ -215,7 +216,7 @@ export default function ProfilePage() {
   trainingHydratedKeyRef.current = trainingHydratedKey;
   const currentPlan = planForProfile || (user?.id ? loadPlayerPlan(user.id) : null);
   const profileRegensUsed = user?.id ? getProfileRegenCount(user.id, currentPlan) : 0;
-  const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, currentPlan) : false;
+  const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, currentPlan, user) : false;
   const freqN = freqNumber(frecuenciaSel || "3 días / sem");
   const markTrainingDirty = () => { trainingDirtyRef.current = true; };
 
@@ -226,6 +227,8 @@ export default function ProfilePage() {
   const [showPassword, setShowPassword] = useState(false);
   const [accountSaving, setAccountSaving] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [accountMsg, setAccountMsg] = useState(null);
   const [addonLoading, setAddonLoading] = useState(null);
   const [premiumCap, setPremiumCap] = useState(null);
@@ -297,6 +300,24 @@ export default function ProfilePage() {
     const res = await openBillingPortal(user);
     setBillingLoading(false);
     if (!res.ok) showAccountMsg("error", res.error || "No se pudo abrir el portal de facturación.");
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true);
+    const res = await cancelSubscription(user);
+    setCancelLoading(false);
+    setShowCancelModal(false);
+    if (res.ok && res.deleted) {
+      try { await logout(); } catch { /* already signed out */ }
+      navigate("/", { replace: true });
+      return;
+    }
+    if (res.ok) {
+      showAccountMsg("ok", t("profile.subscription_cancel_success"));
+      await refreshUser();
+    } else {
+      showAccountMsg("error", res.error || t("profile.subscription_cancel_error"));
+    }
   };
 
   useEffect(() => {
@@ -430,33 +451,44 @@ export default function ProfilePage() {
   }, [user]);
 
   // ── Paso 1: validar código ──────────────────────────────────
-  const handleCheckCode = (e) => {
+  const handleCheckCode = async (e) => {
     e.preventDefault();
     if (!clubCode.trim()) return;
     setCodeLoading(true);
     setCodeStatus(null);
 
-    const clubs = lsGet("depro_clubs", []);
-    const code  = clubCode.trim().toUpperCase();
-    const found = clubs.find((c) => clubMatchesDiscountCode(c, code));
-
-    if (!found) {
+    const code = clubCode.trim().toUpperCase();
+    try {
+      const res = await fetch("/api/validate-club-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.valid) {
+        setCodeStatus("error");
+        setCodeMsg(t("profile.club_not_found"));
+        setCodeLoading(false);
+        return;
+      }
+      const clubTeams = Array.isArray(data.teams) ? data.teams : [];
+      const enriched = {
+        id: data.clubId,
+        name: data.clubName,
+        teams: clubTeams,
+        discountCode: code,
+        loginCode: code,
+        login_code: code,
+      };
+      setFoundClub(enriched);
+      setTeams(clubTeams);
+      setSelectedTeam(clubTeams[0]?.id || "");
+      setCodeStatus("ok");
+      setCodeMsg(t("profile.club_found", { name: data.clubName || code }));
+    } catch {
       setCodeStatus("error");
       setCodeMsg(t("profile.club_not_found"));
-      setCodeLoading(false);
-      return;
     }
-
-    // Cargar equipos desde el detail del club
-    const detail = lsGet(`depro_club_${found.id}`, null);
-    const clubTeams = detail?.teams || found.teams || [];
-    const enriched  = { ...found, ...(detail || {}), teams: clubTeams };
-
-    setFoundClub(enriched);
-    setTeams(clubTeams);
-    setSelectedTeam(clubTeams[0]?.id || "");
-    setCodeStatus("ok");
-    setCodeMsg(t("profile.club_found", { name: found.name }));
     setCodeLoading(false);
   };
 
@@ -718,13 +750,15 @@ export default function ProfilePage() {
       return;
     }
 
-    if (!canRegenerateFromProfile(user.id, plan)) {
+    if (!canRegenerateFromProfile(user.id, plan, user)) {
       setDaysSaving(true);
       setDaysMsg("");
       try {
         await persistTrainingMetadata(nextData);
         await refreshUser();
-        setDaysMsg(`Ya usaste tu cambio de rutina este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos se guardaron, pero la rutina no se regeneró.`);
+        setDaysMsg(isInTrial(user)
+          ? TRIAL_LIMITED_MESSAGE
+          : `Ya usaste tu cambio de rutina este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos se guardaron, pero la rutina no se regeneró.`);
       } catch {
         setDaysMsg("No se pudo guardar. Inténtalo de nuevo.");
       } finally {
@@ -977,6 +1011,13 @@ export default function ProfilePage() {
           >
             <Sparkles size={14} /> Ver plan completo
           </Link>
+          <button
+            type="button"
+            onClick={() => setShowCancelModal(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+          >
+            {t("profile.subscription_cancel_btn")}
+          </button>
         </div>
 
         {user?.role === "player" && !isPlayerPro(user) && (
@@ -1059,7 +1100,9 @@ export default function ProfilePage() {
           </p>
           <p className={`text-xs font-bold mb-4 ${canProfileRegen ? "text-depro-blue" : "text-amber-700"}`}>
             Regeneraciones este mesociclo: {Math.min(profileRegensUsed, MAX_PROFILE_REGENS_PER_CYCLE)}/{MAX_PROFILE_REGENS_PER_CYCLE}
-            {!canProfileRegen && " · cupo agotado (puedes guardar datos, sin nueva rutina)"}
+            {!canProfileRegen && (isInTrial(user)
+              ? ` · ${TRIAL_LIMITED_MESSAGE}`
+              : " · cupo agotado (puedes guardar datos, sin nueva rutina)")}
           </p>
 
           <div className="mb-5">
@@ -1243,6 +1286,33 @@ export default function ProfilePage() {
               >
                 {daysSaving ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
                 Sí, regenerar rutina
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-depro w-full max-w-md p-6 border border-depro-border">
+            <h3 className="font-bold text-depro-dark text-lg">{t("profile.subscription_cancel_confirm_title")}</h3>
+            <p className="text-sm text-depro-gray mt-2 mb-6">{t("profile.subscription_cancel_confirm_body")}</p>
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancelLoading}
+                className="px-4 py-2.5 rounded-xl border border-depro-border text-sm font-bold text-depro-dark hover:bg-depro-gray-light"
+              >
+                {t("common.cancel") || "Volver"}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelSubscription}
+                disabled={cancelLoading}
+                className="px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-50"
+              >
+                {cancelLoading ? "…" : t("profile.subscription_cancel_confirm_yes")}
               </button>
             </div>
           </div>

@@ -5,9 +5,11 @@ import {
   isWideClubRole,
   canSeeClubEconomy,
   canSeeClubPricing,
+  canSeeClubDiscountCode,
   canViewClubReferrals,
   isProCoachOverview,
   isClubGlobalView,
+  resolveManagedTeamIds,
 } from "./clubRoles.js";
 
 describe("clubRoles economía", () => {
@@ -49,5 +51,40 @@ describe("clubRoles economía", () => {
       isSoloCoach: true,
       club: { isSoloCoach: true, teams: [{ id: "a" }] },
     }, null), false);
+  });
+});
+
+describe("resolveManagedTeamIds", () => {
+  const club = {
+    coordinator: { email: "coord@club.com", managedTeamIds: ["t2"] },
+    users: [{ email: "otro@club.com", managedTeamIds: ["t9"] }],
+  };
+
+  it("prioriza el blob del club sobre un JWT desfasado", () => {
+    const user = { email: "coord@club.com", managedTeamIds: ["t1"] };
+    assert.deepEqual(resolveManagedTeamIds(user, club), ["t2"]);
+  });
+
+  it("respeta array vacío del admin (todos los equipos)", () => {
+    const user = { email: "coord@club.com", managedTeamIds: ["t1"] };
+    const cleared = { coordinator: { email: "coord@club.com", managedTeamIds: [] } };
+    assert.deepEqual(resolveManagedTeamIds(user, cleared), []);
+  });
+
+  it("cae al JWT si el club aún no está cargado", () => {
+    const user = { email: "coord@club.com", managedTeamIds: ["t1", "t3"] };
+    assert.deepEqual(resolveManagedTeamIds(user, null), ["t1", "t3"]);
+  });
+});
+
+describe("canSeeClubDiscountCode", () => {
+  it("admin DEPRO, admin/coord/entrenador del club y Pro Coach lo ven", () => {
+    assert.equal(canSeeClubDiscountCode({ role: "admin" }), true);
+    assert.equal(canSeeClubDiscountCode({ role: "club", team_role: "administrador" }), true);
+    assert.equal(canSeeClubDiscountCode({ role: "club", team_role: "coordinador" }), true);
+    assert.equal(canSeeClubDiscountCode({ role: "club", team_role: "entrenador" }), true);
+    assert.equal(canSeeClubDiscountCode({ isSoloCoach: true }), true);
+    assert.equal(canSeeClubDiscountCode({ role: "player" }), false);
+    assert.equal(canSeeClubDiscountCode({ role: "club", team_role: "ayudante" }), false);
   });
 });

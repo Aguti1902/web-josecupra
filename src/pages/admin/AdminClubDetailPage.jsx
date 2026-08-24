@@ -877,17 +877,27 @@ function NewUserModal({ teams, clubId, clubPlan, clubStatus, onClose, onCreate, 
   );
 }
 
-function EditCoordinatorModal({ coordinator, onClose, onSave }) {
+function EditCoordinatorModal({ coordinator, teams = [], onClose, onSave }) {
   const [form, setForm] = useState({
     name: coordinator?.name || "",
     email: coordinator?.email || "",
     phone: coordinator?.phone || "",
     password: coordinator?.password || "",
+    managedTeamIds: coordinator?.managedTeamIds || [],
   });
+
+  const toggleManagedTeam = (teamId) => {
+    setForm((f) => ({
+      ...f,
+      managedTeamIds: f.managedTeamIds.includes(teamId)
+        ? f.managedTeamIds.filter((id) => id !== teamId)
+        : [...f.managedTeamIds, teamId],
+    }));
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-depro w-full max-w-md">
+      <div className="bg-white rounded-2xl shadow-depro w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-depro-border">
           <h2 className="font-bold text-depro-dark text-lg">Editar coordinador</h2>
           <button onClick={onClose} className="text-depro-gray hover:text-depro-dark"><X size={20} /></button>
@@ -897,6 +907,18 @@ function EditCoordinatorModal({ coordinator, onClose, onSave }) {
           <input className="admin-input w-full" type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           <input className="admin-input w-full" placeholder="Teléfono" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           <input className="admin-input w-full" type="password" placeholder="Nueva contraseña (opcional)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-depro-gray uppercase">Equipos que coordina</p>
+            {(teams || []).length === 0 ? (
+              <p className="text-xs text-depro-gray">Todavía no hay equipos en este club.</p>
+            ) : teams.map((t) => (
+              <label key={t.id} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.managedTeamIds.includes(t.id)} onChange={() => toggleManagedTeam(t.id)} />
+                {t.name}
+              </label>
+            ))}
+            <p className="text-[11px] text-depro-gray">Si no marcas ninguno, verá todos los equipos.</p>
+          </div>
         </div>
         <div className="flex gap-3 p-6 border-t border-depro-border">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm">Cancelar</button>
@@ -2127,6 +2149,7 @@ export default function AdminClubDetailPage() {
       role: "club",
       clubId: club.id,
       teamRole: "coordinador",
+      managedTeamIds: club.coordinator.managedTeamIds || [],
       plan: club.plan || planId,
       subscriptionStatus: normalizeAdminStatus(club.subscriptionStatus || subscriptionStatus),
       billingSource: "manual",
@@ -2135,6 +2158,15 @@ export default function AdminClubDetailPage() {
     setRecreating(false);
     const alreadyExists = result.alreadyExists || result.error?.includes("already registered") || result.error?.includes("already been registered");
     if (result.ok || alreadyExists) {
+      if (alreadyExists) {
+        await updateUserByEmail({
+          email: club.coordinator.email,
+          name: club.coordinator.name,
+          teamRole: "coordinador",
+          clubId: club.id,
+          managedTeamIds: club.coordinator.managedTeamIds || [],
+        });
+      }
       setRecreateMsg({ ok: true, msg: alreadyExists
         ? `✓ El usuario ya existe. Acceso marcado como activo para: ${club.coordinator.email}`
         : `✓ Acceso creado. El coordinador ya puede entrar con: ${club.coordinator.email}` });
@@ -3042,8 +3074,22 @@ export default function AdminClubDetailPage() {
       {showEditCoordinator && (
         <EditCoordinatorModal
           coordinator={club.coordinator}
+          teams={club.teams || []}
           onClose={() => setShowEditCoordinator(false)}
-          onSave={(data) => { updateCoordinator(data); setShowEditCoordinator(false); }}
+          onSave={async (data) => {
+            updateCoordinator(data);
+            setShowEditCoordinator(false);
+            if (data.email) {
+              await updateUserByEmail({
+                email: data.email,
+                name: data.name,
+                teamRole: "coordinador",
+                clubId: club.id,
+                managedTeamIds: data.managedTeamIds || [],
+                ...(data.password?.length >= 6 ? { password: data.password } : {}),
+              });
+            }
+          }}
         />
       )}
       {editingClubUser && (
@@ -3051,7 +3097,21 @@ export default function AdminClubDetailPage() {
           user={editingClubUser}
           teams={club.teams || []}
           onClose={() => setEditingClubUser(null)}
-          onSave={(data) => { updateClubUser(data); setEditingClubUser(null); }}
+          onSave={async (data) => {
+            updateClubUser(data);
+            setEditingClubUser(null);
+            if (data.email) {
+              await updateUserByEmail({
+                email: data.email,
+                name: data.name,
+                teamRole: data.role,
+                clubId: club.id,
+                teamId: data.teamId || undefined,
+                managedTeamIds: isWideClubRole(data.role) ? (data.managedTeamIds || []) : [],
+                ...(data.password?.length >= 6 ? { password: data.password } : {}),
+              });
+            }
+          }}
         />
       )}
     </div>
