@@ -209,6 +209,26 @@ function mergeClubRecord(localClub, remote) {
     mode: src.mode || local.mode || null,
     isSoloCoach: src.isSoloCoach ?? local.isSoloCoach ?? false,
     manualPrice: src.manualPrice ?? local.manualPrice ?? null,
+    discountCode: src.discountCode || local.discountCode || src.loginCode || local.loginCode || src.login_code || local.login_code || null,
+    loginCode: src.loginCode || local.loginCode || src.discountCode || local.discountCode || null,
+    login_code: src.login_code || local.login_code || src.discountCode || local.discountCode || null,
+    referralCommissionPct: src.referralCommissionPct ?? local.referralCommissionPct ?? null,
+    payoutIban: src.payoutIban ?? local.payoutIban ?? null,
+    payoutAccountName: src.payoutAccountName ?? local.payoutAccountName ?? null,
+    coordinator: (() => {
+      const srcC = src.coordinator;
+      const locC = local.coordinator;
+      if (!srcC && !locC) return src.coordinator;
+      if (!srcC) return locC;
+      if (!locC) return srcC;
+      return {
+        ...locC,
+        ...srcC,
+        managedTeamIds: Array.isArray(srcC.managedTeamIds)
+          ? srcC.managedTeamIds
+          : (locC.managedTeamIds || []),
+      };
+    })(),
   });
 }
 function genId() {

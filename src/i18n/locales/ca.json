@@ -215,10 +215,10 @@
     "subscription_cancelled": "Finalitzada",
     "subscription_renews": "Renovació mensual",
     "subscription_cancel_btn": "Cancel·lar subscripció",
-    "subscription_cancel_confirm_title": "Cancel·lar la teva subscripció?",
-    "subscription_cancel_confirm_body": "Continuaràs tenint accés fins al final del període de facturació actual. Després no se't tornarà a cobrar.",
-    "subscription_cancel_confirm_yes": "Sí, cancel·lar subscripció",
-    "subscription_cancel_success": "Subscripció cancel·lada. Tens accés fins el {{date}}.",
+    "subscription_cancel_confirm_title": "Estàs segur?",
+    "subscription_cancel_confirm_body": "En cancel·lar se tanca el teu compte i deixes de tenir accés a la planificació. Estàs segur? Aquesta acció no es pot desfer.",
+    "subscription_cancel_confirm_yes": "Sí, cancel·lar i tancar el meu compte",
+    "subscription_cancel_success": "Subscripció cancel·lada.",
     "subscription_cancel_error": "No s'ha pogut cancel·lar. Torna-ho a provar.",
     "subscription_stripe_note": "Gestiona la targeta, factures i subscripció des del portal de Stripe.",
     "subscription_manage_billing": "Gestionar pagament a Stripe",
@@ -380,11 +380,12 @@
   },
   "trial": {
     "banner_title": "Prova gratuïta · et queden {{days}} dies",
-    "banner_desc": "Algunes seccions estan limitades durant la prova. Millora el teu pla per desbloquejar-ho tot.",
+    "banner_desc": "Pots explorar la plataforma. Algunes funcions (PDF, registres, canvis de rutina) queden limitades fins a activar la subscripció.",
     "banner_cta": "Veure plans",
     "watermark": "PROVA DEPRO",
     "unlock": "Desbloquejar",
-    "view_plans": "Veure subscripció"
+    "view_plans": "Veure subscripció",
+    "limited_message": "Aquesta funció està limitada perquè la teva subscripció no està activa. Activa la subscripció per usar-la amb normalitat."
   },
   "subscription": {
     "page_title": "Subscripció",
@@ -405,9 +406,9 @@
   },
   "features": {
     "locked": "Secció bloquejada",
-    "trial_locked_desc": "Aquesta secció no està disponible durant els 15 dies de prova gratuïta.",
+    "trial_locked_desc": "Aquesta funció està limitada perquè la teva subscripció no està activa. Activa la subscripció per usar-la amb normalitat.",
     "plan_locked_desc": "El teu pla actual no inclou aquesta funcionalitat.",
-    "trial_note": "Activa la subscripció per desbloquejar aquesta secció.",
+    "trial_note": "Aquesta funció està limitada perquè la teva subscripció no està activa. Activa la subscripció per usar-la amb normalitat.",
     "upgrade_to": "Millorar a {{plan}} · {{price}}/mes",
     "feedback": "Feedback del preparador",
     "feedback_desc": "Revisiones setmanals personalitzades i seguiment humà.",

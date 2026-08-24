@@ -18,6 +18,7 @@ import {
 } from "../../lib/planSwapLimits";
 import { loadPlayerPlan, fetchPlayerPlan, savePlayerPlan, persistPlayerPlanRemote, normalizePlayerPlan } from "../../lib/playerPlanStorage";
 import { clubMatchesDiscountCode } from "../../lib/clubEconomy";
+import { TRIAL_LIMITED_MESSAGE } from "../../lib/trialPersistence";
 import { openBillingPortal, isSubscriptionActive, purchaseAddon, changePlan, fetchPremiumCapacity, hasFeatureAccess, isPlayerPro, isInTrial } from "../../lib/subscription";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
 import { PLANS, formatPrice } from "../../lib/checkoutPlans";
@@ -215,7 +216,7 @@ export default function ProfilePage() {
   trainingHydratedKeyRef.current = trainingHydratedKey;
   const currentPlan = planForProfile || (user?.id ? loadPlayerPlan(user.id) : null);
   const profileRegensUsed = user?.id ? getProfileRegenCount(user.id, currentPlan) : 0;
-  const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, currentPlan) : false;
+  const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, currentPlan, user) : false;
   const freqN = freqNumber(frecuenciaSel || "3 días / sem");
   const markTrainingDirty = () => { trainingDirtyRef.current = true; };
 
@@ -718,13 +719,15 @@ export default function ProfilePage() {
       return;
     }
 
-    if (!canRegenerateFromProfile(user.id, plan)) {
+    if (!canRegenerateFromProfile(user.id, plan, user)) {
       setDaysSaving(true);
       setDaysMsg("");
       try {
         await persistTrainingMetadata(nextData);
         await refreshUser();
-        setDaysMsg(`Ya usaste tu cambio de rutina este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos se guardaron, pero la rutina no se regeneró.`);
+        setDaysMsg(isInTrial(user)
+          ? TRIAL_LIMITED_MESSAGE
+          : `Ya usaste tu cambio de rutina este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos se guardaron, pero la rutina no se regeneró.`);
       } catch {
         setDaysMsg("No se pudo guardar. Inténtalo de nuevo.");
       } finally {
@@ -1059,7 +1062,9 @@ export default function ProfilePage() {
           </p>
           <p className={`text-xs font-bold mb-4 ${canProfileRegen ? "text-depro-blue" : "text-amber-700"}`}>
             Regeneraciones este mesociclo: {Math.min(profileRegensUsed, MAX_PROFILE_REGENS_PER_CYCLE)}/{MAX_PROFILE_REGENS_PER_CYCLE}
-            {!canProfileRegen && " · cupo agotado (puedes guardar datos, sin nueva rutina)"}
+            {!canProfileRegen && (isInTrial(user)
+              ? ` · ${TRIAL_LIMITED_MESSAGE}`
+              : " · cupo agotado (puedes guardar datos, sin nueva rutina)")}
           </p>
 
           <div className="mb-5">

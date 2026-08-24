@@ -46,9 +46,10 @@ export function evaluateFeatureAccess({
 
   if ((audience === "player" || audience === "coach") && isPro && !isTrial) return true;
 
-  // Trial Standard: extras visibles, feedback/preparador solo Premium
+  // Trial: se puede explorar; features trialLocked (PDF extra, cambios continuos) quedan limitadas
   if (isTrial) {
     if (PREMIUM_ONLY_FEATURES.has(featureId)) return false;
+    if (feature.trialLocked) return false;
     return true;
   }
 

@@ -22,7 +22,7 @@ import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "..
 import {
   canSwapExercise, recordSwap, swapsRemaining, hasUnlimitedSwaps, MAINTENANCE_MESSAGE, MAX_PLAN_SWAPS, SWAP_TOOLTIP,
 } from "../../lib/planSwapLimits";
-import { canPersistInTrial } from "../../lib/trialPersistence";
+import { canPersistInTrial, trialFeatureLimitedMessage } from "../../lib/trialPersistence";
 import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
 import { canDownloadTrialPdf, recordTrialPdfDownload, trialPdfLimitMessage } from "../../lib/trialPdfLimit";
 import { savePlayerPlan } from "../../lib/playerPlanStorage";
@@ -30,6 +30,7 @@ import CoachSessions from "../../components/private/CoachSessions";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans, filterPlansForTeam } from "../../lib/clubManualPlans";
 import DisenarTareas from "../../components/shared/DisenarTareas";
+import TrialLimitedNotice from "../../components/private/TrialLimitedNotice";
 import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
@@ -461,6 +462,9 @@ function PlayerWeeklyPlan({ accent }) {
 
   const handleSessionComplete = (sessionId, dayLabel) => {
     const persist = canPersistInTrial(user, "save_progress");
+    if (!persist) {
+      alert(trialFeatureLimitedMessage());
+    }
     const updated = markSessionComplete({ userId: user?.id, planKey, sessionId, dayLabel, persist });
     if (updated) setPlan(updated);
     if (persist) touchLastTrain(user?.id);
@@ -483,8 +487,10 @@ function PlayerWeeklyPlan({ accent }) {
   });
 
   const handleExerciseSwap = (sessionId, exerciseId) => {
-    if (!canSwapExercise(user, plan)) {
-      alert(`Has usado tus ${MAX_PLAN_SWAPS} cambios de ejercicio este mesociclo. Añade el extra «Ejercicios ilimitados» en Suscripción.`);
+    if (isInTrial(user) || !canSwapExercise(user, plan)) {
+      alert(isInTrial(user)
+        ? trialFeatureLimitedMessage()
+        : `Has usado tus ${MAX_PLAN_SWAPS} cambios de ejercicio este mesociclo. Añade el extra «Ejercicios ilimitados» en Suscripción.`);
       return;
     }
     if (!hasUnlimitedSwaps(user) && !window.confirm(`${MAINTENANCE_MESSAGE}\n\n¿Sustituir este ejercicio en todo el plan?`)) return;
@@ -647,6 +653,7 @@ function PlayerWeeklyPlan({ accent }) {
   return (
     <>
     <div className="dash-page">
+      {isInTrial(user) && <TrialLimitedNotice className="mb-4" />}
       {minimalSession && (
         <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-center justify-between gap-3 mb-3">

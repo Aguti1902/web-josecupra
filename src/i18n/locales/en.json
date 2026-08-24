@@ -215,10 +215,10 @@
     "subscription_cancelled": "Ended",
     "subscription_renews": "Monthly renewal",
     "subscription_cancel_btn": "Cancel subscription",
-    "subscription_cancel_confirm_title": "Cancel your subscription?",
-    "subscription_cancel_confirm_body": "You will keep access until the end of your current billing period. You will not be charged again after that.",
-    "subscription_cancel_confirm_yes": "Yes, cancel subscription",
-    "subscription_cancel_success": "Subscription cancelled. You have access until {{date}}.",
+    "subscription_cancel_confirm_title": "Are you sure?",
+    "subscription_cancel_confirm_body": "Cancelling closes your account and you lose access to the plan. Are you sure? This cannot be undone.",
+    "subscription_cancel_confirm_yes": "Yes, cancel and close my account",
+    "subscription_cancel_success": "Subscription cancelled.",
     "subscription_cancel_error": "Could not cancel. Please try again.",
     "subscription_stripe_note": "Manage your card, invoices and subscription from the Stripe portal.",
     "subscription_manage_billing": "Manage payment in Stripe",
@@ -380,11 +380,12 @@
   },
   "trial": {
     "banner_title": "Free trial · {{days}} days left",
-    "banner_desc": "Some sections are limited during the trial. Upgrade to unlock everything.",
+    "banner_desc": "You can explore the platform. Some features (PDF, logs, routine changes) are limited until you activate your subscription.",
     "banner_cta": "View plans",
     "watermark": "DEPRO TRIAL",
     "unlock": "Unlock",
-    "view_plans": "View subscription"
+    "view_plans": "View subscription",
+    "limited_message": "This feature is limited because your subscription is not active. Activate your subscription to use it normally."
   },
   "subscription": {
     "page_title": "Subscription",
@@ -405,9 +406,9 @@
   },
   "features": {
     "locked": "Section locked",
-    "trial_locked_desc": "This section is not available during the 15-day free trial.",
+    "trial_locked_desc": "This feature is limited because your subscription is not active. Activate your subscription to use it normally.",
     "plan_locked_desc": "Your current plan does not include this feature.",
-    "trial_note": "Activate your subscription to unlock this section.",
+    "trial_note": "This feature is limited because your subscription is not active. Activate your subscription to use it normally.",
     "upgrade_to": "Upgrade to {{plan}} · {{price}}/mo",
     "feedback": "Coach feedback",
     "feedback_desc": "Personalised weekly reviews and human follow-up.",

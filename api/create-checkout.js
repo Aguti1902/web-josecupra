@@ -1,31 +1,14 @@
-import { createClient } from "@supabase/supabase-js";
 import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem, planHasCheckoutTrial } from "./_planCatalog.js";
 import { buildAddonLineItem, getAddonDef } from "./_addonCatalog.js";
 import { getStripe, getSiteUrl } from "./_stripeClient.js";
-import { SUPABASE_SERVICE_ROLE_FALLBACK } from "./_serviceRoleKey.js";
-import { clubMatchesDiscountCode } from "../src/lib/clubEconomy.js";
 import { serializeCoachAutoForMeta } from "../src/lib/clubAuto/clubAutoCoachBridge.js";
 import { isClubSelfServeOpen, isClubCheckoutPlan, CLUB_COMING_SOON_COPY } from "../src/lib/productAvailability.js";
-
-const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_ROLE_FALLBACK;
+import { CLUB_DISCOUNT_PCT } from "../src/lib/checkoutPlans.js";
+import { audienceGetsClubDiscount, validateClubCode } from "./_validateClubCode.js";
 
 function generatePassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
   return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-}
-
-async function validateClubCode(code) {
-  if (!code) return { valid: false };
-  try {
-    const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-    const { data: clubs } = await sb.from("clubs").select("id, login_code").eq("login_code", code.toUpperCase()).limit(1);
-    if (clubs?.length) return { valid: true, clubId: clubs[0].id };
-    const { data: details } = await sb.from("clubs_detail").select("club_id, data");
-    const found = (details || []).find((d) => clubMatchesDiscountCode(d.data, code));
-    if (found) return { valid: true, clubId: found.club_id || found.id };
-  } catch { /* ignore */ }
-  return { valid: false };
 }
 
 function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPassword, lineItems }) {
@@ -157,13 +140,15 @@ export default async function handler(req, res) {
   const clubCode = (formData?.clubCode || "").trim().toUpperCase();
   let clubId = "";
   let hasDiscount = false;
-  if (clubCode && audience === "player") {
+  if (clubCode && audienceGetsClubDiscount(audience)) {
     const v = await validateClubCode(clubCode);
     hasDiscount = v.valid;
     clubId = v.clubId || "";
   }
 
-  const finalAmount = hasDiscount ? Math.round(price.amount * 0.90) : price.amount;
+  const finalAmount = hasDiscount
+    ? Math.round((price.amount * (100 - CLUB_DISCOUNT_PCT)) / 100)
+    : price.amount;
   const hasRegisteredUser = Boolean(formData?.authUserId);
   // Usuario se crea solo en complete-payment; aquí guardamos la contraseña elegida (o una temporal).
   const chosenPassword = formData?.password || formData?.pendingPassword || "";

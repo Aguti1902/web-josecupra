@@ -108,7 +108,7 @@ export const FEATURES = {
     descKey: "features.unlimited_exercises_desc",
     audiences: ["player"],
     minPlan: { player: "player-pro" },
-    trialLocked: false,
+    trialLocked: true,
     addonId: "addon-unlimited-exercises",
     upsellBenefits: ["Cambios de ejercicio ilimitados", "Misma planificación base", "Ideal para probar variantes"],
   },

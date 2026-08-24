@@ -55,6 +55,20 @@ describe("planSwapLimits — ciclo mensual", () => {
     assert.equal(canRegenerateFromProfile("u1", plan), false);
   });
 
+  it("en prueba gratuita no permite swap ni regenerar rutina", () => {
+    const user = {
+      id: "u-trial",
+      plan: "player-essential",
+      subscriptionStatus: "trialing",
+      trialEndsAt: "2099-01-01T00:00:00.000Z",
+      stripeSubscriptionId: "sub_trial",
+    };
+    const plan = { startDate: "2026-08-17" };
+    resetCycleCounters("u-trial", "2026-08-17");
+    assert.equal(canSwapExercise(user, plan), false);
+    assert.equal(canRegenerateFromProfile("u-trial", plan, user), false);
+  });
+
   it("fingerprint de perfil incluye todos los campos editables", () => {
     const a = profileTrainingFingerprint({
       disponibles: ["Viernes", "Lunes"],

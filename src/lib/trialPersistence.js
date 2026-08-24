@@ -1,4 +1,5 @@
-import { isInTrial } from "./subscription";
+import { isInTrial } from "./subscription.js";
+import { TRIAL_LIMITED_MESSAGE } from "./trialMessages.js";
 
 /**
  * Acciones que la demo NO debe persistir.
@@ -17,6 +18,12 @@ export function canPersistInTrial(user, action) {
   return !TRIAL_BLOCKED_ACTIONS.has(action);
 }
 
+export { TRIAL_LIMITED_MESSAGE };
+
+export function trialFeatureLimitedMessage() {
+  return TRIAL_LIMITED_MESSAGE;
+}
+
 export function trialPersistBlockedMessage() {
-  return "Durante la prueba gratuita (15 días, plan Standard) puedes verlo todo, pero los datos (cargas, progreso, estadísticas) no se guardan. Solo 1 descarga PDF en la prueba. Activa tu suscripción para conservar el progreso.";
+  return TRIAL_LIMITED_MESSAGE;
 }

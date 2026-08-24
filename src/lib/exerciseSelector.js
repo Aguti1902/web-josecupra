@@ -102,8 +102,8 @@ function tagsOf(ex) {
 
 function matchesAny(needed, available) {
   if (!needed?.length) return true;
-  const set = new Set(asArray(available));
-  return needed.some((n) => set.has(n));
+  const set = new Set(asArray(available).map((x) => String(x).toLowerCase()));
+  return needed.some((n) => set.has(String(n).toLowerCase()));
 }
 
 function matchesAllScalars(slotValue, exerciseValue) {
@@ -301,6 +301,14 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
       if (!relaxed) break;
       candidates = filterPool(EXERCISES.filter((ex) => matchSlotTags(ex, relaxed)), true);
     }
+  }
+
+  // Preferir el objetivo del slot (velocidad no debe rellenarse con fuerza)
+  if (!candidates.length && slot.objetivo) {
+    candidates = filterPool(
+      EXERCISES.filter((ex) => matchSlotTags(ex, { objetivo: slot.objetivo, patron: slot.patron, patronOr: slot.patronOr })),
+      true,
+    );
   }
 
   // Último recurso: mismo rol (mantiene estructura de plantilla)

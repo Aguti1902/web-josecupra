@@ -15,7 +15,7 @@ import { PLAYER_ADDONS } from "../../lib/playerAddons";
 import { COACH_ADDONS } from "../../lib/coachAddons";
 import TeamBrandingFields, { saveCoachBrandingDraft } from "../../components/shared/TeamBrandingFields";
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
-import { clubMatchesDiscountCode } from "../../lib/clubEconomy";
+import { audienceGetsClubDiscount } from "../../lib/clubEconomy";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
 import CoachAutoQuestionnaire from "../../components/shared/CoachAutoQuestionnaire";
@@ -421,31 +421,40 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
   const [clubTeams, setClubTeams] = useState([]);
   const [clubCodeMsg, setClubCodeMsg] = useState("");
 
-  const resolveClubFromCode = (codeRaw) => {
+  const resolveClubFromCode = async (codeRaw) => {
     if (!codeRaw?.trim()) {
       setClubTeams([]);
       setClubCodeMsg("");
-      setForm((f) => ({ ...f, clubId: "", clubTeamId: "" }));
+      setForm((f) => ({ ...f, clubId: "", clubTeamId: "", clubDiscountValid: false }));
       return true;
     }
+    const code = codeRaw.trim().toUpperCase();
     try {
-      const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
-      const code = codeRaw.trim().toUpperCase();
-      const found = clubs.find((c) => clubMatchesDiscountCode(c, code));
-      if (!found) {
+      const res = await fetch("/api/validate-club-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.valid) {
         setClubTeams([]);
         setClubCodeMsg("Código no encontrado");
+        setForm((f) => ({ ...f, clubId: "", clubTeamId: "", clubDiscountValid: false }));
         return false;
       }
-      const detail = JSON.parse(localStorage.getItem(`depro_club_${found.id}`) || "null");
-      const teams = detail?.teams || found.teams || [];
-      if (teams.length === 0) {
-        setClubCodeMsg("Este club aún no tiene equipos configurados");
-        return false;
-      }
+      const teams = Array.isArray(data.teams) ? data.teams : [];
       setClubTeams(teams);
-      setClubCodeMsg(`Club encontrado: ${found.name}`);
-      setForm((f) => ({ ...f, clubId: found.id, clubTeamId: f.clubTeamId || teams[0]?.id || "" }));
+      setClubCodeMsg(
+        data.clubName
+          ? `Club encontrado: ${data.clubName}. Descuento 10% aplicado.`
+          : "Código válido. Descuento 10% aplicado.",
+      );
+      setForm((f) => ({
+        ...f,
+        clubId: data.clubId || "",
+        clubTeamId: teams.length ? (f.clubTeamId || teams[0]?.id || "") : "",
+        clubDiscountValid: true,
+      }));
       return true;
     } catch {
       setClubCodeMsg("No se pudo validar el código");
@@ -463,7 +472,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
     if (!q.ok) missing.push("cuestionario de equipo / microciclo");
   }
   // Código de club inválido: aviso, pero no bloquea el avance (se puede quitar)
-  const clubCodeBlocking = !!(form.clubCode?.trim() && !(form.clubId && form.clubTeamId));
+  const clubCodeBlocking = !!(form.clubCode?.trim() && !form.clubId && !form.clubDiscountValid);
   const valid = missing.length === 0;
 
   const handleNext = () => {
@@ -659,6 +668,31 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
                 />
               </div>
             </div>
+
+            {audience === "coach" && (
+            <div>
+              <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
+                Código de descuento del club <span className="text-depro-gray font-normal normal-case">(opcional)</span>
+              </label>
+              <input
+                type="text" value={form.clubCode || ""}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, clubCode: e.target.value.toUpperCase(), clubId: "", clubTeamId: "", clubDiscountValid: false }));
+                  setClubTeams([]);
+                  setClubCodeMsg("");
+                }}
+                onBlur={() => { if (form.clubCode?.trim()) resolveClubFromCode(form.clubCode); }}
+                className="admin-input w-full uppercase tracking-wider"
+                placeholder="EJ. DEPRO-CLUB-2025"
+                maxLength={32}
+              />
+              {clubCodeMsg && (
+                <p className={`text-xs mt-1.5 ${clubCodeMsg.includes("encontrado") || clubCodeMsg.includes("válido") ? "text-green-700" : "text-amber-700"}`}>
+                  {clubCodeMsg}
+                </p>
+              )}
+            </div>
+            )}
 
             {(audience === "coach" || audience === "club") && (
               <TeamBrandingFields
@@ -1064,7 +1098,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
     );
   }
 
-  const hasDiscount = !!form.clubCode && plan.audience === "player";
+  const hasDiscount = !!form.clubCode && audienceGetsClubDiscount(plan.audience) && !!(form.clubId || form.clubDiscountValid);
   const discount    = hasDiscount ? Math.round((plan.price - applyClubDiscount(plan.price)) * 100) / 100 : 0;
   const total       = (hasDiscount ? applyClubDiscount(plan.price) : plan.price) + addonsTotal;
   const hasTrial = planHasCheckoutTrial(plan.id);

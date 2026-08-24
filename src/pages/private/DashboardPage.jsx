@@ -21,7 +21,7 @@ import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/ses
 import CoachDashboard from "../../components/private/CoachDashboard";
 import ClubEconomyPanel from "../../components/private/ClubEconomyPanel";
 import ClubPlayersMonitor from "../../components/private/ClubPlayersMonitor";
-import { isClubAdmin } from "../../lib/clubRoles";
+import { isClubAdmin, canSeeClubDiscountCode, resolveManagedTeamIds } from "../../lib/clubRoles";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
@@ -317,7 +317,7 @@ function CoachAvatar({ coach, safeAccent }) {
 function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
   const { user } = useAuth();
   const allTeams = club?.teams || [];
-  const managedTeamIds = user?.managedTeamIds || [];
+  const managedTeamIds = resolveManagedTeamIds(user, club);
   // Si el coordinador tiene equipos asignados, filtra; si no, muestra todos
   const managedKey = managedTeamIds.join(",");
   const teams = managedTeamIds.length > 0
@@ -1316,6 +1316,7 @@ export default function DashboardPage() {
     }
     return (
       <div className="dash-page space-y-6">
+        {canSeeClubDiscountCode(user) && <ClubEconomyPanel club={club} compact />}
         <CoachDashboard club={club} team={selectedTeam || team} user={user} />
       </div>
     );
@@ -1335,7 +1336,7 @@ export default function DashboardPage() {
           accent={accent}
           secondColor={secondColor}
         />
-        {isClubAdmin(user) && !selectedTeam && (
+        {canSeeClubDiscountCode(user) && !selectedTeam && (
           <ClubEconomyPanel club={club} compact />
         )}
         {(teamRole === "administrador" && !selectedTeam)

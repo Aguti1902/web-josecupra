@@ -11,7 +11,8 @@ import { loadClubDetail, saveClubDetail, saveClub } from "../../lib/adminStorage
 import { clearCoachGeneratedPlans } from "../../lib/coachSessionsStorage";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import { canManageClubBilling, canSeeClubPricing, clubRoleLabel } from "../../lib/clubRoles";
-import { hasFeatureAccess } from "../../lib/subscription";
+import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
+import { TRIAL_LIMITED_MESSAGE } from "../../lib/trialPersistence";
 import { getPlanLimits } from "../../lib/checkoutPlans";
 import { COACH_STANDARD_MAX_TEAMS, COACH_TEAMS_WITH_ADDON } from "../../lib/coachAddons";
 import TeamBrandingFields from "../../components/shared/TeamBrandingFields";
@@ -122,7 +123,7 @@ export default function ClubProfilePage() {
       || `${monthKeyFromDate(new Date())}-01`,
   };
   const profileRegensUsed = user?.id ? getProfileRegenCount(user.id, cyclePlan) : 0;
-  const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, cyclePlan) : false;
+  const canProfileRegen = user?.id ? canRegenerateFromProfile(user.id, cyclePlan, user) : false;
   const hadAutoConfig = !!(user?.club?.coachConfig?.nivel);
   const purchasedAddons = user?.purchasedAddons || user?.club?.purchasedAddons || [];
   const extraTeamsUnlocked = hasFeatureAccess(user, "extra_teams");
@@ -174,7 +175,9 @@ export default function ClubProfilePage() {
     if (hadAutoConfig && fingerprintChanged && !canProfileRegen) {
       showMsg(
         "error",
-        `Ya usaste tu cambio de plan este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos no se regeneran.`,
+        isInTrial(user)
+          ? TRIAL_LIMITED_MESSAGE
+          : `Ya usaste tu cambio de plan este mesociclo (${MAX_PROFILE_REGENS_PER_CYCLE}/mes). Los datos no se regeneran.`,
       );
       return;
     }

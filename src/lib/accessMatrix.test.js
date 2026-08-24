@@ -85,6 +85,36 @@ describe("accesos Standard / Premium / extras", () => {
       }),
       true,
     );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "player",
+        planId: "player-essential",
+        billingSource: "stripe",
+        isTrial: true,
+        featureId: "pdf_export",
+      }),
+      false,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "player",
+        planId: "player-essential",
+        billingSource: "stripe",
+        isTrial: true,
+        featureId: "unlimited_exercises",
+      }),
+      false,
+    );
+    assert.equal(
+      evaluateFeatureAccess({
+        audience: "coach",
+        planId: "coach-starter",
+        billingSource: "stripe",
+        isTrial: true,
+        featureId: "pdf_export",
+      }),
+      false,
+    );
   });
 });
 

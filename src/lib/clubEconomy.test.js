@@ -8,6 +8,7 @@ import {
   clubMatchesDiscountCode,
   withSyncedDiscountCode,
   parseCommissionPct,
+  audienceGetsClubDiscount,
 } from "./clubEconomy.js";
 
 describe("clubEconomy", () => {
@@ -36,6 +37,12 @@ describe("clubEconomy", () => {
     assert.equal(clubMatchesDiscountCode(club, "promoabc"), true);
     assert.equal(clubMatchesDiscountCode(club, "abc2026"), true);
     assert.equal(clubMatchesDiscountCode(club, "otro"), false);
+  });
+
+  it("el descuento aplica a jugador y Pro Coach", () => {
+    assert.equal(audienceGetsClubDiscount("player"), true);
+    assert.equal(audienceGetsClubDiscount("coach"), true);
+    assert.equal(audienceGetsClubDiscount("club"), false);
   });
 
   it("sincroniza loginCode y discountCode al editar", () => {

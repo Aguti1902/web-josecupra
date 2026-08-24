@@ -1,6 +1,8 @@
 /**
  * Límite de PDFs en prueba gratuita (máx. 1 descarga).
  */
+import { TRIAL_LIMITED_MESSAGE } from "./trialMessages.js";
+
 const KEY = (userId) => `depro_trial_pdf_count_${userId || "anon"}`;
 export const TRIAL_PDF_MAX = 1;
 
@@ -25,5 +27,5 @@ export function recordTrialPdfDownload(userId) {
 }
 
 export function trialPdfLimitMessage() {
-  return `En la prueba gratuita puedes descargar 1 PDF. Activa Standard o Premium (o el extra PDF) para más descargas.`;
+  return TRIAL_LIMITED_MESSAGE;
 }

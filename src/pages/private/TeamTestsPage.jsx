@@ -349,7 +349,7 @@ function TeamTestsPageInner() {
   const [editingPlayer,   setEditing]    = useState(null);
   const [tick,            setTick]       = useState(0);
   const [adminTests,      setAdminTests] = useState(() => mergeEvalTests(loadAdminTests()));
-  const [showProtocols,   setShowProtocols] = useState(true);
+  const [showProtocols,   setShowProtocols] = useState(false);
 
   /* Carga tests del admin desde la nube */
   useEffect(() => {
@@ -495,16 +495,16 @@ function TeamTestsPageInner() {
   if (players.length === 0) return (
     <div className="dash-page">
       <h1 className="text-2xl font-black text-depro-dark mb-2">Tests del equipo</h1>
-      {protocolsBlock}
       <div className="bg-white border-2 border-dashed border-depro-border rounded-2xl text-center py-16 mt-6">
         <Users size={36} className="mx-auto mb-3 text-depro-gray opacity-40" />
         <h3 className="font-bold text-depro-dark mb-1">Sin jugadores en la plantilla</h3>
         <p className="text-sm text-depro-gray">
           {isSoloCoach
-            ? "Añade jugadores desde Plantilla para registrar marcas. Los protocolos de evaluación están arriba, con el mismo formato de vídeo que en clubs."
+            ? "Añade jugadores desde Plantilla para registrar marcas. Los protocolos de evaluación están debajo, con el mismo formato de vídeo que en clubs."
             : "Añade jugadores desde la sección Plantilla."}
         </p>
       </div>
+      {protocolsBlock}
     </div>
   );
 

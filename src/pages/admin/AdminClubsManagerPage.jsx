@@ -481,7 +481,9 @@ function ClubSection({ title, subtitle, icon: Icon, accent, clubs, emptyText, on
                       <Shield size={10} />
                       {club._userCount ?? club.users?.length ?? 0} usuario{(club._userCount ?? club.users?.length ?? 0) !== 1 ? "s" : ""}
                     </span>
-                    <span>Alta: {club.createdAt}</span>
+                    <span className="flex items-center gap-1 font-mono font-bold text-depro-dark">
+                      Código: {club.discountCode || club.loginCode || club.login_code || "—"}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">

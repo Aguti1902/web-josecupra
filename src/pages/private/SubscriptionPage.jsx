@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useSearchParams, Navigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link, useSearchParams, Navigate, useNavigate } from "react-router-dom";
 import {
   CreditCard, Lock, Sparkles, ArrowUpCircle, Check, X, Clock, Loader2, Zap,
 } from "lucide-react";
@@ -32,8 +32,9 @@ import ChangePlanModal from "../../components/private/ChangePlanModal";
 import { canManageClubBilling } from "../../lib/clubRoles";
 
 export default function SubscriptionPage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [showChangePlan, setShowChangePlan] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -42,8 +43,12 @@ export default function SubscriptionPage() {
   const [activateLoading, setActivateLoading] = useState(false);
   const [addonLoading, setAddonLoading] = useState(null);
   const [msg, setMsg] = useState(null);
+  const [planSwitchLoading, setPlanSwitchLoading] = useState(null);
+  const refreshedOnce = useRef(false);
 
   useEffect(() => {
+    if (refreshedOnce.current) return;
+    refreshedOnce.current = true;
     refreshUser();
   }, [refreshUser]);
 
@@ -86,7 +91,6 @@ export default function SubscriptionPage() {
   const currentPlan = currentPlanId ? PLANS[currentPlanId] : null;
   const purchasedAddons = user?.purchasedAddons || subscription?.purchasedAddons || [];
   const audiencePlans = plansForAudience(audience);
-  const [planSwitchLoading, setPlanSwitchLoading] = useState(null);
 
   const locked = lockedFeaturesForUser(user, {
     isInTrial,
@@ -110,6 +114,11 @@ export default function SubscriptionPage() {
     const res = await cancelSubscription(user);
     setCancelLoading(false);
     setShowCancelModal(false);
+    if (res.ok && res.deleted) {
+      try { await logout(); } catch { /* already signed out */ }
+      navigate("/", { replace: true });
+      return;
+    }
     if (res.ok) {
       setMsg({
         type: "ok",
@@ -355,11 +364,11 @@ export default function SubscriptionPage() {
               >
                 <ArrowUpCircle size={14} /> {t("profile.subscription_change_btn")}
               </button>
-              {subActive && !subPendingCancel && !inTrial && (
+              {(subActive || inTrial) && !subPendingCancel && (
                 <button
                   type="button"
                   onClick={() => setShowCancelModal(true)}
-                  className="text-sm font-semibold text-red-500 hover:text-red-600 px-3 py-2"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50"
                 >
                   {t("profile.subscription_cancel_btn")}
                 </button>
