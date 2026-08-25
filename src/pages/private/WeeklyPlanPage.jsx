@@ -34,10 +34,11 @@ import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
-import { getSessionBlocks, BLOCK_LABELS, BLOCK_COLORS, ADMIN_BLOCK_TYPES, sessionMatchesTarget } from "../../lib/sessionBlocks";
+import { getSessionBlocks, getNonEmptyBlocks, BLOCK_LABELS, BLOCK_COLORS, ADMIN_BLOCK_TYPES, sessionMatchesTarget, blockDisplayLabel, blockNavId } from "../../lib/sessionBlocks";
 import { WeekCalendar, PlayerSessionFullscreen, MesoMonthCalendar } from "../../components/private/PlayerPlanUI";
 import { resolveBlockGuideItems } from "../../lib/blockGuideItems";
 import { getYouTubeId, youtubeEmbedUrl, youtubeThumbUrl } from "../../lib/youtube";
+import { prefetchCatalogMedia, exerciseYouTubeId } from "../../lib/catalogMedia";
 const Youtube = PlayCircle;
 
 const intensityColor = { Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
@@ -60,7 +61,7 @@ function ConditionPill({ Icon, label, color = "#6B7280" }) {
    MODAL EJERCICIO (jugador)
 ───────────────────────────────────────────── */
 function ExerciseModal({ exercise, onClose, accent }) {
-  const ytId = getYouTubeId(exercise.videoUrl);
+  const ytId = exerciseYouTubeId(exercise);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -99,7 +100,7 @@ function ExerciseModal({ exercise, onClose, accent }) {
         )}
 
         {exercise.description && (
-          <p className="text-depro-gray leading-relaxed mb-5 text-sm">{exercise.description}</p>
+          <p className="text-depro-gray leading-relaxed mb-5 text-sm">{String(exercise.description).replace(/sin_material/g, "sin material")}</p>
         )}
         {/* Tips técnicos (3-5 bullets) */}
         {exercise.tips && (
@@ -154,7 +155,7 @@ function BlockExerciseList({ exercises, accentColor, onSelect }) {
   return (
     <div className="space-y-2">
       {exercises.map((ex, i) => {
-        const ytId = getYouTubeId(ex.videoUrl);
+        const ytId = exerciseYouTubeId(ex);
         return (
           <button key={i} onClick={() => onSelect(ex)}
             className="w-full flex items-center gap-3 p-3 rounded-xl bg-depro-gray-light hover:bg-depro-blue-light border border-transparent hover:border-blue-100 transition-all text-left group"
@@ -203,15 +204,18 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
   const isToday = session.status === "today";
   const isDone  = completion === 100;
 
-  const blocks = (session.blocks || [
-    { type: "principal", label: "Ejercicios", exercises: session.exercises || [] },
-  ]).filter((b) => (b.exercises?.length || 0) > 0);
+  const fromTemplate = getNonEmptyBlocks(session);
+  const blocks = fromTemplate.length
+    ? fromTemplate
+    : (session.blocks || [
+        { type: "principal", label: "Ejercicios", exercises: session.exercises || [] },
+      ]).filter((b) => (b.exercises?.length || 0) > 0);
 
   const TABS = [
     { id: "resumen", label: "Resumen" },
-    ...blocks.map((b) => ({
-      id: b.type,
-      label: BLOCK_CONFIG[b.type]?.label || b.label || b.type,
+    ...blocks.map((b, i) => ({
+      id: blockNavId(b, i),
+      label: blockDisplayLabel(b) || BLOCK_CONFIG[b.type]?.label || b.type,
     })),
   ];
 
@@ -285,19 +289,21 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
                 </div>
                 {/* Vista rápida de bloques */}
                 <div className="space-y-2">
-                  {blocks.map((b) => {
+                  {blocks.map((b, i) => {
                     const cfg = BLOCK_CONFIG[b.type] || { label: b.label, Icon: Layers, color: accentColor };
                     const BIcon = cfg.Icon;
+                    const navId = blockNavId(b, i);
+                    const title = blockDisplayLabel(b) || cfg.label;
                     return (
-                      <div key={b.type}
-                        onClick={() => setActiveBlock(b.type)}
+                      <div key={navId}
+                        onClick={() => setActiveBlock(navId)}
                         className="flex items-center justify-between p-3 rounded-xl border border-depro-border bg-depro-gray-light hover:bg-depro-blue-light cursor-pointer transition-colors">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                             style={{ backgroundColor: cfg.color + "18" }}>
                             <BIcon size={13} style={{ color: cfg.color }} />
                           </div>
-                          <span className="text-sm font-bold text-depro-dark">{cfg.label}</span>
+                          <span className="text-sm font-bold text-depro-dark">{title}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-depro-gray">{b.exercises.length} ejercicios</span>
@@ -322,13 +328,14 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
             )}
 
             {/* ── BLOQUES con ejercicios ── */}
-            {blocks.map((block) => {
-              if (activeBlock !== block.type) return null;
-              const blockType = block.type;
-              const cfg = BLOCK_CONFIG[blockType] || { label: blockType, Icon: Layers, color: accentColor };
+            {blocks.map((block, i) => {
+              const navId = blockNavId(block, i);
+              if (activeBlock !== navId) return null;
+              const cfg = BLOCK_CONFIG[block.type] || { label: block.type, Icon: Layers, color: accentColor };
               const BIcon = cfg.Icon;
+              const title = blockDisplayLabel(block) || cfg.label;
               return (
-                <div key={blockType} className="space-y-4">
+                <div key={navId} className="space-y-4">
                   <div className="flex items-center gap-3 p-4 rounded-2xl border"
                     style={{ backgroundColor: cfg.color + "08", borderColor: cfg.color + "25" }}>
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border"
@@ -336,7 +343,7 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
                       <BIcon size={20} style={{ color: cfg.color }} />
                     </div>
                     <div>
-                      <div className="font-black text-depro-dark">{cfg.label}</div>
+                      <div className="font-black text-depro-dark">{title}</div>
                       {block.duration && (
                         <div className="flex items-center gap-1 text-xs text-depro-gray mt-0.5">
                           <Clock size={10} /> {block.duration}
@@ -374,9 +381,11 @@ function PlayerWeeklyPlan({ accent }) {
   const [view, setView]       = useState("micro"); // "micro" | "meso"
   const [minimalSession, setMinimalSession] = useState(null);
   const [compatModal, setCompatModal] = useState(null); // { hardBlock, message }
+  const [, setMediaTick] = useState(0);
 
   useEffect(() => {
     if (!user?.id) return;
+    prefetchCatalogMedia().then(() => setMediaTick((n) => n + 1)).catch(() => {});
     let cancelled = false;
     (async () => {
       const hydrated = await hydratePlayerPlan(user);
@@ -998,7 +1007,7 @@ function BlockExercisesPanel({ block, accentColor, showBlockVideo = false }) {
             </p>
           ) : (
             (sub.exercises || []).map((ex, i) => (
-              <ExerciseCardClub key={ex.id || i} ex={ex} ytId={getYouTubeId(ex.videoUrl)} accentColor={accentColor} />
+              <ExerciseCardClub key={ex.id || i} ex={ex} ytId={exerciseYouTubeId(ex)} accentColor={accentColor} />
             ))
           )}
         </div>

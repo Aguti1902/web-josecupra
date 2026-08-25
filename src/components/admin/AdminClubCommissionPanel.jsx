@@ -73,6 +73,8 @@ export default function AdminClubCommissionPanel({ club }) {
     totalEarned: 0,
     totalPaid: 0,
     activePlayers: 0,
+    trialPlayers: 0,
+    codeUsers: 0,
     referrals: [],
     payouts: [],
   };
@@ -151,8 +153,11 @@ export default function AdminClubCommissionPanel({ club }) {
           </div>
           <div className="rounded-xl border border-depro-border bg-depro-gray-light/40 p-3">
             <Users size={14} className="text-depro-blue mb-1" />
-            <p className="text-xl font-black text-depro-dark">{stats.activePlayers}</p>
-            <p className="text-[10px] font-bold uppercase text-depro-gray tracking-wide">Jugadores con código</p>
+            <p className="text-xl font-black text-depro-dark">{stats.codeUsers ?? stats.referralCount ?? 0}</p>
+            <p className="text-[10px] font-bold uppercase text-depro-gray tracking-wide">Han usado el código</p>
+            <p className="text-[11px] text-depro-gray mt-1">
+              {stats.activePlayers || 0} activos · {stats.trialPlayers || 0} en prueba gratuita
+            </p>
           </div>
         </div>
       </div>
@@ -205,7 +210,11 @@ export default function AdminClubCommissionPanel({ club }) {
       </div>
 
       <div className="bg-white border border-depro-border rounded-2xl p-5 space-y-3">
-        <h4 className="font-semibold text-depro-dark">Compras con el código</h4>
+        <h4 className="font-semibold text-depro-dark">Jugadores que han usado el código</h4>
+        <p className="text-sm text-depro-gray">
+          Total: <strong className="text-depro-dark">{stats.codeUsers ?? stats.referralCount ?? 0}</strong>
+          {" "}(incluye prueba gratuita).
+        </p>
         {(stats.referrals || []).length === 0 ? (
           <p className="text-sm text-depro-gray py-6 text-center">
             Todavía no hay planificaciones individuales con este código.
@@ -218,8 +227,10 @@ export default function AdminClubCommissionPanel({ club }) {
                   <p className="font-semibold text-depro-dark">{r.playerName || r.playerEmail}</p>
                   <p className="text-xs text-depro-gray mt-0.5">{r.plan || "—"} · {r.month}</p>
                   <p className="text-sm mt-1">
-                    Pagó {formatEuros(r.amountPaid)} → comisión <strong>{formatEuros(r.commission)}</strong>
-                    {r.payoutStatus === "paid" ? " · transferido" : " · pendiente"}
+                    {r.status === "trialing" || !(r.amountPaid > 0)
+                      ? "Periodo gratuito · sin comisión"
+                      : <>Pagó {formatEuros(r.amountPaid)} → comisión <strong>{formatEuros(r.commission)}</strong>
+                        {r.payoutStatus === "paid" ? " · transferido" : " · pendiente"}</>}
                   </p>
                 </div>
               ))}
@@ -245,8 +256,14 @@ export default function AdminClubCommissionPanel({ club }) {
                       <td className="px-4 py-2 text-right font-bold">{formatEuros(r.commission)}</td>
                       <td className="px-4 py-2 text-right text-depro-gray">{r.month}</td>
                       <td className="px-4 py-2 text-right">
-                        <span className={`text-[11px] font-bold ${r.payoutStatus === "paid" ? "text-green-700" : "text-amber-800"}`}>
-                          {r.payoutStatus === "paid" ? "Transferido" : "Pendiente"}
+                        <span className={`text-[11px] font-bold ${
+                          r.status === "trialing" || !(r.amountPaid > 0)
+                            ? "text-amber-800"
+                            : r.payoutStatus === "paid" ? "text-green-700" : "text-amber-800"
+                        }`}>
+                          {r.status === "trialing" || !(r.amountPaid > 0)
+                            ? "Prueba gratuita"
+                            : r.payoutStatus === "paid" ? "Transferido" : "Pendiente"}
                         </span>
                       </td>
                     </tr>

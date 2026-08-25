@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { syncLocalSubscription } from "../../lib/subscription";
-import { activateClubPlayerInSquad, getPlayerClubAssoc } from "../../lib/clubPlayerRegistry";
+import { registerClubCodePlayer, getPlayerClubAssoc, applyClubBrandingToPlayer } from "../../lib/clubPlayerRegistry";
 
 export default function PaymentSuccessPage() {
   const [params] = useSearchParams();
@@ -63,27 +63,27 @@ export default function PaymentSuccessPage() {
           });
 
           const clubId = data.clubId;
-          const teamId = data.teamId;
-          if (clubId && teamId) {
-            activateClubPlayerInSquad({
+          if (clubId) {
+            registerClubCodePlayer({
               userId: data.userId,
               clubId,
-              teamId,
               name: data.name,
               email: data.email,
               plan: data.plan,
+              status: data.subscriptionStatus === "trialing" ? "trialing" : "active",
             });
           } else {
             const assoc = getPlayerClubAssoc(data.userId);
-            if (assoc?.clubId && assoc?.teamId) {
-              activateClubPlayerInSquad({
+            if (assoc?.clubId) {
+              registerClubCodePlayer({
                 userId: data.userId,
                 clubId: assoc.clubId,
-                teamId: assoc.teamId,
                 name: assoc.name || data.name,
                 email: assoc.email || data.email,
                 plan: data.plan || assoc.plan,
+                status: data.subscriptionStatus === "trialing" ? "trialing" : "active",
               });
+              applyClubBrandingToPlayer(data.userId, assoc.clubId);
             }
           }
         }
