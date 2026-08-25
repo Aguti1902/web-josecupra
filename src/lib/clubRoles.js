@@ -2,12 +2,37 @@ export const CLUB_ADMIN_ROLE = "administrador";
 export const CLUB_COORD_ROLE = "coordinador";
 export const CLUB_COACH_ROLES = ["entrenador", "ayudante"];
 
+function normEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+/** Rol de staff: el del listado del club (si existe) manda sobre metadata suelta. */
+export function resolveClubTeamRole(user) {
+  if (!user) return null;
+  const email = normEmail(user.email);
+  const roster = user.club?.users || [];
+  const staff = email || user.id
+    ? roster.find((u) =>
+      (email && normEmail(u.email) === email)
+      || (user.id && String(u.id) === String(user.id))
+    )
+    : null;
+  const fromRoster = staff?.role || staff?.teamRole || staff?.team_role;
+  if (fromRoster) return String(fromRoster).toLowerCase();
+  const declared = user.team_role || user.teamRole;
+  return declared ? String(declared).toLowerCase() : null;
+}
+
 export function isClubAdmin(user) {
-  return user?.role === "club" && user?.team_role === CLUB_ADMIN_ROLE;
+  return user?.role === "club" && resolveClubTeamRole(user) === CLUB_ADMIN_ROLE;
 }
 
 export function isClubCoordinator(user) {
-  return user?.role === "club" && user?.team_role === CLUB_COORD_ROLE;
+  return user?.role === "club" && resolveClubTeamRole(user) === CLUB_COORD_ROLE;
+}
+
+export function isClubCoachStaff(user) {
+  return user?.role === "club" && CLUB_COACH_ROLES.includes(resolveClubTeamRole(user));
 }
 
 export function isWideClubRole(teamRole) {
@@ -51,7 +76,10 @@ export function canSeeClubPricing(user) {
 /** Cuota del club, código de descuento y comisiones de planificaciones individuales. */
 export function canSeeClubEconomy(user) {
   if (!user) return false;
+  // Entrenador / ayudante nunca ven cuota, IBAN ni comisiones.
+  if (isClubCoachStaff(user)) return false;
   if (user.role === "admin") return true;
+  if (user.isSoloCoach || user.club?.isSoloCoach) return false;
   return isClubAdmin(user);
 }
 

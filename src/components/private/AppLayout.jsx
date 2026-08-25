@@ -14,7 +14,7 @@ import { TutorialProvider, useTutorial } from "./DashboardTutorial";
 import AiAssistantWidget from "./AiAssistantWidget";
 import PanelSearch from "../shared/PanelSearch";
 import { getPlanLabel, isInTrial, mustPayToContinue, getTrialDaysLeft, hasFeatureAccess } from "../../lib/subscription";
-import { isClubAdmin, isClubGlobalView, canManageClubBilling, canSeeClubPricing, clubRoleLabel, isProCoachOverview } from "../../lib/clubRoles";
+import { isClubAdmin, isClubGlobalView, canManageClubBilling, canSeeClubPricing, canSeeClubEconomy, clubRoleLabel, isProCoachOverview, resolveClubTeamRole } from "../../lib/clubRoles";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 function luminance(hex) {
@@ -313,7 +313,8 @@ function AppLayoutInner({ children }) {
   const rawSecondary = club?.secondaryColor || "#ffffff";
   const sidebarAccent = visibleOnWhite(rawAccent, visibleOnWhite(rawSecondary, "#0A36F7"));
   const isGlobalClubView = isClubGlobalView(user, viewingTeam);
-  const isClubOverviewRole = user?.team_role === "coordinador" || user?.team_role === "administrador";
+  const staffRole = resolveClubTeamRole(user);
+  const isClubOverviewRole = staffRole === "coordinador" || staffRole === "administrador";
   const coachOverview = isProCoachOverview(user, viewingTeam);
   const isCoordViewingTeam = (isClubOverviewRole && !!viewingTeam) || (isSoloCoach && !!viewingTeam && (user?.club?.teams?.length || 0) > 1);
   const rawNavItems = coachOverview
@@ -327,8 +328,8 @@ function AppLayoutInner({ children }) {
     ? coachNav
     : user?.role === "club"
     ? (isClubAdmin(user) && isGlobalClubView
-        ? administradorNav
-        : (user?.team_role === "coordinador" && isGlobalClubView ? coordinadorNav : entrenadorNav))
+        ? administradorNav.filter((item) => item.to !== "/dashboard/club-economia" || canSeeClubEconomy(user))
+        : (staffRole === "coordinador" && isGlobalClubView ? coordinadorNav : entrenadorNav))
     : playerNav;
   // Staff de academia no ve el catálogo Stripe (va por Economía).
   // ProCoach y jugador sí gestionan extras (equipos, PDF, cargas) en Suscripción.
