@@ -636,13 +636,15 @@ export function AuthProvider({ children }) {
   // ── Refresh user (recargar datos sin nuevo login) ──────────
   const refreshUser = async () => {
     try {
-      await supabase.auth.refreshSession();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      const basic = withImpersonation(buildUser(session.user, null));
+      // getUser() va al servidor: el JWT local no incluye metadata
+      // actualizada por complete-payment (admin updateUserById).
+      const { data, error } = await supabase.auth.getUser();
+      const authUser = data?.user;
+      if (error || !authUser) return;
+      const basic = withImpersonation(buildUser(authUser, null));
       setUser(basic);
-      const profile = await fetchProfile(session.user.id);
-      if (profile) setUser(withImpersonation(buildUser(session.user, profile)));
+      const profile = await fetchProfile(authUser.id);
+      if (profile) setUser(withImpersonation(buildUser(authUser, profile)));
     } catch {}
   };
 

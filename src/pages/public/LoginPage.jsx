@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff,
   Gift, Layers, Sparkles, Loader2, CheckCircle,
@@ -7,6 +7,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import LanguageSwitcher from "../../components/shared/LanguageSwitcher";
+import { panelPathForUser, safeNextPath } from "../../lib/postPaymentAccess";
 
 function GoogleIcon({ size = 18 }) {
   return (
@@ -35,7 +36,9 @@ export default function LoginPage() {
   const [oauthSuccess, setOauthSuccess] = useState(false);
   const { user, login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { t } = useTranslation();
+  const destFor = (u) => safeNextPath(params.get("next"), panelPathForUser(u));
 
   // Detectar retorno de Google OAuth (hash con token)
   useEffect(() => {
@@ -54,13 +57,13 @@ export default function LoginPage() {
       sessionStorage.removeItem("depro_oauth_pending");
       setOauthSuccess(true);
       const timer = setTimeout(() => {
-        navigate(user.role === "admin" ? "/admin" : "/dashboard", { replace: true });
+        navigate(destFor(user), { replace: true });
       }, 2500);
       return () => clearTimeout(timer);
     }
 
-    navigate(user.role === "admin" ? "/admin" : "/dashboard", { replace: true });
-  }, [user, navigate]);
+    navigate(destFor(user), { replace: true });
+  }, [user, navigate, params]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,7 +72,7 @@ export default function LoginPage() {
     const result = await login(email, password);
     setLoading(false);
     if (result.success) {
-      navigate(result.role === "admin" ? "/admin" : "/dashboard");
+      navigate(safeNextPath(params.get("next"), panelPathForUser({ role: result.role })));
     } else {
       setError(result.error ?? t("login.error_default"));
     }

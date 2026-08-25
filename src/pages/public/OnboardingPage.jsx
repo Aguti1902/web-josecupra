@@ -21,6 +21,7 @@ import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeChecko
 import CoachAutoQuestionnaire from "../../components/shared/CoachAutoQuestionnaire";
 import { validateCoachQuestionnaire } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { isClubSelfServeOpen, CLUB_COMING_SOON_COPY } from "../../lib/productAvailability";
+import { markPaymentCompleted } from "../../lib/postPaymentAccess";
 
 const ONBOARDING_STORAGE_KEY = "depro_onboarding";
 const ONBOARDING_DRAFT_KEY = "depro_onboarding_draft_v1";
@@ -1330,7 +1331,10 @@ function StepDone({ plan, form }) {
 
       <div className="grid sm:grid-cols-2 gap-3">
         <button
-          onClick={() => navigate("/login")}
+          onClick={() => {
+            markPaymentCompleted();
+            navigate("/dashboard");
+          }}
           className="btn-primary flex items-center justify-center gap-2"
         >
           Acceder al panel <ChevronRight size={16} />

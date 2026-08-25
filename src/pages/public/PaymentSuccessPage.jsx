@@ -4,6 +4,7 @@ import { CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { syncLocalSubscription } from "../../lib/subscription";
 import { activateClubPlayerInSquad, getPlayerClubAssoc } from "../../lib/clubPlayerRegistry";
+import { loginPathToPanel, markPaymentCompleted, panelPathForUser } from "../../lib/postPaymentAccess";
 
 export default function PaymentSuccessPage() {
   const [params] = useSearchParams();
@@ -12,7 +13,7 @@ export default function PaymentSuccessPage() {
   const { user, login, refreshUser, loading: authLoading } = useAuth();
   const [visible, setVisible] = useState(false);
   const [status, setStatus] = useState({ loading: !!sessionId, redirecting: false, error: null, done: false });
-  const finalizedRef = useRef(false);
+  const succeededRef = useRef(false);
   const userRef = useRef(user);
   const loginRef = useRef(login);
   const refreshUserRef = useRef(refreshUser);
@@ -30,10 +31,20 @@ export default function PaymentSuccessPage() {
       if (!authLoading) setStatus({ loading: false, redirecting: false, error: null, done: true });
       return;
     }
-    if (authLoading || finalizedRef.current) return;
+    if (authLoading || succeededRef.current) return;
 
     let cancelled = false;
-    finalizedRef.current = true;
+
+    async function enterPanel() {
+      markPaymentCompleted();
+      const dest = panelPathForUser(userRef.current);
+      if (userRef.current) {
+        await refreshUserRef.current();
+        if (!cancelled) navigate(dest, { replace: true });
+        return true;
+      }
+      return false;
+    }
 
     async function finalize() {
       setStatus((s) => ({ ...s, loading: true, error: null }));
@@ -48,10 +59,11 @@ export default function PaymentSuccessPage() {
         if (cancelled) return;
 
         if (!data.ok) {
-          finalizedRef.current = false;
           setStatus({ loading: false, redirecting: false, error: data.error || "No se pudo activar tu cuenta", done: true });
           return;
         }
+
+        succeededRef.current = true;
 
         if (data.userId) {
           sessionStorage.setItem("depro_pending_plan_user", data.userId);
@@ -90,16 +102,14 @@ export default function PaymentSuccessPage() {
 
         setStatus({ loading: false, redirecting: true, error: null, done: false });
 
-        if (userRef.current) {
-          await refreshUserRef.current();
-          navigate("/dashboard", { replace: true });
-          return;
-        }
+        if (await enterPanel()) return;
 
         if (data.password && data.email) {
           const result = await loginRef.current(data.email, data.password);
+          if (cancelled) return;
           if (result.success) {
-            navigate("/dashboard", { replace: true });
+            markPaymentCompleted();
+            navigate(panelPathForUser({ role: result.role }), { replace: true });
             return;
           }
         }
@@ -107,12 +117,12 @@ export default function PaymentSuccessPage() {
         setStatus({
           loading: false,
           redirecting: false,
-          error: "Pago confirmado. Inicia sesión con el email que usaste al registrarte.",
+          error: "Pago confirmado. Entra al panel con el email que usaste al registrarte.",
           done: true,
         });
       } catch (e) {
         if (!cancelled) {
-          finalizedRef.current = false;
+          succeededRef.current = false;
           setStatus({ loading: false, redirecting: false, error: e.message, done: true });
         }
       }
@@ -123,6 +133,7 @@ export default function PaymentSuccessPage() {
   }, [sessionId, authLoading, navigate]);
 
   const busy = status.loading || status.redirecting;
+  const panelHref = user ? panelPathForUser(user) : loginPathToPanel();
 
   return (
     <div className="min-h-screen bg-depro-gray-light flex items-center justify-center px-4">
@@ -156,11 +167,12 @@ export default function PaymentSuccessPage() {
 
         {!busy && (
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/login" className="btn-primary flex items-center justify-center gap-2 px-6 py-3">
+            <Link
+              to={panelHref}
+              onClick={markPaymentCompleted}
+              className="btn-primary flex items-center justify-center gap-2 px-6 py-3"
+            >
               Acceder al panel <ArrowRight size={16} />
-            </Link>
-            <Link to="/dashboard" className="btn-ghost flex items-center justify-center gap-2 px-6 py-3">
-              Ir al dashboard
             </Link>
             <Link to="/" className="btn-ghost flex items-center justify-center gap-2 px-6 py-3">
               Volver al inicio
