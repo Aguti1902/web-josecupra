@@ -32,6 +32,23 @@ describe("clubRoles economía", () => {
     assert.equal(canSeeClubPricing(adminClub), false);
   });
 
+  it("entrenador no ve economía aunque la metadata diga administrador", () => {
+    const stale = {
+      role: "club",
+      email: "marcoslopezotero2002@gmail.com",
+      team_role: "administrador",
+      club: {
+        users: [{ email: "marcoslopezotero2002@gmail.com", role: "entrenador" }],
+      },
+    };
+    assert.equal(canSeeClubEconomy(stale), false);
+    assert.equal(isClubAdmin(stale), false);
+  });
+
+  it("ayudante tampoco ve cuota ni comisiones", () => {
+    assert.equal(canSeeClubEconomy({ role: "club", team_role: "ayudante" }), false);
+  });
+
   it("admin DEPRO ve economía y catálogo de precios", () => {
     assert.equal(canSeeClubEconomy(depro), true);
     assert.equal(canSeeClubPricing(depro), true);

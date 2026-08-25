@@ -21,7 +21,7 @@ import { findNextSession, previewExercises, sessionPlanUrl } from "../../lib/ses
 import CoachDashboard from "../../components/private/CoachDashboard";
 import ClubEconomyPanel from "../../components/private/ClubEconomyPanel";
 import ClubPlayersMonitor from "../../components/private/ClubPlayersMonitor";
-import { isClubAdmin } from "../../lib/clubRoles";
+import { canSeeClubEconomy } from "../../lib/clubRoles";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
@@ -1335,7 +1335,7 @@ export default function DashboardPage() {
           accent={accent}
           secondColor={secondColor}
         />
-        {isClubAdmin(user) && !selectedTeam && (
+        {canSeeClubEconomy(user) && !selectedTeam && (
           <ClubEconomyPanel club={club} compact />
         )}
         {(teamRole === "administrador" && !selectedTeam)

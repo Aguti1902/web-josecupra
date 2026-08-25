@@ -3,6 +3,8 @@ import { Wallet, Percent, Landmark, Copy, CheckCircle, CreditCard } from "lucide
 import ClubReferralPanel from "./ClubReferralPanel";
 import { formatManualPrice, adminStatusLabel, normalizeAdminStatus } from "../../lib/adminAccountStatus";
 import { clubDiscountCode, clubCommissionPct, clubPayoutAccount } from "../../lib/clubEconomy";
+import { canSeeClubEconomy } from "../../lib/clubRoles";
+import { useAuth } from "../../context/AuthContext";
 
 function CopyChip({ value, label }) {
   const [copied, setCopied] = useState(false);
@@ -26,6 +28,9 @@ function CopyChip({ value, label }) {
 
 /** Panel económico del administrador del club: cuota, código, comisión e IBAN. */
 export default function ClubEconomyPanel({ club, compact = false }) {
+  const { user } = useAuth();
+  if (!canSeeClubEconomy(user)) return null;
+
   const code = clubDiscountCode(club);
   const pct = clubCommissionPct(club);
   const { iban, accountName } = clubPayoutAccount(club);
