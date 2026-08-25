@@ -23,7 +23,7 @@ export function exerciseNeedsWeight(exercise) {
 export function blockAllowsLoadLogging(blockType) {
   const t = String(blockType || "").toLowerCase();
   if (!t) return true;
-  return t !== "calentamiento" && t !== "vuelta_calma" && t !== "vuelta-calma";
+  return t !== "calentamiento" && t !== "vuelta_calma" && t !== "vuelta-calma" && t !== "activacion";
 }
 
 /** Objetivos medibles con registro en el ejercicio. */

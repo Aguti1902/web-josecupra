@@ -30,6 +30,7 @@ import {
 import { applySplitAlternationToAssignments, validateMuscleCoverage } from "./muscleSplitAlternation.js";
 import { buildSessionPrompt, buildFullPlanPrompt } from "./planAIPrompts.js";
 import { countBlockSlots } from "./planTemplates.js";
+import { resolveExerciseVideo } from "./catalogMedia.js";
 
 export { DAY_ORDER, DAY_SHORT, PLAN_COHERENCE_MESSAGE, checkPlanCompatibility };
 
@@ -142,7 +143,14 @@ function makeExerciseFromV2(ex, ei, blockType) {
     errorsToAvoid: (ex.etiquetas?.contraindicado || ex.lesionesContra)?.length
       ? `Evita si tienes: ${(ex.etiquetas?.contraindicado || ex.lesionesContra).join(", ")}`
       : "No sacrifiques la técnica por añadir carga.",
-    videoUrl: ex.videoUrl || "",
+    videoUrl: resolveExerciseVideo({
+      ...ex,
+      catalogId: ex.id,
+      v2Id: ex.id,
+      name: ex.nombre,
+      nombre: ex.nombre,
+      videoUrl: ex.videoUrl,
+    }) || ex.videoUrl || "",
     blockType,
     blockTags: [],
     slotConstraints: ex.slotConstraints || null,

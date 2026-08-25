@@ -47,6 +47,61 @@ const CORE = block("core", "Core", "6 min", [
   }),
 ]);
 
+/** Activación previa a correr: 1 core + 3 fuerza básica sin material. */
+const ACTIVACION_RESISTENCIA = block("activacion", "Activación", "8-10 min", [
+  slot({
+    rol: "core",
+    patronOr: ["isometrico", "anti_rotacion", "anti_extension", "anti_flexion"],
+    description: "Core",
+    slotId: "res_act_core",
+    volume: { sets: 2, reps: "20–30\"", rest: "30\"", load: "peso corporal" },
+  }),
+  slot({
+    rol: "basico",
+    objetivo: "fuerza",
+    material: "sin_material",
+    description: "Fuerza básica 1",
+    slotId: "res_act_f1",
+    volume: { sets: 2, reps: "8-10", rest: "45\"", load: "peso corporal" },
+  }),
+  slot({
+    rol: "basico",
+    objetivo: "fuerza",
+    material: "sin_material",
+    description: "Fuerza básica 2",
+    slotId: "res_act_f2",
+    volume: { sets: 2, reps: "8-10", rest: "45\"", load: "peso corporal" },
+  }),
+  slot({
+    rol: "basico",
+    objetivo: "fuerza",
+    material: "sin_material",
+    description: "Fuerza básica 3",
+    slotId: "res_act_f3",
+    volume: { sets: 2, reps: "8-10", rest: "45\"", load: "peso corporal" },
+  }),
+]);
+
+/** 2 básicos de fuerza máxima antes del bloque pliométrico. */
+const FUERZA_PREVIA_PLIO = block("principal", "Fuerza máxima", "10 min", [
+  slot({
+    rol: "basico",
+    objetivo: "fuerza",
+    segmento: "tren_inferior",
+    patron: "cadena_anterior",
+    description: "Fuerza máx. anterior",
+    slotId: "pl_fm1",
+  }),
+  slot({
+    rol: "basico",
+    objetivo: "fuerza",
+    segmento: "tren_inferior",
+    patron: "cadena_posterior",
+    description: "Fuerza máx. posterior",
+    slotId: "pl_fm2",
+  }),
+]);
+
 export const SESSION_TEMPLATES = {
   "Fuerza Inferior": {
     templateCode: "F_FUERZA_INF",
@@ -258,6 +313,7 @@ export const SESSION_TEMPLATES = {
     },
     blocks: [
       CALENTAMIENTO_CORTO,
+      ACTIVACION_RESISTENCIA,
       block("principal", "Trabajo aeróbico", "25 min", [
         slot({ rol: "basico", objetivo: "resistencia", patron: "aerobico", description: "Aeróbico", slotId: "ra_p" }),
       ]),
@@ -278,6 +334,7 @@ export const SESSION_TEMPLATES = {
     },
     blocks: [
       CALENTAMIENTO_CORTO,
+      ACTIVACION_RESISTENCIA,
       block("principal", "Umbral", "28 min", [
         slot({ rol: "basico", objetivo: "resistencia", patron: "umbral", description: "Umbral", slotId: "ru_p" }),
       ]),
@@ -298,6 +355,7 @@ export const SESSION_TEMPLATES = {
     },
     blocks: [
       CALENTAMIENTO_CORTO,
+      ACTIVACION_RESISTENCIA,
       block("principal", "Anaeróbico", "25 min", [
         slot({ rol: "basico", objetivo: "resistencia", patron: "anaerobico", description: "Anaeróbico", slotId: "rn_p" }),
       ]),
@@ -331,6 +389,7 @@ SESSION_TEMPLATES.Pliometría = {
   templateCode: "F_PLIO",
   blocks: [
     CALENTAMIENTO_CORTO,
+    FUERZA_PREVIA_PLIO,
     block("complementario", "Pliometría", "20 min", [
       slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 1", slotId: "pl_1" }),
       slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 2", slotId: "pl_2" }),

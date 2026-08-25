@@ -72,6 +72,28 @@ function loadOverrides() {
   }
 }
 
+function cleanVolume(volume) {
+  if (!volume || typeof volume !== "object") return null;
+  const sets = volume.sets != null && String(volume.sets).trim() !== "" ? String(volume.sets).trim() : null;
+  const reps = volume.reps != null && String(volume.reps).trim() !== "" ? String(volume.reps).trim() : null;
+  const rest = volume.rest != null && String(volume.rest).trim() !== "" ? String(volume.rest).trim() : null;
+  const load = volume.load != null && String(volume.load).trim() !== "" ? String(volume.load).trim() : null;
+  if (!sets && !reps && !rest && !load) return null;
+  const out = {};
+  if (sets) out.sets = sets;
+  if (reps) out.reps = reps;
+  if (rest) out.rest = rest;
+  if (load) out.load = load;
+  return out;
+}
+
+function ensureOverrideBlock(overrides, sessionType, blockIndex) {
+  if (!overrides[sessionType]) overrides[sessionType] = { blocks: [], v2Blocks: [] };
+  if (!overrides[sessionType].v2Blocks) overrides[sessionType].v2Blocks = [];
+  if (!overrides[sessionType].v2Blocks[blockIndex]) overrides[sessionType].v2Blocks[blockIndex] = {};
+  return overrides[sessionType].v2Blocks[blockIndex];
+}
+
 export function saveTemplateOverrides(overrides) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
 }
@@ -83,13 +105,16 @@ export function getTemplate(sessionType) {
   if (isV2Template(base)) {
     if (!overrides?.v2Blocks) return base;
     const blocks = base.blocks.map((b, i) => {
-      const slotQtys = overrides.v2Blocks[i]?.slotQtys;
-      if (!slotQtys || !Array.isArray(b.slots)) return b;
+      const ov = overrides.v2Blocks[i] || {};
+      const slotQtys = ov.slotQtys;
+      const volume = cleanVolume(ov.volume);
+      if ((!slotQtys && !volume) || !Array.isArray(b.slots)) return b;
       return {
         ...b,
         slots: b.slots.map((s, si) => ({
           ...s,
-          qty: Math.max(1, slotQtys[si] != null ? slotQtys[si] : (s.qty || 1)),
+          qty: Math.max(1, slotQtys?.[si] != null ? slotQtys[si] : (s.qty || 1)),
+          volume: volume ? { ...(s.volume || {}), ...volume } : s.volume,
         })),
       };
     });
@@ -127,11 +152,27 @@ export function updateTemplateBlockSlots(sessionType, blockIndex, slots) {
     const slotQtys = [...existing];
     const lastIdx = Math.max(0, slotQtys.length - 1);
     slotQtys[lastIdx] = Math.max(1, slotQtys[lastIdx] + delta);
-    if (!overrides[sessionType].v2Blocks) overrides[sessionType].v2Blocks = [];
-    overrides[sessionType].v2Blocks[blockIndex] = { slotQtys };
+    const prev = ensureOverrideBlock(overrides, sessionType, blockIndex);
+    overrides[sessionType].v2Blocks[blockIndex] = { ...prev, slotQtys };
   } else {
     if (!overrides[sessionType].blocks) overrides[sessionType].blocks = [];
     overrides[sessionType].blocks[blockIndex] = { slots };
+  }
+  saveTemplateOverrides(overrides);
+}
+
+/** Guarda series / reps / descanso de un bloque (se aplica a todos sus slots). */
+export function updateTemplateBlockVolume(sessionType, blockIndex, volume) {
+  const base = PLAYER_TEMPLATES[sessionType] || PLAYER_TEMPLATES["Fuerza Inferior"];
+  if (!isV2Template(base) || !base.blocks?.[blockIndex]) return;
+  const overrides = loadOverrides();
+  const prev = ensureOverrideBlock(overrides, sessionType, blockIndex);
+  const cleaned = cleanVolume(volume);
+  if (!cleaned) {
+    const { volume: _drop, ...rest } = prev;
+    overrides[sessionType].v2Blocks[blockIndex] = rest;
+  } else {
+    overrides[sessionType].v2Blocks[blockIndex] = { ...prev, volume: cleaned };
   }
   saveTemplateOverrides(overrides);
 }

@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { EXERCISES, TAGS } from "../../data/exercises";
 import { CATALOG_FOLDERS } from "../../data/extraExercises";
+import { getYouTubeId } from "../../lib/youtube";
+import { invalidateCatalogMediaCache } from "../../lib/catalogMedia";
 
 /* ── Helpers ──────────────────────────────────────────────── */
 const CATALOG_OVERRIDES_KEY = "depro_catalog_overrides";
@@ -21,17 +23,20 @@ function saveCustomExercises(list) {
   localStorage.setItem(CATALOG_CUSTOM_KEY, JSON.stringify(list));
 }
 
-function getYouTubeId(url) {
-  if (!url) return null;
-  const m = url.match(/(?:youtu\.be\/|v=|\/embed\/)([A-Za-z0-9_-]{11})/);
-  return m ? m[1] : null;
-}
-
 function loadOverrides() {
   try { return JSON.parse(localStorage.getItem(CATALOG_OVERRIDES_KEY) || "{}"); }
   catch { return {}; }
 }
+
 async function fetchOverridesFromCloud() {
+  try {
+    const r = await fetch(`/api/admin-clubs?id=${encodeURIComponent(CATALOG_CLOUD_ID)}`);
+    if (r.ok) {
+      const data = await r.json();
+      const entry = (data.clubs || [])[0];
+      if (entry?.overrides) return entry.overrides;
+    }
+  } catch { /* ignore */ }
   try {
     const r = await fetch("/api/admin-clubs");
     if (!r.ok) return null;
@@ -365,6 +370,7 @@ export default function AdminCatalogPage({ embedded = false }) {
       if (cloud && Object.keys(cloud).length > 0) {
         setOverrides(cloud);
         localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(cloud));
+        invalidateCatalogMediaCache();
       }
     });
   }, []);
@@ -375,11 +381,23 @@ export default function AdminCatalogPage({ embedded = false }) {
   }, [searchParams]);
 
   // Guardar override de un ejercicio
-  const handleSaveOverride = (exerciseId, data) => {
+  const handleSaveOverride = (exerciseId, data, exercise = null) => {
     const updated = { ...overrides, [exerciseId]: { ...overrides[exerciseId], ...data } };
+    const aliases = new Set([String(exerciseId)]);
+    const ex = exercise || allExercises.find((e) => String(e.id) === String(exerciseId));
+    if (ex?.v2Id != null) {
+      aliases.add(String(ex.v2Id));
+      aliases.add(`v2_${ex.v2Id}`);
+    }
+    const raw = String(exerciseId);
+    if (raw.startsWith("v2_")) aliases.add(raw.replace(/^v2_/, "").split("_")[0]);
+    else if (/^\d+$/.test(raw)) aliases.add(`v2_${raw}`);
+    for (const key of aliases) {
+      updated[key] = { ...updated[key], ...data };
+    }
     setOverrides(updated);
-    // Auto-save silencioso
     localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(updated));
+    invalidateCatalogMediaCache();
     saveOverridesToCloud(updated).catch(() => {});
   };
 
@@ -721,7 +739,7 @@ export default function AdminCatalogPage({ embedded = false }) {
         <ExerciseEditModal
           exercise={editing}
           override={overrides[editing.id]}
-          onSave={(data) => handleSaveOverride(editing.id, data)}
+          onSave={(data) => handleSaveOverride(editing.id, data, editing)}
           onClose={() => setEditing(null)}
         />
       )}

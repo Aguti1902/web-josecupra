@@ -39,4 +39,20 @@ describe("sessionBlocks · core del motor", () => {
     const blocks = getNonEmptyBlocks(session);
     assert.ok(blocks.some((b) => b.type === "core" && b.exercises[0].name === "Plancha frontal"));
   });
+
+  it("conserva bloques repetidos y labels de plantilla (Velocidad)", () => {
+    const session = {
+      title: "Velocidad",
+      blocks: [
+        { type: "calentamiento", label: "Warm-up", exercises: [{ name: "Movilidad" }] },
+        { type: "principal", label: "Fuerza máxima", exercises: [{ name: "Sentadilla" }, { name: "Peso muerto" }] },
+        { type: "complementario", label: "Pliometría", exercises: [{ name: "Pogos" }] },
+        { type: "principal", label: "Velocidad", exercises: [{ name: "Aceleración" }, { name: "COD" }] },
+      ],
+    };
+    const blocks = getNonEmptyBlocks(session);
+    assert.deepEqual(blocks.map((b) => b.label), ["Warm-up", "Fuerza máxima", "Pliometría", "Velocidad"]);
+    assert.equal(blocks.filter((b) => b.type === "principal").length, 2);
+    assert.ok(blocks.some((b) => b.label === "Velocidad" && b.exercises.some((ex) => ex.name === "COD")));
+  });
 });
