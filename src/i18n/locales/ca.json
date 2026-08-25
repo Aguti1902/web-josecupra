@@ -382,6 +382,8 @@
     "banner_title": "Prova gratuïta · et queden {{days}} dies",
     "banner_desc": "Algunes seccions estan limitades durant la prova. Millora el teu pla per desbloquejar-ho tot.",
     "banner_cta": "Veure plans",
+    "skip_cta": "Saltar la prova i activar-ho tot",
+    "skip_desc": "Si saltes la prova es cobra el pla ara i tens PDF, registres i tot el contractat. Ja no veuràs el panell de prova.",
     "watermark": "PROVA DEPRO",
     "unlock": "Desbloquejar",
     "view_plans": "Veure subscripció"

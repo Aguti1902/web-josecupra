@@ -416,12 +416,16 @@ export function getWeightLogs(userId, { exerciseName = null, limit = 50 } = {}) 
 export function getMaxWeightByWeek(userId) {
   const byWeek = {};
   getWeightLogs(userId).forEach((log) => {
-    const d = new Date(log.recordedAt || Date.now());
-    const day = d.getDay() || 7;
-    const mon = new Date(d);
-    mon.setDate(d.getDate() - day + 1);
-    const key = mon.toISOString().slice(0, 10);
-    byWeek[key] = Math.max(byWeek[key] || 0, log.weightNum);
+    try {
+      const d = new Date(log.recordedAt || Date.now());
+      if (Number.isNaN(d.getTime())) return;
+      const day = d.getDay() || 7;
+      const mon = new Date(d);
+      mon.setDate(d.getDate() - day + 1);
+      if (Number.isNaN(mon.getTime())) return;
+      const key = mon.toISOString().slice(0, 10);
+      byWeek[key] = Math.max(byWeek[key] || 0, log.weightNum);
+    } catch { /* fecha sucia: no tumbar ranking */ }
   });
   return Object.entries(byWeek)
     .sort(([a], [b]) => a.localeCompare(b))

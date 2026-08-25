@@ -127,7 +127,7 @@ export default function SubscriptionPage() {
     const res = await activateSubscriptionNow(user);
     setActivateLoading(false);
     if (res.ok) {
-      syncLocalSubscription(user.id, { plan: user.plan, status: "active", trialEndsAt: null });
+      syncLocalSubscription(user.id, { plan: user.plan, status: "active", trialEndsAt: null, skippedTrial: true });
       setMsg({ type: "ok", text: t("subscription.activate_success") });
       await refreshUser();
     } else {
@@ -167,7 +167,7 @@ export default function SubscriptionPage() {
     const activateRes = await activateSubscriptionNow({ ...user, plan: planId });
     setPlanSwitchLoading(null);
     if (activateRes.ok) {
-      syncLocalSubscription(user.id, { plan: planId, status: "active", trialEndsAt: null });
+      syncLocalSubscription(user.id, { plan: planId, status: "active", trialEndsAt: null, skippedTrial: true });
       setMsg({ type: "ok", text: t("subscription.activate_success") });
       await refreshUser();
     } else {
@@ -266,7 +266,7 @@ export default function SubscriptionPage() {
               <p className="font-black text-orange-950 text-lg">
                 {t("trial.banner_title", { days: daysLeft })}
               </p>
-              <p className="text-sm text-orange-800">{t("subscription.trial_explainer")}</p>
+              <p className="text-sm text-orange-800">{t("trial.skip_desc")}</p>
             </div>
           </div>
           <div className="flex flex-col sm:items-end gap-2">
@@ -283,7 +283,7 @@ export default function SubscriptionPage() {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-bold hover:bg-orange-700 disabled:opacity-50"
             >
               {activateLoading ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-              {t("subscription.activate_now")}
+              {t("trial.skip_cta")}
             </button>
           </div>
         </div>

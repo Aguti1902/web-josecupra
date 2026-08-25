@@ -4,6 +4,9 @@ import { FEATURES, planIncludesFeature, upsellPlanForFeature } from "./planFeatu
 import { isClubAdmin } from "./clubRoles";
 import { evaluateFeatureAccess } from "./featureAccess";
 import { isProCoachUser } from "./clubAuto/clubAutoCoachBridge";
+import { mergeSubscriptionState } from "./subscriptionState";
+
+export { mergeSubscriptionState };
 
 const STORAGE_PREFIX = "depro_subscription_";
 export const TRIAL_PERIOD_DAYS = 15;
@@ -71,7 +74,8 @@ export function syncLocalSubscription(userId, data) {
   saveLocalSubscription(userId, {
     plan: data.plan,
     status: data.status || data.subscriptionStatus || "trialing",
-    trialEndsAt: data.trialEndsAt || null,
+    trialEndsAt: data.trialEndsAt ?? null,
+    skippedTrial: !!data.skippedTrial || data.status === "active",
     stripeSubscriptionId: data.stripeSubscriptionId || null,
     billingSource: data.billingSource || "stripe",
     purchasedAddons: data.purchasedAddons || [],
@@ -92,17 +96,7 @@ export function getSubscriptionFromUser(user) {
   const meta = user;
   const plan = meta.plan || local?.plan || null;
   if (!plan && !meta.stripeSubscriptionId && meta.billingSource !== "stripe") return null;
-
-  const status = meta.subscriptionStatus || local?.status || (meta.trialEndsAt ? "trialing" : "active");
-  return {
-    plan: plan || local?.plan || "player-essential",
-    status,
-    cancelAt: meta.subscriptionCancelAt || local?.cancelAt || null,
-    trialEndsAt: meta.trialEndsAt || local?.trialEndsAt || null,
-    billingSource: meta.billingSource || local?.billingSource || null,
-    stripeSubscriptionId: meta.stripeSubscriptionId || local?.stripeSubscriptionId || null,
-    purchasedAddons: meta.purchasedAddons || local?.purchasedAddons || [],
-  };
+  return mergeSubscriptionState(meta, local);
 }
 
 export function isSubscriptionActive(sub) {
@@ -130,8 +124,10 @@ export function isManualBilling(user) {
 
 export function isInTrial(user) {
   if (!user || isManualBilling(user)) return false;
+  if (user.skippedTrial) return false;
   const sub = getSubscriptionFromUser(user);
-  if (!sub) return false;
+  if (!sub || sub.skippedTrial) return false;
+  if (sub.status === "active" || sub.status === "activo") return false;
 
   const trialEnd = sub.trialEndsAt ? new Date(sub.trialEndsAt) : null;
   const trialActive = trialEnd ? trialEnd > new Date() : false;
@@ -258,6 +254,7 @@ export async function activateSubscriptionNow(user) {
       plan: data.plan || user.plan,
       status: "active",
       trialEndsAt: null,
+      skippedTrial: true,
       stripeSubscriptionId: user.stripeSubscriptionId,
     });
     return { ok: true };

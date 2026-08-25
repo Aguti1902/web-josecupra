@@ -48,7 +48,7 @@ export default function RankingCharts({ weightWeeks, topExercises, friendsProfil
       value: p.stats.maxWeight,
     }));
 
-  const exerciseData = topExercises.map((ex) => ({
+  const exerciseData = (topExercises || []).map((ex) => ({
     label: ex.name.length > 12 ? `${ex.name.slice(0, 10)}…` : ex.name,
     value: ex.max,
   }));

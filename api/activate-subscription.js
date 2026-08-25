@@ -29,6 +29,7 @@ export default async function handler(req, res) {
         ...meta,
         subscriptionStatus: updated.status === "trialing" ? "active" : updated.status,
         trialEndsAt: null,
+        skippedTrial: true,
       },
     });
 

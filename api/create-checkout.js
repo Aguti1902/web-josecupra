@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem, planHasCheckoutTrial } from "./_planCatalog.js";
+import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem } from "./_planCatalog.js";
+import { checkoutUsesTrial } from "../src/lib/checkoutPlans.js";
 import { buildAddonLineItem, getAddonDef } from "./_addonCatalog.js";
 import { getStripe, getSiteUrl } from "./_stripeClient.js";
 import { SUPABASE_SERVICE_ROLE_FALLBACK } from "./_serviceRoleKey.js";
@@ -32,8 +33,9 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
   const lesionArr = formData?.lesion || [];
   const subArr = formData?.lesionSubtipo || [];
   const dispArr = formData?.disponibles || [];
-  // Prueba gratis 15 días: Standard jugador y Standard entrenador. Premium y clubs se cobran al confirmar.
-  const withTrial = planHasCheckoutTrial(planId);
+  // Prueba gratis 15 días: Standard jugador y Standard entrenador, salvo que pidan saltarla.
+  const skipTrial = formData?.skipTrial === true || formData?.skipTrial === "true" || formData?.skipTrial === "1";
+  const withTrial = checkoutUsesTrial(planId, skipTrial);
 
   const subscriptionData = {
     metadata: {
@@ -86,6 +88,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
       authUserId: formData?.authUserId || "",
       tempPassword,
       billingSource: "stripe",
+      skipTrial: skipTrial ? "1" : "",
       // Colores (hex cortos; el escudo va en localStorage, no cabe en metadata)
       primaryColor: formData?.primaryColor || "",
       secondaryColor: formData?.secondaryColor || "",

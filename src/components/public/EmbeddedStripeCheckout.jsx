@@ -26,8 +26,9 @@ export default function EmbeddedStripeCheckout({ planId, formData, onError, clas
       ? [...formData.selectedAddons].sort().join(",")
       : "";
     const clubCode = formData?.clubCode || "";
-    return `${planId || ""}|${addons}|${clubCode}|r${retryNonce}`;
-  }, [planId, formData?.selectedAddons, formData?.clubCode, retryNonce]);
+    const skip = formData?.skipTrial ? "1" : "0";
+    return `${planId || ""}|${addons}|${clubCode}|skip${skip}|r${retryNonce}`;
+  }, [planId, formData?.selectedAddons, formData?.clubCode, formData?.skipTrial, retryNonce]);
 
   useEffect(() => {
     let cancelled = false;
