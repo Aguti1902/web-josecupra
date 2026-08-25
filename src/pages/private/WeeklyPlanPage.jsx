@@ -38,6 +38,7 @@ import { getSessionBlocks, getNonEmptyBlocks, BLOCK_LABELS, BLOCK_COLORS, ADMIN_
 import { WeekCalendar, PlayerSessionFullscreen, MesoMonthCalendar } from "../../components/private/PlayerPlanUI";
 import { resolveBlockGuideItems } from "../../lib/blockGuideItems";
 import { getYouTubeId, youtubeEmbedUrl, youtubeThumbUrl } from "../../lib/youtube";
+import { prefetchCatalogMedia, exerciseYouTubeId } from "../../lib/catalogMedia";
 const Youtube = PlayCircle;
 
 const intensityColor = { Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
@@ -60,7 +61,7 @@ function ConditionPill({ Icon, label, color = "#6B7280" }) {
    MODAL EJERCICIO (jugador)
 ───────────────────────────────────────────── */
 function ExerciseModal({ exercise, onClose, accent }) {
-  const ytId = getYouTubeId(exercise.videoUrl);
+  const ytId = exerciseYouTubeId(exercise);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -99,7 +100,7 @@ function ExerciseModal({ exercise, onClose, accent }) {
         )}
 
         {exercise.description && (
-          <p className="text-depro-gray leading-relaxed mb-5 text-sm">{exercise.description}</p>
+          <p className="text-depro-gray leading-relaxed mb-5 text-sm">{String(exercise.description).replace(/sin_material/g, "sin material")}</p>
         )}
         {/* Tips técnicos (3-5 bullets) */}
         {exercise.tips && (
@@ -154,7 +155,7 @@ function BlockExerciseList({ exercises, accentColor, onSelect }) {
   return (
     <div className="space-y-2">
       {exercises.map((ex, i) => {
-        const ytId = getYouTubeId(ex.videoUrl);
+        const ytId = exerciseYouTubeId(ex);
         return (
           <button key={i} onClick={() => onSelect(ex)}
             className="w-full flex items-center gap-3 p-3 rounded-xl bg-depro-gray-light hover:bg-depro-blue-light border border-transparent hover:border-blue-100 transition-all text-left group"
@@ -380,9 +381,11 @@ function PlayerWeeklyPlan({ accent }) {
   const [view, setView]       = useState("micro"); // "micro" | "meso"
   const [minimalSession, setMinimalSession] = useState(null);
   const [compatModal, setCompatModal] = useState(null); // { hardBlock, message }
+  const [, setMediaTick] = useState(0);
 
   useEffect(() => {
     if (!user?.id) return;
+    prefetchCatalogMedia().then(() => setMediaTick((n) => n + 1)).catch(() => {});
     let cancelled = false;
     (async () => {
       const hydrated = await hydratePlayerPlan(user);
@@ -1004,7 +1007,7 @@ function BlockExercisesPanel({ block, accentColor, showBlockVideo = false }) {
             </p>
           ) : (
             (sub.exercises || []).map((ex, i) => (
-              <ExerciseCardClub key={ex.id || i} ex={ex} ytId={getYouTubeId(ex.videoUrl)} accentColor={accentColor} />
+              <ExerciseCardClub key={ex.id || i} ex={ex} ytId={exerciseYouTubeId(ex)} accentColor={accentColor} />
             ))
           )}
         </div>

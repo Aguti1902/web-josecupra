@@ -4,7 +4,7 @@ import {
   Layers, Pause, Repeat2, Target, Video, Wind, X, RefreshCw,
 } from "lucide-react";
 import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS, blockDisplayLabel, blockNavId } from "../../lib/sessionBlocks";
-import { getYouTubeId } from "../../lib/youtube";
+import { prefetchCatalogMedia, exerciseYouTubeId } from "../../lib/catalogMedia";
 import { saveLoadLog } from "../../lib/loadLogs";
 import {
   loadFieldsForExercise,
@@ -55,7 +55,7 @@ function isBodyweightExercise(exercise) {
 }
 
 function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap, swapTooltip }) {
-  const ytId = getYouTubeId(exercise.videoUrl);
+  const ytId = exerciseYouTubeId(exercise);
   const typedExercise = {
     ...exercise,
     blockType,
@@ -172,7 +172,7 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
           </div>
         )}
         {exercise.description && (
-          <p className="text-depro-gray leading-relaxed mb-5 text-sm">{exercise.description}</p>
+          <p className="text-depro-gray leading-relaxed mb-5 text-sm">{String(exercise.description).replace(/sin_material/g, "sin material")}</p>
         )}
         {exercise.tips && (
           <div className="rounded-xl p-4 border mb-4" style={{ backgroundColor: accent + "08", borderColor: accent + "20" }}>
@@ -350,7 +350,7 @@ function BlockExerciseList({ exercises, accentColor, onSelect }) {
   return (
     <div className="space-y-2">
       {exercises.map((ex, i) => {
-        const ytId = getYouTubeId(ex.videoUrl);
+        const ytId = exerciseYouTubeId(ex);
         return (
           <button key={ex.id || i} type="button" onClick={() => onSelect(ex)}
             className="w-full flex items-center gap-3 p-3 rounded-xl bg-white hover:bg-depro-blue-light border border-depro-border hover:border-blue-100 transition-all text-left group">
@@ -519,6 +519,11 @@ export function PlayerSessionFullscreen({
   const [sessionRpe, setSessionRpe] = useState("");
   const [sessionRpeSaved, setSessionRpeSaved] = useState(false);
   const [sessionRpeNotice, setSessionRpeNotice] = useState("");
+  const [, setMediaTick] = useState(0);
+
+  useEffect(() => {
+    prefetchCatalogMedia().then(() => setMediaTick((n) => n + 1)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     setCompletion(isDone ? 100 : 0);
