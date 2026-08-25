@@ -15,13 +15,14 @@ describe("adminGlobalBlobs", () => {
 
   it("GLOBAL_PLANS solo guarda id, name y plans", () => {
     const payload = buildMetaClubPayload(
-      { id: "GLOBAL_PLANS", name: "Global Plans", plans: [{ id: "mc1" }], payoutIban: "ES00" },
+      { id: "GLOBAL_PLANS", name: "Global Plans", plans: [{ id: "mc1" }], payoutIban: "ES00", updatedAt: 123 },
       { referralCommissionPct: 10 },
     );
     assert.deepEqual(payload, {
       id: "GLOBAL_PLANS",
       name: "Global Plans",
       plans: [{ id: "mc1" }],
+      updatedAt: 123,
     });
   });
 

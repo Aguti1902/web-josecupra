@@ -8,6 +8,7 @@ import {
   canViewClubReferrals,
   isProCoachOverview,
   isClubGlobalView,
+  canEditClubTeam,
 } from "./clubRoles.js";
 
 describe("clubRoles economía", () => {
@@ -66,5 +67,14 @@ describe("clubRoles economía", () => {
       isSoloCoach: true,
       club: { isSoloCoach: true, teams: [{ id: "a" }] },
     }, null), false);
+  });
+
+  it("coordinador edita un equipo concreto como el entrenador", () => {
+    const team = { id: "t1", name: "Alevín A" };
+    assert.equal(canEditClubTeam(coord, team), true);
+    assert.equal(canEditClubTeam(coord, null), false);
+    assert.equal(canEditClubTeam(coach, null), true);
+    assert.equal(canEditClubTeam(adminClub, team), true);
+    assert.equal(canEditClubTeam(adminClub, null), false);
   });
 });

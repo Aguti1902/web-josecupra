@@ -35,6 +35,15 @@ export function isClubCoachStaff(user) {
   return user?.role === "club" && CLUB_COACH_ROLES.includes(resolveClubTeamRole(user));
 }
 
+/** Al entrar en un equipo, coordinador/admin editan igual que el entrenador. */
+export function canEditClubTeam(user, viewingTeam) {
+  if (!user) return false;
+  const role = user.team_role;
+  if (role === "entrenador" || role === "ayudante") return true;
+  if (isWideClubRole(role) && viewingTeam) return true;
+  return false;
+}
+
 export function isWideClubRole(teamRole) {
   return teamRole === CLUB_ADMIN_ROLE || teamRole === CLUB_COORD_ROLE;
 }

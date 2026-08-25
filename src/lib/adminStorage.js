@@ -7,7 +7,7 @@
  *  3. Si localStorage está vacío se intenta Supabase como seed inicial
  */
 import { supabase } from "./supabase.js";
-import { clonePlans } from "./clubManualPlans.js";
+import { clonePlans, writeLocalGlobalPlans } from "./clubManualPlans.js";
 import { describeCloudSaveError } from "./adminGlobalBlobs.js";
 
 const AUTH_TIMEOUT_MS = 4000;
@@ -391,12 +391,22 @@ export async function saveClubDetail(clubId, data) {
 /** Una sola fuente de verdad para clubs academia (llevados por mí y automáticos). */
 export async function persistGlobalPlans(plans) {
   const list = clonePlans(plans);
-  lsSet("depro_global_plans", list);
+  const updatedAt = Date.now();
+  const localWrite = writeLocalGlobalPlans(list, updatedAt);
   const result = await apiClubs("POST", {
-    club: { id: "GLOBAL_PLANS", name: "Global Plans", plans: list },
+    club: { id: "GLOBAL_PLANS", name: "Global Plans", plans: list, updatedAt },
   });
   if (!result.ok && !result.data?.error) {
     result.data = { ...(result.data || {}), error: describeCloudSaveError(result) };
+  }
+  if (!localWrite.ok) {
+    result.localQuotaFailed = true;
+    if (result.ok) {
+      result.data = {
+        ...(result.data || {}),
+        warning: "La nube se actualizó, pero el navegador no pudo guardar la copia local (cuota llena).",
+      };
+    }
   }
   return result;
 }

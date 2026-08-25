@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ClipboardList, Plus, X, Save, Shield, CheckCircle, Users,
   Flame, Dumbbell, BarChart2, ChevronDown, ChevronUp, PencilRuler,
@@ -21,6 +21,7 @@ import {
 } from "../../lib/mesocycleTemplates";
 import { persistGlobalPlans } from "../../lib/adminStorage";
 import { describeCloudSaveError } from "../../lib/adminGlobalBlobs";
+import { readLocalGlobalPlans, ingestRemoteGlobalPlans } from "../../lib/clubManualPlans";
 
 /* ── Constantes globales ─────────────────────────────────── */
 const AGE_BLOCKS = [
@@ -50,12 +51,10 @@ function getYouTubeId(url) {
 }
 
 /* ── Almacenamiento global ───────────────────────────────── */
-const STORAGE_KEY = "depro_global_plans";
 const GLOBAL_CLUB_ID = "GLOBAL_PLANS";
 
 function loadGlobalPlans() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
-  catch { return []; }
+  return readLocalGlobalPlans().plans;
 }
 
 async function saveGlobalPlans(plans) {
@@ -64,6 +63,9 @@ async function saveGlobalPlans(plans) {
     if (!result.ok) {
       console.warn("[DEPRO] saveGlobalPlans API error", result.data?.error);
       return { ok: false, error: describeCloudSaveError(result) };
+    }
+    if (result.localQuotaFailed) {
+      return { ok: true, error: result.data?.warning || null };
     }
     return { ok: true };
   } catch (e) {
@@ -666,21 +668,29 @@ export default function AdminPlanificacionPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncSaved, setSyncSaved] = useState(false);
   const [syncError, setSyncError] = useState("");
+  const dirtyRef = useRef(false);
+  const loadGenRef = useRef(0);
 
-  // Cargar desde API al montar (cross-device) — Supabase es fuente de verdad
+  // Cargar desde API al montar. Nunca pisar lo que el admin acaba de escribir.
   useEffect(() => {
+    const gen = ++loadGenRef.current;
     async function loadFromCloud() {
       try {
         const r = await fetch(`/api/admin-clubs?id=${encodeURIComponent(GLOBAL_CLUB_ID)}`);
         if (!r.ok) return;
         const data = await r.json();
         const clubs = data.clubs || [];
-
-        // Plans globales
         const globalEntry = clubs.find((c) => c.id === GLOBAL_CLUB_ID);
-        if (globalEntry?.plans && globalEntry.plans.length > 0) {
-          setPlans(globalEntry.plans);
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(globalEntry.plans)); } catch { /* cuota */ }
+        if (gen !== loadGenRef.current || dirtyRef.current) return;
+        const picked = ingestRemoteGlobalPlans(
+          globalEntry?.plans,
+          globalEntry?.updatedAt,
+          { dirty: dirtyRef.current },
+        );
+        if (gen !== loadGenRef.current || dirtyRef.current) return;
+        setPlans(picked.plans);
+        if (picked.source === "local-newer" || picked.source === "local-richer") {
+          if (picked.plans.length) saveGlobalPlans(picked.plans);
         }
       } catch (e) { console.warn("[DEPRO] loadFromCloud error", e); }
     }
@@ -688,8 +698,18 @@ export default function AdminPlanificacionPage() {
   }, []);
 
   const persist = (newPlans) => {
+    dirtyRef.current = true;
+    loadGenRef.current += 1;
     setPlans(newPlans);
-    saveGlobalPlans(newPlans);
+    setSyncError("");
+    saveGlobalPlans(newPlans).then((result) => {
+      if (result.ok) {
+        setSyncSaved(true);
+        setTimeout(() => setSyncSaved(false), 2500);
+      } else {
+        setSyncError(result.error || "No se pudo guardar en la nube. El contenido sigue en este navegador.");
+      }
+    });
   };
 
   const addMicrocycle = (mc) => persist([...plans, normalizeMesocycle({ ...mc, sessions: mc.sessions || [] })]);
