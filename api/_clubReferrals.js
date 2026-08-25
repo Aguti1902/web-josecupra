@@ -50,7 +50,8 @@ export function summarizeReferrals(clubData) {
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + (p.amount || 0), 0);
   const pending = Math.max(0, totalEarned - totalPaid);
-  const activePlayers = referrals.filter((r) => r.status === "active").length;
+  const trialPlayers = referrals.filter((r) => referralPlayerStatus(r) === "trialing").length;
+  const activePlayers = referrals.filter((r) => referralPlayerStatus(r) === "active").length;
   const thisMonth = monthKey();
   const monthPending = referrals
     .filter((r) => r.month === thisMonth && r.payoutStatus !== "paid")
@@ -63,10 +64,75 @@ export function summarizeReferrals(clubData) {
     pending,
     monthPending,
     activePlayers,
+    trialPlayers,
+    codeUsers: referrals.length,
     referralCount: referrals.length,
     referrals: referrals.slice().reverse(),
     payouts: payouts.slice().reverse(),
   };
+}
+
+export function referralPlayerStatus(entry) {
+  if (!entry) return "active";
+  if (entry.status === "trialing") return "trialing";
+  if (entry.status === "active") return "active";
+  if ((Number(entry.amountPaid) || 0) <= 0) return "trialing";
+  return entry.status || "active";
+}
+
+function samePlayer(entry, playerId, playerEmail) {
+  if (playerId && entry.playerId && entry.playerId === playerId) return true;
+  const a = String(entry.playerEmail || "").trim().toLowerCase();
+  const b = String(playerEmail || "").trim().toLowerCase();
+  return Boolean(a && b && a === b);
+}
+
+/** Añade o actualiza un referido en el bucket (incluye periodo gratuito). */
+export function upsertReferralInBucket(bucket, payload, commissionPct) {
+  const amountPaidCents = Math.max(0, Number(payload.amountPaidCents) || 0);
+  const isTrial = amountPaidCents <= 0;
+  const commission = isTrial ? 0 : commissionCents(amountPaidCents, commissionPct);
+  const dedupeKey = payload.stripeInvoiceId || payload.stripeSessionId;
+  if (dedupeKey && (bucket.referrals || []).some((r) => r.stripeInvoiceId === dedupeKey || r.stripeSessionId === dedupeKey)) {
+    return { ok: true, duplicate: true };
+  }
+
+  const existing = (bucket.referrals || []).find((r) => samePlayer(r, payload.playerId, payload.playerEmail));
+  if (existing && isTrial) {
+    return { ok: true, duplicate: true, entry: existing };
+  }
+  if (existing && !isTrial && referralPlayerStatus(existing) === "trialing") {
+    existing.amountPaid = amountPaidCents;
+    existing.commission = commission;
+    existing.status = "active";
+    existing.payoutStatus = "pending";
+    existing.plan = payload.plan || existing.plan;
+    existing.stripeInvoiceId = payload.stripeInvoiceId || existing.stripeInvoiceId;
+    existing.stripeSessionId = payload.stripeSessionId || existing.stripeSessionId;
+    existing.convertedAt = new Date().toISOString();
+    return { ok: true, upgraded: true, entry: existing };
+  }
+
+  const entry = {
+    id: `ref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    clubCode: payload.clubCode || "",
+    playerEmail: payload.playerEmail || "",
+    playerName: payload.playerName || payload.playerEmail?.split("@")[0] || "Jugador",
+    playerId: payload.playerId || "",
+    plan: payload.plan || "",
+    amountPaid: amountPaidCents,
+    commission,
+    month: monthKey(),
+    payoutStatus: isTrial ? "none" : "pending",
+    status: isTrial ? "trialing" : "active",
+    stripeInvoiceId: payload.stripeInvoiceId || null,
+    stripeSessionId: payload.stripeSessionId || null,
+    createdAt: new Date().toISOString(),
+  };
+
+  bucket.referrals = bucket.referrals || [];
+  bucket.referrals.push(entry);
+  return { ok: true, entry };
 }
 
 export async function recordReferralPayment(admin, {
@@ -80,39 +146,27 @@ export async function recordReferralPayment(admin, {
   stripeInvoiceId,
   stripeSessionId,
 }) {
-  if (!clubId || !amountPaidCents || amountPaidCents <= 0) return { ok: false, reason: "invalid_input" };
+  if (!clubId) return { ok: false, reason: "invalid_input" };
 
   const registry = await loadReferralRegistry(admin);
   const club = await loadClubEconomy(admin, clubId);
   const bucket = ensureClubBucket(registry, clubId);
   const rate = clubCommissionRate(club);
   bucket.commissionRate = rate;
-  const commission = commissionCents(amountPaidCents, clubCommissionPct(club));
-  const dedupeKey = stripeInvoiceId || stripeSessionId;
-  if (dedupeKey && bucket.referrals.some((r) => r.stripeInvoiceId === dedupeKey || r.stripeSessionId === dedupeKey)) {
-    return { ok: true, duplicate: true };
-  }
+  const result = upsertReferralInBucket(bucket, {
+    clubCode,
+    playerEmail,
+    playerName,
+    playerId,
+    plan,
+    amountPaidCents,
+    stripeInvoiceId,
+    stripeSessionId,
+  }, clubCommissionPct(club));
 
-  const entry = {
-    id: `ref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    clubCode: clubCode || "",
-    playerEmail: playerEmail || "",
-    playerName: playerName || playerEmail?.split("@")[0] || "Jugador",
-    playerId: playerId || "",
-    plan: plan || "",
-    amountPaid: amountPaidCents,
-    commission,
-    month: monthKey(),
-    payoutStatus: "pending",
-    status: "active",
-    stripeInvoiceId: stripeInvoiceId || null,
-    stripeSessionId: stripeSessionId || null,
-    createdAt: new Date().toISOString(),
-  };
-
-  bucket.referrals.push(entry);
+  if (result.duplicate) return result;
   await saveReferralRegistry(admin, registry);
-  return { ok: true, entry };
+  return result;
 }
 
 export async function markReferralPayout(admin, clubId, { amount, month, note, iban, markPaid = true }) {

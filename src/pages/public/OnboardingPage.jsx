@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { registerPendingClubPlayer } from "../../lib/clubPlayerRegistry";
+import { registerClubCodePlayer } from "../../lib/clubPlayerRegistry";
 import {
   ArrowLeft, ArrowRight, CheckCircle, Zap, Trophy, User, Mail, Calendar,
   Target, AlertCircle, Shield, Lock,
@@ -418,12 +418,10 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
   const isPremiumPlayer = audience === "player" && (planId === "player-pro" || planId === "premium");
   const isPlayer = audience === "player";
   const email = loggedInEmail || form.email;
-  const [clubTeams, setClubTeams] = useState([]);
   const [clubCodeMsg, setClubCodeMsg] = useState("");
 
   const resolveClubFromCode = (codeRaw) => {
     if (!codeRaw?.trim()) {
-      setClubTeams([]);
       setClubCodeMsg("");
       setForm((f) => ({ ...f, clubId: "", clubTeamId: "" }));
       return true;
@@ -433,19 +431,11 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
       const code = codeRaw.trim().toUpperCase();
       const found = clubs.find((c) => clubMatchesDiscountCode(c, code));
       if (!found) {
-        setClubTeams([]);
         setClubCodeMsg("Código no encontrado");
         return false;
       }
-      const detail = JSON.parse(localStorage.getItem(`depro_club_${found.id}`) || "null");
-      const teams = detail?.teams || found.teams || [];
-      if (teams.length === 0) {
-        setClubCodeMsg("Este club aún no tiene equipos configurados");
-        return false;
-      }
-      setClubTeams(teams);
-      setClubCodeMsg(`Club encontrado: ${found.name}`);
-      setForm((f) => ({ ...f, clubId: found.id, clubTeamId: f.clubTeamId || teams[0]?.id || "" }));
+      setClubCodeMsg(`Club encontrado: ${found.name}. Se aplica el descuento y la identidad visual, sin asignarte a un equipo.`);
+      setForm((f) => ({ ...f, clubId: found.id, clubTeamId: "" }));
       return true;
     } catch {
       setClubCodeMsg("No se pudo validar el código");
@@ -463,14 +453,13 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
     if (!q.ok) missing.push("cuestionario de equipo / microciclo");
   }
   // Código de club inválido: aviso, pero no bloquea el avance (se puede quitar)
-  const clubCodeBlocking = !!(form.clubCode?.trim() && !(form.clubId && form.clubTeamId));
+  const clubCodeBlocking = !!(form.clubCode?.trim() && !form.clubId);
   const valid = missing.length === 0;
 
   const handleNext = () => {
     if (clubCodeBlocking) {
       // No bloquear el cuestionario por un código mal escrito
       setForm((f) => ({ ...f, clubCode: "", clubId: "", clubTeamId: "" }));
-      setClubTeams([]);
       setClubCodeMsg("Código no válido: continuamos sin descuento de club.");
     }
     setForm((f) => ({
@@ -495,7 +484,6 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
 
   const clearClubCode = () => {
     setForm((f) => ({ ...f, clubCode: "", clubId: "", clubTeamId: "" }));
-    setClubTeams([]);
     setClubCodeMsg("");
   };
 
@@ -589,7 +577,6 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
                 type="text" value={form.clubCode}
                 onChange={(e) => {
                   setForm((f) => ({ ...f, clubCode: e.target.value.toUpperCase(), clubId: "", clubTeamId: "" }));
-                  setClubTeams([]);
                   setClubCodeMsg("");
                 }}
                 onBlur={() => { if (form.clubCode?.trim()) resolveClubFromCode(form.clubCode); }}
@@ -608,26 +595,6 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
                 </button>
               )}
             </div>
-
-            {clubTeams.length > 0 && (
-              <div>
-                <label className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-1.5 block">
-                  Equipo dentro del club *
-                </label>
-                <select
-                  value={form.clubTeamId || ""}
-                  onChange={(e) => setForm((f) => ({ ...f, clubTeamId: e.target.value }))}
-                  className="admin-input w-full"
-                >
-                  {clubTeams.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name} · {t.category}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-depro-gray mt-1.5">
-                  Tras el pago entrarás en la plantilla de este equipo con el escudo y banner del club.
-                </p>
-              </div>
-            )}
           </>
         ) : (
           <>
@@ -1016,16 +983,16 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
   const effectiveAddons = showAddons ? selectedAddons : [];
 
   useEffect(() => {
-    if (!authUserId || !form.clubId || !form.clubTeamId) return;
-    registerPendingClubPlayer({
+    if (!authUserId || !form.clubId) return;
+    registerClubCodePlayer({
       userId: authUserId,
       clubId: form.clubId,
-      teamId: form.clubTeamId,
       name: form.nombre,
       email: form.email,
       plan: plan?.id,
+      status: "pending",
     });
-  }, [authUserId, form.clubId, form.clubTeamId, form.nombre, form.email, plan?.id]);
+  }, [authUserId, form.clubId, form.nombre, form.email, plan?.id]);
   const addonsTotal = effectiveAddons.reduce((sum, id) => sum + (cartAddons.find((a) => a.id === id)?.price || 0), 0);
 
   const toggleAddon = (id) => {

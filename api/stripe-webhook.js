@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     const clubId = meta?.clubId || "";
     const clubCode = meta?.clubCode || "";
     const audience = meta?.audience || "player";
-    if (!clubId || !clubCode || audience !== "player" || !amountPaidCents) return;
+    if (!clubId || !clubCode || audience !== "player") return;
 
     await recordReferralPayment(supabaseAdmin, {
       clubId,
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
       playerName: meta.nombre || meta.name || "",
       playerId: meta.authUserId || "",
       plan: meta.plan || "",
-      amountPaidCents,
+      amountPaidCents: Number(amountPaidCents) || 0,
       stripeInvoiceId,
       stripeSessionId,
     });
@@ -78,9 +78,7 @@ export default async function handler(req, res) {
       case "checkout.session.completed": {
         const session = event.data.object;
         await syncCheckoutSession(supabaseAdmin, session);
-        if (session.amount_total > 0) {
-          await trackReferralFromMeta(session.metadata || {}, session.amount_total, null, session.id);
-        }
+        await trackReferralFromMeta(session.metadata || {}, session.amount_total || 0, null, session.id);
         if (session.subscription) {
           const subId = typeof session.subscription === "string"
             ? session.subscription

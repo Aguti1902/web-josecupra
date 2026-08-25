@@ -3,7 +3,7 @@ import {
   ArrowLeft, CheckCircle, Clock, Dumbbell, FileText, Flame, Gauge, Info,
   Layers, Pause, Repeat2, Target, Video, Wind, X, RefreshCw,
 } from "lucide-react";
-import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS } from "../../lib/sessionBlocks";
+import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS, blockDisplayLabel, blockNavId } from "../../lib/sessionBlocks";
 import { getYouTubeId } from "../../lib/youtube";
 import { saveLoadLog } from "../../lib/loadLogs";
 import {
@@ -617,15 +617,17 @@ export function PlayerSessionFullscreen({
           {blocks.map((block, bi) => {
             const cfg = BLOCK_CONFIG[block.type] || { label: block.label, Icon: Layers, color: accentColor };
             const BIcon = cfg.Icon;
+            const title = blockDisplayLabel(block) || cfg.label;
+            const navId = blockNavId(block, bi);
             return (
-              <section key={block.type} id={`block-${block.type}`}>
+              <section key={navId} id={`block-${navId}`}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center border"
                     style={{ backgroundColor: cfg.color + "18", borderColor: cfg.color + "25" }}>
                     <BIcon size={18} style={{ color: cfg.color }} />
                   </div>
                   <div>
-                    <h2 className="font-black text-depro-dark">{cfg.label}</h2>
+                    <h2 className="font-black text-depro-dark">{title}</h2>
                     <p className="text-xs text-depro-gray">{block.exercises.length} ejercicios</p>
                   </div>
                 </div>

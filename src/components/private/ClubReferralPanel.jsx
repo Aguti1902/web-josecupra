@@ -84,6 +84,8 @@ export default function ClubReferralPanel({
     monthPending: 0,
     totalEarned: 0,
     activePlayers: 0,
+    trialPlayers: 0,
+    codeUsers: 0,
     referralCount: 0,
     referrals: [],
     payouts: [],
@@ -117,9 +119,11 @@ export default function ClubReferralPanel({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         {[
-          { label: "Jugadores con código", value: stats.activePlayers, icon: Users },
+          { label: "Han usado el código", value: stats.codeUsers ?? stats.referralCount ?? 0, icon: Users },
+          { label: "Periodo gratuito", value: stats.trialPlayers ?? 0, icon: Gift },
+          { label: "Activos (de pago)", value: stats.activePlayers, icon: CheckCircle },
           { label: "Comisión pendiente", value: formatEuros(stats.pending), icon: Wallet },
           { label: "Este mes", value: formatEuros(stats.monthPending), icon: TrendingUp },
           { label: "Total generado", value: formatEuros(stats.totalEarned), icon: Gift },
@@ -187,7 +191,9 @@ export default function ClubReferralPanel({
             {stats.referrals.slice(0, 8).map((r) => (
               <div key={r.id} className="rounded-xl border border-depro-border bg-white p-3 text-sm">
                 <div className="font-semibold text-depro-dark">{r.playerName || r.playerEmail}</div>
-                <div className="text-xs text-depro-gray mt-0.5">{r.plan} · {formatEuros(r.commission)}</div>
+                <div className="text-xs text-depro-gray mt-0.5">
+                  {r.plan} · {r.status === "trialing" || !(r.amountPaid > 0) ? "Periodo gratuito" : formatEuros(r.commission)}
+                </div>
               </div>
             ))}
           </div>
@@ -197,6 +203,7 @@ export default function ClubReferralPanel({
                 <tr>
                   <th className="text-left px-4 py-2">Jugador</th>
                   <th className="text-left px-4 py-2">Plan</th>
+                  <th className="text-left px-4 py-2">Estado</th>
                   <th className="text-right px-4 py-2">Comisión</th>
                   <th className="text-right px-4 py-2">Mes</th>
                 </tr>
@@ -206,6 +213,11 @@ export default function ClubReferralPanel({
                   <tr key={r.id} className="border-t border-depro-border">
                     <td className="px-4 py-2">{r.playerName || r.playerEmail}</td>
                     <td className="px-4 py-2 text-depro-gray">{r.plan || "—"}</td>
+                    <td className="px-4 py-2">
+                      <span className={`text-[11px] font-bold ${r.status === "trialing" || !(r.amountPaid > 0) ? "text-amber-700" : "text-green-700"}`}>
+                        {r.status === "trialing" || !(r.amountPaid > 0) ? "Periodo gratuito" : "Activo"}
+                      </span>
+                    </td>
                     <td className="px-4 py-2 text-right font-bold">{formatEuros(r.commission)}</td>
                     <td className="px-4 py-2 text-right text-depro-gray">{r.month}</td>
                   </tr>
