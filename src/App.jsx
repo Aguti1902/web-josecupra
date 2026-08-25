@@ -1,10 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminProvider } from "./context/AdminContext";
 import { ViewProvider } from "./context/ViewContext";
 import { shouldForceSetup } from "./lib/questionnaireState";
 import { isDraftLoginBlocked } from "./lib/adminAccountStatus";
+import { panelPathForUser, safeNextPath, shouldBlockDashboardForUnpaid } from "./lib/postPaymentAccess";
 import { getImpersonationSnapshot, stopImpersonation } from "./lib/adminImpersonation";
 import ImpersonationGuard from "./components/ImpersonationGuard";
 import PWAInstallBanner from "./components/PWAInstallBanner";
@@ -109,13 +110,17 @@ function LoadingScreen() {
 
 function ClientRoute({ children }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    const next = encodeURIComponent(`${location.pathname}${location.search}`);
+    return <Navigate to={`/login?next=${next}`} replace />;
+  }
   if (user.role !== "admin" && !user.impersonating && isDraftLoginBlocked(user.subscriptionStatus)) {
     return <Navigate to="/login" replace />;
   }
-  // Usuarios Google/legacy marcados como pendingPayment no deben entrar al panel sin pagar
-  if (user.pendingPayment === true && !user.impersonating) {
+  // Google/legacy sin pagar → cuestionario. Tras Stripe no echar al inicio/comprar.
+  if (shouldBlockDashboardForUnpaid(user)) {
     return <Navigate to="/comprar" replace />;
   }
   const viewAs = typeof sessionStorage !== "undefined" && sessionStorage.getItem("depro_view_as");
@@ -155,16 +160,11 @@ function ClubSetupRoute({ children }) {
   return children;
 }
 
-function loginHome(user) {
-  if (user.impersonating) return "/dashboard";
-  if (user.role === "admin" || String(user.email || "").toLowerCase() === "jose@depro.es") return "/admin";
-  return "/dashboard";
-}
-
 function LoginRedirect() {
   const { user, loading } = useAuth();
+  const [params] = useSearchParams();
   if (loading) return <LoadingScreen />;
-  if (user) return <Navigate to={loginHome(user)} replace />;
+  if (user) return <Navigate to={safeNextPath(params.get("next"), panelPathForUser(user))} replace />;
   return <LoginPage />;
 }
 

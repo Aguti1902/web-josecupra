@@ -1,5 +1,10 @@
 import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
+import {
+  authUpdateAfterCheckout,
+  loginPasswordFromCheckout,
+  withPaymentActivated,
+} from "../src/lib/postPaymentAccess.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -82,6 +87,7 @@ export default async function handler(req, res) {
         coachAuto: meta.coachAuto || "",
         // Premium: rutina pendiente de intervención humana
         planPendingManual: meta.plan === "player-pro" || meta.plan === "premium",
+        pendingPayment: false,
       };
 
       const selectedAddons = meta.selectedAddons
@@ -99,13 +105,16 @@ export default async function handler(req, res) {
         if (!byId?.user) return res.status(404).json({ error: "Usuario no encontrado" });
         userId = byId.user.id;
         const purchasedAddons = mergeAddons(byId.user.user_metadata?.purchasedAddons);
-        await supabaseAdmin.auth.admin.updateUserById(userId, {
-          user_metadata: {
-            ...byId.user.user_metadata,
-            ...userMeta,
-            ...(purchasedAddons ? { purchasedAddons } : {}),
-          },
-        });
+        await supabaseAdmin.auth.admin.updateUserById(
+          userId,
+          authUpdateAfterCheckout({
+            prevMeta: byId.user.user_metadata,
+            userMeta,
+            purchasedAddons,
+            // No pisar la contraseña de una cuenta ya autenticada (Google / sesión previa).
+            tempPassword: "",
+          }),
+        );
       } else {
         const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
         const found = existing?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
@@ -113,22 +122,24 @@ export default async function handler(req, res) {
         if (found) {
           userId = found.id;
           const purchasedAddons = mergeAddons(found.user_metadata?.purchasedAddons);
-          await supabaseAdmin.auth.admin.updateUserById(found.id, {
-            user_metadata: {
-              ...found.user_metadata,
-              ...userMeta,
-              ...(purchasedAddons ? { purchasedAddons } : {}),
-            },
-          });
+          await supabaseAdmin.auth.admin.updateUserById(
+            found.id,
+            authUpdateAfterCheckout({
+              prevMeta: found.user_metadata,
+              userMeta,
+              purchasedAddons,
+              tempPassword: meta.tempPassword || "",
+            }),
+          );
         } else {
           const purchasedAddons = mergeAddons([]);
           const { data, error } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
-            user_metadata: {
+            user_metadata: withPaymentActivated({
               ...userMeta,
               ...(purchasedAddons ? { purchasedAddons } : {}),
-            },
+            }),
             email_confirm: true,
           });
           if (error) return res.status(400).json({ error: error.message });
@@ -146,7 +157,11 @@ export default async function handler(req, res) {
       created,
       userId,
       email,
-      password: created ? password : null,
+      password: loginPasswordFromCheckout({
+        created,
+        tempPassword: authUserId ? "" : meta.tempPassword,
+        generatedPassword: password,
+      }),
       plan: meta.plan,
       clubId: meta.clubId || "",
       teamId: meta.teamId || "",

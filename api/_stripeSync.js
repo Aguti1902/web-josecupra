@@ -26,6 +26,7 @@ function subscriptionPayload(sub, extra = {}) {
     stripeCustomerId: typeof sub.customer === "string" ? sub.customer : sub.customer?.id,
     trialEndsAt,
     billingSource: "stripe",
+    pendingPayment: false,
     ...extra,
   };
 
@@ -115,6 +116,7 @@ export async function syncCheckoutSession(supabaseAdmin, session) {
     stripeCustomerId: customerId,
     trialEndsAt,
     billingSource: "stripe",
+    pendingPayment: false,
     objetivo: meta.objetivo || "",
     objetivoSecundario: meta.objetivoSecundario || "",
     objetivos: meta.objetivos ? meta.objetivos.split("|") : (meta.objetivoSecundario ? [meta.objetivo, meta.objetivoSecundario].filter(Boolean) : meta.objetivo ? [meta.objetivo] : []),
