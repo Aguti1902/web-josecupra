@@ -8,6 +8,7 @@ export const ADMIN_BLOCK_TYPES = ["calentamiento", "principal"];
 
 export const BLOCK_LABELS = {
   calentamiento:  "Calentamiento",
+  activacion:     "Activación",
   principal:      "Principal",
   complementario: "Complementario",
   core:           "Core",
@@ -16,14 +17,34 @@ export const BLOCK_LABELS = {
 
 export const BLOCK_COLORS = {
   calentamiento:  "#F59E0B",
+  activacion:     "#F97316",
   principal:      "#3B82F6",
   complementario: "#8B5CF6",
   core:           "#EC4899",
   vuelta_calma:   "#10B981",
 };
 
+/** Nombre visible: el de la plantilla, no la categoría genérica. */
+export function blockDisplayLabel(block) {
+  const label = String(block?.label || "").trim();
+  if (label) return label;
+  return BLOCK_LABELS[block?.type] || block?.type || "Bloque";
+}
+
+/** Id estable para pestañas cuando hay varios bloques del mismo type. */
+export function blockNavId(block, index) {
+  const slug = String(block?.label || block?.type || "block")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `b${index}-${slug || block?.type || "x"}`;
+}
+
 const DEFAULT_DURATIONS = {
   calentamiento:  "10 min",
+  activacion:     "8 min",
   principal:      "30 min",
   complementario: "15 min",
   core:           "6 min",
@@ -101,18 +122,18 @@ export function adminSessionBlocks(existingBlocks) {
 }
 
 /** Obtiene bloques de una sesión guardada (blocks o legacy exercises).
- *  Incluye tipos conocidos + cualquier bloque extra con ejercicios (p. ej. futuros).
+ *  Si hay session.blocks, se respeta el orden, los nombres y los bloques
+ *  repetidos de la plantilla (p. ej. dos "principal": Fuerza máxima y Velocidad).
  */
 export function getSessionBlocks(session) {
   if (session?.blocks?.length) {
-    const known = BLOCK_TYPES.map((type) => {
-      const found = session.blocks.find((b) => b.type === type);
-      return found ? normalizeBlock(found) : normalizeBlock({ type, exercises: [] });
-    });
-    const extras = session.blocks
-      .filter((b) => b?.type && !BLOCK_TYPES.includes(b.type) && (b.exercises?.length || b.subSessions?.length))
-      .map((b) => normalizeBlock(b));
-    return [...known, ...extras];
+    return session.blocks
+      .filter((b) => b && (b.type || b.label || b.exercises?.length || b.subSessions?.length))
+      .map((b) => normalizeBlock({
+        ...b,
+        type: b.type || "principal",
+        label: b.label || BLOCK_LABELS[b.type] || b.type,
+      }));
   }
   const all = session?.exercises || [];
   if (all.some((ex) => ex.blockType)) {

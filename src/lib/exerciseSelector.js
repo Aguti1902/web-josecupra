@@ -139,6 +139,15 @@ export function matchSlotTags(ex, slot = {}) {
   }
   if (slot.rol && !matchesAllScalars(slot.rol, et.rol)) return false;
   if (slot.intensidad && !matchesAllScalars(slot.intensidad, et.intensidad)) return false;
+  if (slot.material) {
+    const needed = asArray(slot.material).map((m) => String(m).toLowerCase());
+    const wantsBody = needed.some((m) => /sin.?material|peso.?corporal|bodyweight/.test(m));
+    if (wantsBody) {
+      if (!isBodyweightMaterial(et.material)) return false;
+    } else if (!matchesAny(needed, et.material)) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -330,8 +339,8 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
   return pickFrom(pool, userProfile, slot, usedExerciseIds, seedExtra);
 }
 
-function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensity = null) {
-  if (blockType === "calentamiento" || blockType === "vuelta_calma") {
+export function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensity = null) {
+  if (blockType === "calentamiento" || blockType === "vuelta_calma" || blockType === "activacion") {
     return { sets: 1, reps: "30–60\"", rest: "30\"", load: null };
   }
   if (adaptedIntensity === "media" && objective === "fuerza") {
@@ -395,7 +404,8 @@ export function fillBlockSlots(block, userProfile, sessionUsedIds = [], sessionU
       );
 
       if (exercise) {
-        const vol = slot.volume || getVolume(userProfile.experiencia, block.type, objective, adapted);
+        const fallback = getVolume(userProfile.experiencia, block.type, objective, adapted);
+        const vol = slot.volume ? { ...fallback, ...slot.volume } : fallback;
         exercises.push({
           ...exercise,
           slotDescription: slot.description,
@@ -562,4 +572,5 @@ export default {
   normalizeMaterialList,
   materialMatches,
   getExercisesByPattern,
+  getVolume,
 };

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Save, Minus, Plus, Layers, ChevronDown, ChevronUp } from "lucide-react";
-import { getAllTemplates, updateTemplateBlockSlots, PLAYER_TEMPLATES, countBlockSlots, isV2Template } from "../../lib/planTemplates";
+import { getAllTemplates, updateTemplateBlockSlots, updateTemplateBlockVolume, PLAYER_TEMPLATES, countBlockSlots, isV2Template } from "../../lib/planTemplates";
 import { SESSION_INTENSITY } from "../../lib/planLoadRules";
 
 const INTENSITY_COLOR = {
@@ -45,12 +45,23 @@ const CANONICAL_IDS = new Set([
   "Sesión mínima", "Pliometría", "Isométricos",
 ]);
 
+function firstVolume(block) {
+  const slots = Array.isArray(block?.slots) ? block.slots : [];
+  const vol = slots.find((s) => s?.volume)?.volume || {};
+  return {
+    sets: vol.sets != null ? String(vol.sets) : "",
+    reps: vol.reps != null ? String(vol.reps) : "",
+    rest: vol.rest != null ? String(vol.rest) : "",
+  };
+}
+
 function TemplateCard({ template, onUpdate }) {
   const v2 = isV2Template(template);
   const [open, setOpen] = useState(false);
   const [localSlots, setLocalSlots] = useState(() =>
     template.blocks.map((b) => (v2 ? countBlockSlots(b) : b.slots))
   );
+  const [localVolume, setLocalVolume] = useState(() => template.blocks.map(firstVolume));
   const [saved, setSaved] = useState(false);
   const intensityKey = (
     SESSION_INTENSITY[template.id] || template.intensityLevel || template.intensity || "media"
@@ -65,8 +76,20 @@ function TemplateCard({ template, onUpdate }) {
     setSaved(false);
   };
 
+  const changeVolume = (idx, field, value) => {
+    setLocalVolume((prev) => {
+      const next = [...prev];
+      next[idx] = { ...(next[idx] || { sets: "", reps: "", rest: "" }), [field]: value };
+      return next;
+    });
+    setSaved(false);
+  };
+
   const handleSave = () => {
     localSlots.forEach((slots, i) => updateTemplateBlockSlots(template.id, i, slots));
+    if (v2) {
+      localVolume.forEach((vol, i) => updateTemplateBlockVolume(template.id, i, vol));
+    }
     onUpdate();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -116,6 +139,37 @@ function TemplateCard({ template, onUpdate }) {
                 <p className="text-xs text-depro-gray whitespace-normal break-words">
                   {block.duration} · {slotSummary(block)}
                 </p>
+                {v2 && (
+                  <div className="grid grid-cols-3 gap-2 mt-2 max-w-md">
+                    <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">
+                      Series
+                      <input
+                        className="mt-0.5 w-full border border-depro-border rounded-lg px-2 py-1.5 text-xs text-depro-dark font-semibold"
+                        placeholder="3"
+                        value={localVolume[i]?.sets || ""}
+                        onChange={(e) => changeVolume(i, "sets", e.target.value)}
+                      />
+                    </label>
+                    <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">
+                      Reps / rango
+                      <input
+                        className="mt-0.5 w-full border border-depro-border rounded-lg px-2 py-1.5 text-xs text-depro-dark font-semibold"
+                        placeholder="4-6"
+                        value={localVolume[i]?.reps || ""}
+                        onChange={(e) => changeVolume(i, "reps", e.target.value)}
+                      />
+                    </label>
+                    <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">
+                      Descanso
+                      <input
+                        className="mt-0.5 w-full border border-depro-border rounded-lg px-2 py-1.5 text-xs text-depro-dark font-semibold"
+                        placeholder="3 min"
+                        value={localVolume[i]?.rest || ""}
+                        onChange={(e) => changeVolume(i, "rest", e.target.value)}
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button type="button" onClick={() => changeSlot(i, -1)} className="w-8 h-8 rounded-lg border border-depro-border flex items-center justify-center hover:bg-depro-gray-light">
@@ -137,7 +191,7 @@ function TemplateCard({ template, onUpdate }) {
             {saved ? "Guardado" : "Guardar cambios"}
           </button>
           <p className="text-xs text-depro-gray text-center pt-1">
-            Ajusta el nº de ejercicios por bloque. Los filtros AND del slot (rol / patrón / segmento) no se editan aquí.
+            Ajusta el nº de ejercicios, series, repeticiones (p. ej. 4-6) y descansos (p. ej. 3 min). Vacío = según nivel del jugador.
           </p>
         </div>
       )}
