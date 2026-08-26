@@ -1,5 +1,6 @@
 import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
+import { recordClubCodeSignup } from "./_clubReferrals.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -139,6 +140,21 @@ export default async function handler(req, res) {
     } catch (adminErr) {
       console.error("complete-payment supabase:", adminErr.message);
       return res.status(500).json({ error: adminErr.message || "Error al activar la cuenta" });
+    }
+
+    if (meta.clubId && meta.clubCode) {
+      try {
+        await recordClubCodeSignup(getSupabaseAdmin(), {
+          clubId: meta.clubId,
+          clubCode: meta.clubCode,
+          playerEmail: email,
+          playerName: name,
+          playerId: userId,
+          plan: meta.plan,
+          status: subscriptionStatus === "trialing" ? "trialing" : "active",
+          stripeSessionId: sessionId,
+        });
+      } catch { /* trazabilidad best-effort */ }
     }
 
     return res.status(200).json({

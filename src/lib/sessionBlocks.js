@@ -22,6 +22,24 @@ export const BLOCK_COLORS = {
   vuelta_calma:   "#10B981",
 };
 
+/** Nombre visible: el de la plantilla, no la categoría genérica (principal / complementario). */
+export function blockDisplayLabel(block) {
+  const label = String(block?.label || "").trim();
+  if (label) return label;
+  return BLOCK_LABELS[block?.type] || block?.type || "Bloque";
+}
+
+/** Id estable para pestañas cuando hay varios bloques del mismo type. */
+export function blockNavId(block, index) {
+  const slug = String(block?.label || block?.type || "block")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `b${index}-${slug || block?.type || "x"}`;
+}
+
 const DEFAULT_DURATIONS = {
   calentamiento:  "10 min",
   principal:      "30 min",
@@ -101,18 +119,19 @@ export function adminSessionBlocks(existingBlocks) {
 }
 
 /** Obtiene bloques de una sesión guardada (blocks o legacy exercises).
- *  Incluye tipos conocidos + cualquier bloque extra con ejercicios (p. ej. futuros).
+ *  Si hay session.blocks, se copia tal cual: orden, nombres y bloques repetidos
+ *  de la plantilla (p. ej. dos "principal": Fuerza máxima y Velocidad).
+ *  No se reagrupa ni se sustituye por calentamiento / principal / complementario.
  */
 export function getSessionBlocks(session) {
   if (session?.blocks?.length) {
-    const known = BLOCK_TYPES.map((type) => {
-      const found = session.blocks.find((b) => b.type === type);
-      return found ? normalizeBlock(found) : normalizeBlock({ type, exercises: [] });
-    });
-    const extras = session.blocks
-      .filter((b) => b?.type && !BLOCK_TYPES.includes(b.type) && (b.exercises?.length || b.subSessions?.length))
-      .map((b) => normalizeBlock(b));
-    return [...known, ...extras];
+    return session.blocks
+      .filter((b) => b && (b.type || b.label || b.exercises?.length || b.subSessions?.length))
+      .map((b) => normalizeBlock({
+        ...b,
+        type: b.type || "principal",
+        label: b.label || BLOCK_LABELS[b.type] || b.type,
+      }));
   }
   const all = session?.exercises || [];
   if (all.some((ex) => ex.blockType)) {

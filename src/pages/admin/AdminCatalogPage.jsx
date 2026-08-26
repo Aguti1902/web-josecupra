@@ -7,10 +7,14 @@ import {
 } from "lucide-react";
 import { EXERCISES, TAGS } from "../../data/exercises";
 import { CATALOG_FOLDERS } from "../../data/extraExercises";
+import { getYouTubeId } from "../../lib/youtube";
+import { invalidateCatalogMediaCache } from "../../lib/catalogMedia";
+import { hideCatalogExercise } from "../../lib/exerciseSelector";
 
 /* ── Helpers ──────────────────────────────────────────────── */
 const CATALOG_OVERRIDES_KEY = "depro_catalog_overrides";
 const CATALOG_CUSTOM_KEY = "depro_catalog_custom_exercises";
+const CATALOG_HIDDEN_KEY = "depro_catalog_hidden_ids";
 const CATALOG_CLOUD_ID = "CATALOG_OVERRIDES";
 
 function loadCustomExercises() {
@@ -21,10 +25,9 @@ function saveCustomExercises(list) {
   localStorage.setItem(CATALOG_CUSTOM_KEY, JSON.stringify(list));
 }
 
-function getYouTubeId(url) {
-  if (!url) return null;
-  const m = url.match(/(?:youtu\.be\/|v=|\/embed\/)([A-Za-z0-9_-]{11})/);
-  return m ? m[1] : null;
+function loadHiddenIds() {
+  try { return JSON.parse(localStorage.getItem(CATALOG_HIDDEN_KEY) || "[]"); }
+  catch { return []; }
 }
 
 function loadOverrides() {
@@ -32,6 +35,14 @@ function loadOverrides() {
   catch { return {}; }
 }
 async function fetchOverridesFromCloud() {
+  try {
+    const r = await fetch(`/api/admin-clubs?id=${encodeURIComponent(CATALOG_CLOUD_ID)}`);
+    if (r.ok) {
+      const data = await r.json();
+      const entry = (data.clubs || [])[0];
+      if (entry?.overrides) return entry.overrides;
+    }
+  } catch { /* ignore */ }
   try {
     const r = await fetch("/api/admin-clubs");
     if (!r.ok) return null;
@@ -353,10 +364,11 @@ export default function AdminCatalogPage({ embedded = false }) {
   const [adding, setAdding]     = useState(false);
   const [syncing, setSyncing]   = useState(false);
   const [saved, setSaved]       = useState(false);
+  const [hiddenIds, setHiddenIds] = useState(loadHiddenIds);
 
   const allExercises = useMemo(
-    () => [...EXERCISES, ...customExercises],
-    [customExercises],
+    () => [...EXERCISES, ...customExercises].filter((e) => !hiddenIds.map(String).includes(String(e.id))),
+    [customExercises, hiddenIds],
   );
 
   // Cargar overrides desde la nube al montar
@@ -365,6 +377,7 @@ export default function AdminCatalogPage({ embedded = false }) {
       if (cloud && Object.keys(cloud).length > 0) {
         setOverrides(cloud);
         localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(cloud));
+        invalidateCatalogMediaCache();
       }
     });
   }, []);
@@ -375,9 +388,25 @@ export default function AdminCatalogPage({ embedded = false }) {
   }, [searchParams]);
 
   // Guardar override de un ejercicio
-  const handleSaveOverride = (exerciseId, data) => {
+  const handleSaveOverride = (exerciseId, data, exercise = null) => {
     const updated = { ...overrides, [exerciseId]: { ...overrides[exerciseId], ...data } };
+    const aliases = new Set([String(exerciseId)]);
+    const ex = exercise || allExercises.find((e) => String(e.id) === String(exerciseId));
+    if (ex?.v2Id != null) {
+      aliases.add(String(ex.v2Id));
+      aliases.add(`v2_${ex.v2Id}`);
+    }
+    const raw = String(exerciseId);
+    if (raw.startsWith("v2_")) aliases.add(raw.replace(/^v2_/, "").split("_")[0]);
+    else if (/^\d+$/.test(raw)) aliases.add(`v2_${raw}`);
+    for (const key of aliases) {
+      updated[key] = { ...updated[key], ...data };
+    }
     setOverrides(updated);
+    localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(updated));
+    invalidateCatalogMediaCache();
+    saveOverridesToCloud(updated).catch(() => {});
+  };
     // Auto-save silencioso
     localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(updated));
     saveOverridesToCloud(updated).catch(() => {});
@@ -408,10 +437,21 @@ export default function AdminCatalogPage({ embedded = false }) {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleDeleteCustom = (id) => {
-    const next = customExercises.filter((e) => e.id !== id);
-    setCustomExercises(next);
-    saveCustomExercises(next);
+  const handleDeleteExercise = (exercise) => {
+    if (!window.confirm(`¿Eliminar «${exercise.nombre || exercise.name || "este ejercicio"}» del catálogo de planificación individual?`)) {
+      return;
+    }
+    if (exercise.custom) {
+      const next = customExercises.filter((e) => e.id !== exercise.id);
+      setCustomExercises(next);
+      saveCustomExercises(next);
+    } else {
+      hideCatalogExercise(exercise.id);
+      const next = [...hiddenIds, String(exercise.id)];
+      setHiddenIds(next);
+      try { localStorage.setItem(CATALOG_HIDDEN_KEY, JSON.stringify([...new Set(next)])); } catch { /* ignore */ }
+    }
+    invalidateCatalogMediaCache();
   };
 
   const handleSyncNow = async () => {
@@ -678,16 +718,14 @@ export default function AdminCatalogPage({ embedded = false }) {
                         </div>
 
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {exercise.custom && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteCustom(exercise.id)}
-                              className="p-1.5 rounded-lg text-depro-gray hover:text-depro-red hover:bg-depro-red-light"
-                              title="Eliminar ejercicio añadido"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteExercise(exercise)}
+                            className="p-1.5 rounded-lg text-depro-gray hover:text-depro-red hover:bg-depro-red-light"
+                            title="Eliminar del catálogo"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                           <button
                             onClick={() => setEditing(exercise)}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all
@@ -721,7 +759,7 @@ export default function AdminCatalogPage({ embedded = false }) {
         <ExerciseEditModal
           exercise={editing}
           override={overrides[editing.id]}
-          onSave={(data) => handleSaveOverride(editing.id, data)}
+          onSave={(data) => handleSaveOverride(editing.id, data, editing)}
           onClose={() => setEditing(null)}
         />
       )}

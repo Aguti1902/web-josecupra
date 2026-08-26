@@ -28,7 +28,12 @@ async function requireAdmin(req, admin) {
 function classifyUser(meta = {}, email) {
   const role = meta.role || (email === "jose@depro.es" ? "admin" : "player");
   if (role === "admin") return { type: "admin", label: "Admin" };
-  if (role === "coach") return { type: "coach_pending", label: "Coach (alta pendiente)" };
+  if (role === "coach") {
+    if (meta.isSoloCoach || String(meta.clubId || "").startsWith("coach_") || String(meta.plan || "").startsWith("coach-")) {
+      return { type: "coach", label: "DEPRO Coach" };
+    }
+    return { type: "coach_pending", label: "Coach (alta pendiente)" };
+  }
   if (role === "player") return { type: "player", label: "Jugador" };
   if (role === "club") {
     // Detectar DEPRO Coach: clubId empieza por coach_ o metadata isSoloCoach
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
 
   const users = [];
   let page = 1;
-  while (page <= 10) {
+  while (page <= 50) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
     if (error) return res.status(400).json({ error: error.message });
     const batch = data?.users || [];
@@ -106,6 +111,7 @@ export default async function handler(req, res) {
         lesionSubtipo: meta.lesionSubtipo || null,
         purchasedAddons: Array.isArray(meta.purchasedAddons) ? meta.purchasedAddons : [],
         teamId: meta.teamId || null,
+        clubCode: meta.clubCode || meta.discountCode || null,
         managedTeamIds: meta.managedTeamIds || [],
         isSoloCoach: !!meta.isSoloCoach || String(meta.clubId || "").startsWith("coach_"),
         planPendingManual: !!meta.planPendingManual,

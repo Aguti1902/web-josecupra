@@ -7,6 +7,34 @@ export function playerPlanKey(userId) {
   return `depro_plan_${userId}`;
 }
 
+const PHYSICAL_WEEK_DAYS = [
+  { day: "Lunes", shortDay: "LUN" },
+  { day: "Martes", shortDay: "MAR" },
+  { day: "Miércoles", shortDay: "MIÉ" },
+  { day: "Jueves", shortDay: "JUE" },
+  { day: "Viernes", shortDay: "VIE" },
+  { day: "Sábado", shortDay: "SÁB" },
+  { day: "Domingo", shortDay: "DOM" },
+];
+
+/** Semana física vacía (nunca entrenamientos técnicos/tácticos de demo). */
+export function emptyPhysicalWeekPlan() {
+  return PHYSICAL_WEEK_DAYS.map(({ day, shortDay }) => ({
+    day,
+    shortDay,
+    date: "",
+    sessions: [],
+  }));
+}
+
+export function isMockTechnicalPlan(plan) {
+  if (!Array.isArray(plan)) return false;
+  const types = plan.flatMap((d) => (d.sessions || []).map((s) => String(s.type || "").toLowerCase()));
+  const titles = plan.flatMap((d) => (d.sessions || []).map((s) => String(s.title || "").toLowerCase()));
+  return types.some((t) => t === "technical" || t === "tactical")
+    || titles.some((t) => t.includes("technical") || t.includes("tactical") || t.includes("rondo"));
+}
+
 /**
  * Normaliza el payload del motor (weeks[]) al formato día-array que consume
  * WeeklyPlanPage / Dashboard. Conserva weeks/assignment/profileSnapshot como meta.

@@ -980,7 +980,7 @@ export default function ProfilePage() {
               <h3 className="font-bold text-depro-dark text-sm mb-1">Pasar a Premium</h3>
               <p className="text-xs text-depro-gray mb-2">
                 Feedback del preparador, todos los extras y seguimiento humano.
-                <strong className="text-depro-dark"> Sin prueba gratis</strong> · plazas limitadas ({PREMIUM_PLAYER_CAP}).
+                <strong className="text-depro-dark"> 15 días de prueba</strong> (feedback al activar) · plazas limitadas ({PREMIUM_PLAYER_CAP}).
                 {premiumCap?.ok && (
                   <> · Disponibles: <strong>{premiumCap.remaining}</strong></>
                 )}
@@ -1129,7 +1129,10 @@ export default function ProfilePage() {
           </div>
 
           <div className="mb-5">
-            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Lesiones</p>
+            <p className="text-xs font-bold uppercase text-depro-gray mb-2">Lesiones actuales</p>
+            <p className="text-xs text-depro-gray mb-2">
+              Marca solo lesiones que te afecten de verdad a día de hoy. No las antiguas si ya entrenas con normalidad.
+            </p>
             <ChipGroup options={INJURIES} selected={lesionSel} onToggle={toggleLesion} multi />
             {!lesionSel.includes("Ninguna") && lesionSel.map((les) => (
               INJURY_SUBTYPES[les] ? (

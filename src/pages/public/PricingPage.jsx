@@ -228,7 +228,7 @@ export default function PricingPage() {
       <section className="py-4 bg-holded-dark border-b border-white/5">
         <div className="max-w-xl mx-auto px-4 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 text-white text-sm font-bold px-4 py-2 rounded-full">
-            <Gift size={15} className="text-holded-green" /> 15 días gratis en Standard · Premium sin prueba
+            <Gift size={15} className="text-holded-green" /> 15 días gratis en todos los planes de jugador y entrenador
           </div>
         </div>
       </section>

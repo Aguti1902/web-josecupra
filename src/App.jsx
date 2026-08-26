@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminProvider } from "./context/AdminContext";
 import { ViewProvider } from "./context/ViewContext";
+import { isProCoachUser } from "./lib/clubAuto/clubAutoCoachBridge";
 import { shouldForceSetup } from "./lib/questionnaireState";
 import { isDraftLoginBlocked } from "./lib/adminAccountStatus";
 import { getImpersonationSnapshot, stopImpersonation } from "./lib/adminImpersonation";
@@ -122,7 +123,10 @@ function ClientRoute({ children }) {
   if (user.role === "admin" && !user.impersonating && !viewAs) return <Navigate to="/admin" replace />;
   const qKey = user?.id || user?.email;
   if (user.impersonating) return children;
-  // Entrenador individual sin alta: forzar setup salvo cancelado/completado
+  // ProCoach sin club: cuestionario de entrenador (nunca el de jugador)
+  if (isProCoachUser(user) && !user.clubId && shouldForceSetup("coach", qKey)) {
+    return <Navigate to="/dashboard/coach-setup" replace />;
+  }
   if (user.role === "coach" && shouldForceSetup("coach", qKey)) {
     return <Navigate to="/dashboard/coach-setup" replace />;
   }
@@ -143,7 +147,7 @@ function CoachSetupRoute({ children }) {
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   // Si canceló el cuestionario, no secuestrar: permitir salir al dashboard/home
-  if (user.role !== "coach") return <Navigate to="/dashboard" replace />;
+  if (user.role !== "coach" && !isProCoachUser(user)) return <Navigate to="/dashboard" replace />;
   return children;
 }
 

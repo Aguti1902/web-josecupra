@@ -19,6 +19,19 @@ describe("club referrals", () => {
     assert.equal(summary.activePlayers, 2);
   });
 
+  it("cuenta altas de prueba gratuita en el código de club", () => {
+    const summary = summarizeReferrals({
+      referrals: [
+        { commission: 0, status: "trialing", month: "2099-01", payoutStatus: "none" },
+        { commission: 261, status: "active", month: "2099-01", payoutStatus: "pending" },
+      ],
+      payouts: [],
+    });
+    assert.equal(summary.trialPlayers, 1);
+    assert.equal(summary.activePlayers, 1);
+    assert.equal(summary.codeUsers, 2);
+  });
+
   it("tasa por defecto 10%", () => {
     assert.equal(REFERRAL_COMMISSION_RATE, 0.1);
     assert.equal(commissionCents(10000, 10), 1000);

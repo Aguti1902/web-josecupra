@@ -194,8 +194,8 @@ function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
               <h3 className="text-xl font-black text-depro-dark">{plan.name}</h3>
               <p className="text-xs text-depro-gray mt-0.5 mb-3">{plan.tagline}</p>
               {plan.audience === "player" && plan.id === "player-pro" && (
-                <p className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1 mb-3">
-                  Sin prueba gratis · cobro desde el día 1
+                <p className="text-[11px] font-bold text-depro-green bg-depro-green/10 rounded-lg px-2 py-1 mb-3">
+                  15 días de prueba · 0 € hoy · feedback al activar
                 </p>
               )}
               {plan.audience === "player" && plan.id === "player-essential" && (
@@ -315,7 +315,7 @@ function StepCuenta({ form, setForm, onNext, onBack }) {
       <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Datos de acceso</h2>
       <p className="text-depro-gray text-sm mb-8">
         Indica email y contraseña. Tu cuenta se crea al completar el checkout
-        (Standard: prueba 15 días · Premium: sin prueba gratis, cobro desde el día 1).
+        (Standard y Premium: 15 días de prueba con 0 € hoy; el feedback Premium se activa al confirmar la suscripción).
       </p>
 
       <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card space-y-5">
@@ -926,7 +926,9 @@ function StepFutbol({ form, setForm, onNext, onBack, planId }) {
               );
             })}
           </div>
-          <p className="text-xs text-depro-gray mt-2">El plan excluirá ejercicios contraindicados para tus lesiones.</p>
+          <p className="text-xs text-depro-gray mt-2">
+            Marca solo lesiones que te afecten de verdad a día de hoy. Si una lesión antigua (por ejemplo un cruzado) ya no condiciona tu entrenamiento, no la marques: el plan se adaptará solo a lo que te limita ahora.
+          </p>
           {(form.lesion || []).filter((x) => x !== "Ninguna").map((inj) => (
             <div key={inj} className="mt-3">
               <p className="text-[10px] font-bold text-depro-gray uppercase mb-2">Subtipo · {inj}</p>
@@ -1322,10 +1324,11 @@ export default function OnboardingPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const audienceParam = params.get("audience") || "player";
-  const initialPlanId = resolvePlanId(audienceParam, params.get("plan"));
-  const initialAudience = initialPlanId
-    ? (PLANS[initialPlanId]?.audience || audienceParam)
-    : (AUDIENCES[audienceParam] ? audienceParam : "player");
+  const planParam = params.get("plan");
+  const catalogHit = PLANS[planParam] || PLANS[resolvePlanId(audienceParam, planParam)];
+  const initialPlanId = catalogHit?.id || resolvePlanId(audienceParam, planParam);
+  const initialAudience = catalogHit?.audience
+    || (initialPlanId ? (PLANS[initialPlanId]?.audience || audienceParam) : (AUDIENCES[audienceParam] ? audienceParam : "player"));
 
   const [audience, setAudience] = useState(initialAudience);
   const [step, setStep] = useState(

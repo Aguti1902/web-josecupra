@@ -533,7 +533,7 @@ export default function CoachSessions({ club, team, user }) {
               </div>
 
               <div className="p-5 space-y-3">
-                {(isClubAuto || activeSession.engine === "club_auto") && activeSession.structure?.length ? (
+                {(isClubAuto || activeSession.engine === "club_auto" || activeSession.structure?.length) && activeSession.structure?.length ? (
                   <ClubAutoSessionView
                     session={activeSession}
                     accent={accent}

@@ -12,13 +12,48 @@ const GYM_UNLOCK = new Set([
   "maquina", "maquina_polea", "maquina_disco", "gym_completo",
 ]);
 
-const LESION_INJECTION = {
-  rodilla: [134, 137, 138, 139, 143],
-  tobillo: [134, 135, 140, 141],
-  hombro: [144, 145, 146, 148],
-  espalda: [145, 147],
-  pubalgia: [137, 138, 143],
+const HIDDEN_KEY = "depro_catalog_hidden_ids";
+const CUSTOM_KEY = "depro_catalog_custom_exercises";
+
+/** Prevención real (carpeta prevencion), nunca resistencia. */
+const LESION_PREV_TAGS = {
+  rodilla: ["prevencion_rodilla"],
+  tobillo: ["prevencion_tobillo"],
+  hombro: ["prevencion_hombro", "estabilidad_escapular"],
+  espalda: ["estabilidad_escapular"],
+  pubalgia: ["prevencion_rodilla"],
 };
+
+function loadJsonLs(key, fallback) {
+  try {
+    if (typeof localStorage === "undefined") return fallback;
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function getHiddenCatalogIds() {
+  return new Set((loadJsonLs(HIDDEN_KEY, []) || []).map(String));
+}
+
+export function hideCatalogExercise(id) {
+  if (id == null || id === "") return;
+  const next = [...getHiddenCatalogIds(), String(id)];
+  try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...new Set(next)])); } catch { /* ignore */ }
+}
+
+export function getActiveCatalog() {
+  const hidden = getHiddenCatalogIds();
+  const custom = loadJsonLs(CUSTOM_KEY, []);
+  const extra = Array.isArray(custom) ? custom : [];
+  return [...EXERCISES, ...extra].filter((ex) => !hidden.has(String(ex.id)));
+}
+
+function catalogPool() {
+  return getActiveCatalog();
+}
 
 export function normalizeMaterialList(material) {
   let raw = material;
@@ -183,6 +218,38 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
   });
 }
 
+/**
+ * Misma naturaleza de trabajo: no mezclar resistencia con fuerza,
+ * ni tren inferior con tren superior, ni carpetas distintas sin sentido.
+ */
+export function sameTrainingNature(ex, slot = {}, original = null) {
+  if (!ex) return false;
+  const et = tagsOf(ex);
+  const origEt = tagsOf(original);
+  const objetivo = slot.objetivo || original?.slotConstraints?.objetivo || origEt.objetivo?.[0];
+  const segmento = slot.segmento || original?.slotConstraints?.segmento || origEt.segmento;
+  const carpeta = original?.carpeta || slot.carpeta;
+
+  const exObj = asArray(et.objetivo).map((o) => String(o).toLowerCase());
+  const isEnduranceEx = ex.carpeta === "resistencia"
+    || (exObj.includes("resistencia") && !exObj.some((o) => ["fuerza", "hipertrofia", "velocidad", "prevencion", "pliometria"].includes(o)));
+  const slotWantsEndurance = asArray(objetivo).map((o) => String(o).toLowerCase()).includes("resistencia")
+    || carpeta === "resistencia";
+  if (isEnduranceEx && !slotWantsEndurance) return false;
+
+  if (segmento && et.segmento && segmento !== "full" && et.segmento !== "full" && et.segmento !== segmento) {
+    if (ex.carpeta !== "prevencion" && ex.carpeta !== "core" && ex.carpeta !== "movilidad") return false;
+    if (ex.carpeta === "prevencion" && origEt.segmento && origEt.segmento !== et.segmento && origEt.segmento !== "full") {
+      return false;
+    }
+  }
+
+  if (carpeta && carpeta.startsWith("fuerza_") && ex.carpeta === "resistencia") return false;
+  if (carpeta === "fuerza_tren_superior" && ex.carpeta === "fuerza_tren_inferior") return false;
+  if (carpeta === "fuerza_tren_inferior" && ex.carpeta === "fuerza_tren_superior") return false;
+  return true;
+}
+
 /** Prioriza material del perfil; fallback a peso corporal / sin material. */
 export function rankByMaterialPreference(candidates, userProfile = {}) {
   const mats = normalizeMaterialList(userProfile.material);
@@ -209,34 +276,21 @@ export function rankByMaterialPreference(candidates, userProfile = {}) {
 }
 
 /**
- * Relaja filtros menos críticos primero (grupo_muscular antes que patron).
- * El slot NUNCA debe quedar vacío: al final solo queda rol/patron mínimo.
+ * Relaja filtros menos críticos. NUNCA suelta objetivo ni segmento:
+ * eso mezclaba resistencia en fuerza y tren inferior en superior.
  */
 function relaxSlot(slot, step) {
   const next = { ...slot };
 
-  // 1) Intensidad (menos crítica)
   if (step === 1 && next.intensidad) {
     delete next.intensidad;
     return next;
   }
-  // 2) Objetivo
-  if (step === 2 && next.objetivo) {
-    delete next.objetivo;
-    return next;
-  }
-  // 3) Segmento
-  if (step === 3 && next.segmento) {
-    delete next.segmento;
-    return next;
-  }
-  // 4) Grupo muscular (antes que patrón — PDF §5.3)
-  if (step === 4 && next.grupo_muscular) {
+  if (step === 2 && next.grupo_muscular) {
     delete next.grupo_muscular;
     return next;
   }
-  // 5) Patrón (último filtro de etiqueta)
-  if (step === 5 && (next.patron || next.patronOr)) {
+  if (step === 3 && (next.patron || next.patronOr)) {
     delete next.patron;
     delete next.patronOr;
     delete next.patronMode;
@@ -268,53 +322,50 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
     return candidates;
   };
 
-  let candidates = filterPool(EXERCISES.filter((ex) => matchSlotTags(ex, slot)));
+  const pool = catalogPool();
+  const natureOk = (ex) => sameTrainingNature(ex, slot);
+  let candidates = filterPool(pool.filter((ex) => matchSlotTags(ex, slot) && natureOk(ex)));
 
-  for (let step = 1; candidates.length === 0 && step <= 5; step++) {
+  for (let step = 1; candidates.length === 0 && step <= 3; step++) {
     const relaxed = relaxSlot(slot, step);
     if (!relaxed) break;
-    // Evitar bucles sin progreso (misma restricción)
     const same =
       JSON.stringify({
         g: slot.grupo_muscular,
         i: slot.intensidad,
-        o: slot.objetivo,
-        s: slot.segmento,
         p: slot.patron,
       }) ===
       JSON.stringify({
         g: relaxed.grupo_muscular,
         i: relaxed.intensidad,
-        o: relaxed.objetivo,
-        s: relaxed.segmento,
         p: relaxed.patron,
       });
     if (same) continue;
-    candidates = filterPool(EXERCISES.filter((ex) => matchSlotTags(ex, relaxed)));
+    candidates = filterPool(pool.filter((ex) => matchSlotTags(ex, relaxed) && natureOk(ex)));
   }
 
   // Reutilizar ejercicio ya usado en la sesión si el pool se agotó (antes que dejar el slot vacío)
   if (!candidates.length) {
-    candidates = filterPool(EXERCISES.filter((ex) => matchSlotTags(ex, slot)), true);
-    for (let step = 1; candidates.length === 0 && step <= 5; step++) {
+    candidates = filterPool(pool.filter((ex) => matchSlotTags(ex, slot) && natureOk(ex)), true);
+    for (let step = 1; candidates.length === 0 && step <= 3; step++) {
       const relaxed = relaxSlot(slot, step);
       if (!relaxed) break;
-      candidates = filterPool(EXERCISES.filter((ex) => matchSlotTags(ex, relaxed)), true);
+      candidates = filterPool(pool.filter((ex) => matchSlotTags(ex, relaxed) && natureOk(ex)), true);
     }
   }
 
-  // Último recurso: mismo rol (mantiene estructura de plantilla)
+  // Último recurso: mismo rol + misma naturaleza (nunca resistencia en fuerza)
   if (!candidates.length && slot.rol) {
     candidates = filterPool(
-      EXERCISES.filter((ex) => tagsOf(ex).rol === slot.rol),
+      pool.filter((ex) => tagsOf(ex).rol === slot.rol && natureOk(ex)),
       true,
     );
   }
 
-  // Calentamiento / core: pool amplio
+  // Calentamiento / core: pool amplio pero sin cambiar de categoría
   if (!candidates.length && (slot.rol === "calentamiento" || slot.rol === "core")) {
     candidates = filterPool(
-      EXERCISES.filter((ex) => matchSlotTags(ex, { rol: slot.rol }) || tagsOf(ex).rol === slot.rol),
+      pool.filter((ex) => (matchSlotTags(ex, { rol: slot.rol }) || tagsOf(ex).rol === slot.rol) && natureOk(ex)),
       true,
     );
   }
@@ -325,9 +376,9 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
   const mats = normalizeMaterialList(userProfile.material);
   const preferMatched = ranked.filter((ex) => materialMatches(tagsOf(ex).material, mats));
   const bodyFallback = ranked.filter((ex) => isBodyweightMaterial(tagsOf(ex).material));
-  const pool = preferMatched.length ? preferMatched : bodyFallback;
-  if (!pool.length) return null;
-  return pickFrom(pool, userProfile, slot, usedExerciseIds, seedExtra);
+  const rankedPool = preferMatched.length ? preferMatched : bodyFallback;
+  if (!rankedPool.length) return null;
+  return pickFrom(rankedPool, userProfile, slot, usedExerciseIds, seedExtra);
 }
 
 function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensity = null) {
@@ -440,7 +491,7 @@ export function refreshExercise(currentExercise, userProfile, excludeIds = [], s
     objetivo: tagsOf(currentExercise).objetivo?.[0],
   };
 
-  let candidates = EXERCISES.filter((ex) => matchSlotTags(ex, constraints));
+  let candidates = catalogPool().filter((ex) => matchSlotTags(ex, constraints) && sameTrainingNature(ex, constraints, currentExercise));
   candidates = filterExercisesForUser(candidates, userProfile);
   candidates = candidates.filter(
     (ex) => ex.id !== currentExercise.id && ex.id !== currentExercise.catalogId && !excludeIds.includes(ex.id),
@@ -456,65 +507,89 @@ export function refreshExercise(currentExercise, userProfile, excludeIds = [], s
 }
 
 export function getPreventionInjectionIds(lesiones = []) {
-  const ids = new Set();
+  const tags = new Set();
   for (const l of lesiones) {
     const key = String(l || "").toLowerCase().replace(/^lesion_/, "");
-    (LESION_INJECTION[key] || []).forEach((id) => ids.add(id));
+    (LESION_PREV_TAGS[key] || []).forEach((t) => tags.add(t));
   }
-  return [...ids];
+  if (!tags.size) return [];
+  return catalogPool()
+    .filter((ex) => {
+      if (ex.carpeta !== "prevencion") return false;
+      const sec = asArray(ex.etiquetas?.accion_secundaria);
+      const gp = ex.etiquetas?.grupo_principal;
+      return sec.some((s) => tags.has(s))
+        || tags.has(`prevencion_${gp}`)
+        || (tags.has("estabilidad_escapular") && (gp === "espalda" || gp === "escapular"));
+    })
+    .map((ex) => ex.id);
+}
+
+function exerciseContraindicated(ex, lesiones = []) {
+  const keys = asArray(lesiones).map((l) => {
+    const k = String(l || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return k.startsWith("lesion_") ? k : `lesion_${k.replace(/\s+/g, "_")}`;
+  });
+  const contra = ex.etiquetas?.contraindicado || ex.lesionesContra || [];
+  return contra.some((c) => keys.includes(c) || keys.some((l) => c.includes(l.replace(/^lesion_/, "")) || l.includes(c.replace(/^lesion_/, ""))));
 }
 
 export function injectPreventionExercises(sessionExercises, userProfile, max = 2) {
-  const ids = getPreventionInjectionIds(userProfile.lesiones || []);
+  const lesiones = userProfile.lesiones || [];
+  const ids = getPreventionInjectionIds(lesiones);
   if (!ids.length) return sessionExercises;
 
   const used = new Set(sessionExercises.map((e) => e.id));
   const pool = filterExercisesForUser(
-    EXERCISES.filter((ex) => ids.includes(ex.id) && !used.has(ex.id)),
+    catalogPool().filter((ex) => ids.includes(ex.id) && !used.has(ex.id)),
     userProfile,
   );
   if (!pool.length) return sessionExercises;
 
-  const injections = [];
-  for (let i = 0; i < max && i < pool.length; i++) {
-    const picked = pickDeterministic(pool.filter((p) => !injections.find((x) => x.id === p.id)), `${userProfile.userId}|prev|${i}`);
-    if (picked) injections.push(picked);
-  }
-  if (!injections.length) return sessionExercises;
-
-  // Sustituye complementarios estándar
   let replaced = 0;
   return sessionExercises.map((ex) => {
-    if (replaced >= injections.length) return ex;
+    if (replaced >= max) return ex;
     const rol = ex.etiquetas?.rol || ex.slotConstraints?.rol;
-    if (rol === "complementario") {
-      const inj = injections[replaced++];
-      return {
-        ...ex,
-        ...inj,
-        catalogId: inj.id,
-        name: inj.nombre,
-        slotDescription: "Prevención por lesión",
-      };
-    }
-    return ex;
+    if (rol !== "complementario") return ex;
+    // Solo sustituir si el ejercicio actual choca con la lesión.
+    // Si encaja, se deja: mejor un error razonable que romper el bloque.
+    if (!exerciseContraindicated(ex, lesiones)) return ex;
+    const slot = ex.slotConstraints || {
+      segmento: tagsOf(ex).segmento,
+      objetivo: asArray(tagsOf(ex).objetivo)[0],
+      rol,
+    };
+    const cand = pool.filter((p) => sameTrainingNature(p, slot, ex) && p.id !== ex.id && p.id !== ex.catalogId);
+    if (!cand.length) return ex;
+    const inj = pickDeterministic(cand, `${userProfile.userId}|prev|${replaced}`);
+    if (!inj) return ex;
+    replaced += 1;
+    return {
+      ...ex,
+      ...inj,
+      catalogId: inj.id,
+      name: inj.nombre,
+      slotDescription: ex.slotDescription || "Prevención por lesión",
+      slotConstraints: slot,
+      blockType: ex.blockType,
+    };
   });
 }
 
 /** Compat: APIs antiguas basadas en pool. */
 export function getExercisesByPool(poolId) {
-  return EXERCISES.filter((ex) => ex.pool === poolId);
+  return catalogPool().filter((ex) => ex.pool === poolId);
 }
 
 export function getExercisesByPoolFamily(family) {
-  return EXERCISES.filter((ex) => {
+  return catalogPool().filter((ex) => {
     const et = tagsOf(ex);
     return et.objetivo?.includes(family) || et.segmento === family || ex.pool?.toLowerCase().includes(family);
   });
 }
 
 export function getExercisesByPattern(pattern) {
-  return EXERCISES.filter((ex) => tagsOf(ex).patron?.includes(pattern));
+  return catalogPool().filter((ex) => tagsOf(ex).patron?.includes(pattern));
 }
 
 export function generateSession(template, userProfile) {

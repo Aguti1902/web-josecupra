@@ -29,10 +29,11 @@ describe("accesos Standard / Premium / extras", () => {
     assert.equal(PREMIUM_PLAYER_CAP, 40);
   });
 
-  it("Premium remarca sin prueba gratuita", async () => {
-    const { PLANS } = await import("./checkoutPlans.js");
-    assert.ok(PLANS["player-pro"].features.some((f) => /sin prueba/i.test(f)));
-    assert.ok(/sin prueba/i.test(PLANS["player-pro"].tagline));
+  it("Premium incluye prueba de 15 días, igual que Standard", async () => {
+    const { PLANS, planHasCheckoutTrial } = await import("./checkoutPlans.js");
+    assert.ok(PLANS["player-pro"].features.some((f) => /15 días/i.test(f)));
+    assert.ok(/15 días/i.test(PLANS["player-pro"].tagline));
+    assert.equal(planHasCheckoutTrial("player-pro"), true);
     assert.ok(PLANS["player-essential"].features.some((f) => /15 días/i.test(f)));
   });
 
@@ -106,7 +107,7 @@ describe("entrenador Standard / Premium / extras", () => {
     assert.equal(getPlanLimits("coach-premium").maxTeams, 4);
     const { planHasCheckoutTrial } = await import("./checkoutPlans.js");
     assert.equal(planHasCheckoutTrial("coach-starter"), true);
-    assert.equal(planHasCheckoutTrial("coach-premium"), false);
+    assert.equal(planHasCheckoutTrial("coach-premium"), true);
   });
 
   it("tests abiertos en Standard; cargas y PDF bloqueados hasta extra o Premium", () => {

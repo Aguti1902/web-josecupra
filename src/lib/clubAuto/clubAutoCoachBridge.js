@@ -116,6 +116,7 @@ export function usesClubAutoEngine(clubOrConfig) {
   if (club?.origen === "automatico") return true;
   if (cfg.engine === "club_auto") return true;
   if (club?.planningMode === "auto" && (club.isSoloCoach || cfg.nivel)) return true;
+  if (club?.isSoloCoach && cfg.nivel && !isManualPlanningClub(club)) return true;
   if (!club && cfg.nivel && ["A", "B", "C"].includes(String(cfg.nivel).toUpperCase())) return true;
   return false;
 }

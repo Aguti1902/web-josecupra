@@ -28,7 +28,7 @@ const SNAPSHOT_KEYS = [
   "stripeSubscriptionId", "stripeCustomerId", "posicion", "deporte", "objetivo",
   "objetivos", "frecuencia", "material", "experiencia", "diaCompeticion", "disponibles",
   "lesion", "lesionSubtipo", "edad", "phone", "telefono", "isSoloCoach",
-  "managedTeamIds", "teamId", "manualPrice",
+  "managedTeamIds", "teamId", "manualPrice", "clubCode", "planPendingManual",
 ];
 
 export function startImpersonation(snapshot) {

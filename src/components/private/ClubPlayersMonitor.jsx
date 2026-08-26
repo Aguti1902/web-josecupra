@@ -6,11 +6,17 @@ import { getClubCodePlayers, getPlayerTrainingSummary, isPlayerInActiveSquad } f
 export default function ClubPlayersMonitor({ clubId, teamId, accent = "#0A36F7", compact = false }) {
   const players = useMemo(() => {
     if (!clubId) return [];
-    return getClubCodePlayers(clubId, teamId || null)
+    const squad = getClubCodePlayers(clubId, teamId || null);
+    const codeOnly = getClubCodePlayers(clubId, null, { includeCodeOnly: true })
+      .filter((p) => p.linkKind === "code" || !p.teamId);
+    const byId = new Map();
+    for (const p of [...squad, ...codeOnly]) byId.set(p.userId, p);
+    return [...byId.values()]
       .map((p) => ({
         ...p,
         summary: getPlayerTrainingSummary(p.userId),
-        active: isPlayerInActiveSquad(p.userId),
+        active: p.status === "active" || isPlayerInActiveSquad(p.userId),
+        trial: p.status === "trialing" || p.status === "pending",
       }))
       .sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1));
   }, [clubId, teamId]);
@@ -36,7 +42,7 @@ export default function ClubPlayersMonitor({ clubId, teamId, accent = "#0A36F7",
             Seguimiento individual
           </h3>
           <p className="text-xs text-depro-gray mt-0.5">
-            {activeCount} en plantilla · {players.length - activeCount} pendientes de pago
+            {activeCount} activos · {players.filter((p) => p.trial).length} en prueba / pendientes · {players.length} con código del club
           </p>
         </div>
         {!compact && (
@@ -59,7 +65,9 @@ export default function ClubPlayersMonitor({ clubId, teamId, accent = "#0A36F7",
               <div className="font-semibold text-sm text-depro-dark truncate">{p.name || "Jugador"}</div>
               <div className="text-xs text-depro-gray flex items-center gap-2 mt-0.5">
                 {!p.active ? (
-                  <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-medium">Pendiente pago</span>
+                  <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-medium">
+                    {p.status === "trialing" ? "Prueba gratuita" : p.linkKind === "code" ? "Código club" : "Pendiente pago"}
+                  </span>
                 ) : (
                   <>
                     <span>{p.summary.completed}/{p.summary.total || "—"} sesiones</span>

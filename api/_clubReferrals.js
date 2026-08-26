@@ -51,6 +51,7 @@ export function summarizeReferrals(clubData) {
     .reduce((sum, p) => sum + (p.amount || 0), 0);
   const pending = Math.max(0, totalEarned - totalPaid);
   const activePlayers = referrals.filter((r) => r.status === "active").length;
+  const trialPlayers = referrals.filter((r) => r.status === "trialing" || r.status === "trial").length;
   const thisMonth = monthKey();
   const monthPending = referrals
     .filter((r) => r.month === thisMonth && r.payoutStatus !== "paid")
@@ -63,6 +64,8 @@ export function summarizeReferrals(clubData) {
     pending,
     monthPending,
     activePlayers,
+    trialPlayers,
+    codeUsers: referrals.length,
     referralCount: referrals.length,
     referrals: referrals.slice().reverse(),
     payouts: payouts.slice().reverse(),
@@ -110,6 +113,49 @@ export async function recordReferralPayment(admin, {
     createdAt: new Date().toISOString(),
   };
 
+  bucket.referrals.push(entry);
+  await saveReferralRegistry(admin, registry);
+  return { ok: true, entry };
+}
+
+/** Alta con código (incluye prueba gratuita, importe 0). No crea plantilla ni equipo. */
+export async function recordClubCodeSignup(admin, {
+  clubId,
+  clubCode,
+  playerEmail,
+  playerName,
+  playerId,
+  plan,
+  status = "trialing",
+  stripeSessionId,
+}) {
+  if (!clubId) return { ok: false, reason: "invalid_input" };
+  const registry = await loadReferralRegistry(admin);
+  const bucket = ensureClubBucket(registry, clubId);
+  const dedupeKey = stripeSessionId || playerId || playerEmail;
+  if (dedupeKey && bucket.referrals.some((r) =>
+    r.stripeSessionId === stripeSessionId
+    || (playerId && r.playerId === playerId)
+    || (playerEmail && r.playerEmail === playerEmail && r.status === status)
+  )) {
+    return { ok: true, duplicate: true };
+  }
+  const entry = {
+    id: `ref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    clubCode: clubCode || "",
+    playerEmail: playerEmail || "",
+    playerName: playerName || playerEmail?.split("@")[0] || "Jugador",
+    playerId: playerId || "",
+    plan: plan || "",
+    amountPaid: 0,
+    commission: 0,
+    month: monthKey(),
+    payoutStatus: "none",
+    status: status || "trialing",
+    stripeInvoiceId: null,
+    stripeSessionId: stripeSessionId || null,
+    createdAt: new Date().toISOString(),
+  };
   bucket.referrals.push(entry);
   await saveReferralRegistry(admin, registry);
   return { ok: true, entry };

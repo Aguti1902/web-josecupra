@@ -1,14 +1,18 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft, Calendar, MessageSquare, Plus, Trash2,
   Edit3, Check, X, ChevronDown, ChevronUp, Star, Save, Clock, Target, Flame,
-  Info, PlayCircle, CalendarDays, RefreshCw, Archive,
+  Info, PlayCircle, CalendarDays, RefreshCw, Archive, Send, Activity, Scale,
 } from "lucide-react";
-import { useAdmin } from "../../context/AdminContext";
+import { useAdmin, mapPlayerToClient } from "../../context/AdminContext";
 import { refreshExercise as refreshExerciseInEngine, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
 import { isPlayerPro } from "../../lib/subscription";
 import { loadPlayerPlan } from "../../lib/playerPlanStorage";
+import { getChatMessages, sendChatMessage } from "../../lib/internalChat";
+import { getWellnessMap, formatWeekLabel, recentWeekKeys } from "../../lib/wellnessLogs";
+import { getLoadLogs } from "../../lib/loadLogs";
+import { getImprovementSummary } from "../../lib/loadAnalytics";
 
 const INTENSITY_OPTIONS = ["Baja", "Media", "Alta", "Máxima"];
 const TYPE_OPTIONS = [
@@ -38,7 +42,7 @@ const typeColor = {
 const intensityColor = { Baja: "#3BC21D", Media: "#F6CC12", Alta: "#FB2C39", Máxima: "#dc2626", Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
 
 /* ── WEEK PLAN TAB ───────────────────────────────────────────────── */
-function PlanTab({ clientId }) {
+function PlanTab({ clientId, client }) {
   const { clientPlans, updateSession, addSession, deleteSession, addExercise, updateExercise, deleteExercise } = useAdmin();
   const plan = clientPlans[clientId] || [];
   const [selectedDay, setSelectedDay] = useState(0);
@@ -67,10 +71,11 @@ function PlanTab({ clientId }) {
     const ex = session?.exercises?.[eIdx];
     if (!session || !ex) return;
     const next = refreshExerciseInEngine(session, ex.id, {
-      material: ["Gimnasio completo"],
-      lesiones: [],
-      edad: 22,
-      experiencia: "intermedio",
+      material: client?.material || ["Gimnasio completo"],
+      lesiones: client?.lesion || [],
+      lesionSubtipo: client?.lesionSubtipo || [],
+      edad: client?.age || 22,
+      experiencia: client?.experiencia || "intermedio",
       userId: clientId,
     });
     const refreshed = (next.exercises || [])[eIdx];
@@ -90,7 +95,7 @@ function PlanTab({ clientId }) {
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-        Plan sincronizado con el jugador (servidor + su cuenta). Enfoque solo físico: fuerza, velocidad, resistencia, prevención…
+        Planificación individual real del jugador (servidor + cuenta). Motor de planes físicos: fuerza, velocidad, resistencia, prevención. No entrenamientos técnicos.
       </div>
       {/* Day selector */}
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -480,9 +485,132 @@ function FeedbackTab({ clientId }) {
 
       {feedbacks.length === 0 && !showForm && (
         <div className="text-center py-10 text-depro-gray text-sm bg-depro-gray-light rounded-2xl">
-          Sin feedback enviado. Las plantillas demo ya no se muestran al jugador.
+          Sin revisiones enviadas. El chat de abajo sigue activo.
         </div>
       )}
+
+      <AdminPlayerChat clientId={clientId} />
+    </div>
+  );
+}
+
+function AdminPlayerChat({ clientId }) {
+  const [messages, setMessages] = useState(() => getChatMessages(clientId));
+  const [text, setText] = useState("");
+
+  const handleSend = () => {
+    if (!text.trim()) return;
+    sendChatMessage(clientId, { text, from: "coach", authorName: "Preparador" });
+    setMessages(getChatMessages(clientId));
+    setText("");
+  };
+
+  return (
+    <div className="rounded-2xl border border-depro-border bg-white p-5">
+      <h4 className="font-bold text-depro-dark mb-1 flex items-center gap-2">
+        <MessageSquare size={16} className="text-depro-blue" /> Conversación con el jugador
+      </h4>
+      <p className="text-xs text-depro-gray mb-3">
+        Los mensajes que envías aparecen en su pestaña de feedback. Los que él escribe llegan aquí.
+      </p>
+      <div className="max-h-64 overflow-y-auto space-y-2 mb-3 bg-depro-gray-light rounded-xl p-3 border border-depro-border">
+        {messages.length === 0 && <p className="text-xs text-depro-gray text-center py-4">Sin mensajes aún.</p>}
+        {messages.map((m) => (
+          <div
+            key={m.id}
+            className={`text-sm rounded-lg px-3 py-2 max-w-[85%] ${
+              m.from === "coach" || m.from === "admin"
+                ? "ml-auto bg-depro-blue text-white"
+                : "bg-white border border-depro-border text-depro-dark"
+            }`}
+          >
+            <p>{m.text}</p>
+            <p className={`text-[10px] mt-1 ${m.from === "coach" || m.from === "admin" ? "text-white/70" : "text-depro-gray"}`}>
+              {m.from === "player" ? (m.authorName || "Jugador") : "Tú"}
+            </p>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          className="admin-input flex-1 text-sm"
+          placeholder="Escribe al jugador…"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+        />
+        <button type="button" onClick={handleSend} className="admin-btn-primary px-4 flex items-center gap-1">
+          <Send size={14} /> Enviar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ProgressionTab({ clientId }) {
+  const wellness = getWellnessMap(clientId);
+  const weeks = recentWeekKeys(8);
+  const logs = getLoadLogs(clientId);
+  const summary = getImprovementSummary(clientId) || {};
+  const lastWeight = weeks.map((k) => wellness[k]).find((e) => e?.weightKg);
+
+  return (
+    <div className="space-y-5">
+      <div className="grid sm:grid-cols-3 gap-3">
+        <div className="rounded-2xl border border-depro-border bg-white p-4">
+          <p className="text-[10px] font-bold uppercase text-depro-gray flex items-center gap-1"><Scale size={12} /> Peso corporal</p>
+          <p className="text-2xl font-black text-depro-dark mt-1">{lastWeight?.weightKg ? `${lastWeight.weightKg} kg` : "—"}</p>
+          <p className="text-xs text-depro-gray mt-1">Último registro wellness</p>
+        </div>
+        <div className="rounded-2xl border border-depro-border bg-white p-4">
+          <p className="text-[10px] font-bold uppercase text-depro-gray flex items-center gap-1"><Activity size={12} /> Cargas</p>
+          <p className="text-2xl font-black text-depro-dark mt-1">{logs.length}</p>
+          <p className="text-xs text-depro-gray mt-1">Sesiones registradas</p>
+        </div>
+        <div className="rounded-2xl border border-depro-border bg-white p-4">
+          <p className="text-[10px] font-bold uppercase text-depro-gray flex items-center gap-1"><Flame size={12} /> Progreso</p>
+          <p className="text-2xl font-black text-depro-dark mt-1">{summary?.pct != null ? `${summary.pct > 0 ? "+" : ""}${summary.pct}%` : "—"}</p>
+          <p className="text-xs text-depro-gray mt-1">{summary?.message || summary?.exerciseName || "Mejoras detectadas"}</p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-depro-border bg-white p-5">
+        <h4 className="font-bold text-depro-dark mb-3">Wellness (peso, cintura, fatiga, sueño)</h4>
+        <div className="space-y-2">
+          {weeks.map((k) => {
+            const e = wellness[k];
+            return (
+              <div key={k} className="flex items-center justify-between text-sm border-b border-depro-border py-2 last:border-0">
+                <span className="text-depro-gray">{formatWeekLabel(k)}</span>
+                <span className="text-depro-dark font-medium">
+                  {e?.weightKg ? `${e.weightKg} kg` : "—"}
+                  {e?.waistCm ? ` · ${e.waistCm} cm` : ""}
+                  {e?.fatigue ? ` · fatiga ${e.fatigue}` : ""}
+                  {e?.sleep ? ` · sueño ${e.sleep}` : ""}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-depro-border bg-white p-5">
+        <h4 className="font-bold text-depro-dark mb-3">Últimos registros de carga</h4>
+        {logs.slice(0, 8).length === 0 ? (
+          <p className="text-sm text-depro-gray">Aún no hay cargas registradas en este dispositivo/admin.</p>
+        ) : (
+          <div className="space-y-2">
+            {logs.slice(0, 8).map((l) => (
+              <div key={l.id} className="flex items-center justify-between text-sm border-b border-depro-border py-2 last:border-0">
+                <span className="text-depro-dark font-medium truncate">{l.exerciseName || l.name || l.sessionTitle || "Sesión"}</span>
+                <span className="text-depro-gray text-xs shrink-0 ml-2">
+                  {l.weight ? `${l.weight} kg` : ""} {l.reps ? `· ${l.reps} reps` : ""} {l.rpe ? `· RPE ${l.rpe}` : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -545,16 +673,24 @@ const TABS = [
   { key: "plan", label: "Plan semanal", icon: Calendar },
   { key: "monthly", label: "Plan mensual", icon: CalendarDays },
   { key: "feedback", label: "Feedback", icon: MessageSquare },
+  { key: "progress", label: "Progresión", icon: Activity },
   { key: "profile", label: "Perfil", icon: Target },
 ];
 
 export default function AdminClientDetailPage() {
   const { id } = useParams();
   const clientId = id;
-  const { clients } = useAdmin();
+  const { clients, allUsers, hydrateClientPlan } = useAdmin();
   const [activeTab, setActiveTab] = useState("plan");
 
-  const client = clients.find((c) => String(c.id) === String(clientId));
+  useEffect(() => {
+    if (clientId) hydrateClientPlan?.(clientId);
+  }, [clientId, hydrateClientPlan]);
+
+  const fromList = clients.find((c) => String(c.id) === String(clientId));
+  const fromAll = allUsers.find((u) => String(u.id) === String(clientId));
+  const client = fromList || (fromAll ? mapPlayerToClient(fromAll) : null);
+
   if (!client) {
     return (
       <div className="p-8 text-center text-depro-gray">
@@ -605,9 +741,10 @@ export default function AdminClientDetailPage() {
         ))}
       </div>
 
-      {activeTab === "plan" && <PlanTab clientId={clientId} />}
+      {activeTab === "plan" && <PlanTab clientId={clientId} client={client} />}
       {activeTab === "monthly" && <MonthlyPlanTab client={client} clientId={clientId} />}
       {activeTab === "feedback" && <FeedbackTab clientId={clientId} />}
+      {activeTab === "progress" && <ProgressionTab clientId={clientId} />}
       {activeTab === "profile" && <ProfileTab client={client} />}
     </div>
   );

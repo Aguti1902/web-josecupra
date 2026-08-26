@@ -40,7 +40,8 @@ export default function AdminOverviewPage() {
   const incomePlayers = activePlayers.reduce((s, u) => s + monthlyBilledAmount(u, planPrice(u.plan)), 0);
   const incomeClubs = accessClubs.reduce((s, u) => s + monthlyBilledAmount(u, planPrice(u.plan)), 0);
   const incomeTotal = incomePlayers + incomeClubs;
-  const discountUsers = users.filter((u) => u.clubCode || u.discountCode).length;
+  const discountUsers = users.filter((u) => u.clubCode || u.discountCode);
+  const discountTrial = discountUsers.filter((u) => u.subscriptionStatus === "trialing").length;
 
   const stats = [
     { label: "Jugadores", value: players.length, icon: Users, color: "#0A36F7", bg: "#EEF1FF" },
@@ -106,8 +107,8 @@ export default function AdminOverviewPage() {
             <p className="text-[11px] font-bold uppercase text-depro-gray flex items-center gap-1">
               <Percent size={12} /> Códigos descuento
             </p>
-            <p className="text-xl font-black text-depro-dark mt-1">{discountUsers}</p>
-            <p className="text-xs text-depro-gray mt-0.5">usuarios con código / club</p>
+            <p className="text-xl font-black text-depro-dark mt-1">{discountUsers.length}</p>
+            <p className="text-xs text-depro-gray mt-0.5">{discountTrial} en prueba gratuita</p>
           </div>
         </div>
         {accessClubs.length > 0 && (

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { clients as initialClients, weeklyPlan as initialPlan } from "../data/mockData";
 import { supabase } from "../lib/supabase";
-import { loadPlayerPlan, savePlayerPlan, persistPlayerPlanRemote } from "../lib/playerPlanStorage";
+import { loadPlayerPlan, savePlayerPlan, persistPlayerPlanRemote, fetchPlayerPlan, emptyPhysicalWeekPlan, isMockTechnicalPlan } from "../lib/playerPlanStorage";
 import {
   getPlayerFeedback,
   addPlayerFeedback,
@@ -38,6 +38,10 @@ export function mapPlayerToClient(user) {
     disponibles: user.disponibles || null,
     diaCompeticion: user.diaCompeticion || null,
     material: user.material || null,
+    clubCode: user.clubCode || null,
+    lesion: user.lesion || [],
+    lesionSubtipo: user.lesionSubtipo || [],
+    experiencia: user.experiencia || null,
     planPendingManual: !!user.planPendingManual,
     club: {
       name: user.clubName || "Plan individual",
@@ -106,8 +110,8 @@ export function AdminProvider({ children }) {
             next[id] = stored;
             changed = true;
           }
-        } else if (!next[id]) {
-          next[id] = JSON.parse(JSON.stringify(initialPlan));
+        } else if (!next[id] || isMockTechnicalPlan(next[id])) {
+          next[id] = emptyPhysicalWeekPlan();
           changed = true;
         }
       }
@@ -198,6 +202,18 @@ export function AdminProvider({ children }) {
     }
   }, [ensureClientAssets]);
 
+  const hydrateClientPlan = useCallback(async (clientId) => {
+    if (!clientId) return null;
+    const remote = await fetchPlayerPlan(clientId);
+    const stored = remote || loadPlayerPlan(clientId);
+    const nextPlan = stored && !stored.planError && !isMockTechnicalPlan(stored)
+      ? stored
+      : emptyPhysicalWeekPlan();
+    setClientPlans((prev) => ({ ...prev, [clientId]: nextPlan }));
+    setClientFeedback((prev) => ({ ...prev, [clientId]: getPlayerFeedback(clientId) }));
+    return nextPlan;
+  }, []);
+
   useEffect(() => {
     refreshClients();
   }, [refreshClients]);
@@ -227,7 +243,7 @@ export function AdminProvider({ children }) {
   const addSession = useCallback((clientId, dayIdx, session) => {
     setClientPlans((prev) => {
       const plans = JSON.parse(JSON.stringify(prev));
-      if (!plans[clientId]) plans[clientId] = JSON.parse(JSON.stringify(initialPlan));
+      if (!plans[clientId] || isMockTechnicalPlan(plans[clientId])) plans[clientId] = emptyPhysicalWeekPlan();
       plans[clientId][dayIdx].sessions.push({ ...session, id: Date.now() });
       persistClientPlan(clientId, plans[clientId]);
       return plans;
@@ -361,6 +377,7 @@ export function AdminProvider({ children }) {
         allUsers,
         clientsLoading,
         refreshClients,
+        hydrateClientPlan,
         clientPlans,
         clientContent,
         clientFeedback,

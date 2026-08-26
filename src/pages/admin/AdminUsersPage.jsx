@@ -176,6 +176,7 @@ export default function AdminUsersPage() {
       .filter((u) => {
         const matchType = typeFilter === "all"
           || u.type === typeFilter
+          || (typeFilter === "coach" && (u.type === "coach" || u.type === "coach_pending"))
           || (typeFilter === "club_pending" && (u.type === "club_pending" || u.type === "coach_pending"));
         if (!matchType) return false;
         if (!q) return true;

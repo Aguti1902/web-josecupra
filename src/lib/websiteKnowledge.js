@@ -10,11 +10,11 @@ export const WEBSITE_QUICK_QUESTIONS = [
 export const WEBSITE_FAQ = [
   {
     keywords: ["prueba", "gratis", "15 días", "tarjeta"],
-    answer: "El plan **Standard** (jugador) incluye **15 días de prueba** (tarjeta con 0 € hoy). El plan **Premium** jugador **no tiene prueba gratis**: el cobro empieza el primer día. Cancela cuando quieras.",
+    answer: "El plan **Standard** y el **Premium** de jugador incluyen **15 días de prueba** (tarjeta con 0 € hoy). En prueba puedes ver casi todo; el feedback del preparador se desbloquea al activar la cuenta. Cancela cuando quieras.",
   },
   {
     keywords: ["premium", "sin prueba", "jugador premium"],
-    answer: "**Premium** (jugador) **no incluye prueba gratuita**. Es seguimiento humano con plazas limitadas (40) y cobro desde el día 1. La prueba de 15 días aplica solo a **Standard**.",
+    answer: "**Premium** (jugador) también tiene **15 días de prueba**, igual que Standard. El feedback y el contacto con el preparador se activan al confirmar la suscripción. Plazas limitadas (40).",
   },
   {
     keywords: ["precio", "precios", "cuesta", "plan", "€", "euro"],

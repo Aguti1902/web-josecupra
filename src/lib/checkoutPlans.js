@@ -142,14 +142,14 @@ export const PLANS = {
     id: "player-pro",
     audience: "player",
     name: "Premium",
-    tagline: "Seguimiento humano · sin prueba gratis · 40 plazas",
+    tagline: "Seguimiento humano · 15 días de prueba · 40 plazas",
     price: 99,
     period: "/ mes",
     limits: { maxTeams: null, maxPlayers: null },
     features: [
       "Todo el plan Standard incluido",
-      "Sin prueba gratuita · cobro desde el primer día",
-      "Feedback y seguimiento 100% personalizado (CAFE · UB)",
+      "15 días de prueba: acceso a todo (datos no se guardan · 1 PDF)",
+      "Feedback y seguimiento 100% personalizado (CAFE · UB) al activar",
       "Videollamada inicial + contacto continuo (WhatsApp)",
       "Plan diseñado y revisado manualmente",
       "Todos los extras incluidos (PDF, tests, mis cargas)",
@@ -174,9 +174,13 @@ const PLAN_SLUGS = {
   player: { essential: "player-essential", pro: "player-pro", basic: "player-essential", premium: "player-pro" },
 };
 
-/** Trial de 15 días en checkout: Standard jugador y Standard entrenador. Premium y clubs se cobran al confirmar. */
+/** Trial de 15 días en checkout: jugador y entrenador (incl. Premium). Clubs se cobran al confirmar. */
 export function planHasCheckoutTrial(planId) {
-  return planId === "player-essential" || planId === "coach-starter" || planId === "coach-pro";
+  return planId === "player-essential"
+    || planId === "player-pro"
+    || planId === "coach-starter"
+    || planId === "coach-pro"
+    || planId === "coach-premium";
 }
 
 export function resolvePlanId(audience, planSlug) {

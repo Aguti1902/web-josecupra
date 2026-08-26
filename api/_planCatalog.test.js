@@ -36,12 +36,25 @@ describe("_planCatalog · precios entrenador", () => {
     assert.equal(update.price_data.unit_amount, 2900);
   });
 
-  it("trial solo en Standard jugador y Standard entrenador", () => {
+  it("jugador Premium 99€ no reutiliza un Price ID antiguo (p. ej. 39€)", () => {
+    assert.equal(PRICES["player-pro"].amount, 9900);
+    const item = buildCheckoutLineItem("player-pro", 9900);
+    assert.ok(item.price_data);
+    assert.equal(item.price_data.unit_amount, 9900);
+    assert.equal(item.price_data.product_data.name, "DEPRO Jugador Premium");
+    assert.equal(item.price, undefined);
+
+    const update = buildSubscriptionItemUpdate("player-pro", "si_premium");
+    assert.ok(update.price_data);
+    assert.equal(update.price_data.unit_amount, 9900);
+  });
+
+  it("trial en Standard y Premium de jugador y entrenador; no en club", () => {
     assert.equal(planHasCheckoutTrial("player-essential"), true);
+    assert.equal(planHasCheckoutTrial("player-pro"), true);
     assert.equal(planHasCheckoutTrial("coach-starter"), true);
     assert.equal(planHasCheckoutTrial("coach-pro"), true);
-    assert.equal(planHasCheckoutTrial("coach-premium"), false);
-    assert.equal(planHasCheckoutTrial("player-pro"), false);
+    assert.equal(planHasCheckoutTrial("coach-premium"), true);
     assert.equal(planHasCheckoutTrial("club-inicial"), false);
   });
 });
