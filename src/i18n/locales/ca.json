@@ -192,7 +192,7 @@
     "passwords_no_match": "Les contrasenyes no coincideixen",
     "saved": "Canvis desats",
     "my_club": "El meu club",
-    "my_club_desc": "Introdueix el codi que t'ha donat el teu entrenador per associar-te al teu equip. L'entrenador podrà veure les teves estadístiques i entrenaments des del panell del club.",
+    "my_club_desc": "Introdueix el codi de descompte del club per aplicar −10% i la identitat visual. No t'assigna a un equip.",
     "club_code": "Codi de club",
     "enter_club_code": "Introdueix el codi del teu club",
     "join_club": "Unir-se al club",
@@ -201,7 +201,8 @@
     "leave_club_confirm": "Estàs segur que vols sortir del club? El teu perfil personal seguirà actiu.",
     "joined_club": "T'has unit al club",
     "club_not_found": "Codi no vàlid. Demana el codi al teu entrenador o coordinador.",
-    "club_found": "Club trobat: {{name}}. Ara tria el teu equip.",
+    "club_found": "Club trobat: {{name}}.",
+    "club_code_applied": "Codi de {{name}} aplicat. Identitat visual activada, sense assignar-te a un equip.",
     "no_teams": "Aquest club encara no té equips creats. Contacta amb el teu coordinador.",
     "select_team": "Tria el teu equip",
     "confirm_team": "Confirmar equip",
@@ -473,8 +474,8 @@
       {"id": "club-elite", "name": "Elite", "price": "699€", "subtext": "Equips il·limitats", "features": ["Tot Professional +", "API", "Scouting i cantera", "SLA dedicat", "Comptes il·limitats"], "ctaLink": "/para-clubs"}
     ],
     "pricing_player": [
-      {"id": "player-essential", "name": "Essencial", "price": "19,99€", "subtext": "Pla mensual IA", "features": ["Pla de preparació física", "Adaptat a posició i nivell", "Sessions amb iconografia", "Descàrrega PDF", "Codi referit aplicable"], "ctaLink": "/comprar?audience=player&plan=essential"},
-      {"id": "player-pro", "name": "Pro", "price": "39,99€", "subtext": "Pla IA adaptatiu", "badge": "Recomanat", "highlighted": true, "features": ["Tot Essencial +", "Ajust IA setmanal", "Tests físics", "Alertes sobrecàrrega", "Sincronització club"], "ctaLink": "/comprar?audience=player&plan=pro"}
+      {"id": "player-essential", "name": "Standard", "price": "29€", "subtext": "Pla mensual IA · prova 15 dies", "features": ["Planificació amb IA", "Metodologia DEPRO", "Rànquing intern", "15 dies de prova", "Codi de club (−10%)"], "ctaLink": "/comprar?audience=player&plan=essential"},
+      {"id": "player-pro", "name": "Premium", "price": "99€", "subtext": "Seguiment humà · sense prova", "badge": "Recomanat", "highlighted": true, "features": ["Tot Standard +", "Seguiment CAFE", "Tots els extres", "Places limitades (40)"], "ctaLink": "/comprar?audience=player&plan=pro"}
     ],
     "referral_label": "Programa de referits",
     "referral_title": "El teu club porta jugadors. Tots guanyen.",

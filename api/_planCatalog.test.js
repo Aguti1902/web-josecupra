@@ -23,6 +23,19 @@ describe("_planCatalog · precios entrenador", () => {
     assert.equal(update.price_data.unit_amount, 3000);
   });
 
+  it("jugador Standard 29€ no reutiliza el Price ID antiguo de 19,99", () => {
+    const item = buildCheckoutLineItem("player-essential", 2900);
+    assert.ok(item.price_data);
+    assert.equal(item.price_data.unit_amount, 2900);
+    assert.equal(item.price_data.product_data.name, "DEPRO Jugador Standard");
+    assert.ok(!/pdf/i.test(item.price_data.product_data.description));
+    assert.equal(item.price, undefined);
+
+    const update = buildSubscriptionItemUpdate("player-essential", "si_player");
+    assert.ok(update.price_data);
+    assert.equal(update.price_data.unit_amount, 2900);
+  });
+
   it("trial solo en Standard jugador y Standard entrenador", () => {
     assert.equal(planHasCheckoutTrial("player-essential"), true);
     assert.equal(planHasCheckoutTrial("coach-starter"), true);

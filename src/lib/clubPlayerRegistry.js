@@ -1,4 +1,4 @@
-import { weekKey, loadProgressIds, countCompletedSessions } from "./sessionProgress";
+import { weekKey, loadProgressIds, countCompletedSessions } from "./sessionProgress.js";
 
 const PLAYER_CLUB_PREFIX = "depro_player_club_";
 
@@ -32,16 +32,44 @@ export function applyClubBrandingToPlayer(userId, clubId) {
   if (club.primaryColor) localStorage.setItem(`depro_player_accent_${userId}`, club.primaryColor);
 }
 
+function writePlayerClubAssoc(userId, payload) {
+  localStorage.setItem(`${PLAYER_CLUB_PREFIX}${userId}`, JSON.stringify(payload));
+}
+
+/**
+ * Código de descuento de club: branding + trazabilidad, SIN plantilla ni equipo.
+ * No escribe depro_squad_* ni depro_team_registry_* ni player_team_links.
+ */
+export function registerClubCodePlayer({ userId, clubId, name, email, plan, status = "pending" }) {
+  if (!userId || !clubId) return;
+  writePlayerClubAssoc(userId, {
+    clubId,
+    teamId: null,
+    linkKind: "code",
+    name: name || "Jugador",
+    email: email || "",
+    plan: plan || "—",
+    status: status || "pending",
+  });
+  applyClubBrandingToPlayer(userId, clubId);
+}
+
 export function registerPendingClubPlayer({ userId, clubId, teamId, name, email, plan }) {
-  if (!userId || !clubId || !teamId) return;
-  localStorage.setItem(`${PLAYER_CLUB_PREFIX}${userId}`, JSON.stringify({
+  // Código de club: nunca exigir ni guardar equipo.
+  if (!teamId) {
+    registerClubCodePlayer({ userId, clubId, name, email, plan, status: "pending" });
+    return;
+  }
+  if (!userId || !clubId) return;
+  writePlayerClubAssoc(userId, {
     clubId,
     teamId,
+    linkKind: "squad",
     name: name || "Jugador",
     email: email || "",
     plan: plan || "—",
     status: "pending",
-  }));
+  });
   applyClubBrandingToPlayer(userId, clubId);
 }
 
@@ -55,14 +83,15 @@ export function activateClubPlayerInSquad({ userId, clubId, teamId, name, email,
     email: email || "",
   };
 
-  localStorage.setItem(`${PLAYER_CLUB_PREFIX}${userId}`, JSON.stringify({
+  writePlayerClubAssoc(userId, {
     clubId,
     teamId,
+    linkKind: "squad",
     name: entry.name,
     email: entry.email,
     plan: entry.plan,
     status: "active",
-  }));
+  });
 
   const squadKey = `depro_squad_${clubId}_${teamId}`;
   const squad = JSON.parse(localStorage.getItem(squadKey) || "[]");
@@ -85,7 +114,7 @@ export function isPlayerInActiveSquad(userId) {
   return getPlayerClubAssoc(userId)?.status === "active";
 }
 
-export function getClubCodePlayers(clubId, teamId = null) {
+export function getClubCodePlayers(clubId, teamId = null, { includeCodeOnly = false } = {}) {
   const players = [];
   try {
     for (let i = 0; i < localStorage.length; i++) {
@@ -93,6 +122,8 @@ export function getClubCodePlayers(clubId, teamId = null) {
       if (!key?.startsWith(PLAYER_CLUB_PREFIX)) continue;
       const val = JSON.parse(localStorage.getItem(key) || "{}");
       if (val.clubId !== clubId) continue;
+      const isCodeOnly = val.linkKind === "code" || !val.teamId;
+      if (isCodeOnly && !includeCodeOnly) continue;
       if (teamId && val.teamId !== teamId) continue;
       players.push({ userId: key.replace(PLAYER_CLUB_PREFIX, ""), ...val });
     }
