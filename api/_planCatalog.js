@@ -9,13 +9,8 @@ import { planHasCheckoutTrial } from "../src/lib/checkoutPlans.js";
 export const TRIAL_PERIOD_DAYS = 15;
 export { planHasCheckoutTrial };
 
-/** Price IDs de entrenador en stripe-prices.*.json son de importes antiguos (14,99 / 29,99 / 49,99). */
-const COACH_PLANS_REQUIRE_STORED_AMOUNT = new Set([
-  "coach-starter",
-  "coach-pro",
-  "coach-premium",
-]);
-
+/** Price IDs en stripe-prices.*.json pueden ser de importes antiguos (19,99 / 14,99…).
+ * Solo se reutilizan si el JSON guarda `amount` y coincide con el catálogo. */
 export const PRICES = {
   "coach-starter":    { amount: 3000,  name: "DEPRO Entrenador Standard",  description: "Sesiones automáticas · 1 equipo · extras +5€" },
   "coach-pro":        { amount: 3000,  name: "DEPRO Entrenador Standard",  description: "Sesiones automáticas · 1 equipo (plan legado Pro)" },
@@ -23,7 +18,7 @@ export const PRICES = {
   "club-inicial":     { amount: 19900, name: "DEPRO Club Inicial",         description: "Hasta 3 equipos · white-label · referidos" },
   "club-pro":         { amount: 39900, name: "DEPRO Club Profesional",     description: "Hasta 8 equipos · GPS · módulo médico" },
   "club-elite":       { amount: 69900, name: "DEPRO Club Elite",           description: "Equipos ilimitados · API · SLA dedicado" },
-  "player-essential": { amount: 2900,  name: "DEPRO Jugador Básico",       description: "IA especializada · metodología DEPRO · ranking · tests" },
+  "player-essential": { amount: 2900,  name: "DEPRO Jugador Standard",    description: "IA especializada · metodología DEPRO · ranking · tests" },
   "player-pro":       { amount: 9900,  name: "DEPRO Jugador Premium",      description: "Seguimiento humano CAFE · videollamada · WhatsApp · 40 plazas" },
 };
 
@@ -51,10 +46,9 @@ function canReuseStripePriceId(planId, finalAmountCents) {
   const rec = getStripePriceRecord(planId);
   if (!rec.priceId) return false;
   if (Number(finalAmountCents) !== Number(price.amount)) return false;
-  if (COACH_PLANS_REQUIRE_STORED_AMOUNT.has(planId)) {
-    return rec.amount != null && Number(rec.amount) === Number(finalAmountCents);
-  }
-  return true;
+  // Sin amount en el JSON no sabemos si Stripe sigue en 19,99 u otro importe viejo.
+  if (rec.amount == null) return false;
+  return Number(rec.amount) === Number(finalAmountCents);
 }
 
 function catalogPriceData(price, amountCents) {

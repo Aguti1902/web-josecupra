@@ -24,8 +24,7 @@ import { PLANS, formatPrice } from "../../lib/checkoutPlans";
 import { PREMIUM_PLAYER_CAP } from "../../lib/premiumCapacity";
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import {
-  registerPendingClubPlayer,
-  activateClubPlayerInSquad,
+  registerClubCodePlayer,
   applyClubBrandingToPlayer,
 } from "../../lib/clubPlayerRegistry";
 import {
@@ -180,12 +179,6 @@ export default function ProfilePage() {
   const [codeStatus, setCodeStatus] = useState(null);
   const [codeMsg, setCodeMsg]       = useState("");
   const [codeLoading, setCodeLoading] = useState(false);
-
-  // Paso 2: seleccionar equipo
-  const [foundClub, setFoundClub]   = useState(null);  // club encontrado por código
-  const [teams, setTeams]           = useState([]);     // equipos disponibles
-  const [selectedTeam, setSelectedTeam] = useState(""); // id del equipo elegido
-  const [joining, setJoining]       = useState(false);
 
   // Club actual del jugador
   const [currentClub, setCurrentClub] = useState(null);
@@ -429,8 +422,8 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  // ── Paso 1: validar código ──────────────────────────────────
-  const handleCheckCode = (e) => {
+  // ── Validar código de descuento (identidad visual, sin equipo) ──
+  const handleCheckCode = async (e) => {
     e.preventDefault();
     if (!clubCode.trim()) return;
     setCodeLoading(true);
@@ -447,72 +440,40 @@ export default function ProfilePage() {
       return;
     }
 
-    // Cargar equipos desde el detail del club
     const detail = lsGet(`depro_club_${found.id}`, null);
-    const clubTeams = detail?.teams || found.teams || [];
-    const enriched  = { ...found, ...(detail || {}), teams: clubTeams };
+    const enriched = { ...found, ...(detail || {}), teams: detail?.teams || found.teams || [] };
 
-    setFoundClub(enriched);
-    setTeams(clubTeams);
-    setSelectedTeam(clubTeams[0]?.id || "");
-    setCodeStatus("ok");
-    setCodeMsg(t("profile.club_found", { name: found.name }));
-    setCodeLoading(false);
-  };
-
-  // ── Paso 2: unirse al equipo ────────────────────────────────
-  const handleJoinTeam = async () => {
-    if (!foundClub || !selectedTeam) return;
-    setJoining(true);
-
-    const team = teams.find((t) => t.id === selectedTeam);
-    const playerData = {
-      userId: user.id,
-      clubId: foundClub.id,
-      teamId: selectedTeam,
-      name: user.name || user.email?.split("@")[0] || "Jugador",
-      email: user.email || "",
-      plan: user.plan || "Plan activo",
-    };
-
+    const trial = isInTrial(user);
     const paid = isSubscriptionActive({
       plan: user.plan,
       status: user.subscriptionStatus,
       stripeSubscriptionId: user.stripeSubscriptionId,
       billingSource: user.billingSource,
     });
+    const status = trial ? "trialing" : paid ? "active" : "pending";
 
-    if (paid) {
-      activateClubPlayerInSquad(playerData);
-    } else {
-      registerPendingClubPlayer(playerData);
-    }
-
-    applyClubBrandingToPlayer(user.id, foundClub.id);
+    registerClubCodePlayer({
+      userId: user.id,
+      clubId: found.id,
+      name: user.name || user.email?.split("@")[0] || "Jugador",
+      email: user.email || "",
+      plan: user.plan || "Plan activo",
+      status,
+    });
+    applyClubBrandingToPlayer(user.id, found.id);
 
     try {
       await supabase.auth.updateUser({
-        data: { clubId: foundClub.id, teamId: selectedTeam, teamRole: "jugador" },
+        data: { clubId: found.id, clubCode: code, teamId: null, teamRole: null, clubCodeOnly: true },
       });
-      if (paid) {
-        await supabase.from("player_team_links").upsert({
-          player_id: user.id,
-          team_id: selectedTeam,
-          club_id: foundClub.id,
-          name: playerData.name,
-          plan: playerData.plan,
-        }, { onConflict: "player_id" });
-      }
-    } catch {}
+    } catch { /* branding local sigue valiendo */ }
 
-    setCurrentClub(foundClub);
-    setCurrentTeam(team || null);
-    setFoundClub(null);
-    setTeams([]);
+    setCurrentClub(enriched);
+    setCurrentTeam(null);
     setClubCode("");
-    setCodeStatus(null);
-    setJoining(false);
-
+    setCodeStatus("ok");
+    setCodeMsg(t("profile.club_code_applied", { name: found.name }));
+    setCodeLoading(false);
     await refreshUser();
   };
 
@@ -1305,98 +1266,7 @@ export default function ProfilePage() {
             </button>
           </div>
 
-        ) : foundClub ? (
-          /* Paso 2: seleccionar equipo */
-          <div className="space-y-4">
-            {/* Club encontrado */}
-            {(() => { const fc = safeColor(foundClub.primaryColor); return (
-            <div
-              className="rounded-xl p-3 flex items-center gap-3 border"
-              style={{ backgroundColor: fc + "10", borderColor: fc + "30" }}
-            >
-              {foundClub.logo
-                ? <img src={foundClub.logo} alt={foundClub.name} className="w-10 h-10 rounded-xl object-contain bg-white p-0.5 border border-depro-border flex-shrink-0" />
-                : <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0"
-                    style={{ backgroundColor: fc + "20", color: fc }}>
-                    {foundClub.abbreviation || foundClub.name?.[0]}
-                  </div>
-              }
-              <div>
-                <div className="font-bold text-depro-dark">{foundClub.name}</div>
-                {foundClub.city && <div className="text-xs text-depro-gray">{foundClub.city}</div>}
-              </div>
-              <CheckCircle size={16} className="text-green-500 ml-auto flex-shrink-0" />
-            </div>
-            ); })()}
-
-            {/* Selector de equipo */}
-            {teams.length > 0 ? (() => {
-              const clubColor = safeColor(foundClub.primaryColor);
-              const clubTextContrast = contrastText(clubColor);
-              return (
-                <div>
-                  <label className="block text-sm font-semibold text-depro-dark mb-2">
-                    {t("profile.select_team")}
-                  </label>
-                  <div className="space-y-2">
-                    {teams.map((team) => {
-                      const isSel = selectedTeam === team.id;
-                      return (
-                        <button
-                          key={team.id}
-                          onClick={() => setSelectedTeam(team.id)}
-                          className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                            isSel ? "" : "border-depro-border hover:border-depro-blue/40 bg-white"
-                          }`}
-                          style={isSel ? { borderColor: clubColor, backgroundColor: clubColor + "10" } : {}}
-                        >
-                          <div
-                            className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-black flex-shrink-0"
-                            style={{ backgroundColor: clubColor + "20", color: clubColor }}
-                          >
-                            {team.name?.[0]?.toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-depro-dark text-sm">{team.name}</div>
-                            {team.category && <div className="text-xs text-depro-gray">{team.category}{team.season ? ` · ${team.season}` : ""}</div>}
-                            {team.coach?.name && <div className="text-xs text-depro-gray">{t("profile.coach_label")}: {team.coach.name}</div>}
-                          </div>
-                          {isSel && <CheckCircle size={18} style={{ color: clubColor }} className="flex-shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })() : (
-              <p className="text-sm text-depro-gray bg-depro-gray-light rounded-xl p-3">
-                {t("profile.no_teams")}
-              </p>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setFoundClub(null); setTeams([]); setCodeStatus(null); }}
-                className="flex-1 py-2.5 rounded-xl border-2 border-depro-border text-sm font-semibold text-depro-dark hover:bg-depro-gray-light transition-colors"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                onClick={handleJoinTeam}
-                disabled={joining || !selectedTeam}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-opacity"
-                style={{ backgroundColor: safeColor(foundClub.primaryColor), color: contrastText(safeColor(foundClub.primaryColor)) }}
-              >
-                {joining
-                  ? <div className="spinner border-white/20 border-t-white w-4 h-4" />
-                  : <>{t("profile.join_team")} <ChevronRight size={15} /></>
-                }
-              </button>
-            </div>
-          </div>
-
         ) : (
-          /* Paso 1: introducir código */
           <form onSubmit={handleCheckCode} className="space-y-3">
             <div className="relative">
               <Hash size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />

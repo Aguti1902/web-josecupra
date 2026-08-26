@@ -192,7 +192,7 @@
     "passwords_no_match": "Passwords do not match",
     "saved": "Changes saved",
     "my_club": "My club",
-    "my_club_desc": "Enter the code given by your coach to associate with your team. The coach will be able to see your stats and sessions from the club panel.",
+    "my_club_desc": "Enter your club discount code for −10% and club branding. It does not assign you to a team.",
     "club_code": "Club code",
     "enter_club_code": "Enter your club code",
     "join_club": "Join club",
@@ -201,7 +201,8 @@
     "leave_club_confirm": "Are you sure you want to leave the club? Your personal profile will remain active.",
     "joined_club": "You joined the club",
     "club_not_found": "Invalid code. Ask your coach or coordinator for the code.",
-    "club_found": "Club found: {{name}}. Now choose your team.",
+    "club_found": "Club found: {{name}}.",
+    "club_code_applied": "{{name}} code applied. Branding on, no team assignment.",
     "no_teams": "This club has no teams yet. Contact your coordinator.",
     "select_team": "Choose your team",
     "confirm_team": "Confirm team",
@@ -473,8 +474,8 @@
       {"id": "club-elite", "name": "Elite", "price": "€699", "subtext": "Unlimited teams · unlimited players", "features": ["Everything in Professional +", "API & integrations", "Scouting & academy", "Dedicated SLA", "Unlimited staff accounts"], "ctaLink": "/para-clubs"}
     ],
     "pricing_player": [
-      {"id": "player-essential", "name": "Essential", "price": "€19.99", "subtext": "Monthly AI plan · private dashboard", "features": ["Monthly physical preparation plan", "Adapted to position and level", "Sessions with load iconography", "PDF download", "Club referral code applicable"], "ctaLink": "/comprar?audience=player&plan=essential"},
-      {"id": "player-pro", "name": "Pro", "price": "€39.99", "subtext": "Adaptive AI plan + tracking", "badge": "Recommended", "highlighted": true, "features": ["Everything in Essential +", "Weekly AI adjustment from feedback", "Physical tests with ratings", "Overload alerts", "Club sync (if applicable)"], "ctaLink": "/comprar?audience=player&plan=pro"}
+      {"id": "player-essential", "name": "Standard", "price": "€29", "subtext": "Monthly AI plan · 15-day trial", "features": ["AI planning", "DEPRO methodology", "Internal ranking", "15-day trial", "Club code (−10%)"], "ctaLink": "/comprar?audience=player&plan=essential"},
+      {"id": "player-pro", "name": "Premium", "price": "€99", "subtext": "Human follow-up · no free trial", "badge": "Recommended", "highlighted": true, "features": ["Everything in Standard +", "Human CAFE follow-up", "All extras included", "Limited spots (40)"], "ctaLink": "/comprar?audience=player&plan=pro"}
     ],
     "referral_label": "Referral program",
     "referral_title": "Your club brings players. Everyone wins.",
