@@ -246,8 +246,6 @@ export default function PaymentSuccessPage() {
               return;
             }
             if (sessionId && !data?.ok) {
-              finalizedRef.current = false;
-              finalizedRef.current = true;
               finalize();
               return;
             }
