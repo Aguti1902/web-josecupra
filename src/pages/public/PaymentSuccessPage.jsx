@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { syncLocalSubscription } from "../../lib/subscription";
 import { registerClubCodePlayer, getPlayerClubAssoc, applyClubBrandingToPlayer } from "../../lib/clubPlayerRegistry";
+import { reclaimLocalStorage, safeSetItem } from "../../lib/storageQuota";
+
+function friendlyError(raw) {
+  const msg = String(raw || "");
+  if (/quota/i.test(msg)) {
+    return "El navegador tiene el almacenamiento lleno. Tu pago está bien: entra al panel.";
+  }
+  return msg;
+}
 
 export default function PaymentSuccessPage() {
   const [params] = useSearchParams();
@@ -16,14 +25,137 @@ export default function PaymentSuccessPage() {
   const userRef = useRef(user);
   const loginRef = useRef(login);
   const refreshUserRef = useRef(refreshUser);
+  const navigateRef = useRef(navigate);
 
   userRef.current = user;
   loginRef.current = login;
   refreshUserRef.current = refreshUser;
+  navigateRef.current = navigate;
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 100);
   }, []);
+
+  function goToPanel() {
+    navigateRef.current("/dashboard", { replace: true });
+  }
+
+  function goToLogin(email) {
+    const url = new URL("/login", window.location.origin);
+    if (email) url.searchParams.set("email", email);
+    url.searchParams.set("next", "/dashboard");
+    window.location.assign(`${url.pathname}${url.search}`);
+  }
+
+  async function persistSideEffects(data) {
+    try {
+      reclaimLocalStorage();
+      if (data.userId) {
+        safeSetItem(sessionStorage, "depro_pending_plan_user", data.userId);
+        syncLocalSubscription(data.userId, {
+          plan: data.plan,
+          status: data.subscriptionStatus || "trialing",
+          trialEndsAt: data.trialEndsAt,
+          billingSource: "stripe",
+        });
+        if (data.coachClub?.id) {
+          try {
+            const { saveClub } = await import("../../lib/adminStorage");
+            await saveClub(data.coachClub);
+          } catch { /* el club ya está en clubs_detail */ }
+        }
+        const clubId = data.clubId;
+        if (clubId) {
+          registerClubCodePlayer({
+            userId: data.userId,
+            clubId,
+            name: data.name,
+            email: data.email,
+            plan: data.plan,
+            status: data.subscriptionStatus === "trialing" ? "trialing" : "active",
+          });
+        } else {
+          const assoc = getPlayerClubAssoc(data.userId);
+          if (assoc?.clubId) {
+            registerClubCodePlayer({
+              userId: data.userId,
+              clubId: assoc.clubId,
+              name: assoc.name || data.name,
+              email: assoc.email || data.email,
+              plan: data.plan || assoc.plan,
+              status: data.subscriptionStatus === "trialing" ? "trialing" : "active",
+            });
+            applyClubBrandingToPlayer(data.userId, assoc.clubId);
+          }
+        }
+      }
+    } catch { /* localStorage lleno no puede bloquear el acceso al panel */ }
+  }
+
+  async function enterWithSession(data) {
+    if (data?.password && data?.email) {
+      const result = await loginRef.current(data.email, data.password);
+      if (result.success) {
+        try { await refreshUserRef.current(); } catch { /* ignore */ }
+        goToPanel();
+        return true;
+      }
+    }
+    if (userRef.current) {
+      try { await refreshUserRef.current(); } catch { /* ignore */ }
+      goToPanel();
+      return true;
+    }
+    return false;
+  }
+
+  async function finalize() {
+    if (!sessionId) return;
+    setStatus((s) => ({ ...s, loading: true, redirecting: false, error: null }));
+
+    try {
+      reclaimLocalStorage();
+      const res = await fetch("/api/complete-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, authUserId: userRef.current?.id || undefined }),
+      });
+      const data = await res.json();
+
+      if (!data.ok) {
+        setStatus({
+          loading: false,
+          redirecting: false,
+          error: friendlyError(data.error || "No se pudo activar tu cuenta"),
+          done: true,
+          email: data.email || "",
+        });
+        return;
+      }
+
+      // Login ANTES de escribir branding: si Safari está lleno, el cupo no puede abortar la sesión.
+      setStatus({ loading: false, redirecting: true, error: null, done: false, email: data.email || "" });
+      const entered = await enterWithSession(data);
+      await persistSideEffects(data);
+      if (entered) return;
+
+      setStatus({
+        loading: false,
+        redirecting: false,
+        error: "Pago confirmado. Pulsa para entrar al panel.",
+        done: true,
+        email: data.email || "",
+      });
+    } catch (e) {
+      setStatus({
+        loading: false,
+        redirecting: false,
+        error: friendlyError(e.message),
+        done: true,
+        email: "",
+      });
+    }
+  }
 
   useEffect(() => {
     if (!sessionId) {
@@ -31,113 +163,11 @@ export default function PaymentSuccessPage() {
       return;
     }
     if (authLoading || finalizedRef.current) return;
-
-    let cancelled = false;
     finalizedRef.current = true;
-
-    async function enterDashboard() {
-      navigate("/dashboard", { replace: true });
-    }
-
-    async function finalize() {
-      setStatus((s) => ({ ...s, loading: true, error: null }));
-
-      try {
-        const res = await fetch("/api/complete-payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId, authUserId: userRef.current?.id || undefined }),
-        });
-        const data = await res.json();
-        if (cancelled) return;
-
-        if (!data.ok) {
-          finalizedRef.current = false;
-          setStatus({ loading: false, redirecting: false, error: data.error || "No se pudo activar tu cuenta", done: true, email: data.email || "" });
-          return;
-        }
-
-        if (data.userId) {
-          sessionStorage.setItem("depro_pending_plan_user", data.userId);
-          syncLocalSubscription(data.userId, {
-            plan: data.plan,
-            status: data.subscriptionStatus || "trialing",
-            trialEndsAt: data.trialEndsAt,
-            billingSource: "stripe",
-          });
-
-          if (data.coachClub?.id) {
-            try {
-              const { saveClub } = await import("../../lib/adminStorage");
-              await saveClub(data.coachClub);
-            } catch { /* el club ya está en clubs_detail */ }
-          }
-          const clubId = data.clubId;
-          if (clubId) {
-            registerClubCodePlayer({
-              userId: data.userId,
-              clubId,
-              name: data.name,
-              email: data.email,
-              plan: data.plan,
-              status: data.subscriptionStatus === "trialing" ? "trialing" : "active",
-            });
-          } else {
-            const assoc = getPlayerClubAssoc(data.userId);
-            if (assoc?.clubId) {
-              registerClubCodePlayer({
-                userId: data.userId,
-                clubId: assoc.clubId,
-                name: assoc.name || data.name,
-                email: assoc.email || data.email,
-                plan: data.plan || assoc.plan,
-                status: data.subscriptionStatus === "trialing" ? "trialing" : "active",
-              });
-              applyClubBrandingToPlayer(data.userId, assoc.clubId);
-            }
-          }
-        }
-
-        setStatus({ loading: false, redirecting: true, error: null, done: false, email: data.email || "" });
-
-        if (data.password && data.email) {
-          const result = await loginRef.current(data.email, data.password);
-          if (result.success) {
-            await refreshUserRef.current();
-            if (!cancelled) await enterDashboard();
-            return;
-          }
-        }
-
-        if (userRef.current) {
-          await refreshUserRef.current();
-          if (!cancelled) await enterDashboard();
-          return;
-        }
-
-        setStatus({
-          loading: false,
-          redirecting: false,
-          error: "Pago confirmado. Entra al panel con el mismo email.",
-          done: true,
-          email: data.email || "",
-        });
-      } catch (e) {
-        if (!cancelled) {
-          finalizedRef.current = false;
-          setStatus({ loading: false, redirecting: false, error: e.message, done: true, email: "" });
-        }
-      }
-    }
-
     finalize();
-    return () => { cancelled = true; };
-  }, [sessionId, authLoading, navigate]);
+  }, [sessionId, authLoading]);
 
   const busy = status.loading || status.redirecting;
-  const loginHref = status.email
-    ? `/login?email=${encodeURIComponent(status.email)}&next=/dashboard`
-    : "/login?next=/dashboard";
 
   return (
     <div className="min-h-screen bg-depro-gray-light flex items-center justify-center px-4">
@@ -170,9 +200,24 @@ export default function PaymentSuccessPage() {
         )}
 
         {!busy && (
-          <Link to={loginHref} className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (sessionId) {
+                finalizedRef.current = true;
+                finalize();
+                return;
+              }
+              if (userRef.current) {
+                goToPanel();
+                return;
+              }
+              goToLogin(status.email);
+            }}
+            className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3"
+          >
             Entrar al panel <ArrowRight size={16} />
-          </Link>
+          </button>
         )}
 
         {sessionId && (

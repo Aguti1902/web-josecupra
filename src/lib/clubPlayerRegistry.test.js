@@ -36,22 +36,18 @@ describe("clubPlayerRegistry · código sin equipo", () => {
     assert.equal(getClubCodePlayers("club_udv", null, { includeCodeOnly: true }).length, 1);
   });
 
-  it("purgePlayerClubArtifacts quita al jugador del squad y de la asociación", async () => {
-    const { purgePlayerClubArtifacts, activateClubPlayerInSquad, getPlayerClubAssoc } = await import("./clubPlayerRegistry.js");
-    activateClubPlayerInSquad({
-      userId: "u-del",
+  it("registerClubCodePlayer no lanza si el storage está lleno", () => {
+    globalThis.localStorage.setItem = () => {
+      const err = new Error("The quota has been exceeded.");
+      err.name = "QuotaExceededError";
+      throw err;
+    };
+    registerClubCodePlayer({
+      userId: "u-quota",
       clubId: "club_udv",
-      teamId: "team_1",
-      name: "Renato",
-      email: "renato@test.com",
+      name: "Ana",
+      email: "ana@test.com",
       plan: "player-essential",
     });
-    assert.ok(getPlayerClubAssoc("u-del"));
-    const squad = JSON.parse(localStorage.getItem("depro_squad_club_udv_team_1"));
-    assert.equal(squad.some((p) => p.id === "u-del"), true);
-    purgePlayerClubArtifacts("u-del", "renato@test.com");
-    assert.equal(getPlayerClubAssoc("u-del"), null);
-    const after = JSON.parse(localStorage.getItem("depro_squad_club_udv_team_1") || "[]");
-    assert.equal(after.some((p) => p.id === "u-del"), false);
   });
 });

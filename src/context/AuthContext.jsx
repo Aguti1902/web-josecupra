@@ -14,6 +14,7 @@ import { getImpersonationSnapshot, stopImpersonation, isRealAdminUser } from "..
 import { parseCoachAutoFromMeta, isProCoachUser } from "../lib/clubAuto/clubAutoCoachBridge";
 import { isSessionPresenceEvent, isSignedOutEvent } from "../lib/authSession";
 import { applyPurgedPlayersToStorage, filterPurgedFromList } from "../lib/clubPlayerPurge";
+import { reclaimLocalStorage } from "../lib/storageQuota";
 
 const AuthContext = createContext(null);
 
@@ -631,6 +632,7 @@ export function AuthProvider({ children }) {
   // ── Login ──────────────────────────────────────────────────
   const login = async (email, password) => {
     try {
+      try { reclaimLocalStorage(); } catch { /* cupo: dejar sitio al token */ }
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,

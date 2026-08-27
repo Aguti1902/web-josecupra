@@ -100,7 +100,7 @@ export default async function handler(req, res) {
 
       if (authUserId) {
         const { data: byId, error: getErr } = await supabaseAdmin.auth.admin.getUserById(authUserId);
-        if (getErr) return res.status(400).json({ error: getErr.message });
+        if (getErr) return res.status(400).json({ error: getErr.message, email });
         if (!byId?.user) return res.status(404).json({ error: "Usuario no encontrado" });
         userId = byId.user.id;
         const purchasedAddons = mergeAddons(byId.user.user_metadata?.purchasedAddons);
@@ -137,16 +137,30 @@ export default async function handler(req, res) {
             },
             email_confirm: true,
           });
-          if (error) return res.status(400).json({ error: error.message });
-          userId = data.user?.id;
-          created = true;
+          if (error) {
+            const again = await findUserByEmail(supabaseAdmin, email);
+            if (!again) return res.status(400).json({ error: error.message, email });
+            userId = again.id;
+            const purchasedAddons = mergeAddons(again.user_metadata?.purchasedAddons);
+            await supabaseAdmin.auth.admin.updateUserById(userId, {
+              password,
+              user_metadata: {
+                ...again.user_metadata,
+                ...userMeta,
+                ...(purchasedAddons ? { purchasedAddons } : {}),
+              },
+            });
+          } else {
+            userId = data.user?.id;
+            created = true;
+          }
         }
       }
       clubIdOut = userMeta.clubId || clubIdOut;
       teamIdOut = userMeta.teamId || teamIdOut;
     } catch (adminErr) {
       console.error("complete-payment supabase:", adminErr.message);
-      return res.status(500).json({ error: adminErr.message || "Error al activar la cuenta" });
+      return res.status(500).json({ error: adminErr.message || "Error al activar la cuenta", email });
     }
 
     if (meta.clubId && meta.clubCode) {

@@ -1,4 +1,5 @@
 import { weekKey, loadProgressIds, countCompletedSessions } from "./sessionProgress.js";
+import { safeSetItem } from "./storageQuota.js";
 
 const PLAYER_CLUB_PREFIX = "depro_player_club_";
 
@@ -24,16 +25,25 @@ function loadClubVisual(clubId) {
   }
 }
 
+function safeSet(key, value) {
+  safeSetItem(localStorage, key, value);
+}
+
+function isHugeDataUrl(value) {
+  return typeof value === "string" && value.startsWith("data:") && value.length > 512;
+}
+
 export function applyClubBrandingToPlayer(userId, clubId) {
   if (!userId || !clubId) return;
   const club = loadClubVisual(clubId);
-  if (club.logo) localStorage.setItem(`depro_player_logo_${userId}`, club.logo);
-  if (club.banner) localStorage.setItem(`depro_player_banner_${userId}`, club.banner);
-  if (club.primaryColor) localStorage.setItem(`depro_player_accent_${userId}`, club.primaryColor);
+  // Los data-URL del logo/banner llenan la cuota de Safari y no se leen en ningún sitio.
+  if (club.logo && !isHugeDataUrl(club.logo)) safeSet(`depro_player_logo_${userId}`, club.logo);
+  if (club.banner && !isHugeDataUrl(club.banner)) safeSet(`depro_player_banner_${userId}`, club.banner);
+  if (club.primaryColor) safeSet(`depro_player_accent_${userId}`, club.primaryColor);
 }
 
 function writePlayerClubAssoc(userId, payload) {
-  localStorage.setItem(`${PLAYER_CLUB_PREFIX}${userId}`, JSON.stringify(payload));
+  safeSet(`${PLAYER_CLUB_PREFIX}${userId}`, JSON.stringify(payload));
 }
 
 /**
@@ -94,18 +104,22 @@ export function activateClubPlayerInSquad({ userId, clubId, teamId, name, email,
   });
 
   const squadKey = `depro_squad_${clubId}_${teamId}`;
-  const squad = JSON.parse(localStorage.getItem(squadKey) || "[]");
-  const sIdx = squad.findIndex((p) => p.id === userId);
-  if (sIdx >= 0) squad[sIdx] = entry;
-  else squad.push(entry);
-  localStorage.setItem(squadKey, JSON.stringify(squad));
+  try {
+    const squad = JSON.parse(localStorage.getItem(squadKey) || "[]");
+    const sIdx = squad.findIndex((p) => p.id === userId);
+    if (sIdx >= 0) squad[sIdx] = entry;
+    else squad.push(entry);
+    safeSet(squadKey, JSON.stringify(squad));
+  } catch { /* ignore */ }
 
   const regKey = `depro_team_registry_${teamId}`;
-  const reg = JSON.parse(localStorage.getItem(regKey) || "[]");
-  const rIdx = reg.findIndex((p) => p.id === userId);
-  if (rIdx >= 0) reg[rIdx] = entry;
-  else reg.push(entry);
-  localStorage.setItem(regKey, JSON.stringify(reg));
+  try {
+    const reg = JSON.parse(localStorage.getItem(regKey) || "[]");
+    const rIdx = reg.findIndex((p) => p.id === userId);
+    if (rIdx >= 0) reg[rIdx] = entry;
+    else reg.push(entry);
+    safeSet(regKey, JSON.stringify(reg));
+  } catch { /* ignore */ }
 
   applyClubBrandingToPlayer(userId, clubId);
 }
