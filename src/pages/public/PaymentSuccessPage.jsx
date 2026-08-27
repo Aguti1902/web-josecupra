@@ -11,7 +11,7 @@ export default function PaymentSuccessPage() {
   const navigate = useNavigate();
   const { user, login, refreshUser, loading: authLoading } = useAuth();
   const [visible, setVisible] = useState(false);
-  const [status, setStatus] = useState({ loading: !!sessionId, redirecting: false, error: null, done: false });
+  const [status, setStatus] = useState({ loading: !!sessionId, redirecting: false, error: null, done: false, email: "" });
   const finalizedRef = useRef(false);
   const userRef = useRef(user);
   const loginRef = useRef(login);
@@ -27,13 +27,17 @@ export default function PaymentSuccessPage() {
 
   useEffect(() => {
     if (!sessionId) {
-      if (!authLoading) setStatus({ loading: false, redirecting: false, error: null, done: true });
+      if (!authLoading) setStatus({ loading: false, redirecting: false, error: null, done: true, email: "" });
       return;
     }
     if (authLoading || finalizedRef.current) return;
 
     let cancelled = false;
     finalizedRef.current = true;
+
+    async function enterDashboard() {
+      navigate("/dashboard", { replace: true });
+    }
 
     async function finalize() {
       setStatus((s) => ({ ...s, loading: true, error: null }));
@@ -49,7 +53,7 @@ export default function PaymentSuccessPage() {
 
         if (!data.ok) {
           finalizedRef.current = false;
-          setStatus({ loading: false, redirecting: false, error: data.error || "No se pudo activar tu cuenta", done: true });
+          setStatus({ loading: false, redirecting: false, error: data.error || "No se pudo activar tu cuenta", done: true, email: data.email || "" });
           return;
         }
 
@@ -62,13 +66,13 @@ export default function PaymentSuccessPage() {
             billingSource: "stripe",
           });
 
-          const clubId = data.clubId;
           if (data.coachClub?.id) {
             try {
               const { saveClub } = await import("../../lib/adminStorage");
               await saveClub(data.coachClub);
             } catch { /* el club ya está en clubs_detail */ }
           }
+          const clubId = data.clubId;
           if (clubId) {
             registerClubCodePlayer({
               userId: data.userId,
@@ -94,32 +98,34 @@ export default function PaymentSuccessPage() {
           }
         }
 
-        setStatus({ loading: false, redirecting: true, error: null, done: false });
-
-        if (userRef.current) {
-          await refreshUserRef.current();
-          navigate("/dashboard", { replace: true });
-          return;
-        }
+        setStatus({ loading: false, redirecting: true, error: null, done: false, email: data.email || "" });
 
         if (data.password && data.email) {
           const result = await loginRef.current(data.email, data.password);
           if (result.success) {
-            navigate("/dashboard", { replace: true });
+            await refreshUserRef.current();
+            if (!cancelled) await enterDashboard();
             return;
           }
+        }
+
+        if (userRef.current) {
+          await refreshUserRef.current();
+          if (!cancelled) await enterDashboard();
+          return;
         }
 
         setStatus({
           loading: false,
           redirecting: false,
-          error: "Pago confirmado. Inicia sesión con el email que usaste al registrarte.",
+          error: "Pago confirmado. Entra al panel con el mismo email.",
           done: true,
+          email: data.email || "",
         });
       } catch (e) {
         if (!cancelled) {
           finalizedRef.current = false;
-          setStatus({ loading: false, redirecting: false, error: e.message, done: true });
+          setStatus({ loading: false, redirecting: false, error: e.message, done: true, email: "" });
         }
       }
     }
@@ -129,6 +135,9 @@ export default function PaymentSuccessPage() {
   }, [sessionId, authLoading, navigate]);
 
   const busy = status.loading || status.redirecting;
+  const loginHref = status.email
+    ? `/login?email=${encodeURIComponent(status.email)}&next=/dashboard`
+    : "/login?next=/dashboard";
 
   return (
     <div className="min-h-screen bg-depro-gray-light flex items-center justify-center px-4">
@@ -161,17 +170,9 @@ export default function PaymentSuccessPage() {
         )}
 
         {!busy && (
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/login" className="btn-primary flex items-center justify-center gap-2 px-6 py-3">
-              Acceder al panel <ArrowRight size={16} />
-            </Link>
-            <Link to="/dashboard" className="btn-ghost flex items-center justify-center gap-2 px-6 py-3">
-              Ir al dashboard
-            </Link>
-            <Link to="/" className="btn-ghost flex items-center justify-center gap-2 px-6 py-3">
-              Volver al inicio
-            </Link>
-          </div>
+          <Link to={loginHref} className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3">
+            Entrar al panel <ArrowRight size={16} />
+          </Link>
         )}
 
         {sessionId && (

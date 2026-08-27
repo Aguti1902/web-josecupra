@@ -12,6 +12,7 @@ import {
   startOfIsoWeek,
 } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { loadOrGenerateWeek } from "../../lib/coachSessionsStorage";
+import { filterPurgedFromList } from "../../lib/clubPlayerPurge";
 import PlanUsageCard from "./PlanUsageCard";
 import { hasFeatureAccess } from "../../lib/subscription";
 
@@ -48,7 +49,7 @@ export default function CoachDashboard({ club, team, user }) {
     if (!club?.id || !team?.id) return;
     try {
       const raw = localStorage.getItem(`depro_squad_${club.id}_${team.id}`);
-      setSquad(JSON.parse(raw || "[]"));
+      setSquad(filterPurgedFromList(JSON.parse(raw || "[]"), club.purgedPlayers || []));
     } catch { setSquad([]); }
   }, [club?.id, team?.id]);
 

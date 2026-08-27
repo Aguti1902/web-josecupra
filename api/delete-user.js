@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { stripPlayerFromClubData } from "../src/lib/clubPlayerPurge.js";
 
 const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
 const SERVICE_ROLE_KEY =
@@ -9,6 +10,15 @@ function getAdmin() {
   return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+}
+
+function playerRowMatches(entry, userId, email) {
+  if (!entry || typeof entry !== "object") return false;
+  const id = String(entry.id || entry.userId || entry.player_id || "");
+  const em = String(entry.email || "").toLowerCase();
+  if (userId && id && id === String(userId)) return true;
+  if (email && em && em === String(email).toLowerCase()) return true;
+  return false;
 }
 
 async function resolveCaller(req, admin) {
@@ -71,41 +81,51 @@ export default async function handler(req, res) {
     } catch { /* ignore */ }
 
     // Quitar de plantillas/usuarios de cada club ANTES de borrar auth.
-    // Las comisiones pendientes se conservan en CLUB_REFERRAL_REGISTRY.
+    const homeClubId = String(target.user.user_metadata?.clubId || "");
     try {
       const { data: details } = await admin.from("clubs_detail").select("club_id, data");
       for (const row of details || []) {
         const clubId = row.club_id;
-        if (!clubId || clubId === "CLUB_REFERRAL_REGISTRY" || clubId.startsWith("GLOBAL_") || clubId.startsWith("PLAYER_PLAN_")) {
+        if (!clubId || clubId.startsWith("GLOBAL_") || clubId.startsWith("PLAYER_PLAN_")) {
           continue;
         }
-        const data = row.data && typeof row.data === "object" ? row.data : {};
-        let changed = false;
-        const next = { ...data };
-        const drop = (list) => {
-          if (!Array.isArray(list)) return list;
-          const filtered = list.filter((p) => {
-            if (!p || typeof p !== "object") return true;
-            const id = String(p.id || p.userId || p.player_id || "");
-            const em = String(p.email || "").toLowerCase();
-            if (id && id === userId) return false;
-            if (email && em && em === email) return false;
-            return true;
-          });
-          if (filtered.length !== list.length) changed = true;
-          return filtered;
-        };
-        next.users = drop(next.users);
-        if (Array.isArray(next.teams)) {
-          next.teams = next.teams.map((t) => ({
-            ...t,
-            squad: drop(t.squad),
-            players: drop(t.players),
-          }));
+        if (clubId === "PLAYER_SOCIAL_REGISTRY") {
+          const social = row.data && typeof row.data === "object" ? { ...row.data } : { byCode: {}, byUserId: {} };
+          let socialChanged = false;
+          if (social.byUserId && userId && social.byUserId[userId]) {
+            delete social.byUserId[userId];
+            socialChanged = true;
+          }
+          for (const [code, prof] of Object.entries(social.byCode || {})) {
+            if (playerRowMatches(prof, userId, email)) {
+              delete social.byCode[code];
+              socialChanged = true;
+            }
+          }
+          if (socialChanged) {
+            await admin.from("clubs_detail").upsert(
+              { club_id: clubId, data: social, updated_at: new Date().toISOString() },
+              { onConflict: "club_id" },
+            );
+          }
+          continue;
         }
-        if (changed) {
+        if (clubId === "CLUB_REFERRAL_REGISTRY") continue;
+        const data = row.data && typeof row.data === "object" ? row.data : {};
+        const { data: next, changed } = stripPlayerFromClubData(data, userId, email);
+        if (changed || clubId === homeClubId) {
           await admin.from("clubs_detail").upsert(
             { club_id: clubId, data: next, updated_at: new Date().toISOString() },
+            { onConflict: "club_id" },
+          );
+        }
+      }
+      if (homeClubId) {
+        const { data: home } = await admin.from("clubs_detail").select("club_id, data").eq("club_id", homeClubId).maybeSingle();
+        if (!home?.club_id) {
+          const { data: next } = stripPlayerFromClubData({}, userId, email);
+          await admin.from("clubs_detail").upsert(
+            { club_id: homeClubId, data: next, updated_at: new Date().toISOString() },
             { onConflict: "club_id" },
           );
         }

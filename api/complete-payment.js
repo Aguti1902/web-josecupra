@@ -1,5 +1,5 @@
 import { getStripe } from "./_stripeClient.js";
-import { getSupabaseAdmin } from "./_supabaseAdmin.js";
+import { getSupabaseAdmin, findUserByEmail } from "./_supabaseAdmin.js";
 import { recordClubCodeSignup } from "./_clubReferrals.js";
 import { buildSoloCoachClub } from "../src/lib/provisionSoloCoach.js";
 
@@ -105,6 +105,7 @@ export default async function handler(req, res) {
         userId = byId.user.id;
         const purchasedAddons = mergeAddons(byId.user.user_metadata?.purchasedAddons);
         await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password,
           user_metadata: {
             ...byId.user.user_metadata,
             ...userMeta,
@@ -112,13 +113,13 @@ export default async function handler(req, res) {
           },
         });
       } else {
-        const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
-        const found = existing?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+        const found = await findUserByEmail(supabaseAdmin, email);
 
         if (found) {
           userId = found.id;
           const purchasedAddons = mergeAddons(found.user_metadata?.purchasedAddons);
           await supabaseAdmin.auth.admin.updateUserById(found.id, {
+            password,
             user_metadata: {
               ...found.user_metadata,
               ...userMeta,
@@ -229,7 +230,7 @@ export default async function handler(req, res) {
       created,
       userId,
       email,
-      password: created ? password : null,
+      password,
       plan: meta.plan,
       clubId: clubIdOut,
       teamId: teamIdOut,

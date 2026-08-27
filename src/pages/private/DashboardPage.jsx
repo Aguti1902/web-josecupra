@@ -23,6 +23,7 @@ import ClubEconomyPanel from "../../components/private/ClubEconomyPanel";
 import ClubPlayersMonitor from "../../components/private/ClubPlayersMonitor";
 import { canSeeClubEconomy } from "../../lib/clubRoles";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { applyPurgedPlayersToStorage, filterPurgedFromList } from "../../lib/clubPlayerPurge";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -329,11 +330,13 @@ function CoordinadorDashboard({ club, accent, secondColor, onViewTeam }) {
   const [squadCounts, setSquadCounts] = useState({});
   useEffect(() => {
     if (!club?.id) return;
+    applyPurgedPlayersToStorage(club.id, club.purgedPlayers || []);
     const counts = {};
     (club?.teams || []).forEach((t) => {
       try {
         const raw = localStorage.getItem(`depro_squad_${club.id}_${t.id}`);
-        counts[t.id] = (JSON.parse(raw || "[]")).length;
+        const squad = filterPurgedFromList(JSON.parse(raw || "[]"), club.purgedPlayers || []);
+        counts[t.id] = squad.length;
       } catch { counts[t.id] = 0; }
     });
     setSquadCounts(counts);
@@ -580,7 +583,7 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
     if (!club?.id || !team?.id) return;
     try {
       const raw = localStorage.getItem(`depro_squad_${club.id}_${team.id}`);
-      setSquadPlayers(JSON.parse(raw || "[]"));
+      setSquadPlayers(filterPurgedFromList(JSON.parse(raw || "[]"), club.purgedPlayers || []));
     } catch { setSquadPlayers([]); }
   }, [club?.id, team?.id]);
 

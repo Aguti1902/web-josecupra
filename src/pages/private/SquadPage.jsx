@@ -14,6 +14,11 @@ import { canSeeClubPricing } from "../../lib/clubRoles";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import ChangePlanModal from "../../components/private/ChangePlanModal";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
+import {
+  applyPurgedPlayersToStorage,
+  filterPurgedFromList,
+  purgePlayerClubArtifacts,
+} from "../../lib/clubPlayerPurge";
 
 // ── Constantes ───────────────────────────────────────────────
 const POSITIONS = [
@@ -77,15 +82,29 @@ async function syncSquadToSupabase(clubId, teamId, players) {
     console.warn("[SquadPage] sync squad to Supabase failed:", e.message);
   }
 }
-async function loadSquadFromSupabase(clubId, teamId) {
+async function loadClubFromSupabase(clubId) {
   try {
-    const r = await fetch("/api/admin-clubs");
-    if (!r.ok) return null;
+    const r = await fetch(`/api/admin-clubs?id=${encodeURIComponent(clubId)}`);
+    if (!r.ok) {
+      const all = await fetch("/api/admin-clubs");
+      if (!all.ok) return null;
+      const data = await all.json();
+      return (data.clubs || []).find((c) => c.id === clubId) || null;
+    }
     const data = await r.json();
-    const club = (data.clubs || []).find((c) => c.id === clubId);
-    const team = (club?.teams || []).find((t) => t.id === teamId);
-    return team?.squad || null;
-  } catch { return null; }
+    return data.club || (data.clubs || []).find((c) => c.id === clubId) || null;
+  } catch {
+    return null;
+  }
+}
+async function loadSquadFromSupabase(clubId, teamId) {
+  const club = await loadClubFromSupabase(clubId);
+  if (!club) return { squad: null, purgedPlayers: [] };
+  const team = (club.teams || []).find((t) => t.id === teamId);
+  return {
+    squad: Array.isArray(team?.squad) ? team.squad : null,
+    purgedPlayers: club.purgedPlayers || [],
+  };
 }
 function genId() {
   return `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -575,12 +594,16 @@ export default function SquadPage() {
     // Actualización desde Supabase (reemplaza si hay datos más recientes)
     Promise.all(
       teamsToLoad.map(async (t) => {
-        const remote = await loadSquadFromSupabase(clubId, t.id);
-        if (remote && remote.length > 0) {
-          localStorage.setItem(squadKey(clubId, t.id), JSON.stringify(remote));
-          return { id: t.id, squad: remote };
+        const { squad: remote, purgedPlayers } = await loadSquadFromSupabase(clubId, t.id);
+        applyPurgedPlayersToStorage(clubId, purgedPlayers);
+        if (Array.isArray(remote)) {
+          const cleaned = filterPurgedFromList(remote, purgedPlayers);
+          localStorage.setItem(squadKey(clubId, t.id), JSON.stringify(cleaned));
+          return { id: t.id, squad: cleaned };
         }
-        return null;
+        const local = filterPurgedFromList(loadSquad(clubId, t.id), purgedPlayers);
+        localStorage.setItem(squadKey(clubId, t.id), JSON.stringify(local));
+        return { id: t.id, squad: local };
       })
     ).then((results) => {
       const updates = results.filter(Boolean);
@@ -636,27 +659,56 @@ export default function SquadPage() {
     fromLS.forEach((p) => {
       if (!combined.find((c) => c.id === p.id)) combined.push(p);
     });
-    if (combined.length > 0) { setRegPlayers(combined); return; }
-
-    // 3. Supabase player_team_links (necesita SQL previo) + API Vercel
     (async () => {
+      let live = [];
+      let liveOk = false;
       try {
-        const { data, error } = await supabase
-          .from("player_team_links")
-          .select("player_id, name, plan, team_id")
-          .in("team_id", teamIds);
-        if (!error && data?.length > 0) {
-          setRegPlayers(data.map((p) => ({ id: p.player_id, name: p.name || "Jugador", plan: p.plan || "—", _teamId: p.team_id, _reg: true })));
-          return;
-        }
-        const res = await fetch(`/api/team-players?teamId=${teamIds[0]}`).catch(() => null);
+        const qs = clubId ? `clubId=${encodeURIComponent(clubId)}` : `teamId=${encodeURIComponent(teamIds[0])}`;
+        const res = await fetch(`/api/team-players?${qs}`).catch(() => null);
         if (res?.ok) {
           const { players: list } = await res.json();
-          if (list?.length > 0) setRegPlayers(list.map((p) => ({ ...p, _reg: true })));
+          live = (list || [])
+            .filter((p) => !p.teamId || teamIds.includes(p.teamId))
+            .map((p) => ({
+              id: p.id,
+              name: p.name || "Jugador",
+              plan: p.plan || "—",
+              email: p.email || "",
+              position: p.position || "—",
+              _teamId: p.teamId || teamIds[0],
+              _reg: true,
+            }));
+          liveOk = true;
+        } else {
+          const { data, error } = await supabase
+            .from("player_team_links")
+            .select("player_id, name, plan, team_id, email")
+            .in("team_id", teamIds);
+          if (!error) {
+            liveOk = true;
+            live = (data || []).map((p) => ({
+              id: p.player_id,
+              name: p.name || "Jugador",
+              plan: p.plan || "—",
+              email: p.email || "",
+              _teamId: p.team_id,
+              _reg: true,
+            }));
+          }
         }
       } catch { /* silencioso */ }
+
+      if (liveOk) {
+        const liveIds = new Set(live.map((p) => p.id));
+        for (const p of combined) {
+          if (!liveIds.has(p.id)) purgePlayerClubArtifacts(p.id, p.email);
+        }
+        setRegPlayers(live);
+        return;
+      }
+      setRegPlayers(combined);
     })();
-  }, [isCoord, allTeams, myTeam]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clubId, isCoord, allTeams, myTeam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Jugadores manuales visibles ───────────────────────────
   const allPlayers = useMemo(() => {
@@ -764,9 +816,11 @@ export default function SquadPage() {
   const handleDelete = (player) => {
     if (!window.confirm(`¿Eliminar a ${player.name} de la plantilla?`)) return;
     const tid = player._teamId;
+    purgePlayerClubArtifacts(player.id, player.email);
     const updated = (squads[tid] || []).filter((p) => p.id !== player.id);
     saveSquad(clubId, tid, updated);
     setSquads((s) => ({ ...s, [tid]: updated }));
+    setRegPlayers((prev) => prev.filter((p) => p.id !== player.id));
   };
 
   return (

@@ -10,7 +10,20 @@ export function getSupabaseAdmin() {
   });
 }
 
-/** Busca usuario por stripeCustomerId o email (paginación básica). */
+export async function findUserByEmail(supabaseAdmin, email) {
+  const needle = String(email || "").trim().toLowerCase();
+  if (!needle) return null;
+  let page = 1;
+  while (page <= 10) {
+    const { data } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+    const users = data?.users || [];
+    const found = users.find((u) => u.email?.toLowerCase() === needle);
+    if (found) return found;
+    if (users.length < 200) break;
+    page += 1;
+  }
+  return null;
+}
 export async function findUserByStripeCustomer(supabaseAdmin, customerId, emailHint) {
   if (emailHint) {
     const { data } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });

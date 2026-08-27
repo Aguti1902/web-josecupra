@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff,
   Gift, Layers, Sparkles, Loader2, CheckCircle,
@@ -36,6 +36,16 @@ export default function LoginPage() {
   const { user, login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const nextPath = searchParams.get("next") || "";
+  const safeNext = nextPath.startsWith("/dashboard") || nextPath.startsWith("/admin")
+    ? nextPath
+    : "";
+
+  useEffect(() => {
+    const preset = searchParams.get("email");
+    if (preset) setEmail(preset);
+  }, [searchParams]);
 
   // Detectar retorno de Google OAuth (hash con token)
   useEffect(() => {
@@ -54,13 +64,13 @@ export default function LoginPage() {
       sessionStorage.removeItem("depro_oauth_pending");
       setOauthSuccess(true);
       const timer = setTimeout(() => {
-        navigate(user.role === "admin" ? "/admin" : "/dashboard", { replace: true });
+        navigate(user.role === "admin" ? "/admin" : (safeNext || "/dashboard"), { replace: true });
       }, 2500);
       return () => clearTimeout(timer);
     }
 
-    navigate(user.role === "admin" ? "/admin" : "/dashboard", { replace: true });
-  }, [user, navigate]);
+    navigate(user.role === "admin" ? "/admin" : (safeNext || "/dashboard"), { replace: true });
+  }, [user, navigate, safeNext]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,7 +79,7 @@ export default function LoginPage() {
     const result = await login(email, password);
     setLoading(false);
     if (result.success) {
-      navigate(result.role === "admin" ? "/admin" : "/dashboard");
+      navigate(result.role === "admin" ? "/admin" : (safeNext || "/dashboard"));
     } else {
       setError(result.error ?? t("login.error_default"));
     }

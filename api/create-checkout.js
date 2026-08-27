@@ -164,14 +164,10 @@ export default async function handler(req, res) {
   }
 
   const finalAmount = hasDiscount ? Math.round(price.amount * 0.90) : price.amount;
-  const hasRegisteredUser = Boolean(formData?.authUserId);
-  // Usuario se crea solo en complete-payment; aquí guardamos la contraseña elegida (o una temporal).
   const chosenPassword = formData?.password || formData?.pendingPassword || "";
-  const tempPassword = hasRegisteredUser
-    ? ""
-    : (typeof chosenPassword === "string" && chosenPassword.length >= 8
-      ? chosenPassword
-      : generatePassword());
+  const tempPassword = typeof chosenPassword === "string" && chosenPassword.length >= 8
+    ? chosenPassword
+    : generatePassword();
 
   try {
     const stripe = await getStripe();

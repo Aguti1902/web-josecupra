@@ -13,8 +13,24 @@ import {
 import { getImpersonationSnapshot, stopImpersonation, isRealAdminUser } from "../lib/adminImpersonation";
 import { parseCoachAutoFromMeta, isProCoachUser } from "../lib/clubAuto/clubAutoCoachBridge";
 import { isSessionPresenceEvent, isSignedOutEvent } from "../lib/authSession";
+import { applyPurgedPlayersToStorage, filterPurgedFromList } from "../lib/clubPlayerPurge";
 
 const AuthContext = createContext(null);
+
+function mergeClubTeams(remoteTeams, localTeams, purgedPlayers = []) {
+  const local = Array.isArray(localTeams) ? localTeams : [];
+  const remote = Array.isArray(remoteTeams) && remoteTeams.length ? remoteTeams : null;
+  const base = remote || local;
+  return base.map((rt) => {
+    const lt = local.find((t) => t.id === rt.id);
+    const squad = Array.isArray(rt.squad) ? rt.squad : (lt?.squad || []);
+    return {
+      ...lt,
+      ...rt,
+      squad: filterPurgedFromList(squad, purgedPlayers),
+    };
+  });
+}
 
 // Carga los datos completos del club (incluyendo identity: logo, colores, slogan)
 function loadClubDataFromStorage(meta, userEmail) {
@@ -515,7 +531,8 @@ export function AuthProvider({ children }) {
                       primaryColor:   c.primaryColor   ?? localDetail.primaryColor   ?? null,
                       secondaryColor: c.secondaryColor ?? localDetail.secondaryColor ?? null,
                       slogan:         c.slogan         ?? localDetail.slogan         ?? null,
-                      teams:          (c.teams?.length > 0 ? c.teams : null) ?? localDetail.teams ?? [],
+                      teams: mergeClubTeams(c.teams, localDetail.teams, c.purgedPlayers || localDetail.purgedPlayers),
+                      purgedPlayers: c.purgedPlayers || localDetail.purgedPlayers || [],
                       coachConfig:    (c.coachConfig?.nivel || c.coachConfig?.engine)
                         ? c.coachConfig
                         : (localDetail.coachConfig || c.coachConfig || null),
@@ -532,6 +549,7 @@ export function AuthProvider({ children }) {
                 try {
                   localStorage.setItem(`depro_club_${c.id}`, JSON.stringify(merged));
                 } catch { /* cupo: no tumbar el login */ }
+                applyPurgedPlayersToStorage(c.id, merged.purgedPlayers || []);
               }
               if (cancelled) return;
               setUser(withImpersonation(buildUser(session.user, profile || null)));
@@ -637,7 +655,10 @@ export function AuthProvider({ children }) {
         };
       }
 
-      // onAuthStateChange → SIGNED_IN disparará setUser automáticamente
+      if (data?.user) {
+        setUser(withImpersonation(buildUser(data.user, null)));
+      }
+
       const role =
         data?.user?.email === "jose@depro.es"
           ? "admin"
