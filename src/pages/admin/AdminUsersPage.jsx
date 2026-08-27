@@ -6,6 +6,7 @@ import {
 import { supabase } from "../../lib/supabase";
 import { useAdmin } from "../../context/AdminContext";
 import { useAuth } from "../../context/AuthContext";
+import { purgePlayerClubArtifacts } from "../../lib/clubPlayerRegistry";
 import AdminProvisionProfileModal from "../../components/admin/AdminProvisionProfileModal";
 import AdminProvisionHelp from "../../components/admin/AdminProvisionHelp";
 import {
@@ -160,6 +161,7 @@ export default function AdminUsersPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "No se pudo eliminar");
+      purgePlayerClubArtifacts(pendingDelete.id, pendingDelete.email);
       setUsers((prev) => prev.filter((x) => x.id !== pendingDelete.id));
       setPendingDelete(null);
       refreshClients();

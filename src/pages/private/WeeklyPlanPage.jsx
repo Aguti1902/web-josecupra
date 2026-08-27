@@ -24,7 +24,7 @@ import {
 } from "../../lib/planSwapLimits";
 import { canPersistInTrial } from "../../lib/trialPersistence";
 import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
-import { canDownloadTrialPdf, recordTrialPdfDownload, trialPdfLimitMessage } from "../../lib/trialPdfLimit";
+import { consumeTrialPdfOrExplain } from "../../lib/trialPdfLimit";
 import { savePlayerPlan } from "../../lib/playerPlanStorage";
 import CoachSessions from "../../components/private/CoachSessions";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
@@ -823,12 +823,12 @@ function PlayerWeeklyPlan({ accent }) {
         onUncomplete={() => handleSessionToggle(microRef.id, microRef.dayName)}
         onDownloadPdf={(isInTrial(user) || hasFeatureAccess(user, "pdf_export")) ? () => {
           if (isInTrial(user)) {
-            if (!canDownloadTrialPdf(user?.id)) {
-              alert(trialPdfLimitMessage());
+            const gate = consumeTrialPdfOrExplain(user?.id);
+            if (!gate.ok) {
+              alert(gate.message);
               return;
             }
             sessionPdf(activeSession);
-            recordTrialPdfDownload(user?.id);
             return;
           }
           if (!hasFeatureAccess(user, "pdf_export")) return;
@@ -1061,6 +1061,7 @@ function ClubSessionCard({
   clubName = "", teamName = "", clubLogo = "", secondaryColor = "",
   canDownloadPdf = false,
 }) {
+  const { user } = useAuth();
   const safeInitialTab = CLUB_VISIBLE_TABS.includes(initialTab) ? initialTab : "resumen";
   const [expanded, setExpanded]       = useState(initialExpanded);
   const [activeBlock, setActiveBlock] = useState(safeInitialTab);
@@ -1205,6 +1206,15 @@ function ClubSessionCard({
                 {canDownloadPdf && (
                 <button type="button"
                   onClick={() => {
+                    if (isInTrial(user)) {
+                      const gate = consumeTrialPdfOrExplain(user?.id);
+                      if (!gate.ok) {
+                        alert(gate.message);
+                        return;
+                      }
+                    } else if (!hasFeatureAccess(user, "pdf_export")) {
+                      return;
+                    }
                     void downloadSessionPdf(buildClubSessionPdfPayload({
                       session,
                       displayKey,

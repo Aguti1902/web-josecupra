@@ -152,3 +152,97 @@ export function getPlayerTrainingSummary(userId) {
     adherence: total > 0 ? Math.round((completed / total) * 100) : 0,
   };
 }
+
+function playerMatches(entry, userId, email) {
+  if (!entry || typeof entry !== "object") return false;
+  const id = String(entry.id || entry.userId || entry.player_id || "");
+  const em = String(entry.email || "").toLowerCase();
+  if (userId && id && id === String(userId)) return true;
+  if (email && em && em === String(email).toLowerCase()) return true;
+  return false;
+}
+
+/**
+ * Quita al usuario de plantillas, registros y asociación de club en este navegador.
+ * No toca comisiones: eso vive en el registro de referidos del servidor.
+ */
+export function purgePlayerClubArtifacts(userId, email = "") {
+  if (!userId && !email) return { removed: 0 };
+  let removed = 0;
+  const drop = (key) => {
+    try {
+      localStorage.removeItem(key);
+      removed += 1;
+    } catch { /* ignore */ }
+  };
+
+  try {
+    if (userId) {
+      drop(`${PLAYER_CLUB_PREFIX}${userId}`);
+      drop(`depro_player_logo_${userId}`);
+      drop(`depro_player_banner_${userId}`);
+      drop(`depro_player_accent_${userId}`);
+      drop(`depro_plan_${userId}`);
+    }
+
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k) keys.push(k);
+    }
+    for (const key of keys) {
+      if (key.startsWith("depro_squad_") || key.startsWith("depro_team_registry_")) {
+        try {
+          const list = JSON.parse(localStorage.getItem(key) || "[]");
+          if (!Array.isArray(list)) continue;
+          const next = list.filter((p) => !playerMatches(p, userId, email));
+          if (next.length !== list.length) {
+            localStorage.setItem(key, JSON.stringify(next));
+            removed += 1;
+          }
+        } catch { /* ignore */ }
+      }
+      if (key.startsWith(PLAYER_CLUB_PREFIX) && email) {
+        try {
+          const val = JSON.parse(localStorage.getItem(key) || "{}");
+          if (playerMatches(val, userId, email) || String(val.email || "").toLowerCase() === String(email).toLowerCase()) {
+            drop(key);
+          }
+        } catch { /* ignore */ }
+      }
+    }
+
+    const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+    let clubsChanged = false;
+    const nextClubs = clubs.map((club) => {
+      if (!club || typeof club !== "object") return club;
+      let changed = false;
+      const next = { ...club };
+      if (Array.isArray(next.users)) {
+        const filtered = next.users.filter((u) => !playerMatches(u, userId, email));
+        if (filtered.length !== next.users.length) {
+          next.users = filtered;
+          changed = true;
+        }
+      }
+      if (Array.isArray(next.teams)) {
+        next.teams = next.teams.map((t) => {
+          if (!Array.isArray(t?.squad)) return t;
+          const squad = t.squad.filter((p) => !playerMatches(p, userId, email));
+          if (squad.length !== t.squad.length) {
+            changed = true;
+            return { ...t, squad };
+          }
+          return t;
+        });
+      }
+      if (changed) clubsChanged = true;
+      return next;
+    });
+    if (clubsChanged) {
+      localStorage.setItem("depro_clubs", JSON.stringify(nextClubs));
+      removed += 1;
+    }
+  } catch { /* ignore */ }
+  return { removed };
+}

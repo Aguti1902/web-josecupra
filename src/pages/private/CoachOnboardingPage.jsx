@@ -140,7 +140,7 @@ export default function CoachOnboardingPage() {
 
   const handleCancel = () => {
     cancelQuestionnaire(AUDIENCE, userKey);
-    navigate(user ? "/" : "/login", { replace: true });
+    navigate(user ? "/dashboard" : "/login", { replace: true });
   };
 
   const handleReset = () => {

@@ -65,4 +65,31 @@ describe("adaptación por lesiones · misma categoría", () => {
     assert.notEqual(ex.etiquetas?.segmento, "tren_inferior");
     assert.ok(!/rower|roadwork|bikeerg|curl femoral/i.test(ex.nombre));
   });
+
+  it("curl de bíceps no entra en un slot de velocidad", () => {
+    const curl = EXERCISES.find((e) => e.id === 125);
+    assert.ok(curl);
+    const slot = { rol: "basico", objetivo: "velocidad", patron: "aceleracion", description: "Aceleración" };
+    assert.equal(sameTrainingNature(curl, slot), false);
+    const picked = selectExerciseForSlot(
+      slot,
+      { material: ["gym_completo"], experiencia: "intermedio", userId: "u-vel" },
+    );
+    if (picked) {
+      assert.notEqual(picked.carpeta, "fuerza_tren_superior");
+      assert.ok(!/curl|b[ií]ceps/i.test(picked.nombre));
+    }
+  });
+
+  it("lesión de hombro no mete tren inferior en un slot de tren superior", () => {
+    const slot = { rol: "basico", objetivo: "fuerza", segmento: "tren_superior", carpeta: "fuerza_tren_superior" };
+    const picked = selectExerciseForSlot(
+      slot,
+      { material: ["gym_completo"], lesiones: ["hombro"], experiencia: "intermedio", userId: "u-hombro-2" },
+    );
+    if (picked) {
+      assert.notEqual(picked.etiquetas?.segmento, "tren_inferior");
+      assert.notEqual(picked.carpeta, "fuerza_tren_inferior");
+    }
+  });
 });

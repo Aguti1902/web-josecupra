@@ -221,21 +221,53 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
 /**
  * Misma naturaleza de trabajo: no mezclar resistencia con fuerza,
  * ni tren inferior con tren superior, ni carpetas distintas sin sentido.
+ * Un slot de velocidad/pliometría nunca acepta un curl de bíceps (fuerza superior).
  */
+function inferredSlotFolder(slot = {}, original = null) {
+  if (slot.carpeta) return slot.carpeta;
+  if (original?.carpeta) return original.carpeta;
+  const obj = asArray(slot.objetivo || original?.slotConstraints?.objetivo).map((o) => String(o).toLowerCase());
+  const patrons = [
+    ...asArray(slot.patron),
+    ...asArray(slot.patronOr),
+    ...asArray(original?.slotConstraints?.patron),
+  ].map((p) => String(p).toLowerCase());
+  if (obj.includes("velocidad") || patrons.some((p) => ["aceleracion", "velocidad_pura", "reaccion", "cod"].includes(p))) {
+    return "velocidad";
+  }
+  if (patrons.includes("pliometria") || obj.includes("pliometria")) return "pliometria";
+  if (obj.includes("resistencia")) return "resistencia";
+  if (slot.segmento === "tren_superior") return "fuerza_tren_superior";
+  if (slot.segmento === "tren_inferior") return "fuerza_tren_inferior";
+  return "";
+}
+
 export function sameTrainingNature(ex, slot = {}, original = null) {
   if (!ex) return false;
   const et = tagsOf(ex);
   const origEt = tagsOf(original);
   const objetivo = slot.objetivo || original?.slotConstraints?.objetivo || origEt.objetivo?.[0];
   const segmento = slot.segmento || original?.slotConstraints?.segmento || origEt.segmento;
-  const carpeta = original?.carpeta || slot.carpeta;
+  const carpeta = inferredSlotFolder(slot, original);
 
   const exObj = asArray(et.objetivo).map((o) => String(o).toLowerCase());
+  const slotObj = asArray(objetivo).map((o) => String(o).toLowerCase());
   const isEnduranceEx = ex.carpeta === "resistencia"
     || (exObj.includes("resistencia") && !exObj.some((o) => ["fuerza", "hipertrofia", "velocidad", "prevencion", "pliometria"].includes(o)));
-  const slotWantsEndurance = asArray(objetivo).map((o) => String(o).toLowerCase()).includes("resistencia")
-    || carpeta === "resistencia";
+  const slotWantsEndurance = slotObj.includes("resistencia") || carpeta === "resistencia";
   if (isEnduranceEx && !slotWantsEndurance) return false;
+
+  if (carpeta === "velocidad" || carpeta === "pliometria") {
+    if (ex.carpeta === "fuerza_tren_superior") return false;
+    if (ex.carpeta === "resistencia") return false;
+    const wantsSpeed = slotObj.includes("velocidad") || carpeta === "velocidad";
+    if (wantsSpeed && ex.carpeta !== "velocidad" && ex.carpeta !== "pliometria" && !exObj.includes("velocidad")) {
+      // Fuerza de tren inferior sí entra en el bloque de fuerza máxima de la plantilla Velocidad
+      if (!(slotObj.includes("fuerza") && (ex.carpeta === "fuerza_tren_inferior" || et.segmento === "tren_inferior"))) {
+        if (ex.carpeta === "fuerza_tren_superior" || et.segmento === "tren_superior") return false;
+      }
+    }
+  }
 
   if (segmento && et.segmento && segmento !== "full" && et.segmento !== "full" && et.segmento !== segmento) {
     if (ex.carpeta !== "prevencion" && ex.carpeta !== "core" && ex.carpeta !== "movilidad") return false;
@@ -245,8 +277,8 @@ export function sameTrainingNature(ex, slot = {}, original = null) {
   }
 
   if (carpeta && carpeta.startsWith("fuerza_") && ex.carpeta === "resistencia") return false;
-  if (carpeta === "fuerza_tren_superior" && ex.carpeta === "fuerza_tren_inferior") return false;
-  if (carpeta === "fuerza_tren_inferior" && ex.carpeta === "fuerza_tren_superior") return false;
+  if (carpeta === "fuerza_tren_superior" && (ex.carpeta === "fuerza_tren_inferior" || et.segmento === "tren_inferior")) return false;
+  if (carpeta === "fuerza_tren_inferior" && (ex.carpeta === "fuerza_tren_superior" || et.segmento === "tren_superior")) return false;
   return true;
 }
 
@@ -354,10 +386,16 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
     }
   }
 
-  // Último recurso: mismo rol + misma naturaleza (nunca resistencia en fuerza)
+  // Último recurso: mismo rol + objetivo/segmento si existen. Nunca solo el rol
+  // (eso metía curls de bíceps en velocidad o tren inferior en superior).
   if (!candidates.length && slot.rol) {
+    const constrained = {
+      rol: slot.rol,
+      ...(slot.objetivo ? { objetivo: slot.objetivo } : {}),
+      ...(slot.segmento ? { segmento: slot.segmento } : {}),
+    };
     candidates = filterPool(
-      pool.filter((ex) => tagsOf(ex).rol === slot.rol && natureOk(ex)),
+      pool.filter((ex) => matchSlotTags(ex, constrained) && natureOk(ex)),
       true,
     );
   }

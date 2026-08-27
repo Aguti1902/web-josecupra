@@ -745,7 +745,6 @@ export default function ProfilePage() {
     setCurrentClub(null);
     setCurrentTeam(null);
     setCodeStatus(null);
-    setFoundClub(null);
     await refreshUser();
   };
 

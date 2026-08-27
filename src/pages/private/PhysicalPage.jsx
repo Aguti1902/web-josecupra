@@ -448,9 +448,7 @@ export default function PhysicalPage() {
         <p className="text-depro-gray text-sm mt-1">{t("physical.select_test")}</p>
       </div>
 
-      <EvaluationProtocols adminTests={adminTests} />
-
-      {/* Layout 2 columnas */}
+      {/* Layout 2 columnas — cuadro de test primero */}
       <div className="flex flex-col lg:flex-row gap-5">
 
         {/* Columna izquierda — Cards seleccionables */}
@@ -502,6 +500,10 @@ export default function PhysicalPage() {
         <div className="flex-1 min-w-0">
           <DetailPanel key={selected} test={activeTest} userId={user?.id} />
         </div>
+      </div>
+
+      <div className="mt-6">
+        <EvaluationProtocols adminTests={adminTests} />
       </div>
     </div>
     </FeatureGate>

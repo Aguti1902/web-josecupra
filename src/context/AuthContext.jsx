@@ -226,7 +226,8 @@ function buildUser(authUser, profile) {
       stripeSubscriptionId: meta.stripeSubscriptionId ?? cached?.stripeSubscriptionId ?? null,
       stripeCustomerId: meta.stripeCustomerId ?? null,
       purchasedAddons: meta.purchasedAddons ?? cached?.purchasedAddons ?? [],
-      pendingPayment: meta.pendingPayment === true,
+      pendingPayment: meta.pendingPayment === true
+        && !["active", "trialing"].includes(String(meta.subscriptionStatus || "")),
       manualPrice: meta.manualPrice ?? cached?.manualPrice ?? null,
       coachAuto: parseCoachAutoFromMeta(meta.coachAuto),
       isSoloCoach: isProCoachUser({
@@ -286,7 +287,8 @@ function buildUser(authUser, profile) {
     stripeSubscriptionId: meta.stripeSubscriptionId ?? cached?.stripeSubscriptionId ?? null,
     stripeCustomerId: meta.stripeCustomerId ?? null,
     purchasedAddons: meta.purchasedAddons ?? cached?.purchasedAddons ?? [],
-    pendingPayment: meta.pendingPayment === true,
+    pendingPayment: meta.pendingPayment === true
+      && !["active", "trialing"].includes(String(meta.subscriptionStatus || "")),
     manualPrice: meta.manualPrice ?? cached?.manualPrice ?? null,
     coachAuto: parseCoachAutoFromMeta(meta.coachAuto),
     isSoloCoach: isProCoachUser({
@@ -365,6 +367,7 @@ function snapshotToAuthUser(snap) {
       isSoloCoach: isCoach,
       managedTeamIds: snap.managedTeamIds || [],
       teamId: snap.teamId,
+      pendingPayment: false,
     },
   };
 }
@@ -374,14 +377,24 @@ function withImpersonation(realUser) {
   if (!snap || !realUser || !isRealAdminUser(realUser)) return realUser;
   const built = buildUser(snapshotToAuthUser(snap), null);
   const isCoach = snap.type === "coach" || snap.isSoloCoach || String(snap.clubId || "").startsWith("coach_");
+  const clubId = snap.clubId || built.clubId || built.club?.id;
+  let club = built.club;
+  if (clubId && !club) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(`depro_club_${clubId}`) || "null");
+      club = stored || { id: clubId, name: snap.clubName || (isCoach ? "DEPRO Coach" : "Club"), teams: [] };
+    } catch {
+      club = { id: clubId, name: snap.clubName || (isCoach ? "DEPRO Coach" : "Club"), teams: [] };
+    }
+  }
   if (isCoach) {
-    built.club = {
-      ...(built.club || { id: snap.clubId, name: snap.clubName || "DEPRO Coach", teams: [] }),
-      isSoloCoach: true,
-    };
+    club = { ...(club || { id: clubId, name: snap.clubName || "DEPRO Coach", teams: [] }), isSoloCoach: true };
   }
   return {
     ...built,
+    club,
+    clubId: clubId || built.clubId || null,
+    pendingPayment: false,
     impersonating: true,
     impersonatedFrom: { id: realUser.id, email: realUser.email, name: realUser.name },
   };
@@ -445,7 +458,10 @@ export function AuthProvider({ children }) {
           }).catch(() => {});
         }
 
-        const isClubUser = builtUser.role === "club" || session.user.user_metadata?.role === "club";
+        const isClubUser = builtUser.role === "club"
+          || session.user.user_metadata?.role === "club"
+          || builtUser.isSoloCoach
+          || isProCoachUser(builtUser);
         if (!isClubUser) return;
 
         try {

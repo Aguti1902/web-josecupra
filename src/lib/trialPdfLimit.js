@@ -27,3 +27,15 @@ export function recordTrialPdfDownload(userId) {
 export function trialPdfLimitMessage() {
   return `En la prueba gratuita puedes descargar 1 PDF. Activa Standard o Premium (o el extra PDF) para más descargas.`;
 }
+
+/**
+ * Consume el cupo de trial (máx. 1). Devuelve { ok, message }.
+ * Quien llama decide si descarga o muestra el aviso.
+ */
+export function consumeTrialPdfOrExplain(userId) {
+  if (!canDownloadTrialPdf(userId)) {
+    return { ok: false, message: trialPdfLimitMessage() };
+  }
+  recordTrialPdfDownload(userId);
+  return { ok: true };
+}

@@ -132,7 +132,8 @@ export default async function handler(req, res) {
     // durante onboarding el clubId aún no está en metadata, así que permitimos
     // a cualquier role=club crear un club nuevo (POST) o actualizar el suyo.
     if (!caller.isAdmin) {
-      if (caller.role !== "club") {
+      const isCoach = caller.role === "coach" || caller.role === "club";
+      if (!isCoach) {
         return res.status(403).json({ error: "Sin permiso" });
       }
       // Si ya tiene clubId, solo puede tocar el suyo

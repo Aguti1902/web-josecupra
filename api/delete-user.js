@@ -54,14 +54,70 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "No se puede eliminar un administrador" });
     }
 
-    const { error } = await admin.auth.admin.deleteUser(userId);
-    if (error) return res.status(400).json({ error: error.message });
-
     try {
       await admin.from("clubs_detail").delete().eq("club_id", `PLAYER_PLAN_${userId}`);
     } catch { /* el plan puede no existir */ }
 
-    return res.status(200).json({ ok: true, userId });
+    try {
+      await admin.from("player_team_links").delete().eq("player_id", userId);
+    } catch { /* tabla opcional */ }
+    if (email) {
+      try {
+        await admin.from("player_team_links").delete().eq("email", email);
+      } catch { /* ignore */ }
+    }
+    try {
+      await admin.from("profiles").delete().eq("id", userId);
+    } catch { /* ignore */ }
+
+    // Quitar de plantillas/usuarios de cada club ANTES de borrar auth.
+    // Las comisiones pendientes se conservan en CLUB_REFERRAL_REGISTRY.
+    try {
+      const { data: details } = await admin.from("clubs_detail").select("club_id, data");
+      for (const row of details || []) {
+        const clubId = row.club_id;
+        if (!clubId || clubId === "CLUB_REFERRAL_REGISTRY" || clubId.startsWith("GLOBAL_") || clubId.startsWith("PLAYER_PLAN_")) {
+          continue;
+        }
+        const data = row.data && typeof row.data === "object" ? row.data : {};
+        let changed = false;
+        const next = { ...data };
+        const drop = (list) => {
+          if (!Array.isArray(list)) return list;
+          const filtered = list.filter((p) => {
+            if (!p || typeof p !== "object") return true;
+            const id = String(p.id || p.userId || p.player_id || "");
+            const em = String(p.email || "").toLowerCase();
+            if (id && id === userId) return false;
+            if (email && em && em === email) return false;
+            return true;
+          });
+          if (filtered.length !== list.length) changed = true;
+          return filtered;
+        };
+        next.users = drop(next.users);
+        if (Array.isArray(next.teams)) {
+          next.teams = next.teams.map((t) => ({
+            ...t,
+            squad: drop(t.squad),
+            players: drop(t.players),
+          }));
+        }
+        if (changed) {
+          await admin.from("clubs_detail").upsert(
+            { club_id: clubId, data: next, updated_at: new Date().toISOString() },
+            { onConflict: "club_id" },
+          );
+        }
+      }
+    } catch (stripErr) {
+      console.warn("delete-user strip clubs:", stripErr.message);
+    }
+
+    const { error } = await admin.auth.admin.deleteUser(userId);
+    if (error) return res.status(400).json({ error: error.message });
+
+    return res.status(200).json({ ok: true, userId, email });
   } catch (err) {
     return res.status(500).json({ error: err.message || "No se pudo eliminar" });
   }

@@ -63,6 +63,12 @@ export default function PaymentSuccessPage() {
           });
 
           const clubId = data.clubId;
+          if (data.coachClub?.id) {
+            try {
+              const { saveClub } = await import("../../lib/adminStorage");
+              await saveClub(data.coachClub);
+            } catch { /* el club ya está en clubs_detail */ }
+          }
           if (clubId) {
             registerClubCodePlayer({
               userId: data.userId,

@@ -76,7 +76,10 @@ export function loadOrGenerateWeek({ clubId, teamId, weekStart, config, library 
   } catch {
     generated = withFingerprint({ sessions: [], weekStart, engine: usesClubAutoEngine(config) ? "club_auto" : "depro" }, config);
   }
-  saveWeek({ clubId, teamId, weekStart, data: generated });
+  // No congelar una semana vacía: si el cuestionario aún no vale, se reintenta en la siguiente carga.
+  if (Array.isArray(generated?.sessions) && generated.sessions.length > 0) {
+    saveWeek({ clubId, teamId, weekStart, data: generated });
+  }
   return generated;
 }
 
@@ -148,7 +151,9 @@ export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, end
       engine: usesClubAutoEngine(config) ? "club_auto" : "depro",
     }, config);
   }
-  saveMesociclo({ clubId, teamId, data: generated });
+  if (Array.isArray(generated?.weeks) && generated.weeks.length > 0) {
+    saveMesociclo({ clubId, teamId, data: generated });
+  }
   return generated;
 }
 

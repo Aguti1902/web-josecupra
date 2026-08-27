@@ -10,6 +10,7 @@ import DisenarTareas, { SESSION_FRAMEWORK_UI } from "../shared/DisenarTareas";
 import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
 import { useAuth } from "../../context/AuthContext";
 import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
+import { consumeTrialPdfOrExplain } from "../../lib/trialPdfLimit";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
 import { Component } from "react";
 
@@ -230,6 +231,15 @@ export default function ClubAutoSessionView({
             <button
               type="button"
               onClick={() => {
+                if (isInTrial(user)) {
+                  const gate = consumeTrialPdfOrExplain(user?.id);
+                  if (!gate.ok) {
+                    alert(gate.message);
+                    return;
+                  }
+                } else if (!hasFeatureAccess(user, "pdf_export")) {
+                  return;
+                }
                 void downloadSessionPdf(buildClubSessionPdfPayload({
                   session,
                   displayKey: session.templateKey || framework,

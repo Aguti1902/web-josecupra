@@ -130,13 +130,13 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Fuerza máx. posterior", slotId: "vel_fm2" }),
       ]),
       block("complementario", "Pliometría", "10 min", [
-        slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 1", slotId: "vel_p1" }),
-        slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 2", slotId: "vel_p2" }),
+        slot({ rol: "complementario", patron: "pliometria", segmento: "tren_inferior", carpeta: "pliometria", description: "Pliometría 1", slotId: "vel_p1" }),
+        slot({ rol: "complementario", patron: "pliometria", segmento: "tren_inferior", carpeta: "pliometria", description: "Pliometría 2", slotId: "vel_p2" }),
       ]),
       block("principal", "Velocidad", "15 min", [
-        slot({ rol: "basico", objetivo: "velocidad", patron: "aceleracion", description: "Aceleración", slotId: "vel_v1" }),
-        slot({ rol: "basico", objetivo: "velocidad", patron: "velocidad_pura", description: "Velocidad pura", slotId: "vel_v2" }),
-        slot({ rol: "complementario", objetivo: "velocidad", patronOr: ["reaccion", "COD"], description: "Reacción / COD", slotId: "vel_v3" }),
+        slot({ rol: "basico", objetivo: "velocidad", patron: "aceleracion", segmento: "tren_inferior", carpeta: "velocidad", description: "Aceleración", slotId: "vel_v1" }),
+        slot({ rol: "basico", objetivo: "velocidad", patron: "velocidad_pura", segmento: "tren_inferior", carpeta: "velocidad", description: "Velocidad pura", slotId: "vel_v2" }),
+        slot({ rol: "complementario", objetivo: "velocidad", patronOr: ["reaccion", "COD"], segmento: "tren_inferior", carpeta: "velocidad", description: "Reacción / COD", slotId: "vel_v3" }),
       ]),
     ],
   },

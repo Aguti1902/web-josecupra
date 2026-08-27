@@ -1,6 +1,7 @@
 import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 import { recordClubCodeSignup } from "./_clubReferrals.js";
+import { buildSoloCoachClub } from "../src/lib/provisionSoloCoach.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -44,6 +45,8 @@ export default async function handler(req, res) {
 
     let userId = null;
     let created = false;
+    let clubIdOut = meta.clubId || "";
+    let teamIdOut = meta.clubCode ? "" : (meta.teamId || "");
 
     try {
       const supabaseAdmin = getSupabaseAdmin();
@@ -81,6 +84,7 @@ export default async function handler(req, res) {
         trialEndsAt,
         billingSource: "stripe",
         coachAuto: meta.coachAuto || "",
+        pendingPayment: false,
         // Premium: rutina pendiente de intervención humana
         planPendingManual: meta.plan === "player-pro" || meta.plan === "premium",
       };
@@ -137,6 +141,8 @@ export default async function handler(req, res) {
           created = true;
         }
       }
+      clubIdOut = userMeta.clubId || clubIdOut;
+      teamIdOut = userMeta.teamId || teamIdOut;
     } catch (adminErr) {
       console.error("complete-payment supabase:", adminErr.message);
       return res.status(500).json({ error: adminErr.message || "Error al activar la cuenta" });
@@ -157,6 +163,67 @@ export default async function handler(req, res) {
       } catch { /* trazabilidad best-effort */ }
     }
 
+    let coachClub = null;
+    const isCoachAudience = meta.audience === "coach" || String(meta.plan || "").startsWith("coach-");
+    if (isCoachAudience && userId) {
+      try {
+        const built = buildSoloCoachClub({
+          userId,
+          name,
+          email,
+          plan: meta.plan || "coach-starter",
+          coachAuto: meta.coachAuto || "",
+          primaryColor: meta.primaryColor || "",
+          secondaryColor: meta.secondaryColor || "",
+          clubName: meta.clubName || meta.club || "",
+        });
+        coachClub = built.club;
+        const supabaseAdmin = getSupabaseAdmin();
+        const now = new Date().toISOString();
+        const { data: existingRow } = await supabaseAdmin
+          .from("clubs_detail")
+          .select("data")
+          .eq("club_id", built.clubId)
+          .maybeSingle();
+        const existing = existingRow?.data && typeof existingRow.data === "object" ? existingRow.data : {};
+        const payload = {
+          ...existing,
+          ...built.club,
+          id: built.clubId,
+          coachConfig: existing.coachConfig?.nivel ? existing.coachConfig : built.club.coachConfig,
+          teams: (existing.teams?.length ? existing.teams : built.club.teams),
+        };
+        await supabaseAdmin.from("clubs_detail").upsert(
+          { club_id: built.clubId, data: payload, updated_at: now },
+          { onConflict: "club_id" },
+        );
+        try {
+          await supabaseAdmin.from("clubs").upsert({
+            id: built.clubId,
+            name: payload.name,
+            abbreviation: payload.abbreviation,
+            status: payload.status || "activo",
+            plan: payload.plan,
+            created_at: payload.created_at || now,
+          }, { onConflict: "id" });
+        } catch { /* tabla clubs opcional */ }
+
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: {
+            clubId: built.clubId,
+            teamId: built.teamId,
+            isSoloCoach: true,
+            pendingPayment: false,
+            clubName: payload.name,
+          },
+        });
+        clubIdOut = built.clubId;
+        teamIdOut = built.teamId;
+      } catch (provisionErr) {
+        console.error("complete-payment coach provision:", provisionErr.message);
+      }
+    }
+
     return res.status(200).json({
       ok: true,
       created,
@@ -164,11 +231,12 @@ export default async function handler(req, res) {
       email,
       password: created ? password : null,
       plan: meta.plan,
-      clubId: meta.clubId || "",
-      teamId: meta.clubCode ? "" : (meta.teamId || ""),
+      clubId: clubIdOut,
+      teamId: teamIdOut,
       name,
       subscriptionStatus,
       trialEndsAt,
+      coachClub,
     });
   } catch (err) {
     console.error("complete-payment:", err.message);

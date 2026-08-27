@@ -110,24 +110,29 @@ function LoadingScreen() {
 
 function ClientRoute({ children }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "admin" && !user.impersonating && isDraftLoginBlocked(user.subscriptionStatus)) {
     return <Navigate to="/login" replace />;
   }
+  const onSubscription = location.pathname === "/dashboard/subscription";
   // Usuarios Google/legacy marcados como pendingPayment no deben entrar al panel sin pagar
-  if (user.pendingPayment === true && !user.impersonating) {
+  if (user.pendingPayment === true && !user.impersonating && !onSubscription) {
     return <Navigate to="/comprar" replace />;
   }
   const viewAs = typeof sessionStorage !== "undefined" && sessionStorage.getItem("depro_view_as");
   if (user.role === "admin" && !user.impersonating && !viewAs) return <Navigate to="/admin" replace />;
   const qKey = user?.id || user?.email;
   if (user.impersonating) return children;
+  // Suscripción siempre accesible: no mandar al wizard ni a inicio
+  if (onSubscription) return children;
+  const hasClub = !!(user.clubId || user.club?.id);
   // ProCoach sin club: cuestionario de entrenador (nunca el de jugador)
-  if (isProCoachUser(user) && !user.clubId && shouldForceSetup("coach", qKey)) {
+  if (isProCoachUser(user) && !hasClub && shouldForceSetup("coach", qKey, { hasClubId: hasClub })) {
     return <Navigate to="/dashboard/coach-setup" replace />;
   }
-  if (user.role === "coach" && shouldForceSetup("coach", qKey)) {
+  if (user.role === "coach" && !hasClub && shouldForceSetup("coach", qKey, { hasClubId: hasClub })) {
     return <Navigate to="/dashboard/coach-setup" replace />;
   }
   // Club comprado sin clubId → wizard self-service (no secuestrar si canceló el cuestionario)
