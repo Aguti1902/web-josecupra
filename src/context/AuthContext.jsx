@@ -349,8 +349,9 @@ function sessionIsDraftBlocked(authUser) {
 }
 
 function snapshotToAuthUser(snap) {
-  const isCoach = snap.type === "coach" || snap.isSoloCoach || String(snap.clubId || "").startsWith("coach_");
-  const role = snap.role || (snap.type === "player" ? "player" : "club");
+  const isCoach = snap.type === "coach" || snap.type === "coach_pending" || snap.isSoloCoach || String(snap.clubId || "").startsWith("coach_");
+  const role = snap.role
+    || (snap.type === "player" ? "player" : isCoach ? "coach" : "club");
   return {
     id: snap.id,
     email: snap.email,
@@ -384,6 +385,7 @@ function snapshotToAuthUser(snap) {
       isSoloCoach: isCoach,
       managedTeamIds: snap.managedTeamIds || [],
       teamId: snap.teamId,
+      coachAuto: snap.coachAuto || "",
       pendingPayment: false,
     },
   };
@@ -399,13 +401,25 @@ function withImpersonation(realUser) {
   if (clubId && !club) {
     try {
       const stored = JSON.parse(localStorage.getItem(`depro_club_${clubId}`) || "null");
-      club = stored || { id: clubId, name: snap.clubName || (isCoach ? "DEPRO Coach" : "Club"), teams: [] };
+      club = stored || {
+        id: clubId,
+        name: snap.clubName || (isCoach ? "DEPRO Coach" : "Club"),
+        teams: snap.teamId ? [{ id: snap.teamId, name: "Mi equipo" }] : [],
+      };
     } catch {
-      club = { id: clubId, name: snap.clubName || (isCoach ? "DEPRO Coach" : "Club"), teams: [] };
+      club = {
+        id: clubId,
+        name: snap.clubName || (isCoach ? "DEPRO Coach" : "Club"),
+        teams: snap.teamId ? [{ id: snap.teamId, name: "Mi equipo" }] : [],
+      };
     }
   }
   if (isCoach) {
-    club = { ...(club || { id: clubId, name: snap.clubName || "DEPRO Coach", teams: [] }), isSoloCoach: true };
+    const base = club || { id: clubId, name: snap.clubName || "DEPRO Coach", teams: [] };
+    const teams = base.teams?.length
+      ? base.teams
+      : (snap.teamId ? [{ id: snap.teamId, name: "Mi equipo" }] : []);
+    club = { ...base, teams, isSoloCoach: true };
   }
   return {
     ...built,
@@ -482,7 +496,30 @@ export function AuthProvider({ children }) {
         if (!isClubUser) return;
 
         try {
-          const clubId = builtUser.clubId || session.user.user_metadata?.clubId;
+          let clubId = builtUser.clubId || session.user.user_metadata?.clubId;
+          if (isProCoachUser(builtUser) && !getImpersonationSnapshot() && session.access_token) {
+            const needsClub = !clubId || !builtUser.club?.teams?.length || !builtUser.club?.coachConfig;
+            if (needsClub) {
+              try {
+                const ens = await fetch("/api/ensure-coach-club", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${session.access_token}`,
+                  },
+                });
+                if (ens.ok) {
+                  const payload = await ens.json();
+                  if (payload.clubId) clubId = payload.clubId;
+                  if (payload.club?.id) {
+                    try {
+                      localStorage.setItem(`depro_club_${payload.club.id}`, JSON.stringify(payload.club));
+                    } catch { /* cupo */ }
+                  }
+                }
+              } catch { /* Microciclo reintenta */ }
+            }
+          }
           const url = clubId
             ? `/api/admin-clubs?id=${encodeURIComponent(clubId)}`
             : "/api/admin-clubs";
@@ -561,7 +598,14 @@ export function AuthProvider({ children }) {
             ? { clubId: builtUser.clubId }
             : (session.user.user_metadata ?? {});
           if (meta.clubId && !builtUser.club) {
-            const minimalClub = { id: meta.clubId, name: builtUser.clubName || "Mi Club", teams: [], plans: [] };
+            const teamId = session.user.user_metadata?.teamId;
+            const minimalClub = {
+              id: meta.clubId,
+              name: builtUser.clubName || "Mi Club",
+              teams: teamId ? [{ id: teamId, name: "Mi equipo", squad: [] }] : [],
+              plans: [],
+              isSoloCoach: String(meta.clubId).startsWith("coach_"),
+            };
             try { localStorage.setItem(`depro_club_${meta.clubId}`, JSON.stringify(minimalClub)); } catch { /* cupo */ }
             try {
               const local = JSON.parse(localStorage.getItem("depro_clubs") || "[]");

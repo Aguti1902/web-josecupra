@@ -151,7 +151,7 @@ export default function AdminClubCommissionPanel({ club }) {
           </div>
           <div className="rounded-xl border border-depro-border bg-depro-gray-light/40 p-3">
             <Users size={14} className="text-depro-blue mb-1" />
-            <p className="text-xl font-black text-depro-dark">{stats.activePlayers}</p>
+            <p className="text-xl font-black text-depro-dark">{stats.codeUsers ?? stats.activePlayers}</p>
             <p className="text-[10px] font-bold uppercase text-depro-gray tracking-wide">Jugadores con código</p>
           </div>
         </div>

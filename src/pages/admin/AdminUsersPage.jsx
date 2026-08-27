@@ -138,9 +138,41 @@ export default function AdminUsersPage() {
 
   useEffect(() => { load(); }, []);
 
-  const openUserPanel = (u) => {
+  const openUserPanel = async (u) => {
     if (!canImpersonateUser(u)) return;
-    startImpersonation(u);
+    try {
+      const { reclaimLocalStorage } = await import("../../lib/storageQuota");
+      reclaimLocalStorage();
+    } catch { /* ignore */ }
+    if (u.clubId) {
+      try {
+        const res = await fetch(`/api/admin-clubs?id=${encodeURIComponent(u.clubId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          const club = (data.clubs || []).find((c) => c?.id) || data.clubs?.[0];
+          if (club?.id) {
+            try { localStorage.setItem(`depro_club_${club.id}`, JSON.stringify(club)); } catch { /* cupo */ }
+            try {
+              const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
+              const idx = clubs.findIndex((c) => c.id === club.id);
+              const summary = { id: club.id, name: club.name, isSoloCoach: club.isSoloCoach };
+              if (idx >= 0) clubs[idx] = { ...clubs[idx], ...summary };
+              else clubs.unshift(summary);
+              localStorage.setItem("depro_clubs", JSON.stringify(clubs));
+            } catch { /* cupo */ }
+          }
+        }
+      } catch { /* el panel puede cargar igual */ }
+    }
+    try {
+      startImpersonation(u);
+    } catch {
+      try {
+        const { reclaimLocalStorage } = await import("../../lib/storageQuota");
+        reclaimLocalStorage();
+        startImpersonation(u);
+      } catch { /* navigate anyway */ }
+    }
     window.location.assign("/dashboard");
   };
 
@@ -157,7 +189,7 @@ export default function AdminUsersPage() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ userId: pendingDelete.id }),
+        body: JSON.stringify({ userId: pendingDelete.id, email: pendingDelete.email || "" }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "No se pudo eliminar");

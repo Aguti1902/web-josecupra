@@ -203,6 +203,11 @@ function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
                   15 días de prueba · 0 € hoy
                 </p>
               )}
+              {plan.audience === "coach" && planHasCheckoutTrial(plan.id) && (
+                <p className="text-[11px] font-bold text-depro-green bg-depro-green/10 rounded-lg px-2 py-1 mb-3">
+                  15 días de prueba · 0 € hoy
+                </p>
+              )}
 
               <div className="flex items-baseline gap-1 mb-5">
                 <span className="text-3xl font-black text-depro-dark">{formatPrice(plan.price)}</span>

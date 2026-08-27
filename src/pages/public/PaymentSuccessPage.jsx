@@ -133,10 +133,10 @@ export default function PaymentSuccessPage() {
         return;
       }
 
-      // Login ANTES de escribir branding: si Safari está lleno, el cupo no puede abortar la sesión.
+      // Guardar club del coach ANTES del login para que Microciclo/Mesociclo existan al entrar.
+      await persistSideEffects(data);
       setStatus({ loading: false, redirecting: true, error: null, done: false, email: data.email || "" });
       const entered = await enterWithSession(data);
-      await persistSideEffects(data);
       if (entered) return;
 
       setStatus({

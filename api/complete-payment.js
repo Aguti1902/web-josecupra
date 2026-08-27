@@ -1,7 +1,7 @@
 import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin, findUserByEmail } from "./_supabaseAdmin.js";
 import { recordClubCodeSignup } from "./_clubReferrals.js";
-import { buildSoloCoachClub } from "../src/lib/provisionSoloCoach.js";
+import { persistSoloCoachClub } from "./_soloCoachClub.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -182,58 +182,23 @@ export default async function handler(req, res) {
     const isCoachAudience = meta.audience === "coach" || String(meta.plan || "").startsWith("coach-");
     if (isCoachAudience && userId) {
       try {
-        const built = buildSoloCoachClub({
+        const supabaseAdmin = getSupabaseAdmin();
+        const { data: current } = await supabaseAdmin.auth.admin.getUserById(userId);
+        const existingMeta = current?.user?.user_metadata || {};
+        const persisted = await persistSoloCoachClub(supabaseAdmin, {
           userId,
           name,
           email,
           plan: meta.plan || "coach-starter",
-          coachAuto: meta.coachAuto || "",
+          coachAuto: meta.coachAuto || existingMeta.coachAuto || "",
           primaryColor: meta.primaryColor || "",
           secondaryColor: meta.secondaryColor || "",
           clubName: meta.clubName || meta.club || "",
+          existingMeta,
         });
-        coachClub = built.club;
-        const supabaseAdmin = getSupabaseAdmin();
-        const now = new Date().toISOString();
-        const { data: existingRow } = await supabaseAdmin
-          .from("clubs_detail")
-          .select("data")
-          .eq("club_id", built.clubId)
-          .maybeSingle();
-        const existing = existingRow?.data && typeof existingRow.data === "object" ? existingRow.data : {};
-        const payload = {
-          ...existing,
-          ...built.club,
-          id: built.clubId,
-          coachConfig: existing.coachConfig?.nivel ? existing.coachConfig : built.club.coachConfig,
-          teams: (existing.teams?.length ? existing.teams : built.club.teams),
-        };
-        await supabaseAdmin.from("clubs_detail").upsert(
-          { club_id: built.clubId, data: payload, updated_at: now },
-          { onConflict: "club_id" },
-        );
-        try {
-          await supabaseAdmin.from("clubs").upsert({
-            id: built.clubId,
-            name: payload.name,
-            abbreviation: payload.abbreviation,
-            status: payload.status || "activo",
-            plan: payload.plan,
-            created_at: payload.created_at || now,
-          }, { onConflict: "id" });
-        } catch { /* tabla clubs opcional */ }
-
-        await supabaseAdmin.auth.admin.updateUserById(userId, {
-          user_metadata: {
-            clubId: built.clubId,
-            teamId: built.teamId,
-            isSoloCoach: true,
-            pendingPayment: false,
-            clubName: payload.name,
-          },
-        });
-        clubIdOut = built.clubId;
-        teamIdOut = built.teamId;
+        coachClub = persisted.club;
+        clubIdOut = persisted.clubId;
+        teamIdOut = persisted.teamId;
       } catch (provisionErr) {
         console.error("complete-payment coach provision:", provisionErr.message);
       }

@@ -32,6 +32,31 @@ describe("club referrals", () => {
     assert.equal(summary.codeUsers, 2);
   });
 
+  it("quita altas sin pago al borrar al jugador", async () => {
+    const { removePlayerFromReferralRegistry } = await import("./_clubReferrals.js");
+    const store = { byClubId: {
+      club_udv: {
+        referrals: [
+          { playerId: "u1", playerEmail: "remiro@test.com", amountPaid: 0, commission: 0 },
+          { playerId: "u2", playerEmail: "keep@test.com", amountPaid: 2900, commission: 290 },
+        ],
+      },
+    } };
+    const admin = {
+      from() {
+        return {
+          select() { return this; },
+          eq() { return this; },
+          maybeSingle: async () => ({ data: { data: store } }),
+          upsert: async ({ data }) => { Object.assign(store, data); return { error: null }; },
+        };
+      },
+    };
+    await removePlayerFromReferralRegistry(admin, { userId: "u1", email: "remiro@test.com" });
+    assert.equal(store.byClubId.club_udv.referrals.length, 1);
+    assert.equal(store.byClubId.club_udv.referrals[0].playerId, "u2");
+  });
+
   it("tasa por defecto 10%", () => {
     assert.equal(REFERRAL_COMMISSION_RATE, 0.1);
     assert.equal(commissionCents(10000, 10), 1000);

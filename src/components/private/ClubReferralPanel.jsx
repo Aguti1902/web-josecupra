@@ -119,7 +119,7 @@ export default function ClubReferralPanel({
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Jugadores con código", value: stats.activePlayers, icon: Users },
+          { label: "Jugadores con código", value: stats.codeUsers ?? stats.activePlayers, icon: Users },
           { label: "Comisión pendiente", value: formatEuros(stats.pending), icon: Wallet },
           { label: "Este mes", value: formatEuros(stats.monthPending), icon: TrendingUp },
           { label: "Total generado", value: formatEuros(stats.totalEarned), icon: Gift },

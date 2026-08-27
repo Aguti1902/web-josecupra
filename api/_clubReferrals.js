@@ -161,6 +161,78 @@ export async function recordClubCodeSignup(admin, {
   return { ok: true, entry };
 }
 
+function referralMatchesPlayer(r, { userId, email } = {}) {
+  const id = String(r?.playerId || r?.userId || "");
+  const em = String(r?.playerEmail || r?.email || "").toLowerCase();
+  if (userId && id && id === String(userId)) return true;
+  if (email && em && em === String(email).toLowerCase()) return true;
+  return false;
+}
+
+function isPaidReferral(r) {
+  return (Number(r?.amountPaid) || 0) > 0 || (Number(r?.commission) || 0) > 0;
+}
+
+/** Quita al jugador del registro de comisiones (todos los clubs). unpaidOnly = solo altas sin cobro. */
+export async function removePlayerFromReferralRegistry(admin, { userId, email, unpaidOnly = false } = {}) {
+  if (!userId && !email) return { ok: false, changed: false };
+  const registry = await loadReferralRegistry(admin);
+  let changed = false;
+  for (const bucket of Object.values(registry.byClubId || {})) {
+    const prev = bucket.referrals || [];
+    const next = prev.filter((r) => {
+      if (!referralMatchesPlayer(r, { userId, email })) return true;
+      if (unpaidOnly && isPaidReferral(r)) return true;
+      return false;
+    });
+    if (next.length !== prev.length) {
+      bucket.referrals = next;
+      changed = true;
+    }
+  }
+  if (changed) await saveReferralRegistry(admin, registry);
+  return { ok: true, changed };
+}
+
+/** Altas a 0 € cuyo usuario ya no existe en Auth: se quitan al cargar comisiones. */
+export async function scrubUnpaidReferralsMissingUsers(admin, clubId) {
+  if (!clubId) return { ok: false, changed: false };
+  const registry = await loadReferralRegistry(admin);
+  const bucket = registry.byClubId?.[clubId];
+  if (!bucket?.referrals?.length) return { ok: true, changed: false };
+
+  const kept = [];
+  let changed = false;
+  for (const r of bucket.referrals) {
+    if (isPaidReferral(r)) {
+      kept.push(r);
+      continue;
+    }
+    let exists = false;
+    if (r.playerId) {
+      try {
+        const { data } = await admin.auth.admin.getUserById(r.playerId);
+        exists = !!data?.user;
+      } catch { exists = false; }
+    }
+    if (!exists && r.playerEmail) {
+      try {
+        const { findUserByEmail } = await import("./_supabaseAdmin.js");
+        exists = !!(await findUserByEmail(admin, r.playerEmail));
+      } catch { exists = false; }
+    }
+    if (exists) kept.push(r);
+    else changed = true;
+  }
+  if (changed) {
+    bucket.referrals = kept;
+    await saveReferralRegistry(admin, registry);
+  }
+  return { ok: true, changed };
+}
+
+export { referralMatchesPlayer, isPaidReferral };
+
 export async function markReferralPayout(admin, clubId, { amount, month, note, iban, markPaid = true }) {
   const registry = await loadReferralRegistry(admin);
   const bucket = ensureClubBucket(registry, clubId);

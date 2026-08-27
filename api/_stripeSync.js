@@ -1,5 +1,6 @@
 import { findUserByStripeCustomer } from "./_supabaseAdmin.js";
 import { addonIdsFromSubscriptionItems } from "./_addonCatalog.js";
+import { removePlayerFromReferralRegistry } from "./_clubReferrals.js";
 
 function planIdFromSubscription(sub) {
   const metaPlan = sub.metadata?.plan;
@@ -62,6 +63,16 @@ export async function syncSubscriptionToUser(supabaseAdmin, subscription, emailH
   await supabaseAdmin.auth.admin.updateUserById(user.id, {
     user_metadata: { ...meta, ...payload },
   });
+
+  if (["canceled", "cancelled", "incomplete_expired"].includes(String(payload.subscriptionStatus || ""))) {
+    try {
+      await removePlayerFromReferralRegistry(supabaseAdmin, {
+        userId: user.id,
+        email: user.email,
+        unpaidOnly: true,
+      });
+    } catch { /* no bloquear el sync de Stripe */ }
+  }
 
   return { ok: true, userId: user.id };
 }
