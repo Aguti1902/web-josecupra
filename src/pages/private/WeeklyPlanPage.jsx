@@ -217,7 +217,6 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
       id: blockNavId(b, i),
       label: blockDisplayLabel(b) || BLOCK_CONFIG[b.type]?.label || b.type,
     })),
-    })),
   ];
 
   return (

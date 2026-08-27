@@ -407,10 +407,6 @@ export default function AdminCatalogPage({ embedded = false }) {
     invalidateCatalogMediaCache();
     saveOverridesToCloud(updated).catch(() => {});
   };
-    // Auto-save silencioso
-    localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(updated));
-    saveOverridesToCloud(updated).catch(() => {});
-  };
 
   const handleAddExercise = (form) => {
     const id = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
