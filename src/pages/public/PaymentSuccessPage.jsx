@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { syncLocalSubscription } from "../../lib/subscription";
@@ -11,33 +11,45 @@ function friendlyError(raw) {
   if (/quota/i.test(msg)) {
     return "El navegador tiene el almacenamiento lleno. Tu pago está bien: entra al panel.";
   }
+  if (/abort|timeout|tiempo/i.test(msg)) {
+    return "Pago confirmado. Pulsa para entrar al panel.";
+  }
   return msg;
+}
+
+function fetchJson(url, options, ms = 12000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}
+
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
 }
 
 export default function PaymentSuccessPage() {
   const [params] = useSearchParams();
   const sessionId = params.get("session_id");
-  const navigate = useNavigate();
-  const { user, login, refreshUser, loading: authLoading } = useAuth();
+  const { user, login, loading: authLoading } = useAuth();
   const [visible, setVisible] = useState(false);
   const [status, setStatus] = useState({ loading: !!sessionId, redirecting: false, error: null, done: false, email: "" });
   const finalizedRef = useRef(false);
   const userRef = useRef(user);
   const loginRef = useRef(login);
-  const refreshUserRef = useRef(refreshUser);
-  const navigateRef = useRef(navigate);
+  const lastDataRef = useRef(null);
 
   userRef.current = user;
   loginRef.current = login;
-  refreshUserRef.current = refreshUser;
-  navigateRef.current = navigate;
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 100);
   }, []);
 
   function goToPanel() {
-    navigateRef.current("/dashboard", { replace: true });
+    window.location.replace("/dashboard");
   }
 
   function goToLogin(email) {
@@ -47,62 +59,62 @@ export default function PaymentSuccessPage() {
     window.location.assign(`${url.pathname}${url.search}`);
   }
 
-  async function persistSideEffects(data) {
+  function persistSideEffects(data) {
     try {
       reclaimLocalStorage();
-      if (data.userId) {
-        safeSetItem(sessionStorage, "depro_pending_plan_user", data.userId);
-        syncLocalSubscription(data.userId, {
+      if (!data?.userId) return;
+      safeSetItem(sessionStorage, "depro_pending_plan_user", data.userId);
+      syncLocalSubscription(data.userId, {
+        plan: data.plan,
+        status: data.subscriptionStatus || "trialing",
+        trialEndsAt: data.trialEndsAt,
+        billingSource: "stripe",
+      });
+      if (data.coachClub?.id) {
+        try {
+          localStorage.setItem(`depro_club_${data.coachClub.id}`, JSON.stringify(data.coachClub));
+        } catch { /* cupo */ }
+      }
+      const clubId = data.clubId;
+      if (clubId) {
+        registerClubCodePlayer({
+          userId: data.userId,
+          clubId,
+          name: data.name,
+          email: data.email,
           plan: data.plan,
-          status: data.subscriptionStatus || "trialing",
-          trialEndsAt: data.trialEndsAt,
-          billingSource: "stripe",
+          status: data.subscriptionStatus === "trialing" ? "trialing" : "active",
         });
-        if (data.coachClub?.id) {
-          try {
-            const { saveClub } = await import("../../lib/adminStorage");
-            await saveClub(data.coachClub);
-          } catch { /* el club ya está en clubs_detail */ }
-        }
-        const clubId = data.clubId;
-        if (clubId) {
+      } else {
+        const assoc = getPlayerClubAssoc(data.userId);
+        if (assoc?.clubId) {
           registerClubCodePlayer({
             userId: data.userId,
-            clubId,
-            name: data.name,
-            email: data.email,
-            plan: data.plan,
+            clubId: assoc.clubId,
+            name: assoc.name || data.name,
+            email: assoc.email || data.email,
+            plan: data.plan || assoc.plan,
             status: data.subscriptionStatus === "trialing" ? "trialing" : "active",
           });
-        } else {
-          const assoc = getPlayerClubAssoc(data.userId);
-          if (assoc?.clubId) {
-            registerClubCodePlayer({
-              userId: data.userId,
-              clubId: assoc.clubId,
-              name: assoc.name || data.name,
-              email: assoc.email || data.email,
-              plan: data.plan || assoc.plan,
-              status: data.subscriptionStatus === "trialing" ? "trialing" : "active",
-            });
-            applyClubBrandingToPlayer(data.userId, assoc.clubId);
-          }
+          applyClubBrandingToPlayer(data.userId, assoc.clubId);
         }
       }
-    } catch { /* localStorage lleno no puede bloquear el acceso al panel */ }
+    } catch { /* no bloquear el acceso al panel */ }
   }
 
   async function enterWithSession(data) {
     if (data?.password && data?.email) {
-      const result = await loginRef.current(data.email, data.password);
-      if (result.success) {
-        try { await refreshUserRef.current(); } catch { /* ignore */ }
+      const result = await withTimeout(
+        loginRef.current(data.email, data.password),
+        7000,
+        { success: false },
+      );
+      if (result?.success) {
         goToPanel();
         return true;
       }
     }
     if (userRef.current) {
-      try { await refreshUserRef.current(); } catch { /* ignore */ }
       goToPanel();
       return true;
     }
@@ -113,16 +125,28 @@ export default function PaymentSuccessPage() {
     if (!sessionId) return;
     setStatus((s) => ({ ...s, loading: true, redirecting: false, error: null }));
 
+    const watchdog = setTimeout(() => {
+      setStatus((s) => ({
+        loading: false,
+        redirecting: false,
+        error: s.error || "Pago confirmado. Pulsa para entrar al panel.",
+        done: true,
+        email: s.email || lastDataRef.current?.email || "",
+      }));
+    }, 8000);
+
     try {
       reclaimLocalStorage();
-      const res = await fetch("/api/complete-payment", {
+      const res = await fetchJson("/api/complete-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, authUserId: userRef.current?.id || undefined }),
-      });
+      }, 12000);
       const data = await res.json();
+      lastDataRef.current = data;
 
       if (!data.ok) {
+        clearTimeout(watchdog);
         setStatus({
           loading: false,
           redirecting: false,
@@ -133,12 +157,12 @@ export default function PaymentSuccessPage() {
         return;
       }
 
-      // Guardar club del coach ANTES del login para que Microciclo/Mesociclo existan al entrar.
-      await persistSideEffects(data);
+      persistSideEffects(data);
       setStatus({ loading: false, redirecting: true, error: null, done: false, email: data.email || "" });
       const entered = await enterWithSession(data);
       if (entered) return;
 
+      clearTimeout(watchdog);
       setStatus({
         loading: false,
         redirecting: false,
@@ -147,12 +171,13 @@ export default function PaymentSuccessPage() {
         email: data.email || "",
       });
     } catch (e) {
+      clearTimeout(watchdog);
       setStatus({
         loading: false,
         redirecting: false,
-        error: friendlyError(e.message),
+        error: friendlyError(e.name === "AbortError" ? "timeout" : e.message),
         done: true,
-        email: "",
+        email: lastDataRef.current?.email || "",
       });
     }
   }
@@ -162,7 +187,15 @@ export default function PaymentSuccessPage() {
       if (!authLoading) setStatus({ loading: false, redirecting: false, error: null, done: true, email: "" });
       return;
     }
-    if (authLoading || finalizedRef.current) return;
+    if (finalizedRef.current) return;
+    if (authLoading) {
+      const t = setTimeout(() => {
+        if (finalizedRef.current) return;
+        finalizedRef.current = true;
+        finalize();
+      }, 1200);
+      return () => clearTimeout(t);
+    }
     finalizedRef.current = true;
     finalize();
   }, [sessionId, authLoading]);
@@ -199,26 +232,31 @@ export default function PaymentSuccessPage() {
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">{status.error}</p>
         )}
 
-        {!busy && (
-          <button
-            type="button"
-            onClick={() => {
-              if (sessionId) {
-                finalizedRef.current = true;
-                finalize();
-                return;
-              }
-              if (userRef.current) {
-                goToPanel();
-                return;
-              }
-              goToLogin(status.email);
-            }}
-            className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3"
-          >
-            Entrar al panel <ArrowRight size={16} />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            const data = lastDataRef.current;
+            if (userRef.current) {
+              goToPanel();
+              return;
+            }
+            if (data?.ok && data.password && data.email) {
+              finalizedRef.current = true;
+              enterWithSession(data);
+              return;
+            }
+            if (sessionId && !data?.ok) {
+              finalizedRef.current = false;
+              finalizedRef.current = true;
+              finalize();
+              return;
+            }
+            goToLogin(status.email || data?.email || "");
+          }}
+          className={`btn-primary inline-flex items-center justify-center gap-2 px-6 py-3 ${busy ? "mt-2" : ""}`}
+        >
+          Entrar al panel <ArrowRight size={16} />
+        </button>
 
         {sessionId && (
           <p className="text-[10px] text-depro-gray/50 mt-6">Ref: {sessionId.slice(0, 24)}…</p>
