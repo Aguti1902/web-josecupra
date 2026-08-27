@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { getCachedSubscription, isInTrial } from "../lib/subscription";
 import { shouldBlockAccountLogin } from "../lib/adminAccountStatus";
@@ -650,7 +650,7 @@ export function AuthProvider({ children }) {
   };
 
   // ── Refresh user (recargar datos sin nuevo login) ──────────
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       await supabase.auth.refreshSession();
       const { data: { session } } = await supabase.auth.getSession();
@@ -659,8 +659,8 @@ export function AuthProvider({ children }) {
       setUser(basic);
       const profile = await fetchProfile(session.user.id);
       if (profile) setUser(withImpersonation(buildUser(session.user, profile)));
-    } catch {}
-  };
+    } catch { /* ignore */ }
+  }, []);
 
   // ── Recuperación de contraseña ─────────────────────────────
   const resetPasswordForEmail = async (email) => {

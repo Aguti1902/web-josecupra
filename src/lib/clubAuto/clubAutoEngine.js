@@ -339,6 +339,12 @@ export function isoWeekStartsInMonth(isoOrDate = new Date()) {
   return out;
 }
 
+/** Semanas del mes que empiezan en o después de `notBefore` (p. ej. lunes de hoy). */
+export function isoWeekStartsInMonthFrom(isoOrDate = new Date(), notBefore = isoOrDate) {
+  const floor = startOfIsoWeek(notBefore);
+  return isoWeekStartsInMonth(isoOrDate).filter((w) => w >= floor);
+}
+
 export function weekIndexInMonth(weekStart) {
   if (!weekStart) return 0;
   const monday = startOfIsoWeek(weekStart);

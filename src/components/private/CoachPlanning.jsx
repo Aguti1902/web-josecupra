@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { loadCoachLibrary, getCachedCoachLibrary } from "../../lib/coachLibraryStorage";
 import { loadOrGenerateMesociclo, saveMesociclo } from "../../lib/coachSessionsStorage";
-import { monthBounds, isoWeekStartsInMonth, startOfIsoWeek } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { monthBounds, isoWeekStartsInMonthFrom, startOfIsoWeek } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { formatWeekRangeLabel, formatDate } from "../../lib/periodization";
 import MesocycleCalendar from "./MesocycleCalendar";
 
@@ -34,9 +34,13 @@ export default function CoachPlanning({ club, team }) {
   }, [club?.coachConfig, team?.trainingDays]);
   const clubId = club?.id;
   const teamId = team?.id;
-  const bounds = useMemo(() => monthBounds(new Date()), []);
-  const weekStarts = useMemo(() => isoWeekStartsInMonth(bounds.startDate), [bounds.startDate]);
-  const currentWeekIdx = Math.max(0, weekStarts.indexOf(startOfIsoWeek(isoToday())));
+  const todayMonday = startOfIsoWeek(isoToday());
+  const bounds = monthBounds(isoToday());
+  const weekStarts = useMemo(
+    () => isoWeekStartsInMonthFrom(bounds.startDate, todayMonday),
+    [bounds.startDate, todayMonday],
+  );
+  const currentWeekIdx = Math.max(0, weekStarts.indexOf(todayMonday));
 
   const [libraryReady, setLibraryReady] = useState(false);
   const [mesociclo, setMesociclo] = useState(null);
@@ -50,7 +54,7 @@ export default function CoachPlanning({ club, team }) {
     try {
       const library = getCachedCoachLibrary();
       const m = loadOrGenerateMesociclo({
-        clubId, teamId, config, startDate: bounds.startDate, endDate: bounds.endDate, library,
+        clubId, teamId, config, startDate: todayMonday, endDate: bounds.endDate, library,
       });
       setMesociclo(m);
       setGenError(null);
@@ -59,7 +63,7 @@ export default function CoachPlanning({ club, team }) {
       setMesociclo(null);
       setGenError(err?.message || "No se pudo generar el mesociclo.");
     }
-  }, [clubId, teamId, config, libraryReady, bounds.startDate, bounds.endDate]);
+  }, [clubId, teamId, config, libraryReady, todayMonday, bounds.endDate]);
 
   function updateWeekMeta(weekNumber, patch) {
     if (!mesociclo) return;

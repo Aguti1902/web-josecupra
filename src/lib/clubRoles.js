@@ -59,8 +59,10 @@ export function isClubGlobalView(user, viewingTeam) {
 }
 
 export function canManageClubBilling(user) {
-  if (!user || user.role !== "club") return user?.role === "player";
-  if (user.club?.isSoloCoach) return true;
+  if (!user) return false;
+  if (user.role === "player" || user.role === "coach") return true;
+  if (user.isSoloCoach || user.club?.isSoloCoach) return true;
+  if (user.role !== "club") return false;
   return isClubAdmin(user);
 }
 

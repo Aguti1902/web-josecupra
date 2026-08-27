@@ -12,7 +12,7 @@ import {
 } from "../../lib/coachSessionsStorage";
 import { loadFavorites, toggleFavorite } from "../../lib/coachFavorites";
 import { PROTOCOLOS, CATEGORY_PROTOCOLS } from "../../data/coachExerciseLibrary";
-import { usesClubAutoEngine, isoWeekStartsInMonth, startOfIsoWeek, monthBounds } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { usesClubAutoEngine, isoWeekStartsInMonthFrom, startOfIsoWeek, monthBounds } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { selectBallWarmup } from "../../lib/clubAuto/clubAutoTaskSelector";
 import { hasFeatureAccess } from "../../lib/subscription";
 import { formatWeekRangeLabel, formatDate } from "../../lib/periodization";
@@ -199,9 +199,12 @@ export default function CoachSessions({ club, team, user }) {
   const isClubAuto = usesClubAutoEngine({ ...club, coachConfig: config });
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const bounds = useMemo(() => monthBounds(new Date()), []);
-  const weekStarts = useMemo(() => isoWeekStartsInMonth(bounds.startDate), [bounds.startDate]);
   const todayMonday = startOfIsoWeek(isoToday());
+  const bounds = monthBounds(isoToday());
+  const weekStarts = useMemo(
+    () => isoWeekStartsInMonthFrom(bounds.startDate, todayMonday),
+    [bounds.startDate, todayMonday],
+  );
   const currentIdx = Math.max(0, weekStarts.indexOf(todayMonday));
   const parsedWeek = searchParams.get("week");
   const parsedIdx = parsedWeek != null ? parseInt(parsedWeek, 10) : NaN;

@@ -5,6 +5,7 @@ import {
   assignProtocolsToDays,
   generateClubAutoMicrociclo,
   isoWeekStartsInMonth,
+  isoWeekStartsInMonthFrom,
   weekIndexInMonth,
   startOfIsoWeek,
   monthBounds,
@@ -207,5 +208,9 @@ describe("clubAutoEngine — semanas del mes", () => {
     const bounds = monthBounds("2026-08-23");
     assert.equal(bounds.startDate, "2026-08-01");
     assert.equal(bounds.endDate, "2026-08-31");
+    assert.deepEqual(isoWeekStartsInMonthFrom("2026-08-15", "2026-08-27"), [
+      "2026-08-24",
+      "2026-08-31",
+    ]);
   });
 });

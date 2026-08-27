@@ -201,13 +201,7 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
       }
     }
 
-    const contra = et.contraindicado || ex.lesionesContra || [];
-    if (contra.some((c) => lesiones.includes(c) || lesiones.includes(c.replace(/^lesion_/, "")))) {
-      return false;
-    }
-    if (lesiones.length && contra.some((c) => lesiones.some((l) => c.includes(l.replace(/^lesion_/, "")) || l.includes(c.replace(/^lesion_/, ""))))) {
-      return false;
-    }
+    if (isExerciseContraindicated(ex, lesiones)) return false;
 
     if (dayIntensity === "baja" && et.intensidad === "alta" && et.rol === "basico") {
       // se permite; la adaptación de cargas se aplica en el motor
@@ -331,8 +325,9 @@ function relaxSlot(slot, step) {
   return null;
 }
 
-function pickFrom(candidates, userProfile, slot, usedExerciseIds, seedExtra) {
+function pickFrom(candidates, userProfile, slot, _usedExerciseIds, seedExtra) {
   if (!candidates.length) return null;
+  // No incluir usedIds en la semilla: un swap local no debe reescribir el resto de slots.
   const seed = [
     userProfile?.userId || "",
     userProfile?.week || "",
@@ -341,7 +336,6 @@ function pickFrom(candidates, userProfile, slot, usedExerciseIds, seedExtra) {
     slot.patron || "",
     slot.segmento || "",
     (slot.grupo_muscular || []).toString?.() || slot.grupo_muscular || "",
-    usedExerciseIds.join(","),
     seedExtra,
   ].join("|");
   return pickDeterministic(candidates, seed);
@@ -563,13 +557,83 @@ export function getPreventionInjectionIds(lesiones = []) {
     .map((ex) => ex.id);
 }
 
-function exerciseContraindicated(ex, lesiones = []) {
-  const keys = asArray(lesiones).map((l) => {
-    const k = String(l || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return k.startsWith("lesion_") ? k : `lesion_${k.replace(/\s+/g, "_")}`;
+function lesionKeySet(lesiones = []) {
+  const keys = new Set();
+  for (const l of asArray(lesiones)) {
+    const k = String(l || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
+    if (!k || k === "ninguna") continue;
+    const tag = k.startsWith("lesion_") ? k : `lesion_${k}`;
+    keys.add(tag);
+    keys.add(tag.replace(/^lesion_/, ""));
+  }
+  return keys;
+}
+
+/** Solo ejercicios etiquetados como contraindicados para esa lesión (p. ej. Press militar → hombro). */
+export function isExerciseContraindicated(ex, lesiones = []) {
+  const keys = lesionKeySet(lesiones);
+  if (!keys.size) return false;
+  const contra = asArray(ex?.etiquetas?.contraindicado || ex?.lesionesContra);
+  return contra.some((c) => {
+    const raw = String(c || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
+    if (!raw) return false;
+    const tag = raw.startsWith("lesion_") ? raw : `lesion_${raw}`;
+    return keys.has(tag) || keys.has(raw) || keys.has(tag.replace(/^lesion_/, ""));
   });
-  const contra = ex.etiquetas?.contraindicado || ex.lesionesContra || [];
-  return contra.some((c) => keys.includes(c) || keys.some((l) => c.includes(l.replace(/^lesion_/, "")) || l.includes(c.replace(/^lesion_/, ""))));
+}
+
+function exerciseContraindicated(ex, lesiones = []) {
+  return isExerciseContraindicated(ex, lesiones);
+}
+
+/**
+ * Conserva la sesión original y sustituye SOLO los ejercicios contraindicados
+ * cuando hay una alternativa del mismo slot. Si no hay recambio, se deja el original.
+ */
+export function applyContraindicationSwaps(exercises, userProfile = {}, extraExcludeIds = []) {
+  const lesiones = userProfile.lesiones || [];
+  if (!lesiones.length || !Array.isArray(exercises) || !exercises.length) return exercises;
+
+  const used = new Set(
+    [...extraExcludeIds, ...exercises.map((e) => e.id)].filter((id) => id != null),
+  );
+
+  return exercises.map((ex) => {
+    if (!isExerciseContraindicated(ex, lesiones)) return ex;
+    const exclude = [...used].filter((id) => id !== ex.id && id !== ex.catalogId);
+    const slot = ex.slotConstraints || {
+      rol: tagsOf(ex).rol,
+      patron: asArray(tagsOf(ex).patron)[0],
+      segmento: tagsOf(ex).segmento,
+      grupo_muscular: tagsOf(ex).grupo_muscular,
+      objetivo: asArray(tagsOf(ex).objetivo)[0],
+    };
+    const seed = `${userProfile.userId || ""}|injury|${ex.id}|${slot.rol || ""}`;
+    let replacement = refreshExercise(ex, userProfile, exclude, seed);
+    if (!replacement) {
+      replacement = selectExerciseForSlot(
+        { ...slot, slotId: `injury_${ex.id}` },
+        userProfile,
+        exclude,
+        seed,
+      );
+    }
+    if (!replacement || isExerciseContraindicated(replacement, lesiones)) return ex;
+    used.delete(ex.id);
+    used.add(replacement.id);
+    return {
+      ...ex,
+      ...replacement,
+      catalogId: replacement.id,
+      slotDescription: ex.slotDescription,
+      slotConstraints: ex.slotConstraints || slot,
+      sets: ex.sets,
+      reps: ex.reps,
+      rest: ex.rest,
+      load: ex.load,
+      blockType: ex.blockType,
+    };
+  });
 }
 
 export function injectPreventionExercises(sessionExercises, userProfile, max = 2) {
@@ -638,20 +702,22 @@ export function generateSession(template, userProfile) {
     intensityLevel: template.intensityLevel || template.intensity,
     blocks: [],
   };
+  const fillProfile = { ...userProfile, lesiones: [] };
   let sessionUsedIds = [];
   let sessionUsedPools = [];
   for (const blockTemplate of template.blocks || []) {
     const { exercises, usedIds, usedPools } = fillBlockSlots(
       blockTemplate,
-      userProfile,
+      fillProfile,
       sessionUsedIds,
       sessionUsedPools,
     );
+    const swapped = applyContraindicationSwaps(exercises, userProfile, sessionUsedIds);
     session.blocks.push({
       type: blockTemplate.type,
       label: blockTemplate.label,
       duration: blockTemplate.duration,
-      exercises,
+      exercises: swapped,
     });
     sessionUsedIds = usedIds;
     sessionUsedPools = usedPools;

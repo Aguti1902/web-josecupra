@@ -9,6 +9,7 @@ import { loadCoachLibrary, getCachedCoachLibrary } from "../../lib/coachLibraryS
 import {
   usesClubAutoEngine,
   generateClubAutoWeekForCoach,
+  startOfIsoWeek,
 } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { loadOrGenerateWeek } from "../../lib/coachSessionsStorage";
 import PlanUsageCard from "./PlanUsageCard";
@@ -24,10 +25,7 @@ function safeAccent(hex) { return lum(hex) > 0.75 ? "#0A36F7" : (hex || "#0A36F7
 function contrastText(hex) { return lum(hex) > 0.55 ? "#111827" : "#ffffff"; }
 
 function currentWeekStart() {
-  const d = new Date();
-  const diff = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - diff);
-  return d.toISOString().slice(0, 10);
+  return startOfIsoWeek(new Date());
 }
 
 const DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];

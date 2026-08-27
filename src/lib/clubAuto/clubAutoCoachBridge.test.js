@@ -108,7 +108,7 @@ describe("clubAutoCoachBridge", () => {
     assert.equal(packed.config.duracion_sesion, "60");
   });
 
-  it("mesociclo ProCoach cubre el mes calendario con sesión por día de entreno", () => {
+  it("mesociclo ProCoach empieza en la semana actual, no en el arrastre del mes anterior", () => {
     const config = {
       engine: "club_auto",
       nivel: "B",
@@ -117,15 +117,17 @@ describe("clubAutoCoachBridge", () => {
       dia_partido: "sabado",
       acceso_gimnasio: "no",
     };
-    const meso = generateClubAutoMesocicloForCoach(config, { startDate: "2026-08-01", endDate: "2026-08-31" });
-    assert.equal(meso.startDate, "2026-08-01");
+    const meso = generateClubAutoMesocicloForCoach(config, {
+      startDate: "2026-08-27",
+      endDate: "2026-08-31",
+      fromDate: "2026-08-27",
+    });
+    assert.equal(meso.startDate, "2026-08-24");
     assert.equal(meso.endDate, "2026-08-31");
-    assert.ok(meso.weeks.length >= 5);
-    const first = meso.weeks[1];
-    assert.equal(first.weekStart, "2026-08-03");
-    assert.ok(first.sessions.length >= 1);
-    assert.ok(first.sessions[0].assignedDay);
-    assert.ok(["A", "B", "C"].includes(first.sessions[0].framework));
+    assert.ok(meso.weeks.length >= 1);
+    assert.ok(meso.weeks.every((w) => w.weekStart >= "2026-08-24"));
+    assert.ok(meso.weeks[0].sessions.length >= 1);
+    assert.ok(["A", "B", "C"].includes(meso.weeks[0].sessions[0].framework));
   });
 
   it("categoryForNivel", () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Component } from "react";
 import { Link, useSearchParams, Navigate } from "react-router-dom";
 import {
   CreditCard, Lock, Sparkles, ArrowUpCircle, Check, X, Clock, Loader2, Zap,
@@ -6,7 +6,6 @@ import {
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import {
-  isIndividualSubscriber,
   getSubscriptionFromUser,
   isSubscriptionActive,
   cancelSubscription,
@@ -27,11 +26,40 @@ import {
 import { lockedFeaturesForUser } from "../../lib/planFeatures";
 import { plansForAudience, formatPrice, PLANS } from "../../lib/checkoutPlans";
 import { PLAYER_ADDONS, addonById } from "../../lib/playerAddons";
-import { COACH_ADDONS, coachAddonById } from "../../lib/coachAddons";
+import { COACH_ADDONS } from "../../lib/coachAddons";
+import { addonOwnershipState, addonOwnershipLabel } from "../../lib/addonOwnership";
 import ChangePlanModal from "../../components/private/ChangePlanModal";
 import { canManageClubBilling } from "../../lib/clubRoles";
 
-export default function SubscriptionPage() {
+class SubscriptionErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="dash-page space-y-4">
+          <h1 className="text-2xl font-black text-depro-dark">Suscripción</h1>
+          <p className="text-sm text-depro-gray">
+            No se pudo cargar esta página. Vuelve al panel e inténtalo de nuevo.
+          </p>
+          <Link to="/dashboard" className="btn-primary inline-flex px-6 py-2.5 rounded-xl text-sm font-bold">
+            Volver al panel
+          </Link>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function SubscriptionPageInner() {
   const { user, refreshUser } = useAuth();
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
@@ -41,22 +69,19 @@ export default function SubscriptionPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [activateLoading, setActivateLoading] = useState(false);
   const [addonLoading, setAddonLoading] = useState(null);
+  const [planSwitchLoading, setPlanSwitchLoading] = useState(null);
   const [msg, setMsg] = useState(null);
 
+  const addonSessionId = params.get("addon_session");
   useEffect(() => {
-    refreshUser();
-  }, [refreshUser]);
-
-  useEffect(() => {
-    const sessionId = params.get("addon_session");
-    if (!sessionId || !user?.id) return;
+    if (!addonSessionId || !user?.id) return;
 
     let cancelled = false;
     (async () => {
       const res = await fetch("/api/complete-addon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, userId: user.id }),
+        body: JSON.stringify({ sessionId: addonSessionId, userId: user.id }),
       });
       const data = await res.json().catch(() => ({}));
       if (cancelled) return;
@@ -66,17 +91,25 @@ export default function SubscriptionPage() {
       } else {
         setMsg({ type: "error", text: data.error || t("subscription.addon_error") });
       }
-      params.delete("addon_session");
-      setParams(params, { replace: true });
+      setParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("addon_session");
+        return next;
+      }, { replace: true });
     })();
 
     return () => { cancelled = true; };
-  }, [params, user?.id, refreshUser, setParams, t]);
+  }, [addonSessionId, user?.id, refreshUser, setParams, t]);
 
   const audience = resolveUserAudience(user);
   const isPlayer = user?.role === "player";
-  const subscription = getSubscriptionFromUser(user);
-  const showBilling = isPlayer ? isIndividualSubscriber(user) : !!subscription?.plan;
+  const subscription = getSubscriptionFromUser(user) || (user?.plan ? {
+    plan: user.plan,
+    status: user.subscriptionStatus || "active",
+    cancelAt: user.subscriptionCancelAt || null,
+    purchasedAddons: user.purchasedAddons || [],
+  } : null);
+  const showBilling = !!(subscription?.plan || user?.plan);
   const subActive = isSubscriptionActive(subscription);
   const subPendingCancel = subscription?.status === "cancel_at_period_end";
   const inTrial = isInTrial(user);
@@ -84,14 +117,27 @@ export default function SubscriptionPage() {
   const paywallActive = mustPayToContinue(user);
   const currentPlanId = subscription?.plan || user?.plan;
   const currentPlan = currentPlanId ? PLANS[currentPlanId] : null;
-  const purchasedAddons = user?.purchasedAddons || subscription?.purchasedAddons || [];
   const audiencePlans = plansForAudience(audience);
-  const [planSwitchLoading, setPlanSwitchLoading] = useState(null);
+
+  const catalogAddons = isPlayer
+    ? PLAYER_ADDONS
+    : audience === "coach"
+      ? COACH_ADDONS
+      : [];
+  const ownedAddons = catalogAddons.filter((a) => {
+    const s = addonOwnershipState(user, a);
+    return s === "paid" || s === "plan_included";
+  });
+  const missingAddons = catalogAddons.filter((a) => addonOwnershipState(user, a) === "missing");
 
   const locked = lockedFeaturesForUser(user, {
     isInTrial,
     hasFeatureAccess,
     resolveUserAudience,
+  }).filter((f) => {
+    const addonId = f.addonId || f.trialAddon;
+    if (!addonId) return true;
+    return !catalogAddons.some((a) => a.id === addonId);
   });
 
   const handlePortal = async () => {
@@ -180,12 +226,6 @@ export default function SubscriptionPage() {
     const order = Object.keys(PLANS).filter((id) => PLANS[id].audience === audience);
     return order.indexOf(p.id) > order.indexOf(currentPlanId);
   });
-
-  const availableAddons = isPlayer
-    ? PLAYER_ADDONS.filter((a) => !purchasedAddons.includes(a.id) && !hasFeatureAccess(user, a.featureId))
-    : audience === "coach"
-      ? COACH_ADDONS.filter((a) => !purchasedAddons.includes(a.id) && !hasFeatureAccess(user, a.featureId))
-      : [];
 
   if (user?.role === "club" && !canManageClubBilling(user)) {
     return <Navigate to="/dashboard" replace />;
@@ -378,15 +418,43 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {availableAddons.length > 0 && !paywallActive && (
+      {ownedAddons.length > 0 && !paywallActive && (
+        <div className="bg-white border border-depro-border rounded-2xl p-6">
+          <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
+            <Check size={18} className="text-depro-green" />
+            Extras que tienes
+          </h2>
+          <p className="text-sm text-depro-gray mb-5">Servicios contratados o incluidos en tu plan.</p>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {ownedAddons.map((addon) => {
+              const state = addonOwnershipState(user, addon);
+              return (
+                <div key={addon.id} className="rounded-xl border border-green-200 bg-green-50/40 p-4">
+                  <p className="font-bold text-depro-dark text-sm">{addon.name}</p>
+                  <p className="text-xs text-depro-gray mt-1">{addon.description}</p>
+                  <span className="inline-block mt-3 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-800">
+                    {addonOwnershipLabel(state)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {missingAddons.length > 0 && !paywallActive && (
         <div className="bg-white border border-depro-border rounded-2xl p-6">
           <h2 className="font-bold text-depro-dark text-lg mb-1 flex items-center gap-2">
             <Sparkles size={18} className="text-depro-blue" />
-            {t("subscription.addons_title")}
+            Añadir extras
           </h2>
-          <p className="text-sm text-depro-gray mb-5">{t("subscription.addons_desc")}</p>
+          <p className="text-sm text-depro-gray mb-5">
+            {inTrial
+              ? "En la prueba puedes probar algunas funciones. Aquí contratas las que quieras mantener (no aparecen como incluidas si no las has pagado)."
+              : "Servicios que aún no tienes. Se añaden a tu suscripción."}
+          </p>
           <div className="grid sm:grid-cols-3 gap-4">
-            {availableAddons.map((addon) => (
+            {missingAddons.map((addon) => (
               <div key={addon.id} className="rounded-xl border border-depro-border p-4 flex flex-col">
                 <p className="font-bold text-depro-dark text-sm">{addon.name}</p>
                 <p className="text-xs text-depro-gray mt-1 mb-3 flex-1">{addon.description}</p>
@@ -401,22 +469,9 @@ export default function SubscriptionPage() {
                   className="w-full py-2 rounded-lg bg-depro-blue text-white text-xs font-bold hover:bg-depro-blue-dark disabled:opacity-50 flex items-center justify-center gap-1"
                 >
                   {addonLoading === addon.id ? <Loader2 size={12} className="animate-spin" /> : null}
-                  {t("subscription.buy_addon")}
+                  Añadir
                 </button>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {purchasedAddons.length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
-          <p className="text-sm font-bold text-green-800 mb-2">{t("subscription.addons_owned")}</p>
-          <div className="flex flex-wrap gap-2">
-            {purchasedAddons.map((id) => (
-              <span key={id} className="text-xs font-bold px-2.5 py-1 rounded-full bg-white border border-green-200 text-green-800">
-                {addonById(id)?.name || coachAddonById(id)?.name || id}
-              </span>
             ))}
           </div>
         </div>
@@ -559,5 +614,13 @@ export default function SubscriptionPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SubscriptionPage() {
+  return (
+    <SubscriptionErrorBoundary>
+      <SubscriptionPageInner />
+    </SubscriptionErrorBoundary>
   );
 }

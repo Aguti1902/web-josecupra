@@ -18,7 +18,7 @@ import {
 } from "../../lib/planSwapLimits";
 import { loadPlayerPlan, fetchPlayerPlan, savePlayerPlan, persistPlayerPlanRemote, normalizePlayerPlan } from "../../lib/playerPlanStorage";
 import { clubMatchesDiscountCode } from "../../lib/clubEconomy";
-import { openBillingPortal, isSubscriptionActive, purchaseAddon, changePlan, fetchPremiumCapacity, hasFeatureAccess, isPlayerPro, isInTrial } from "../../lib/subscription";
+import { openBillingPortal, isSubscriptionActive, purchaseAddon, changePlan, fetchPremiumCapacity, isPlayerPro, isInTrial } from "../../lib/subscription";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
 import { PLANS, formatPrice } from "../../lib/checkoutPlans";
 import { PREMIUM_PLAYER_CAP } from "../../lib/premiumCapacity";
@@ -38,6 +38,7 @@ import {
   CATALOG_OBJECTIVES,
 } from "../../lib/playerTrainingProfile";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { addonOwnershipState, addonOwnershipLabel } from "../../lib/addonOwnership";
 
 const SPORTS = ["Fútbol", "Baloncesto", "Balonmano", "Atletismo", "Natación", "Otro"];
 const FREQUENCY = ["1 día / sem", "2 días / sem", "3 días / sem", "4 días / sem", "5 días / sem"];
@@ -948,8 +949,8 @@ export default function ProfilePage() {
               </p>
               <div className="grid sm:grid-cols-3 gap-3">
                 {PLAYER_ADDONS.map((addon) => {
-                  const owned = hasFeatureAccess(user, addon.featureId)
-                    || (user.purchasedAddons || []).includes(addon.id);
+                  const state = addonOwnershipState(user, addon);
+                  const owned = state !== "missing";
                   return (
                     <div key={addon.id} className="rounded-xl border border-depro-border p-3 flex flex-col">
                       <div className="font-bold text-depro-dark text-sm">{addon.name}</div>
@@ -957,7 +958,7 @@ export default function ProfilePage() {
                       <div className="mt-3 flex items-center justify-between gap-2">
                         <span className="text-sm font-black text-depro-dark">{addon.price}€{addon.period}</span>
                         {owned ? (
-                          <span className="text-xs font-bold text-green-600">Incluido</span>
+                          <span className="text-xs font-bold text-green-600">{addonOwnershipLabel(state)}</span>
                         ) : (
                           <button
                             type="button"

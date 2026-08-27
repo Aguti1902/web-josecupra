@@ -8,6 +8,7 @@ import {
   canViewClubReferrals,
   isProCoachOverview,
   isClubGlobalView,
+  canManageClubBilling,
 } from "./clubRoles.js";
 
 describe("clubRoles economía", () => {
@@ -66,5 +67,12 @@ describe("clubRoles economía", () => {
       isSoloCoach: true,
       club: { isSoloCoach: true, teams: [{ id: "a" }] },
     }, null), false);
+  });
+
+  it("jugador y DEPRO Coach gestionan su suscripción", () => {
+    assert.equal(canManageClubBilling({ role: "player" }), true);
+    assert.equal(canManageClubBilling({ role: "coach", plan: "coach-starter" }), true);
+    assert.equal(canManageClubBilling({ role: "club", club: { isSoloCoach: true } }), true);
+    assert.equal(canManageClubBilling({ role: "club", team_role: "entrenador" }), false);
   });
 });

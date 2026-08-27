@@ -5,6 +5,8 @@ import {
   injectPreventionExercises,
   getPreventionInjectionIds,
   selectExerciseForSlot,
+  applyContraindicationSwaps,
+  isExerciseContraindicated,
 } from "./exerciseSelector.js";
 import { EXERCISES } from "./exerciseCatalog.js";
 
@@ -91,5 +93,26 @@ describe("adaptación por lesiones · misma categoría", () => {
       assert.notEqual(picked.etiquetas?.segmento, "tren_inferior");
       assert.notEqual(picked.carpeta, "fuerza_tren_inferior");
     }
+  });
+
+  it("applyContraindicationSwaps solo cambia el press militar y deja el resto", () => {
+    const press = EXERCISES.find((e) => e.id === 142);
+    const jalon = EXERCISES.find((e) => e.id === 141);
+    assert.ok(press && jalon);
+    assert.equal(isExerciseContraindicated(press, ["hombro"]), true);
+    assert.equal(isExerciseContraindicated(jalon, ["hombro"]), false);
+    const session = [
+      { ...jalon, slotConstraints: { rol: "complementario", segmento: "tren_superior", objetivo: "fuerza" } },
+      { ...press, slotConstraints: { rol: "complementario", segmento: "tren_superior", objetivo: "fuerza", patron: "empuje" } },
+    ];
+    const out = applyContraindicationSwaps(session, {
+      lesiones: ["hombro"],
+      material: ["gym_completo"],
+      userId: "u-swap-hombro",
+    });
+    assert.equal(out[0].id, 141);
+    assert.notEqual(out[1].id, 142);
+    assert.equal(isExerciseContraindicated(out[1], ["hombro"]), false);
+    assert.notEqual(out[1].carpeta, "resistencia");
   });
 });

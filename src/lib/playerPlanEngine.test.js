@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import { buildPlayerPlan, checkPlanCompatibility, buildMesoPlayerPlan, resolvePlayerPlanStartDate, mondayOfDate } from "./playerPlanEngine.js";
 import { getAllowedIntensities, getMatchDayDistance, placeSessionsOnCalendar } from "./planLoadRules.js";
 import { buildWeekSessionList } from "./objectiveSessionMatrix.js";
+import { EXERCISES } from "./exerciseCatalog.js";
+import { isExerciseContraindicated } from "./exerciseSelector.js";
 
 function profile(overrides = {}) {
   return {
@@ -322,5 +324,52 @@ describe("buildMesoPlayerPlan desde plan guardado", () => {
     const monday = mondayOfDate(new Date("2026-08-23T15:00:00"));
     assert.equal(monday, "2026-08-17");
     assert.equal(resolvePlayerPlanStartDate({}, new Date("2026-08-23T15:00:00")), "2026-08-17");
+  });
+
+  it("lesión de hombro conserva plantilla y solo cambia ejercicios contraindicados", () => {
+    const base = profile({
+      objetivo: "Fuerza",
+      objetivos: ["Fuerza"],
+      frecuencia: "3",
+      disponibles: ["Lunes", "Miércoles", "Viernes"],
+      material: ["Gimnasio completo"],
+      lesion: [],
+    });
+    const withInjury = { ...base, lesion: ["Hombro"] };
+    const planA = buildPlayerPlan(base);
+    const planB = buildPlayerPlan(withInjury);
+    assert.ifError(planA.planError);
+    assert.ifError(planB.planError);
+    assert.deepEqual(typesByDay(planA), typesByDay(planB));
+
+    const catalogIds = (plan) => plan.flatMap((d) => (
+      (d.sessions || []).flatMap((s) => (s.exercises || []).map((e) => {
+        if (e.catalogId != null) return e.catalogId;
+        const n = parseInt(String(e.id).replace(/^v2_/, ""), 10);
+        return Number.isFinite(n) ? n : null;
+      }))
+    )).filter((id) => id != null);
+
+    const idsA = catalogIds(planA);
+    const idsB = catalogIds(planB);
+    assert.ok(idsA.length > 0 && idsB.length > 0);
+
+    const removed = idsA.filter((id) => !idsB.includes(id));
+    for (const id of removed) {
+      const ex = EXERCISES.find((e) => e.id === id);
+      assert.ok(ex, `ejercicio ${id} en catálogo`);
+      assert.equal(
+        isExerciseContraindicated(ex, ["hombro"]),
+        true,
+        `${ex.nombre} no debería salir del plan: no está contraindicado para hombro`,
+      );
+    }
+    for (const id of idsB) {
+      const ex = EXERCISES.find((e) => e.id === id);
+      if (ex) assert.equal(isExerciseContraindicated(ex, ["hombro"]), false, `${ex.nombre} sigue contraindicado`);
+    }
+    const shared = idsA.filter((id) => idsB.includes(id));
+    assert.ok(shared.length / idsA.length >= 0.65, `demasiados cambios: ${shared.length}/${idsA.length}`);
+    if (idsA.includes(142)) assert.equal(idsB.includes(142), false);
   });
 });

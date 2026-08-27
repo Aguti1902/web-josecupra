@@ -9,7 +9,7 @@ import {
   fillBlockSlots,
   expectedSlotCount,
   refreshExercise as refreshExerciseInPool,
-  injectPreventionExercises,
+  applyContraindicationSwaps,
   normalizeMaterialList,
 } from "./exerciseSelector.js";
 import { normalizePlayerPlan, savePlayerPlan as savePlanLocal } from "./playerPlanStorage.js";
@@ -161,8 +161,18 @@ function makeExerciseFromV2(ex, ei, blockType) {
 
 function fillTemplateV2Once(sessionType, filterParams, usedIds, templateKey, titleOverride, meta, { allowReuseWeek = false } = {}) {
   const template = getTemplate(templateKey);
+  const realLesiones = filterParams.lesiones || [];
+  // Primero se genera el plan como si no hubiera lesión; luego se cambian solo los contraindicados.
   const userProfile = buildUserProfile({
     ...filterParams,
+    lesiones: [],
+    sessionObjective: template.objective || filterParams.objetivo,
+    adaptedIntensity: meta.adaptedIntensity || null,
+    dayIntensity: meta.dayIntensity || null,
+  });
+  const injuryProfile = buildUserProfile({
+    ...filterParams,
+    lesiones: realLesiones,
     sessionObjective: template.objective || filterParams.objetivo,
     adaptedIntensity: meta.adaptedIntensity || null,
     dayIntensity: meta.dayIntensity || null,
@@ -178,9 +188,9 @@ function fillTemplateV2Once(sessionType, filterParams, usedIds, templateKey, tit
   const filledIds = [];
 
   for (const blockTemplate of template.blocks) {
+    const prevUsed = [...sessionUsedIds];
     const {
       exercises: rawExercises,
-      usedIds: newIds,
       usedPools,
       incomplete: blockIncomplete,
     } = fillBlockSlots(
@@ -189,34 +199,25 @@ function fillTemplateV2Once(sessionType, filterParams, usedIds, templateKey, tit
       sessionUsedIds,
       sessionUsedPools,
     );
-    sessionUsedIds.splice(0, sessionUsedIds.length, ...newIds);
+    const swapped = applyContraindicationSwaps(rawExercises, injuryProfile, prevUsed);
+    // El resto de slots/sesiones se rellena con los ids originales para no reescribir el plan.
+    const originalIds = [...prevUsed, ...rawExercises.map((ex) => ex.id)];
+    sessionUsedIds.splice(0, sessionUsedIds.length, ...originalIds);
     sessionUsedPools.splice(0, sessionUsedPools.length, ...usedPools);
 
     const expected = expectedSlotCount(blockTemplate);
-    if (blockIncomplete || rawExercises.length < expected) incomplete = true;
+    if (blockIncomplete || swapped.length < expected) incomplete = true;
 
     blocks.push({
       type: blockTemplate.type,
       label: blockTemplate.label,
       duration: blockTemplate.duration,
-      exercises: rawExercises.map((ex, i) => {
-        filledIds.push(ex.id);
+      exercises: swapped.map((ex, i) => {
+        filledIds.push(rawExercises[i]?.id ?? ex.id);
         return makeExerciseFromV2(ex, globalIdx + i, blockTemplate.type);
       }),
     });
-    globalIdx += rawExercises.length;
-  }
-
-  // Inyección prevención por lesión (sustituye complementarios — NO añade ni elimina slots)
-  let flat = blocks.flatMap((b) => b.exercises);
-  flat = injectPreventionExercises(flat, userProfile, 2);
-  if (flat.length) {
-    let cursor = 0;
-    for (const b of blocks) {
-      const n = b.exercises.length;
-      b.exercises = flat.slice(cursor, cursor + n);
-      cursor += n;
-    }
+    globalIdx += swapped.length;
   }
 
   // Bloque accesorio secundario incrustado (extra, no forma parte del conteo de plantilla)
@@ -235,14 +236,15 @@ function fillTemplateV2Once(sessionType, filterParams, usedIds, templateKey, tit
       ],
     };
     const { exercises: acc } = fillBlockSlots(accSlot, userProfile, sessionUsedIds, []);
-    if (acc.length) {
+    const accSwapped = applyContraindicationSwaps(acc, injuryProfile, sessionUsedIds);
+    if (accSwapped.length) {
       blocks.splice(blocks.length - 1, 0, {
         type: "complementario",
         label: accSlot.label,
         duration: accSlot.duration,
-        exercises: acc.map((ex, i) => makeExerciseFromV2(ex, globalIdx + i, "complementario")),
+        exercises: accSwapped.map((ex, i) => makeExerciseFromV2(ex, globalIdx + i, "complementario")),
       });
-      globalIdx += acc.length;
+      globalIdx += accSwapped.length;
       acc.forEach((ex) => filledIds.push(ex.id));
     }
   }
