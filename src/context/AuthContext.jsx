@@ -15,6 +15,7 @@ import { parseCoachAutoFromMeta, isProCoachUser } from "../lib/clubAuto/clubAuto
 import { isSessionPresenceEvent, isSignedOutEvent } from "../lib/authSession";
 import { applyPurgedPlayersToStorage, filterPurgedFromList } from "../lib/clubPlayerPurge";
 import { reclaimLocalStorage } from "../lib/storageQuota";
+import { isMetaClubId } from "../lib/adminGlobalBlobs";
 
 const AuthContext = createContext(null);
 
@@ -528,7 +529,7 @@ export function AuthProvider({ children }) {
           if (res.ok) {
             const data = await res.json();
             const clubs = (data.clubs || []).filter(
-              (c) => c.id && !["GLOBAL_PLANS", "GLOBAL_TESTS", "CATALOG_OVERRIDES"].includes(c.id)
+              (c) => c.id && !isMetaClubId(c.id)
             );
             if (clubs.length > 0) {
               const existingLocal = JSON.parse(localStorage.getItem("depro_clubs") || "[]");

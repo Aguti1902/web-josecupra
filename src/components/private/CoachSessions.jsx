@@ -17,6 +17,7 @@ import { selectBallWarmup } from "../../lib/clubAuto/clubAutoTaskSelector";
 import { hasFeatureAccess } from "../../lib/subscription";
 import { formatWeekRangeLabel, formatDate } from "../../lib/periodization";
 import { prefetchCatalogMedia, resolveExerciseVideo, youtubeEmbedUrl } from "../../lib/catalogMedia";
+import { hydrateCustomWarmups, hydrateCustomTasks } from "../../data/clubAutoCatalog";
 import ClubAutoSessionView from "./ClubAutoSessionView";
 
 function lum(hex) {
@@ -225,6 +226,9 @@ export default function CoachSessions({ club, team, user }) {
 
   useEffect(() => { loadCoachLibrary().then(() => setLibraryReady(true)); }, []);
   useEffect(() => { prefetchCatalogMedia().catch(() => {}); }, []);
+  useEffect(() => {
+    Promise.all([hydrateCustomWarmups(), hydrateCustomTasks()]).catch(() => {});
+  }, []);
 
   const changeWeek = (nextIdx) => {
     const clamped = Math.min(Math.max(nextIdx, 0), Math.max(weekStarts.length - 1, 0));

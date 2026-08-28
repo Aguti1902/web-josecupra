@@ -63,6 +63,25 @@ describe("clubPlayerPurge", () => {
     assert.equal(detail.teams[0].squad.some((p) => p.id === "u-del"), false);
   });
 
+  it("purgePlayerClubArtifacts no borra calentamientos ni tareas del club", () => {
+    localStorage.setItem("depro_club_custom_warmups", JSON.stringify([
+      { id: "cgw_1", videoUrl: "https://youtu.be/aaaaaaaaaaa" },
+    ]));
+    localStorage.setItem("depro_club_custom_tasks", JSON.stringify([
+      { id: "task_1", videoUrl: "https://youtu.be/bbbbbbbbbbb" },
+    ]));
+    localStorage.setItem("depro_club_club_udv", JSON.stringify({
+      id: "club_udv",
+      teams: [{ id: "team_1", squad: [{ id: "u-del", email: "renato@test.com" }] }],
+    }));
+    purgePlayerClubArtifacts("u-del", "renato@test.com");
+    const warmups = JSON.parse(localStorage.getItem("depro_club_custom_warmups"));
+    const tasks = JSON.parse(localStorage.getItem("depro_club_custom_tasks"));
+    assert.equal(warmups[0].videoUrl, "https://youtu.be/aaaaaaaaaaa");
+    assert.equal(tasks[0].videoUrl, "https://youtu.be/bbbbbbbbbbb");
+    assert.equal(Array.isArray(warmups), true);
+  });
+
   it("applyPurgedPlayersToStorage limpia plantilla local del club", () => {
     localStorage.setItem("depro_squad_club_udv_team_1", JSON.stringify([
       { id: "dead", email: "x@test.com" },

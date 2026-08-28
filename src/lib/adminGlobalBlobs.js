@@ -1,5 +1,11 @@
 /** Blobs globales en clubs_detail (no son clubs reales). */
-export const META_CLUB_IDS = ["GLOBAL_PLANS", "GLOBAL_TESTS", "CATALOG_OVERRIDES"];
+export const META_CLUB_IDS = [
+  "GLOBAL_PLANS",
+  "GLOBAL_TESTS",
+  "CATALOG_OVERRIDES",
+  "GLOBAL_CLUB_WARMUPS",
+  "GLOBAL_CLUB_TASKS",
+];
 
 export function isMetaClubId(id) {
   return META_CLUB_IDS.includes(String(id || ""));
@@ -18,6 +24,10 @@ export function buildMetaClubPayload(club = {}, detail = null) {
     payload.overrides = merged.overrides && typeof merged.overrides === "object"
       ? merged.overrides
       : {};
+  } else if (id === "GLOBAL_CLUB_WARMUPS") {
+    payload.warmups = Array.isArray(merged.warmups) ? merged.warmups : [];
+  } else if (id === "GLOBAL_CLUB_TASKS") {
+    payload.tasks = Array.isArray(merged.tasks) ? merged.tasks : [];
   }
   return payload;
 }

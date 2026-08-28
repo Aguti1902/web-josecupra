@@ -39,6 +39,7 @@ import { WeekCalendar, PlayerSessionFullscreen, MesoMonthCalendar } from "../../
 import { resolveBlockGuideItems } from "../../lib/blockGuideItems";
 import { getYouTubeId, youtubeEmbedUrl, youtubeThumbUrl } from "../../lib/youtube";
 import { prefetchCatalogMedia, exerciseYouTubeId } from "../../lib/catalogMedia";
+import { hydrateCustomWarmups } from "../../data/clubAutoCatalog";
 const Youtube = PlayCircle;
 
 const intensityColor = { Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
@@ -382,10 +383,12 @@ function PlayerWeeklyPlan({ accent }) {
   const [minimalSession, setMinimalSession] = useState(null);
   const [compatModal, setCompatModal] = useState(null); // { hardBlock, message }
   const [, setMediaTick] = useState(0);
+  const [swapping, setSwapping] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
     prefetchCatalogMedia().then(() => setMediaTick((n) => n + 1)).catch(() => {});
+    hydrateCustomWarmups().catch(() => {});
     let cancelled = false;
     (async () => {
       const hydrated = await hydratePlayerPlan(user);
@@ -492,23 +495,27 @@ function PlayerWeeklyPlan({ accent }) {
   });
 
   const handleExerciseSwap = (sessionId, exerciseId) => {
+    if (swapping) return;
     if (!canSwapExercise(user, plan)) {
       alert(`Has usado tus ${MAX_PLAN_SWAPS} cambios de ejercicio este mesociclo. Añade el extra «Ejercicios ilimitados» en Suscripción.`);
       return;
     }
     if (!hasUnlimitedSwaps(user) && !window.confirm(`${MAINTENANCE_MESSAGE}\n\n¿Sustituir este ejercicio en todo el plan?`)) return;
 
-    let nextPlan = null;
-    setPlan((prev) => {
-      if (!prev) return prev;
-      nextPlan = refreshExerciseAcrossPlan(prev, sessionId, exerciseId, buildFilterParams());
-      return nextPlan;
-    });
-    if (nextPlan && user?.id) {
-      savePlayerPlan(user.id, nextPlan);
-      localStorage.setItem(planKey, JSON.stringify(nextPlan));
-      recordSwap(user.id, nextPlan);
-    }
+    setSwapping(true);
+    window.setTimeout(() => {
+      try {
+        const nextPlan = refreshExerciseAcrossPlan(plan, sessionId, exerciseId, buildFilterParams());
+        if (!nextPlan || nextPlan === plan) return;
+        setPlan(nextPlan);
+        if (user?.id) {
+          savePlayerPlan(user.id, nextPlan);
+          recordSwap(user.id, nextPlan);
+        }
+      } finally {
+        setSwapping(false);
+      }
+    }, 0);
   };
 
   const remainingSwaps = swapsRemaining(user, plan);
@@ -686,6 +693,11 @@ function PlayerWeeklyPlan({ accent }) {
           ) : (
             <p className="text-[11px] text-depro-gray">Cambios ilimitados</p>
           )}
+          {swapping && (
+            <p className="text-[11px] text-depro-blue font-semibold mt-1 inline-flex items-center gap-1">
+              <RefreshCw size={12} className="animate-spin" /> Cambiando ejercicio…
+            </p>
+          )}
         </div>
       </div>
 
@@ -835,7 +847,7 @@ function PlayerWeeklyPlan({ accent }) {
           sessionPdf(activeSession);
         } : undefined}
         onSwapExercise={(exerciseId) => handleExerciseSwap(activeSession.id, exerciseId)}
-        canSwap={canSwapExercise(user, plan)}
+        canSwap={!swapping && canSwapExercise(user, plan)}
         swapMessage={MAINTENANCE_MESSAGE}
         swapTooltip={SWAP_TOOLTIP}
       />

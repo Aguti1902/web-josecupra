@@ -57,6 +57,7 @@ export function getWeeklySessionTypes(objetivo, frecuencia) {
 }
 
 export function countBlockSlots(block) {
+  if (block?.warmupSource === "sin_balon") return 1;
   if (Array.isArray(block.slots)) {
     return block.slots.reduce((n, s) => n + (typeof s === "object" ? (s.qty || 1) : 1), 0);
   }

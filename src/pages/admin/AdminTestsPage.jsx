@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { PlayCircle, Save, CheckCircle, RefreshCw, Info } from "lucide-react";
-import { EVAL_TEST_DEFAULTS } from "../../lib/evalTestDefaults";
+import { EVAL_TEST_DEFAULTS, mergeEvalTests } from "../../lib/evalTestDefaults";
+import { mergeListsPreferVideo, countListVideos } from "../../lib/contentRestore";
 
 const BASE_TESTS = EVAL_TEST_DEFAULTS;
 
@@ -54,9 +55,13 @@ export default function AdminTestsPage() {
 
   useEffect(() => {
     fetchTestsFromCloud().then((cloud) => {
-      if (cloud?.length) {
-        setTests(cloud);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(cloud));
+      const local = loadTests();
+      if (cloud == null) return;
+      const merged = mergeEvalTests(mergeListsPreferVideo(local, cloud));
+      setTests(merged);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      if (countListVideos(local) > 0 && countListVideos(cloud) === 0) {
+        saveTestsToCloud(merged).catch(() => {});
       }
     });
   }, []);

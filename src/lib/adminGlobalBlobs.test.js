@@ -10,6 +10,9 @@ describe("adminGlobalBlobs", () => {
   it("reconoce ids meta", () => {
     assert.equal(isMetaClubId("GLOBAL_PLANS"), true);
     assert.equal(isMetaClubId("GLOBAL_TESTS"), true);
+    assert.equal(isMetaClubId("CATALOG_OVERRIDES"), true);
+    assert.equal(isMetaClubId("GLOBAL_CLUB_WARMUPS"), true);
+    assert.equal(isMetaClubId("GLOBAL_CLUB_TASKS"), true);
     assert.equal(isMetaClubId("club_1"), false);
   });
 

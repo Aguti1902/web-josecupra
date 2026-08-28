@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from "react";
 import { Dumbbell, Clock, Sparkles, StickyNote, Activity, BarChart2, Flame, ListChecks, PencilRuler, ExternalLink, Layers, FileText } from "lucide-react";
-import { CLUB_SIN_BALON_INTRO } from "../../data/clubAutoCatalog";
+import { CLUB_SIN_BALON_INTRO, hydrateCustomWarmups } from "../../data/clubAutoCatalog";
 import { prefetchCatalogMedia, resolveExerciseVideo, youtubeEmbedUrl } from "../../lib/catalogMedia";
 import DisenarTareas, { SESSION_FRAMEWORK_UI } from "../shared/DisenarTareas";
 import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
@@ -153,6 +153,7 @@ export default function ClubAutoSessionView({
   const [, setMediaReady] = useState(0);
   useEffect(() => {
     prefetchCatalogMedia().then(() => setMediaReady((n) => n + 1)).catch(() => {});
+    hydrateCustomWarmups().then(() => setMediaReady((n) => n + 1)).catch(() => {});
   }, []);
   const structure = session?.structure || [];
   const byType = Object.fromEntries(structure.map((b) => [b.type, b]));

@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import FeatureGate from "../../components/private/FeatureGate";
 import { getYouTubeId } from "../../lib/youtube";
+import { mergeListsPreferVideo } from "../../lib/contentRestore";
 
 /** Misma fuente que clubs (TeamTestsPage) — no duplicar. */
 function loadAdminTestProtocols() {
@@ -422,9 +423,13 @@ export default function PhysicalPage() {
     let cancelled = false;
     (async () => {
       const cloud = await fetchAdminTestProtocols();
-      if (!cancelled && Array.isArray(cloud) && cloud.length) {
-        setAdminTests(cloud);
-        try { localStorage.setItem("depro_global_tests", JSON.stringify(cloud)); } catch { /* ignore */ }
+      const local = loadAdminTestProtocols();
+      if (!cancelled && Array.isArray(cloud)) {
+        const merged = mergeListsPreferVideo(local, cloud);
+        if (merged.length) {
+          setAdminTests(merged);
+          try { localStorage.setItem("depro_global_tests", JSON.stringify(merged)); } catch { /* ignore */ }
+        }
       }
     })();
     return () => { cancelled = true; };
