@@ -12,6 +12,7 @@ import {
   cycleEndDate,
   PLAN_CYCLE_DAYS,
   isSuccessfulGeneratedPlan,
+  hasUnlimitedSwaps,
 } from "./planSwapLimits.js";
 import { refreshExerciseAcrossPlan } from "./playerPlanEngine.js";
 
@@ -125,6 +126,15 @@ describe("planSwapLimits — ciclo mensual", () => {
       false,
     );
   });
+
+  it("hasUnlimitedSwaps ignora el tope de 5", () => {
+    const user = { id: "u-extra", purchasedAddons: ["addon-unlimited-exercises"] };
+    const plan = { startDate: "2026-08-17" };
+    resetCycleCounters("u-extra", "2026-08-17");
+    for (let i = 0; i < 8; i++) recordSwap("u-extra", plan);
+    assert.equal(hasUnlimitedSwaps(user), true);
+    assert.equal(canSwapExercise(user, plan), true);
+  });
 });
 
 describe("refreshExerciseAcrossPlan", () => {
@@ -168,5 +178,46 @@ describe("refreshExerciseAcrossPlan", () => {
     // Either replaced across plan or unchanged if pool empty — must not throw
     assert.ok(Array.isArray(next));
     assert.equal(next.length, 2);
+  });
+
+  it("cambia un calentamiento sin balón por otro vídeo y no cuelga", () => {
+    globalThis.localStorage = {
+      _data: {
+        depro_club_custom_warmups: JSON.stringify([
+          { id: "cgw_1", nombre: "Calentamiento 1", videoUrl: "https://youtu.be/aaaaaaaaaaa" },
+          { id: "cgw_2", nombre: "Calentamiento 2", videoUrl: "https://youtu.be/bbbbbbbbbbb" },
+        ]),
+      },
+      getItem(k) { return this._data[k] ?? null; },
+      setItem(k, v) { this._data[k] = String(v); },
+      removeItem(k) { delete this._data[k]; },
+    };
+    const warm = {
+      id: "warmup_cgw_1_0",
+      catalogId: "cgw_1",
+      pool: "WARMUP-SIN-BALON",
+      name: "Calentamiento 1",
+      blockType: "calentamiento",
+      warmupSource: "sin_balon",
+      videoUrl: "https://youtu.be/aaaaaaaaaaa",
+    };
+    const plan = [{
+      day: "Lunes",
+      sessions: [{
+        id: "s1",
+        exercises: [warm],
+        blocks: [{ type: "calentamiento", warmupSource: "sin_balon", exercises: [warm] }],
+      }],
+    }];
+    const next = refreshExerciseAcrossPlan(plan, "s1", "warmup_cgw_1_0", {
+      material: "sin_material",
+      lesiones: [],
+      edad: 22,
+      experiencia: "intermedio",
+    });
+    assert.ok(Array.isArray(next));
+    const ex = next[0].sessions[0].exercises[0];
+    assert.equal(ex.warmupSource, "sin_balon");
+    assert.notEqual(ex.catalogId, "cgw_1");
   });
 });

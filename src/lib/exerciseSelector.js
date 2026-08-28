@@ -452,6 +452,7 @@ function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensit
 }
 
 export function expectedSlotCount(block) {
+  if (block?.warmupSource === "sin_balon") return 1;
   return (block.slots || []).reduce((n, s) => {
     if (s?.optional) return n;
     return n + (s.qty || 1);

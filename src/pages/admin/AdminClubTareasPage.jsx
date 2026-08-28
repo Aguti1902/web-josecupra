@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Save, Layers, ExternalLink, Trash2, Folder } from "lucide-react";
 import {
   CLUB_TASK_FOLDERS,
   folderById,
   loadCustomTasks,
   saveCustomTasks,
+  hydrateCustomTasks,
 } from "../../data/clubAutoCatalog";
 
 const TIPOS_SESION = ["extensiva", "intensiva", "reactiva"];
@@ -47,6 +48,12 @@ export default function AdminClubTareasPage({ embedded = false } = {}) {
   const [openFolder, setOpenFolder] = useState(CLUB_TASK_FOLDERS[0]?.id || "rondo");
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState(() => emptyDraft(CLUB_TASK_FOLDERS[0]?.id));
+
+  useEffect(() => {
+    hydrateCustomTasks().then((list) => {
+      if (Array.isArray(list) && list.length) setCustom(list);
+    }).catch(() => {});
+  }, []);
 
   const persist = (next) => {
     saveCustomTasks(next);

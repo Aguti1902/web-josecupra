@@ -11,6 +11,7 @@ import {
   getRatingForEval, getLastEvalInfo,
 } from "../../lib/teamTestRatings";
 import { mergeEvalTests } from "../../lib/evalTestDefaults";
+import { mergeListsPreferVideo } from "../../lib/contentRestore";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 
 /* ── Helper: cargar config de tests del admin ─────────────── */
@@ -354,13 +355,14 @@ function TeamTestsPageInner() {
   /* Carga tests del admin desde la nube */
   useEffect(() => {
     fetchAdminTestsFromCloud().then((cloud) => {
-      if (cloud?.length) {
-        const merged = mergeEvalTests(cloud);
-        setAdminTests(merged);
-        localStorage.setItem("depro_global_tests", JSON.stringify(cloud));
-      } else {
-        setAdminTests(mergeEvalTests(loadAdminTests()));
+      const local = loadAdminTests();
+      if (cloud == null) {
+        setAdminTests(mergeEvalTests(local));
+        return;
       }
+      const merged = mergeEvalTests(mergeListsPreferVideo(local, cloud));
+      setAdminTests(merged);
+      localStorage.setItem("depro_global_tests", JSON.stringify(merged));
     });
   }, []);
 

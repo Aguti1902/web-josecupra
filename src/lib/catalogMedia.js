@@ -5,6 +5,7 @@
 import { EXERCISES as ADMIN_EXERCISES } from "../data/exercises.js";
 import { EXERCISES as CATALOG_EXERCISES } from "./exerciseCatalog.js";
 import { getYouTubeId, youtubeEmbedUrl as youtubeEmbedFromId } from "./youtube.js";
+import { mergePreferVideo, countOverrideVideos, saveMetaClub } from "./contentRestore.js";
 
 const LS_KEY = "depro_catalog_overrides";
 const CUSTOM_KEY = "depro_catalog_custom_exercises";
@@ -163,8 +164,13 @@ export async function prefetchCatalogMedia() {
     let overrides = loadLocalOverrides();
     const cloud = await fetchCloudOverrides();
     if (cloud) {
-      overrides = { ...overrides, ...cloud };
+      const localCount = countOverrideVideos(overrides);
+      const cloudCount = countOverrideVideos(cloud);
+      overrides = mergePreferVideo(overrides, cloud);
       try { localStorage.setItem(LS_KEY, JSON.stringify(overrides)); } catch { /* ignore */ }
+      if (localCount > 0 && cloudCount === 0) {
+        saveMetaClub(CLOUD_ID, "Catalog Overrides", { overrides }).catch(() => {});
+      }
     }
     cache = mergeCatalogMedia(overrides, loadCustomExercises());
     return cache;

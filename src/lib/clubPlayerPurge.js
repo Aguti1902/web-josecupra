@@ -49,6 +49,7 @@ export function addPurgedPlayer(data, { userId, email } = {}) {
  * @returns {{ data: object, changed: boolean }}
  */
 export function stripPlayerFromClubData(data, userId, email) {
+  if (Array.isArray(data)) return { data, changed: false };
   const source = data && typeof data === "object" ? data : {};
   let changed = false;
   const drop = (list) => {
@@ -80,6 +81,13 @@ const EXTRA_USER_KEYS = [
   "depro_load_logs_",
   "depro_friends_",
 ];
+
+function isClubDetailStorageKey(key) {
+  if (!key?.startsWith("depro_club_")) return false;
+  if (key === "depro_club_custom_warmups" || key === "depro_club_custom_tasks") return false;
+  if (key.startsWith("depro_club_profile_")) return false;
+  return true;
+}
 
 function dropLocalKey(key) {
   try {
@@ -147,7 +155,7 @@ export function purgePlayerClubArtifacts(userId, email = "") {
           }
         } catch { /* ignore */ }
       }
-      if (key.startsWith("depro_club_")) {
+      if (isClubDetailStorageKey(key)) {
         try {
           const detail = JSON.parse(localStorage.getItem(key) || "null");
           if (!detail || typeof detail !== "object") continue;

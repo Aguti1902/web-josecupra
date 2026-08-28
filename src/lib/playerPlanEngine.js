@@ -32,6 +32,8 @@ import { buildSessionPrompt, buildFullPlanPrompt } from "./planAIPrompts.js";
 import { countBlockSlots } from "./planTemplates.js";
 
 import { resolveExerciseVideo } from "./catalogMedia.js";
+import { selectGeneralWarmup } from "./clubAuto/clubAutoTaskSelector.js";
+import { CLUB_SIN_BALON_INTRO } from "../data/clubAutoCatalog.js";
 
 export { DAY_ORDER, DAY_SHORT, PLAN_COHERENCE_MESSAGE, checkPlanCompatibility };
 
@@ -159,6 +161,37 @@ function makeExerciseFromV2(ex, ei, blockType) {
   };
 }
 
+function makeWarmupFromTemplate(warmup, ei) {
+  const url = warmup?.videoUrl || warmup?.video || "";
+  const id = warmup?.id || `sin_balon_${ei}`;
+  return {
+    id: `warmup_${id}_${ei}`,
+    catalogId: id,
+    pool: "WARMUP-SIN-BALON",
+    name: warmup?.nombre || CLUB_SIN_BALON_INTRO.titulo,
+    duration: "5–6 min",
+    sets: 1,
+    reps: "—",
+    rest: "—",
+    description: warmup?.descripcion || warmup?.description || CLUB_SIN_BALON_INTRO.descripcion,
+    tips: ["Movilidad articular suave", "Activa sin fatiga", "Respira con normalidad"],
+    errorsToAvoid: "No fuerces el rango ni copies la carga del trabajo principal.",
+    videoUrl: url,
+    blockType: "calentamiento",
+    warmupSource: "sin_balon",
+    blockTags: [],
+    slotConstraints: { rol: "calentamiento", warmupSource: "sin_balon" },
+    etiquetas: { rol: "calentamiento", objetivo: ["movilidad"] },
+  };
+}
+
+function isSinBalonWarmup(ex) {
+  if (!ex) return false;
+  return ex.warmupSource === "sin_balon"
+    || ex.pool === "WARMUP-SIN-BALON"
+    || ex.slotConstraints?.warmupSource === "sin_balon";
+}
+
 function fillTemplateV2Once(sessionType, filterParams, usedIds, templateKey, titleOverride, meta, { allowReuseWeek = false } = {}) {
   const template = getTemplate(templateKey);
   const realLesiones = filterParams.lesiones || [];
@@ -188,6 +221,22 @@ function fillTemplateV2Once(sessionType, filterParams, usedIds, templateKey, tit
   const filledIds = [];
 
   for (const blockTemplate of template.blocks) {
+    if (blockTemplate.warmupSource === "sin_balon") {
+      const seed = `${templateKey}|${sessionType}|${filterParams.week || 1}|${usedIds.size}|${globalIdx}`;
+      const warmup = selectGeneralWarmup({ seed });
+      const ex = makeWarmupFromTemplate(warmup, globalIdx);
+      filledIds.push(ex.catalogId);
+      blocks.push({
+        type: blockTemplate.type,
+        label: blockTemplate.label,
+        duration: blockTemplate.duration,
+        warmupSource: "sin_balon",
+        exercises: [ex],
+      });
+      globalIdx += 1;
+      continue;
+    }
+
     const prevUsed = [...sessionUsedIds];
     const {
       exercises: rawExercises,
@@ -703,29 +752,6 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
   if (!target) return plan;
 
   const oldCatalogId = target.catalogId ?? parseCatalogId(target.id);
-  const usedInSession = (plan
-    .flatMap((d) => d.sessions || [])
-    .find((s) => s.id === sessionId)?.exercises || [])
-    .map((ex) => ex.catalogId ?? parseCatalogId(ex.id))
-    .filter((id) => id != null);
-
-  const userProfile = buildUserProfile({
-    ...filterParams,
-    material: normalizeMaterial(filterParams.material),
-  });
-  const excludeIds = usedInSession.filter((id) => id !== oldCatalogId);
-  const replacement = refreshExerciseInPool(
-    {
-      id: target.catalogId,
-      pool: target.pool,
-      slotConstraints: target.slotConstraints,
-      etiquetas: target.etiquetas,
-    },
-    userProfile,
-    excludeIds,
-    String(Date.now()),
-  );
-  if (!replacement) return plan;
 
   const matchesOld = (ex) => {
     if (!ex) return false;
@@ -734,12 +760,46 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
     return oldCatalogId != null && cid === oldCatalogId;
   };
 
-  const makeNew = (seed) => {
-    const newEx = makeExerciseFromV2(replacement, seed, target.blockType);
-    newEx.id = `v2_${replacement.id}_${seed}`;
-    newEx.slotConstraints = target.slotConstraints || replacement.slotConstraints;
-    return newEx;
-  };
+  let makeNew;
+  if (isSinBalonWarmup(target) || (target.blockType === "calentamiento" && target.warmupSource === "sin_balon")) {
+    const seed = `${sessionId}|${exerciseId}|${oldCatalogId || ""}`;
+    let replacement = selectGeneralWarmup({ seed, avoidId: target.catalogId });
+    if (!replacement || replacement.placeholder || replacement.id === target.catalogId) {
+      replacement = selectGeneralWarmup({ seed: `${seed}|alt` });
+    }
+    if (!replacement || replacement.id === target.catalogId) return plan;
+    makeNew = (idx) => makeWarmupFromTemplate(replacement, idx);
+  } else {
+    const usedInSession = (plan
+      .flatMap((d) => d.sessions || [])
+      .find((s) => s.id === sessionId)?.exercises || [])
+      .map((ex) => ex.catalogId ?? parseCatalogId(ex.id))
+      .filter((id) => id != null);
+
+    const userProfile = buildUserProfile({
+      ...filterParams,
+      material: normalizeMaterial(filterParams.material),
+    });
+    const excludeIds = usedInSession.filter((id) => id !== oldCatalogId);
+    const replacement = refreshExerciseInPool(
+      {
+        id: target.catalogId,
+        pool: target.pool,
+        slotConstraints: target.slotConstraints,
+        etiquetas: target.etiquetas,
+      },
+      userProfile,
+      excludeIds,
+      `${sessionId}|${exerciseId}|${oldCatalogId || ""}`,
+    );
+    if (!replacement) return plan;
+    makeNew = (seed) => {
+      const newEx = makeExerciseFromV2(replacement, seed, target.blockType);
+      newEx.id = `v2_${replacement.id}_${seed}`;
+      newEx.slotConstraints = target.slotConstraints || replacement.slotConstraints;
+      return newEx;
+    };
+  }
 
   const mapSession = (session, seed) => {
     if (!session?.exercises?.length && !session?.blocks?.length) return session;
@@ -761,7 +821,7 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
     return { ...session, blocks, exercises, refreshedAt: Date.now() };
   };
 
-  const seed = Date.now();
+  const seed = Number.parseInt(String(oldCatalogId).replace(/\D/g, ""), 10) || 1;
   const next = plan.map((day, di) => ({
     ...day,
     sessions: (day.sessions || []).map((s, si) => mapSession(s, seed + di * 20 + si)),

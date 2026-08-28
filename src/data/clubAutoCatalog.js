@@ -5,6 +5,13 @@
  * Sin balón: el admin sube vídeos numerados (Calentamiento 1, 2…).
  * Con balón: carpetas vacías; el admin añade las tareas a mano.
  */
+import {
+  coerceContentList,
+  mergeListsPreferVideo,
+  countListVideos,
+  fetchMetaClub,
+  saveMetaClub,
+} from "../lib/contentRestore.js";
 
 /** Texto que ve el entrenador en calentamiento sin balón (movilidad general). */
 export const CLUB_SIN_BALON_INTRO = {
@@ -15,6 +22,8 @@ export const CLUB_SIN_BALON_INTRO = {
 
 export const CUSTOM_WARMUPS_KEY = "depro_club_custom_warmups";
 export const CUSTOM_TASKS_KEY = "depro_club_custom_tasks";
+const LEGACY_WARMUPS_KEY = "depro_club_warmup_overrides";
+const LEGACY_TASKS_KEY = "depro_club_task_overrides";
 
 function readJson(key, fallback) {
   try {
@@ -33,9 +42,24 @@ function writeJson(key, value) {
   } catch { /* ignore */ }
 }
 
+function loadListWithLegacy(currentKey, legacyKey) {
+  const current = coerceContentList(readJson(currentKey, []));
+  if (current.length) return current;
+  const legacy = coerceContentList(readJson(legacyKey, []));
+  if (legacy.length) {
+    writeJson(currentKey, legacy);
+    return legacy;
+  }
+  return [];
+}
+
+function persistCloud(id, name, detail) {
+  if (typeof fetch !== "function") return;
+  saveMetaClub(id, name, detail).catch(() => {});
+}
+
 export function loadCustomWarmups() {
-  const list = readJson(CUSTOM_WARMUPS_KEY, []);
-  return Array.isArray(list) ? list : [];
+  return loadListWithLegacy(CUSTOM_WARMUPS_KEY, LEGACY_WARMUPS_KEY);
 }
 
 export function saveCustomWarmups(list) {
@@ -45,17 +69,64 @@ export function saveCustomWarmups(list) {
     carpeta: "/calentamientos_sin_balon",
   }));
   writeJson(CUSTOM_WARMUPS_KEY, numbered);
+  persistCloud("GLOBAL_CLUB_WARMUPS", "Club Warmups", { warmups: numbered });
   return numbered;
 }
 
 export function loadCustomTasks() {
-  const list = readJson(CUSTOM_TASKS_KEY, []);
-  return Array.isArray(list) ? list : [];
+  return loadListWithLegacy(CUSTOM_TASKS_KEY, LEGACY_TASKS_KEY);
 }
 
 export function saveCustomTasks(list) {
-  writeJson(CUSTOM_TASKS_KEY, list || []);
-  return list || [];
+  const next = list || [];
+  writeJson(CUSTOM_TASKS_KEY, next);
+  persistCloud("GLOBAL_CLUB_TASKS", "Club Tasks", { tasks: next });
+  return next;
+}
+
+async function hydrateList({ local, cloudId, cloudField, saveLocal }) {
+  const cloud = await fetchMetaClub(cloudId);
+  if (!cloud) return local;
+  const cloudList = coerceContentList(cloud[cloudField]);
+  const merged = mergeListsPreferVideo(local, cloudList);
+  if (merged.length) saveLocal(merged, { skipCloud: true });
+  if (countListVideos(local) > 0 && countListVideos(cloudList) === 0) {
+    persistCloud(cloudId, cloud.name || cloudId, { [cloudField]: local });
+  }
+  return merged.length ? merged : local;
+}
+
+function writeLocalOnly(key, value) {
+  writeJson(key, value);
+}
+
+export async function hydrateCustomWarmups() {
+  const local = loadCustomWarmups();
+  await hydrateList({
+    local,
+    cloudId: "GLOBAL_CLUB_WARMUPS",
+    cloudField: "warmups",
+    saveLocal: (list) => {
+      const numbered = (list || []).map((w, i) => ({
+        ...w,
+        nombre: `Calentamiento ${i + 1}`,
+        carpeta: "/calentamientos_sin_balon",
+      }));
+      writeLocalOnly(CUSTOM_WARMUPS_KEY, numbered);
+    },
+  });
+  return loadCustomWarmups();
+}
+
+export async function hydrateCustomTasks() {
+  const local = loadCustomTasks();
+  await hydrateList({
+    local,
+    cloudId: "GLOBAL_CLUB_TASKS",
+    cloudField: "tasks",
+    saveLocal: (list) => writeLocalOnly(CUSTOM_TASKS_KEY, list || []),
+  });
+  return loadCustomTasks();
 }
 
 /**

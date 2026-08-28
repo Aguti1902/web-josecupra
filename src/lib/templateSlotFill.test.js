@@ -57,6 +57,12 @@ describe("Plantillas aplicadas TAL CUAL (PDF §5)", () => {
           check.actual >= check.expected,
           `${session.templateKey || session.type}: ${check.actual}/${check.expected} slots — ${check.warning || ""}`,
         );
+        const warmBlock = (session.blocks || []).find((b) => b.type === "calentamiento");
+        if (warmBlock) {
+          assert.equal(warmBlock.warmupSource, "sin_balon");
+          assert.equal(warmBlock.exercises.length, 1);
+          assert.equal(warmBlock.exercises[0].warmupSource, "sin_balon");
+        }
       }
     });
   }

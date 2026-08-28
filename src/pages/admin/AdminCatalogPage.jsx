@@ -10,6 +10,7 @@ import { CATALOG_FOLDERS } from "../../data/extraExercises";
 import { getYouTubeId } from "../../lib/youtube";
 import { invalidateCatalogMediaCache } from "../../lib/catalogMedia";
 import { hideCatalogExercise } from "../../lib/exerciseSelector";
+import { mergePreferVideo, countOverrideVideos } from "../../lib/contentRestore";
 
 /* ── Helpers ──────────────────────────────────────────────── */
 const CATALOG_OVERRIDES_KEY = "depro_catalog_overrides";
@@ -371,13 +372,17 @@ export default function AdminCatalogPage({ embedded = false }) {
     [customExercises, hiddenIds],
   );
 
-  // Cargar overrides desde la nube al montar
+  // Cargar overrides desde la nube al montar (no pisar vídeos locales)
   useEffect(() => {
     fetchOverridesFromCloud().then((cloud) => {
-      if (cloud && Object.keys(cloud).length > 0) {
-        setOverrides(cloud);
-        localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(cloud));
-        invalidateCatalogMediaCache();
+      const local = loadOverrides();
+      if (!cloud) return;
+      const merged = mergePreferVideo(local, cloud);
+      setOverrides(merged);
+      localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(merged));
+      invalidateCatalogMediaCache();
+      if (countOverrideVideos(local) > 0 && countOverrideVideos(cloud) === 0) {
+        saveOverridesToCloud(merged).catch(() => {});
       }
     });
   }, []);

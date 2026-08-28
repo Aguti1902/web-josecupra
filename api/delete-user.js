@@ -1,4 +1,4 @@
-import { getSupabaseAdmin, findUserByEmail } from "./_supabaseAdmin.js";
+import { isMetaClubId } from "../src/lib/adminGlobalBlobs.js";
 import { stripPlayerFromClubData } from "../src/lib/clubPlayerPurge.js";
 import { removePlayerFromReferralRegistry } from "./_clubReferrals.js";
 
@@ -41,9 +41,9 @@ async function stripFromClubs(admin, userId, email, homeClubId) {
     const { data: details } = await admin.from("clubs_detail").select("club_id, data");
     for (const row of details || []) {
       const clubId = row.club_id;
-      if (!clubId || clubId.startsWith("GLOBAL_") || clubId.startsWith("PLAYER_PLAN_")) {
-        continue;
-      }
+        if (!clubId || clubId.startsWith("GLOBAL_") || clubId.startsWith("PLAYER_PLAN_") || isMetaClubId(clubId)) {
+          continue;
+        }
       if (clubId === "CLUB_REFERRAL_REGISTRY") continue;
       if (clubId === "PLAYER_SOCIAL_REGISTRY") {
         const social = row.data && typeof row.data === "object" ? { ...row.data } : { byCode: {}, byUserId: {} };

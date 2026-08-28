@@ -11,32 +11,18 @@ function block(type, label, duration, slots, extra = {}) {
   return { type, label, duration, slots, ...extra };
 }
 
-/** Calentamiento corto fuerza superior: torso / hombro / escapular. */
-const CALENTAMIENTO_SUP = block("calentamiento", "Calentamiento", "5-6 min", [
-  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_superior", grupo_muscular: "espalda", description: "Movilidad torso", slotId: "warm_sup_torso" }),
-  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_superior", grupo_muscular: "hombros", description: "Movilidad hombro", slotId: "warm_sup_hombro" }),
-  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_superior", grupo_muscular: ["hombros", "escapular"], description: "Movilidad escapular", slotId: "warm_sup_esc" }),
-]);
-
-/** Calentamiento corto fuerza inferior: cadera / tobillo / activación. */
-const CALENTAMIENTO_INF = block("calentamiento", "Calentamiento", "5-6 min", [
-  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_inferior", grupo_muscular: ["gluteos", "aductores"], description: "Movilidad cadera", slotId: "warm_inf_cadera" }),
-  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_inferior", grupo_muscular: "tobillo", description: "Movilidad tobillo", slotId: "warm_inf_tobillo" }),
-  slot({ rol: "calentamiento", segmento: "tren_inferior", grupo_muscular: ["cuadriceps", "gluteos"], description: "Activación", slotId: "warm_inf_act" }),
-]);
-
-/** Calentamiento corto fuerza full: torso + cadera/tobillo + activación. */
-const CALENTAMIENTO_FULL = block("calentamiento", "Calentamiento", "5-6 min", [
-  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_superior", grupo_muscular: ["espalda", "hombros"], description: "Movilidad torso/hombro", slotId: "warm_full_torso" }),
-  slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_inferior", grupo_muscular: ["tobillo", "gluteos"], description: "Movilidad cadera/tobillo", slotId: "warm_full_inf" }),
-  slot({ rol: "calentamiento", segmento: "tren_inferior", grupo_muscular: ["cuadriceps", "gluteos"], description: "Activación", slotId: "warm_full_act" }),
-]);
-
-/** Calentamiento genérico corto (2 ejercicios) para el resto de plantillas. */
-const CALENTAMIENTO_CORTO = block("calentamiento", "Calentamiento", "5-6 min", [
-  slot({ rol: "calentamiento", objetivo: "movilidad", description: "Movilidad", slotId: "warm_c1" }),
-  slot({ rol: "calentamiento", objetivo: "movilidad", description: "Activación / movilidad 2", slotId: "warm_c2" }),
-]);
+/** Calentamiento del jugador: un vídeo aleatorio de plantillas sin balón. */
+const CALENTAMIENTO_SIN_BALON = block(
+  "calentamiento",
+  "Calentamiento",
+  "5-6 min",
+  [slot({ rol: "calentamiento", objetivo: "movilidad", description: "Calentamiento sin balón", slotId: "warm_sin_balon" })],
+  { warmupSource: "sin_balon" },
+);
+const CALENTAMIENTO_SUP = CALENTAMIENTO_SIN_BALON;
+const CALENTAMIENTO_INF = CALENTAMIENTO_SIN_BALON;
+const CALENTAMIENTO_FULL = CALENTAMIENTO_SIN_BALON;
+const CALENTAMIENTO_CORTO = CALENTAMIENTO_SIN_BALON;
 
 const CORE = block("core", "Core", "6 min", [
   slot({
@@ -121,10 +107,7 @@ export const SESSION_TEMPLATES = {
     objective: "velocidad",
     muscleGroup: null,
     blocks: [
-      block("calentamiento", "Warm-up", "5-6 min", [
-        slot({ rol: "calentamiento", objetivo: "movilidad", segmento: "tren_inferior", grupo_muscular: ["tobillo", "gluteos"], description: "Movilidad", slotId: "vel_w1" }),
-        slot({ rol: "calentamiento", segmento: "tren_inferior", grupo_muscular: "cuadriceps", description: "Activación", slotId: "vel_w2" }),
-      ]),
+      CALENTAMIENTO_SIN_BALON,
       block("principal", "Fuerza máxima", "12 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Fuerza máx. anterior", slotId: "vel_fm1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Fuerza máx. posterior", slotId: "vel_fm2" }),

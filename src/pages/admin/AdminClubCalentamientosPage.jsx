@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Flame, Save, ExternalLink, Plus, Trash2 } from "lucide-react";
 import {
   CLUB_SIN_BALON_INTRO,
   loadCustomWarmups,
   saveCustomWarmups,
+  hydrateCustomWarmups,
 } from "../../data/clubAutoCatalog";
 
 function youtubeOk(url) {
@@ -15,6 +16,12 @@ export default function AdminClubCalentamientosPage({ embedded = false } = {}) {
   const [draftUrl, setDraftUrl] = useState("");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    hydrateCustomWarmups().then((list) => {
+      if (Array.isArray(list) && list.length) setWarmups(list);
+    }).catch(() => {});
+  }, []);
 
   const persist = (next) => {
     const numbered = saveCustomWarmups(next);

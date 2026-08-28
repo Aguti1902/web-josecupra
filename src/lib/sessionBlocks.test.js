@@ -57,7 +57,7 @@ describe("sessionBlocks · copia exacta de plantilla individual", () => {
     const blocks = getSessionBlocks(velocitySession);
     assert.equal(blocks.length, 4);
     assert.deepEqual(blocks.map(blockDisplayLabel), [
-      "Warm-up",
+      "Calentamiento",
       "Fuerza máxima",
       "Pliometría",
       "Velocidad",
