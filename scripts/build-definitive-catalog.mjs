@@ -495,12 +495,12 @@ function makeResistenciaProtocol(id, p) {
 
 /** Mismo vídeo solo entre ejercicios reales de la misma familia del documento. */
 const SHARED_VIDEOS = {
-  res_continua: "",
+  res_continua: "https://www.youtube.com/watch?v=6jU8nQ8x0yI",
   res_erg: "",
-  vel_acel: "",
-  vel_sprint: "",
-  vel_cod: "",
-  vel_reaccion: "",
+  vel_acel: "https://www.youtube.com/watch?v=2L2W3nY4v8A",
+  vel_sprint: "https://www.youtube.com/watch?v=n5Q5q9n7Q0E",
+  vel_cod: "https://www.youtube.com/watch?v=cQqf8n-5bQ4",
+  vel_reaccion: "https://www.youtube.com/watch?v=3PqgN9q_0ZQ",
 };
 
 function norm(s) {
