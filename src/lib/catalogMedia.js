@@ -41,6 +41,26 @@ function writeId(byId, key, rec) {
   };
 }
 
+export function overrideKeysForExercise(exercise) {
+  const keys = new Set();
+  if (!exercise) return [];
+  if (exercise.id != null && exercise.id !== "") keys.add(String(exercise.id));
+  if (exercise.v2Id != null && exercise.v2Id !== "") {
+    keys.add(String(exercise.v2Id));
+    keys.add(`v2_${exercise.v2Id}`);
+  }
+  if (exercise.catalogId != null && exercise.catalogId !== "") {
+    keys.add(String(exercise.catalogId));
+    keys.add(`v2_${exercise.catalogId}`);
+  }
+  const raw = String(exercise.id ?? "");
+  if (raw.startsWith("v2_")) keys.add(raw.replace(/^v2_/, "").split("_")[0]);
+  else if (/^\d+$/.test(raw)) keys.add(`v2_${raw}`);
+  const n = normalizeExerciseName(exercise.nombre || exercise.name);
+  if (n) keys.add(`name:${n}`);
+  return [...keys];
+}
+
 function ingest(ex, overrides, byId, byName) {
   const keys = [ex.id, ex.v2Id, ex.catalogId].filter((v) => v != null && v !== "");
   let o = {};
@@ -53,8 +73,12 @@ function ingest(ex, overrides, byId, byName) {
   if (typeof ex.id === "number" || /^\d+$/.test(String(ex.id))) {
     o = overrides[`v2_${ex.id}`] || o;
   }
-  const videoUrl = String(o.videoUrl || o.video || ex.videoUrl || ex.video || "").trim();
   const name = o.nombre || o.name || ex.nombre || ex.name || "";
+  const n = normalizeExerciseName(name);
+  if (n && overrides[`name:${n}`]) {
+    o = { ...overrides[`name:${n}`], ...o };
+  }
+  const videoUrl = String(o.videoUrl || o.video || ex.videoUrl || ex.video || "").trim();
   const rec = { id: ex.id, name, videoUrl };
   writeId(byId, ex.id, rec);
   writeId(byId, ex.v2Id, rec);
@@ -62,7 +86,6 @@ function ingest(ex, overrides, byId, byName) {
     writeId(byId, `v2_${ex.id}`, rec);
   }
   if (ex.v2Id != null) writeId(byId, `v2_${ex.v2Id}`, rec);
-  const n = normalizeExerciseName(name);
   if (!n) return;
   const prev = byName[n];
   if (!prev || (videoUrl && !prev.videoUrl)) byName[n] = rec;
@@ -111,8 +134,6 @@ export function getCatalogMediaSync() {
 
 export function resolveExerciseVideo(ex, media = getCatalogMediaSync()) {
   if (!ex) return "";
-  const direct = String(ex.videoUrl || ex.video || "").trim();
-  if (direct && direct !== "#") return direct;
   const ids = [ex.id, ex.catalogId, ex.exerciseId, ex.v2Id];
   for (const id of ids) {
     if (id == null || id === "") continue;
@@ -131,6 +152,8 @@ export function resolveExerciseVideo(ex, media = getCatalogMediaSync()) {
       if (k.startsWith(n) || n.startsWith(k)) return rec.videoUrl;
     }
   }
+  const direct = String(ex.videoUrl || ex.video || "").trim();
+  if (direct && direct !== "#") return direct;
   return "";
 }
 
@@ -139,6 +162,13 @@ export function exerciseYouTubeId(ex, media = getCatalogMediaSync()) {
 }
 
 async function fetchCloudOverrides() {
+  try {
+    const dedicated = await fetch("/api/catalog-overrides");
+    if (dedicated.ok) {
+      const json = await dedicated.json();
+      if (json?.overrides && typeof json.overrides === "object") return json.overrides;
+    }
+  } catch { /* ignore */ }
   try {
     const byId = await fetch(`/api/admin-clubs?id=${encodeURIComponent(CLOUD_ID)}`);
     if (byId.ok) {
@@ -164,12 +194,16 @@ export async function prefetchCatalogMedia() {
     let overrides = loadLocalOverrides();
     const cloud = await fetchCloudOverrides();
     if (cloud) {
-      const localCount = countOverrideVideos(overrides);
       const cloudCount = countOverrideVideos(cloud);
       overrides = mergePreferVideo(overrides, cloud);
       try { localStorage.setItem(LS_KEY, JSON.stringify(overrides)); } catch { /* ignore */ }
-      if (localCount > 0 && cloudCount === 0) {
-        saveMetaClub(CLOUD_ID, "Catalog Overrides", { overrides }).catch(() => {});
+      if (countOverrideVideos(overrides) > cloudCount) {
+        try {
+          const { persistCatalogOverrides } = await import("./catalogOverridesPersist.js");
+          persistCatalogOverrides(overrides).catch(() => {});
+        } catch {
+          saveMetaClub(CLOUD_ID, "Catalog Overrides", { overrides }).catch(() => {});
+        }
       }
     }
     cache = mergeCatalogMedia(overrides, loadCustomExercises());

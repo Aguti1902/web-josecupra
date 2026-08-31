@@ -4,6 +4,7 @@ import {
   withSyncedDiscountCode,
 } from "../src/lib/clubEconomy.js";
 import { isMetaClubId, buildMetaClubPayload } from "../src/lib/adminGlobalBlobs.js";
+import { mergePreferVideo } from "../src/lib/contentRestore.js";
 
 export const config = {
   maxDuration: 60,
@@ -153,6 +154,13 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: "Solo el admin puede guardar datos globales" });
       }
       const blob = buildMetaClubPayload(club, detail);
+      if (clubId === "CATALOG_OVERRIDES") {
+        const { data: existingRow } = await admin.from("clubs_detail").select("data").eq("club_id", clubId).maybeSingle();
+        const existing = existingRow?.data?.overrides && typeof existingRow.data.overrides === "object"
+          ? existingRow.data.overrides
+          : {};
+        blob.overrides = mergePreferVideo(blob.overrides || {}, existing);
+      }
       const result = await upsertClubDetail(admin, clubId, blob);
       if (!result.ok) {
         console.warn("[admin-clubs] meta blob upsert failed:", result.error);

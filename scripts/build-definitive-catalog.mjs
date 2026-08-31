@@ -478,7 +478,7 @@ function makeResistenciaProtocol(id, p) {
     tips: p.tips,
     descripcion: p.descripcion,
     pool: p.patron === "anaerobico" ? "RES-ANA" : p.patron === "umbral" ? "RES-UMB" : "RES-AER",
-    videoUrl: "",
+    videoUrl: existingVideoForName(p.nombre),
     ...(p.videoGroup ? { videoGroup: p.videoGroup } : {}),
     sets: p.sets,
     reps: p.reps,
@@ -514,6 +514,31 @@ function norm(s) {
 
 function uniq(arr) {
   return [...new Set((arr || []).filter(Boolean))];
+}
+
+/** Conserva URLs YouTube ya pegadas en exerciseCatalog.js al regenerar. */
+function existingVideosFromCatalogFile() {
+  const map = {};
+  try {
+    if (!fs.existsSync(OUT)) return map;
+    const src = fs.readFileSync(OUT, "utf8");
+    let currentName = null;
+    for (const line of src.split("\n")) {
+      const nm = line.match(/"nombre":\s*"((?:\\.|[^"\\])*)"/);
+      if (nm) currentName = nm[1];
+      const vu = line.match(/"videoUrl":\s*"((?:\\.|[^"\\])*)"/);
+      if (vu && currentName && vu[1]) {
+        map[norm(currentName)] = vu[1];
+      }
+    }
+  } catch { /* ignore */ }
+  return map;
+}
+
+const EXISTING_VIDEOS = existingVideosFromCatalogFile();
+
+function existingVideoForName(nombre, fallback = "") {
+  return EXISTING_VIDEOS[norm(nombre)] || fallback;
 }
 
 const NAME_OVERRIDES = {
@@ -1044,7 +1069,8 @@ function buildDescripcion(nombre, tags) {
 function makeExercise(id, nombre) {
   const tags = inferTags(nombre);
   const videoGroup = tags.videoGroup;
-  const videoUrl = videoGroup && SHARED_VIDEOS[videoGroup] ? SHARED_VIDEOS[videoGroup] : "";
+  const fallback = videoGroup && SHARED_VIDEOS[videoGroup] ? SHARED_VIDEOS[videoGroup] : "";
+  const videoUrl = existingVideoForName(nombre, fallback);
   return {
     id,
     nombre,
