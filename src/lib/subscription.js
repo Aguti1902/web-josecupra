@@ -4,6 +4,7 @@ import { FEATURES, planIncludesFeature, upsellPlanForFeature } from "./planFeatu
 import { isClubAdmin } from "./clubRoles";
 import { evaluateFeatureAccess } from "./featureAccess";
 import { isProCoachUser } from "./clubAuto/clubAutoCoachBridge";
+import { shouldCancelSubscriptionImmediately } from "./subscriptionCancel.js";
 
 const STORAGE_PREFIX = "depro_subscription_";
 export const TRIAL_PERIOD_DAYS = 15;
@@ -315,19 +316,30 @@ function billingPeriodEnd(from = new Date()) {
 }
 
 /**
- * Cancela la suscripción localmente y guarda metadata para Stripe futuro.
- * Cuando exista /api/cancel-subscription, se llamará antes del fallback local.
+ * Cancela la suscripción: en trial, de inmediato (sin cobro);
+ * si el periodo ya está pagado, al final de ese periodo.
  */
 export async function cancelSubscription(user) {
   if (!user?.id) return { ok: false, error: "Usuario no válido" };
 
-  const cancelAt = billingPeriodEnd();
-  const payload = {
-    subscriptionStatus: "cancel_at_period_end",
-    subscriptionCancelAt: cancelAt,
-  };
+  const sub = getSubscriptionFromUser(user) || {};
+  let immediate = shouldCancelSubscriptionImmediately({
+    status: sub.status || user.subscriptionStatus,
+    trialEndsAt: sub.trialEndsAt || user.trialEndsAt,
+  }) || isInTrial(user);
 
-  // Stripe: cancelar al final del periodo
+  const fallbackCancelAt = immediate ? new Date().toISOString() : billingPeriodEnd();
+  const payload = immediate
+    ? {
+        subscriptionStatus: "canceled",
+        subscriptionCancelAt: fallbackCancelAt,
+        trialEndsAt: fallbackCancelAt,
+      }
+    : {
+        subscriptionStatus: "cancel_at_period_end",
+        subscriptionCancelAt: fallbackCancelAt,
+      };
+
   try {
     const res = await fetch("/api/cancel-subscription", {
       method: "POST",
@@ -336,7 +348,14 @@ export async function cancelSubscription(user) {
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.ok) {
-      payload.subscriptionCancelAt = data.cancelAt || cancelAt;
+      if (typeof data.immediate === "boolean") immediate = data.immediate;
+      payload.subscriptionCancelAt = data.cancelAt || payload.subscriptionCancelAt;
+      if (immediate) {
+        payload.subscriptionStatus = "canceled";
+        payload.trialEndsAt = payload.subscriptionCancelAt;
+      } else {
+        payload.subscriptionStatus = "cancel_at_period_end";
+      }
       if (data.stripeSubscriptionId) payload.stripeSubscriptionId = data.stripeSubscriptionId;
     } else if (data.error && user.stripeSubscriptionId) {
       return { ok: false, error: data.error };
@@ -352,13 +371,13 @@ export async function cancelSubscription(user) {
 
   saveLocalSubscription(user.id, {
     plan: user.plan,
-    status: "cancel_at_period_end",
+    status: payload.subscriptionStatus,
     cancelAt: payload.subscriptionCancelAt,
     cancelledAt: new Date().toISOString(),
     stripeSubscriptionId: user.stripeSubscriptionId || null,
   });
 
-  return { ok: true, cancelAt: payload.subscriptionCancelAt };
+  return { ok: true, cancelAt: payload.subscriptionCancelAt, immediate };
 }
 
 export function formatSubscriptionDate(iso, locale = "es-ES") {

@@ -118,6 +118,20 @@ export function normalizePlayerPlan(raw) {
   return attachSnapshot(raw, raw);
 }
 
+/** Vista día-array segura para UI admin / swap (nunca un objeto suelto). */
+export function weekDaysFromPlan(plan) {
+  if (!plan || plan.premiumPending || plan.planPendingManual || plan.planError) {
+    return emptyPhysicalWeekPlan();
+  }
+  if (Array.isArray(plan) && (plan.length === 0 || plan[0]?.day != null || plan[0]?.sessions != null)) {
+    return plan;
+  }
+  if (Array.isArray(plan.days)) return plan.days;
+  const normalized = normalizePlayerPlan(plan);
+  if (Array.isArray(normalized)) return normalized;
+  return emptyPhysicalWeekPlan();
+}
+
 export function loadPlayerPlan(userId) {
   if (!userId) return null;
   try {

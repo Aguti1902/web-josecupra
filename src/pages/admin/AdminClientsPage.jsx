@@ -77,6 +77,7 @@ function ClientCard({ client, clientContent, clientFeedback }) {
               <div className="text-depro-dark font-bold text-sm">{s.value}</div>
             </div>
           ))}
+          <span className="hidden sm:inline text-xs font-bold text-depro-blue">Ver estado</span>
           <ArrowRight size={17} className="text-depro-border group-hover:text-depro-blue group-hover:translate-x-1 transition-all" />
         </div>
       </div>

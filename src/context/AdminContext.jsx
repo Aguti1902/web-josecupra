@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { clients as initialClients, weeklyPlan as initialPlan } from "../data/mockData";
 import { supabase } from "../lib/supabase";
-import { loadPlayerPlan, savePlayerPlan, persistPlayerPlanRemote, fetchPlayerPlan, emptyPhysicalWeekPlan, isMockTechnicalPlan } from "../lib/playerPlanStorage";
+import { loadPlayerPlan, savePlayerPlan, persistPlayerPlanRemote, fetchPlayerPlan, emptyPhysicalWeekPlan, isMockTechnicalPlan, weekDaysFromPlan } from "../lib/playerPlanStorage";
 import {
   getPlayerFeedback,
   addPlayerFeedback,
@@ -42,6 +42,7 @@ export function mapPlayerToClient(user) {
     lesion: user.lesion || [],
     lesionSubtipo: user.lesionSubtipo || [],
     experiencia: user.experiencia || null,
+    deporte: user.deporte || null,
     planPendingManual: !!user.planPendingManual,
     club: {
       name: user.clubName || "Plan individual",
@@ -160,22 +161,7 @@ export function AdminProvider({ children }) {
         .filter((u) => u.type === "player" || u.role === "player")
         .map(mapPlayerToClient);
       setClients(players);
-      setAllUsers(list.map((u) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        role: u.role || (u.type === "player" ? "player" : u.role),
-        teamRole: u.teamRole,
-        tipo: u.type,
-        type: u.type,
-        clubId: u.clubId,
-        plan: u.plan,
-        subscriptionStatus: u.subscriptionStatus,
-        billingSource: u.billingSource,
-        manualPrice: u.manualPrice,
-        clubCode: u.clubCode,
-        isSoloCoach: u.isSoloCoach,
-      })));
+      setAllUsers(list);
       try {
         localStorage.setItem("depro_admin_clients", JSON.stringify(
           list.map((u) => ({
@@ -206,9 +192,14 @@ export function AdminProvider({ children }) {
     if (!clientId) return null;
     const remote = await fetchPlayerPlan(clientId);
     const stored = remote || loadPlayerPlan(clientId);
-    const nextPlan = stored && !stored.planError && !isMockTechnicalPlan(stored)
-      ? stored
-      : emptyPhysicalWeekPlan();
+    let nextPlan;
+    if (stored?.premiumPending || stored?.planPendingManual) {
+      nextPlan = stored;
+    } else if (stored && !stored.planError && !isMockTechnicalPlan(stored)) {
+      nextPlan = Array.isArray(stored) ? stored : weekDaysFromPlan(stored);
+    } else {
+      nextPlan = emptyPhysicalWeekPlan();
+    }
     setClientPlans((prev) => ({ ...prev, [clientId]: nextPlan }));
     setClientFeedback((prev) => ({ ...prev, [clientId]: getPlayerFeedback(clientId) }));
     return nextPlan;

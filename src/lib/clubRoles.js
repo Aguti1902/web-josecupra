@@ -35,6 +35,17 @@ export function isClubCoachStaff(user) {
   return user?.role === "club" && CLUB_COACH_ROLES.includes(resolveClubTeamRole(user));
 }
 
+/** El coordinador y el administrador pueden editar plantilla (global y por equipo). */
+export function canEditSquadRoster(user, viewingTeam = null) {
+  if (!user) return false;
+  const role = resolveClubTeamRole(user) || user.team_role || user.teamRole;
+  if (user.isSoloCoach || user.club?.isSoloCoach) return true;
+  if (role === "entrenador" || role === "ayudante") return true;
+  if (role === CLUB_COORD_ROLE || role === CLUB_ADMIN_ROLE) return true;
+  void viewingTeam;
+  return false;
+}
+
 export function isWideClubRole(teamRole) {
   return teamRole === CLUB_ADMIN_ROLE || teamRole === CLUB_COORD_ROLE;
 }
