@@ -45,6 +45,8 @@ function SessionPills({ value, onToggle }) {
 export default function AdminClubTareasPage({ embedded = false } = {}) {
   const [custom, setCustom] = useState(() => loadCustomTasks());
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [openFolder, setOpenFolder] = useState(CLUB_TASK_FOLDERS[0]?.id || "rondo");
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState(() => emptyDraft(CLUB_TASK_FOLDERS[0]?.id));
@@ -55,11 +57,19 @@ export default function AdminClubTareasPage({ embedded = false } = {}) {
     }).catch(() => {});
   }, []);
 
-  const persist = (next) => {
-    saveCustomTasks(next);
+  const persist = async (next) => {
+    setError("");
+    setSaving(true);
     setCustom(next);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+    try {
+      await saveCustomTasks(next);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(err?.message || "No se pudo guardar en la base de datos. Reinténtalo.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const byFolder = useMemo(() => {
@@ -137,18 +147,25 @@ export default function AdminClubTareasPage({ embedded = false } = {}) {
               Carpetas vacías. Tú subes las tareas. Las etiquetas de sesión vienen de cada carpeta y se pueden ajustar.
             </p>
           </div>
+          {saving && (
+            <span className="text-xs font-semibold text-depro-gray px-3 py-1.5">Guardando en la nube…</span>
+          )}
           {saved && (
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
-              <Save size={13} /> Guardado
+              <Save size={13} /> Guardado en la base de datos
             </span>
           )}
         </div>
       )}
+      {embedded && saving && (
+        <span className="text-xs font-semibold text-depro-gray">Guardando en la nube…</span>
+      )}
       {embedded && saved && (
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
-          <Save size={13} /> Guardado
+          <Save size={13} /> Guardado en la base de datos
         </span>
       )}
+      {error && <p className="text-xs text-red-600">{error}</p>}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
         {CLUB_TASK_FOLDERS.map((f) => {

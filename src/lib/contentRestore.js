@@ -72,6 +72,25 @@ export function mergeListsPreferVideo(local = [], cloud = []) {
   return out;
 }
 
+/** No sustituir una lista con vídeos por un POST vacío (fallo de red / sesión). */
+export function protectContentList(incoming, existing) {
+  const inc = coerceContentList(incoming);
+  const ex = coerceContentList(existing);
+  if (inc.length === 0 && countListVideos(ex) > 0) return ex;
+  return inc;
+}
+
+async function authHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  try {
+    const { supabase } = await import("./supabase.js");
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch { /* sin sesión */ }
+  return headers;
+}
+
 export async function fetchMetaClub(id) {
   if (typeof fetch !== "function") return null;
   try {
@@ -88,9 +107,12 @@ export async function saveMetaClub(id, name, detail) {
   if (typeof fetch !== "function") return false;
   const res = await fetch("/api/admin-clubs", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await authHeaders(),
     body: JSON.stringify({ club: { id, name }, detail }),
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "No se pudo guardar en la base de datos");
+  }
   return true;
 }

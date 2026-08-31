@@ -40,6 +40,18 @@ describe("storageQuota", () => {
     assert.equal(localStorage.getItem("depro_onboarding_draft_v1"), null);
   });
 
+  it("reclaim agresivo no borra vídeos de catálogo ni tareas/calentamientos", () => {
+    localStorage.setItem("depro_catalog_overrides", "{\"v2_1\":{\"videoUrl\":\"https://youtu.be/x\"}}");
+    localStorage.setItem("depro_club_custom_warmups", "[{\"id\":\"w1\"}]");
+    localStorage.setItem("depro_club_custom_tasks", "[{\"id\":\"t1\"}]");
+    localStorage.setItem("depro_plan_u1", "{}");
+    reclaimLocalStorage({ aggressive: true });
+    assert.ok(localStorage.getItem("depro_catalog_overrides"));
+    assert.ok(localStorage.getItem("depro_club_custom_warmups"));
+    assert.ok(localStorage.getItem("depro_club_custom_tasks"));
+    assert.equal(localStorage.getItem("depro_plan_u1"), null);
+  });
+
   it("safeSetItem no lanza si la cuota está llena", () => {
     globalThis.localStorage.setItem = () => {
       const err = new Error("The quota has been exceeded.");

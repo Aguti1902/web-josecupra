@@ -15,6 +15,7 @@ export default function AdminClubCalentamientosPage({ embedded = false } = {}) {
   const [warmups, setWarmups] = useState(() => loadCustomWarmups());
   const [draftUrl, setDraftUrl] = useState("");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -23,11 +24,20 @@ export default function AdminClubCalentamientosPage({ embedded = false } = {}) {
     }).catch(() => {});
   }, []);
 
-  const persist = (next) => {
-    const numbered = saveCustomWarmups(next);
-    setWarmups(numbered);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+  const persist = async (next) => {
+    setError("");
+    setSaving(true);
+    try {
+      const numbered = await saveCustomWarmups(next);
+      setWarmups(numbered);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setWarmups(next);
+      setError(err?.message || "No se pudo guardar en la base de datos. Reinténtalo.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addWarmup = () => {
@@ -72,16 +82,22 @@ export default function AdminClubCalentamientosPage({ embedded = false } = {}) {
               Solo enlace de YouTube. Se numeran solos: Calentamiento 1, 2, 3…
             </p>
           </div>
+          {saving && (
+            <span className="text-xs font-semibold text-depro-gray px-3 py-1.5">Guardando en la nube…</span>
+          )}
           {saved && (
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
-              <Save size={13} /> Guardado
+              <Save size={13} /> Guardado en la base de datos
             </span>
           )}
         </div>
       )}
+      {embedded && saving && (
+        <span className="text-xs font-semibold text-depro-gray">Guardando en la nube…</span>
+      )}
       {embedded && saved && (
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
-          <Save size={13} /> Guardado
+          <Save size={13} /> Guardado en la base de datos
         </span>
       )}
 

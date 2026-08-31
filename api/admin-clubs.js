@@ -4,7 +4,7 @@ import {
   withSyncedDiscountCode,
 } from "../src/lib/clubEconomy.js";
 import { isMetaClubId, buildMetaClubPayload } from "../src/lib/adminGlobalBlobs.js";
-import { mergePreferVideo } from "../src/lib/contentRestore.js";
+import { mergePreferVideo, protectContentList } from "../src/lib/contentRestore.js";
 
 export const config = {
   maxDuration: 60,
@@ -154,12 +154,17 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: "Solo el admin puede guardar datos globales" });
       }
       const blob = buildMetaClubPayload(club, detail);
+      const { data: existingRow } = await admin.from("clubs_detail").select("data").eq("club_id", clubId).maybeSingle();
+      const existingData = existingRow?.data || {};
       if (clubId === "CATALOG_OVERRIDES") {
-        const { data: existingRow } = await admin.from("clubs_detail").select("data").eq("club_id", clubId).maybeSingle();
-        const existing = existingRow?.data?.overrides && typeof existingRow.data.overrides === "object"
-          ? existingRow.data.overrides
+        const existing = existingData.overrides && typeof existingData.overrides === "object"
+          ? existingData.overrides
           : {};
         blob.overrides = mergePreferVideo(blob.overrides || {}, existing);
+      } else if (clubId === "GLOBAL_CLUB_WARMUPS") {
+        blob.warmups = protectContentList(blob.warmups, existingData.warmups);
+      } else if (clubId === "GLOBAL_CLUB_TASKS") {
+        blob.tasks = protectContentList(blob.tasks, existingData.tasks);
       }
       const result = await upsertClubDetail(admin, clubId, blob);
       if (!result.ok) {

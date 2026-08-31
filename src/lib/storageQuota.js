@@ -6,6 +6,7 @@ export function isQuotaError(err) {
 }
 
 const AUTH_KEY = /^(sb-|-auth-token|supabase)/i;
+const CONTENT_KEY = /^(depro_catalog_overrides|depro_catalog_custom|depro_club_custom_|depro_club_warmup|depro_club_task)/i;
 const HEAVY_PREFIXES = [
   "depro_player_logo_",
   "depro_player_banner_",
@@ -14,7 +15,6 @@ const AGGRESSIVE_PREFIXES = [
   "depro_plan_",
   "depro_player_plan_",
   "depro_onboarding",
-  "depro_catalog",
   "depro_global_plans",
   "depro_player_logo_",
   "depro_player_banner_",
@@ -50,7 +50,7 @@ export function reclaimLocalStorage(opts = {}) {
   let removed = 0;
   const keys = allKeys(localStorage);
   for (const key of keys) {
-    if (AUTH_KEY.test(key)) continue;
+    if (AUTH_KEY.test(key) || CONTENT_KEY.test(key)) continue;
     let drop = shouldReclaim(key, aggressive);
     if (!drop && aggressive) {
       try {

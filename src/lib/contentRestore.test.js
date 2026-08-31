@@ -6,6 +6,7 @@ import {
   mergePreferVideo,
   mergeListsPreferVideo,
   countListVideos,
+  protectContentList,
 } from "./contentRestore.js";
 
 describe("contentRestore", () => {
@@ -50,5 +51,18 @@ describe("contentRestore", () => {
     assert.equal(merged.find((x) => x.id === "cgw_1").videoUrl, "https://youtu.be/keepme12345");
     assert.equal(merged.find((x) => x.id === "cgw_2").videoUrl, "https://youtu.be/fromcloud12");
     assert.equal(countListVideos(merged), 2);
+  });
+
+  it("protectContentList no deja un POST vacío borrar vídeos existentes", () => {
+    const existing = [{ id: "cgw_1", videoUrl: "https://youtu.be/keepme12345" }];
+    const kept = protectContentList([], existing);
+    assert.equal(kept.length, 1);
+    assert.equal(kept[0].videoUrl, "https://youtu.be/keepme12345");
+    const replaced = protectContentList(
+      [{ id: "cgw_2", videoUrl: "https://youtu.be/nuevo123456" }],
+      existing,
+    );
+    assert.equal(replaced.length, 1);
+    assert.equal(replaced[0].id, "cgw_2");
   });
 });

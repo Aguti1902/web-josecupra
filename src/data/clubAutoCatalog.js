@@ -53,23 +53,23 @@ function loadListWithLegacy(currentKey, legacyKey) {
   return [];
 }
 
-function persistCloud(id, name, detail) {
+async function persistCloud(id, name, detail) {
   if (typeof fetch !== "function") return;
-  saveMetaClub(id, name, detail).catch(() => {});
+  await saveMetaClub(id, name, detail);
 }
 
 export function loadCustomWarmups() {
   return loadListWithLegacy(CUSTOM_WARMUPS_KEY, LEGACY_WARMUPS_KEY);
 }
 
-export function saveCustomWarmups(list) {
+export async function saveCustomWarmups(list) {
   const numbered = (list || []).map((w, i) => ({
     ...w,
     nombre: `Calentamiento ${i + 1}`,
     carpeta: "/calentamientos_sin_balon",
   }));
   writeJson(CUSTOM_WARMUPS_KEY, numbered);
-  persistCloud("GLOBAL_CLUB_WARMUPS", "Club Warmups", { warmups: numbered });
+  await persistCloud("GLOBAL_CLUB_WARMUPS", "Club Warmups", { warmups: numbered });
   return numbered;
 }
 
@@ -77,10 +77,10 @@ export function loadCustomTasks() {
   return loadListWithLegacy(CUSTOM_TASKS_KEY, LEGACY_TASKS_KEY);
 }
 
-export function saveCustomTasks(list) {
+export async function saveCustomTasks(list) {
   const next = list || [];
   writeJson(CUSTOM_TASKS_KEY, next);
-  persistCloud("GLOBAL_CLUB_TASKS", "Club Tasks", { tasks: next });
+  await persistCloud("GLOBAL_CLUB_TASKS", "Club Tasks", { tasks: next });
   return next;
 }
 
@@ -91,7 +91,7 @@ async function hydrateList({ local, cloudId, cloudField, saveLocal }) {
   const merged = mergeListsPreferVideo(local, cloudList);
   if (merged.length) saveLocal(merged, { skipCloud: true });
   if (countListVideos(local) > 0 && countListVideos(cloudList) === 0) {
-    persistCloud(cloudId, cloud.name || cloudId, { [cloudField]: local });
+    persistCloud(cloudId, cloud.name || cloudId, { [cloudField]: local }).catch(() => {});
   }
   return merged.length ? merged : local;
 }
