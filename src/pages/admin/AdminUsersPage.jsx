@@ -414,7 +414,7 @@ export default function AdminUsersPage() {
             </p>
             <p className="text-xs text-depro-gray text-center font-mono mb-5">{pendingDelete.email}</p>
             <p className="text-sm text-depro-gray text-center mb-6">
-              Dejará de poder entrar. Esta acción no se puede deshacer.
+              Se eliminará de la plataforma, clubs, equipos y cualquier vinculación. Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-3">
               <button

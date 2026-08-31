@@ -486,12 +486,13 @@ function PlayerWeeklyPlan({ accent }) {
   };
 
   const buildFilterParams = () => ({
-    material: user?.material?.toLowerCase().replace(/\s|\//g, "_").replace("barra_gimnasio", "barra") || "sin_material",
+    material: user?.material || "sin_material",
     lesiones: normalizeLesions(user?.lesion, user?.lesionSubtipo),
     edad: parseInt(user?.edad, 10) || 20,
     deporte: user?.deporte || "",
     experiencia: user?.experiencia?.includes("Nunca") || user?.experiencia?.includes("Menos") ? "novato"
       : user?.experiencia?.includes("Más de 3") ? "avanzado" : "intermedio",
+    userId: user?.id || "",
   });
 
   const handleExerciseSwap = (sessionId, exerciseId) => {
@@ -506,12 +507,18 @@ function PlayerWeeklyPlan({ accent }) {
     window.setTimeout(() => {
       try {
         const nextPlan = refreshExerciseAcrossPlan(plan, sessionId, exerciseId, buildFilterParams());
-        if (!nextPlan || nextPlan === plan) return;
+        if (!nextPlan || nextPlan === plan) {
+          alert("No hay un ejercicio alternativo compatible con tu material y este hueco. Prueba con otro ejercicio.");
+          return;
+        }
         setPlan(nextPlan);
         if (user?.id) {
           savePlayerPlan(user.id, nextPlan);
           recordSwap(user.id, nextPlan);
         }
+      } catch (err) {
+        console.error("[DEPRO] swap ejercicio", err);
+        alert("No se pudo cambiar el ejercicio. Inténtalo de nuevo.");
       } finally {
         setSwapping(false);
       }

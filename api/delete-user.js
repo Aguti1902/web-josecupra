@@ -1,6 +1,8 @@
 import { isMetaClubId } from "../src/lib/adminGlobalBlobs.js";
 import { stripPlayerFromClubData } from "../src/lib/clubPlayerPurge.js";
 import { removePlayerFromReferralRegistry } from "./_clubReferrals.js";
+import { getSupabaseAdmin, findUserByEmail } from "./_supabaseAdmin.js";
+import { getStripe } from "./_stripeClient.js";
 
 function playerRowMatches(entry, userId, email) {
   if (!entry || typeof entry !== "object") return false;
@@ -139,10 +141,23 @@ export default async function handler(req, res) {
     if (resolvedId) {
       try { await admin.from("clubs_detail").delete().eq("club_id", `PLAYER_PLAN_${resolvedId}`); } catch { /* ignore */ }
       try { await admin.from("player_team_links").delete().eq("player_id", resolvedId); } catch { /* ignore */ }
+      try { await admin.from("player_team_links").delete().eq("user_id", resolvedId); } catch { /* ignore */ }
+      try { await admin.from("squad_players").delete().eq("player_id", resolvedId); } catch { /* ignore */ }
+      try { await admin.from("squad_players").delete().eq("user_id", resolvedId); } catch { /* ignore */ }
+      try { await admin.from("media").update({ uploaded_by: null }).eq("uploaded_by", resolvedId); } catch { /* ignore */ }
       try { await admin.from("profiles").delete().eq("id", resolvedId); } catch { /* ignore */ }
     }
     if (email) {
       try { await admin.from("player_team_links").delete().eq("email", email); } catch { /* ignore */ }
+      try { await admin.from("squad_players").delete().eq("email", email); } catch { /* ignore */ }
+    }
+
+    const stripeSubId = targetUser?.user_metadata?.stripeSubscriptionId;
+    if (stripeSubId) {
+      try {
+        const stripe = await getStripe();
+        await stripe.subscriptions.cancel(stripeSubId);
+      } catch { /* la cuenta se borra igual */ }
     }
 
     await stripFromClubs(admin, resolvedId, email, homeClubId);

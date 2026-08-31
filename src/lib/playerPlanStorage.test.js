@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { normalizePlayerPlan } from "./playerPlanStorage.js";
+import { normalizePlayerPlan, weekDaysFromPlan } from "./playerPlanStorage.js";
 
 describe("normalizePlayerPlan", () => {
   it("deja pasar día-array intacto", () => {
@@ -54,5 +54,15 @@ describe("normalizePlayerPlan", () => {
     };
     const out = normalizePlayerPlan(payload);
     assert.equal(out.startDate, "2026-08-17");
+  });
+});
+
+describe("weekDaysFromPlan", () => {
+  it("nunca devuelve un objeto suelto (evita pantalla en blanco en admin)", () => {
+    const empty = weekDaysFromPlan({ premiumPending: true });
+    assert.equal(Array.isArray(empty), true);
+    assert.equal(empty.length, 7);
+    const fromDays = weekDaysFromPlan({ days: [{ day: "Lunes", sessions: [] }] });
+    assert.equal(fromDays[0].day, "Lunes");
   });
 });

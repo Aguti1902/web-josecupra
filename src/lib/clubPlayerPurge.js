@@ -60,12 +60,20 @@ export function stripPlayerFromClubData(data, userId, email) {
   };
   const next = { ...source };
   next.users = drop(next.users);
+  next.staff = drop(next.staff);
+  next.coaches = drop(next.coaches);
+  next.players = drop(next.players);
   if (Array.isArray(next.teams)) {
-    next.teams = next.teams.map((t) => ({
-      ...t,
-      squad: drop(t.squad),
-      players: drop(t.players),
-    }));
+    next.teams = next.teams.map((t) => {
+      const coachHit = playerMatches(t.coach, userId, email);
+      if (coachHit) changed = true;
+      return {
+        ...t,
+        squad: drop(t.squad),
+        players: drop(t.players),
+        coach: coachHit ? null : t.coach,
+      };
+    });
   }
   const withTomb = addPurgedPlayer(next, { userId, email });
   if ((withTomb.purgedPlayers || []).length !== (source.purgedPlayers || []).length) {
@@ -245,13 +253,18 @@ function stripFromPurgedClub(club, purgedPlayers) {
     if (filtered.length !== list.length) changed = true;
     return filtered;
   };
-  const next = { ...club, users: drop(club.users) };
+  const next = { ...club, users: drop(club.users), staff: drop(club.staff), coaches: drop(club.coaches) };
   if (Array.isArray(next.teams)) {
-    next.teams = next.teams.map((t) => ({
-      ...t,
-      squad: drop(t.squad),
-      players: drop(t.players),
-    }));
+    next.teams = next.teams.map((t) => {
+      const coachPurged = isPurgedPlayer(t.coach, purgedPlayers);
+      if (coachPurged) changed = true;
+      return {
+        ...t,
+        squad: drop(t.squad),
+        players: drop(t.players),
+        coach: coachPurged ? null : t.coach,
+      };
+    });
   }
   return { data: next, changed };
 }

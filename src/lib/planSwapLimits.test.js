@@ -15,6 +15,7 @@ import {
   hasUnlimitedSwaps,
 } from "./planSwapLimits.js";
 import { refreshExerciseAcrossPlan } from "./playerPlanEngine.js";
+import { selectExerciseForSlot } from "./exerciseSelector.js";
 
 describe("planSwapLimits — ciclo mensual", () => {
   beforeEach(() => {
@@ -219,5 +220,57 @@ describe("refreshExerciseAcrossPlan", () => {
     const ex = next[0].sessions[0].exercises[0];
     assert.equal(ex.warmupSource, "sin_balon");
     assert.notEqual(ex.catalogId, "cgw_1");
+  });
+
+  it("sustituye un ejercicio de catálogo por otro similar", () => {
+    const slot = { rol: "basico", objetivo: "fuerza", segmento: "tren_superior", slotId: "swap_test" };
+    const profile = { material: ["Gimnasio completo"], lesiones: [], edad: 22, experiencia: "intermedio" };
+    const first = selectExerciseForSlot(slot, profile, [], "seed-a");
+    assert.ok(first?.id, "hace falta un ejercicio de catálogo");
+    const plan = [{
+      day: "Lunes",
+      sessions: [{
+        id: "s1",
+        exercises: [{
+          id: `v2_${first.id}_1`,
+          catalogId: first.id,
+          name: first.name,
+          pool: first.pool,
+          etiquetas: first.etiquetas,
+          slotConstraints: slot,
+          blockType: "principal",
+        }],
+      }],
+    }];
+    const next = refreshExerciseAcrossPlan(plan, "s1", `v2_${first.id}_1`, {
+      material: ["Gimnasio completo"],
+      lesiones: [],
+      edad: 22,
+      experiencia: "intermedio",
+    });
+    const swapped = next[0].sessions[0].exercises[0];
+    assert.notEqual(swapped.catalogId, first.id);
+    assert.ok(swapped.name);
+  });
+
+  it("no lanza si el plan es objeto con days", () => {
+    const plan = {
+      startDate: "2026-08-17",
+      days: [{
+        day: "Lunes",
+        sessions: [{
+          id: "s1",
+          exercises: [{ id: "v2_1_1", catalogId: 1, name: "Press", slotConstraints: { rol: "basico" } }],
+        }],
+      }],
+    };
+    const next = refreshExerciseAcrossPlan(plan, "s1", "v2_1_1", {
+      material: ["Gimnasio completo"],
+      lesiones: [],
+      edad: 22,
+      experiencia: "intermedio",
+    });
+    assert.equal(typeof next, "object");
+    assert.ok(next.days || Array.isArray(next));
   });
 });

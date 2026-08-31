@@ -9,6 +9,7 @@ import {
   isProCoachOverview,
   isClubGlobalView,
   canManageClubBilling,
+  canEditSquadRoster,
 } from "./clubRoles.js";
 
 describe("clubRoles economía", () => {
@@ -67,6 +68,14 @@ describe("clubRoles economía", () => {
       isSoloCoach: true,
       club: { isSoloCoach: true, teams: [{ id: "a" }] },
     }, null), false);
+  });
+
+  it("coordinador puede añadir plantilla en vista global y por equipo", () => {
+    const coord = { role: "club", team_role: "coordinador" };
+    assert.equal(canEditSquadRoster(coord, null), true);
+    assert.equal(canEditSquadRoster(coord, { id: "team_1", name: "Alevín" }), true);
+    assert.equal(canEditSquadRoster({ role: "club", team_role: "entrenador" }, { id: "t" }), true);
+    assert.equal(canEditSquadRoster(null, null), false);
   });
 
   it("jugador y DEPRO Coach gestionan su suscripción", () => {

@@ -1,18 +1,20 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, Component } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft, Calendar, MessageSquare, Plus, Trash2,
   Edit3, Check, X, ChevronDown, ChevronUp, Star, Save, Clock, Target, Flame,
   Info, PlayCircle, CalendarDays, RefreshCw, Archive, Send, Activity, Scale,
+  Phone, ExternalLink, PencilRuler,
 } from "lucide-react";
 import { useAdmin, mapPlayerToClient } from "../../context/AdminContext";
 import { refreshExercise as refreshExerciseInEngine, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
 import { isPlayerPro } from "../../lib/subscription";
-import { loadPlayerPlan } from "../../lib/playerPlanStorage";
+import { loadPlayerPlan, weekDaysFromPlan } from "../../lib/playerPlanStorage";
 import { getChatMessages, sendChatMessage } from "../../lib/internalChat";
 import { getWellnessMap, formatWeekLabel, recentWeekKeys } from "../../lib/wellnessLogs";
 import { getLoadLogs } from "../../lib/loadLogs";
 import { getImprovementSummary } from "../../lib/loadAnalytics";
+import { startImpersonation } from "../../lib/adminImpersonation";
 
 const INTENSITY_OPTIONS = ["Baja", "Media", "Alta", "Máxima"];
 const TYPE_OPTIONS = [
@@ -41,10 +43,47 @@ const typeColor = {
 };
 const intensityColor = { Baja: "#3BC21D", Media: "#F6CC12", Alta: "#FB2C39", Máxima: "#dc2626", Low: "#3BC21D", Medium: "#F6CC12", High: "#FB2C39", Maximum: "#dc2626" };
 
+function isPremiumClient(client) {
+  if (!client) return false;
+  if (isPlayerPro(client)) return true;
+  const plan = String(client.plan || "").toLowerCase();
+  return plan === "player-pro" || plan === "premium" || plan === "pro" || client.billingSource === "manual";
+}
+
+function planBuilderUrl(client) {
+  const name = encodeURIComponent(client?.name || "");
+  return `/admin/plan-builder?clientId=${encodeURIComponent(client.id)}&name=${name}`;
+}
+
+class DetailErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800 space-y-3">
+          <p className="font-bold">Esta ficha no se pudo mostrar.</p>
+          <p className="text-red-700">{String(this.state.error?.message || this.state.error)}</p>
+          <Link to="/admin/clients" className="text-depro-blue font-semibold hover:underline">← Volver a clientes</Link>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 /* ── WEEK PLAN TAB ───────────────────────────────────────────────── */
 function PlanTab({ clientId, client }) {
   const { clientPlans, updateSession, addSession, deleteSession, addExercise, updateExercise, deleteExercise } = useAdmin();
-  const plan = clientPlans[clientId] || [];
+  const raw = clientPlans[clientId];
+  const pending = !!(raw?.premiumPending || raw?.planPendingManual);
+  const plan = Array.isArray(raw) ? raw : weekDaysFromPlan(raw);
+  const premium = isPremiumClient(client);
   const [selectedDay, setSelectedDay] = useState(0);
   const [editingSession, setEditingSession] = useState(null);
   const [editingExercise, setEditingExercise] = useState(null);
@@ -94,6 +133,24 @@ function PlanTab({ clientId, client }) {
 
   return (
     <div className="space-y-5">
+      {premium && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
+            <p className="font-bold">Premium · el plan lo creas tú</p>
+            <p className="text-amber-800 text-xs mt-0.5">
+              {pending
+                ? "Pendiente de asignación. Abre el motor de planes, genera las 4 semanas y asígnalas."
+                : "Puedes crear o sustituir la rutina desde el motor de planes."}
+            </p>
+          </div>
+          <Link
+            to={planBuilderUrl(client)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 flex-shrink-0"
+          >
+            <PencilRuler size={15} /> Crear plan
+          </Link>
+        </div>
+      )}
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
         Planificación individual real del jugador (servidor + cuenta). Motor de planes físicos: fuerza, velocidad, resistencia, prevención. No entrenamientos técnicos.
       </div>
@@ -107,7 +164,7 @@ function PlanTab({ clientId, client }) {
           >
             <span className="font-bold">{d.shortDay}</span>
             <span>{d.date}</span>
-            <span className="text-gray-400">{d.sessions.length} ses.</span>
+            <span className="text-gray-400">{(d.sessions || []).length} ses.</span>
           </button>
         ))}
       </div>
@@ -298,9 +355,15 @@ function MonthlyPlanTab({ client, clientId }) {
 
   if (stored?.premiumPending || (isPremium && !stored?.assignment && !stored?.source && !stored?.weeks)) {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 space-y-2">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 space-y-3">
         <p className="font-bold">Premium · rutina pendiente de asignación manual</p>
         <p>El usuario rellenó el cuestionario. Asigna la rutina desde el motor de planes; hasta entonces no debe verse como disponible.</p>
+        <Link
+          to={planBuilderUrl(client)}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700"
+        >
+          <PencilRuler size={15} /> Crear plan
+        </Link>
       </div>
     );
   }
@@ -621,7 +684,7 @@ function ProfileTab({ client }) {
   const info = [
     { label: "Nombre", value: client.name },
     { label: "Email", value: client.email },
-    (client.phone || client.telefono) && { label: "Teléfono", value: client.phone || client.telefono },
+    { label: "Teléfono", value: client.phone || client.telefono || "—" },
     { label: "Tipo", value: client.role },
     { label: "Plan", value: client.plan },
     { label: "Club", value: client.club?.name },
@@ -629,11 +692,14 @@ function ProfileTab({ client }) {
     client.age && { label: "Edad", value: client.age },
     client.level && { label: "Nivel", value: client.level },
     client.trainingDays && { label: "Días entrenamiento/semana", value: client.trainingDays },
+    client.objective && { label: "Objetivos", value: client.objective },
     client.disponibles && { label: "Días disponibles", value: Array.isArray(client.disponibles) ? client.disponibles.join(", ") : client.disponibles },
     client.diaCompeticion && { label: "Día competición", value: client.diaCompeticion },
     client.material && { label: "Material", value: Array.isArray(client.material) ? client.material.join(", ") : client.material },
     client.players && { label: "Jugadores en plantilla", value: `${client.players} jugadores` },
-    client.objective && { label: "Objetivo", value: client.objective },
+    client.deporte && { label: "Deporte", value: client.deporte },
+    client.experiencia && { label: "Experiencia", value: client.experiencia },
+    client.lesion && { label: "Lesión", value: Array.isArray(client.lesion) ? client.lesion.join(", ") : client.lesion },
   ].filter(Boolean);
 
   return (
@@ -680,8 +746,12 @@ const TABS = [
 export default function AdminClientDetailPage() {
   const { id } = useParams();
   const clientId = id;
-  const { clients, allUsers, hydrateClientPlan } = useAdmin();
+  const { clients, allUsers, clientsLoading, hydrateClientPlan, refreshClients } = useAdmin();
   const [activeTab, setActiveTab] = useState("plan");
+
+  useEffect(() => {
+    refreshClients?.();
+  }, [refreshClients]);
 
   useEffect(() => {
     if (clientId) hydrateClientPlan?.(clientId);
@@ -690,6 +760,14 @@ export default function AdminClientDetailPage() {
   const fromList = clients.find((c) => String(c.id) === String(clientId));
   const fromAll = allUsers.find((u) => String(u.id) === String(clientId));
   const client = fromList || (fromAll ? mapPlayerToClient(fromAll) : null);
+
+  if (!client && clientsLoading) {
+    return (
+      <div className="py-16 flex justify-center">
+        <div className="spinner border-depro-blue/20 border-t-depro-blue" />
+      </div>
+    );
+  }
 
   if (!client) {
     return (
@@ -701,8 +779,16 @@ export default function AdminClientDetailPage() {
   }
 
   const accent = client.club?.primaryColor || "#0A36F7";
+  const phone = client.phone || client.telefono;
+  const premium = isPremiumClient(client);
+
+  const openPanel = () => {
+    startImpersonation({ ...fromAll, ...client, id: client.id });
+    window.location.assign("/dashboard");
+  };
 
   return (
+    <DetailErrorBoundary>
     <div className="max-w-7xl mx-auto">
       <Link to="/admin/clients" className="inline-flex items-center gap-1.5 text-sm text-depro-gray hover:text-depro-dark transition-colors mb-6">
         <ArrowLeft size={15} /> Todos los clientes
@@ -722,8 +808,34 @@ export default function AdminClientDetailPage() {
               <span className="text-xs px-2 py-0.5 rounded-full bg-depro-gray-light text-depro-gray capitalize">{client.role}</span>
               {client.level && <span className="text-xs px-2 py-0.5 rounded-full bg-depro-gray-light text-depro-gray">{client.level}</span>}
             </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-depro-dark">
+              <span>{client.email}</span>
+              {phone ? (
+                <a href={`tel:${phone}`} className="inline-flex items-center gap-1 font-bold text-depro-blue">
+                  <Phone size={13} /> {phone}
+                </a>
+              ) : (
+                <span className="text-depro-gray inline-flex items-center gap-1"><Phone size={13} /> Sin teléfono</span>
+              )}
+            </div>
           </div>
-          <div className="text-sm text-depro-gray">{client.email}</div>
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            {premium && (
+              <Link
+                to={planBuilderUrl(client)}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700"
+              >
+                <PencilRuler size={15} /> Crear plan
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={openPanel}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-depro-border bg-white text-sm font-bold text-depro-dark hover:border-depro-blue"
+            >
+              <ExternalLink size={15} /> Ver panel
+            </button>
+          </div>
         </div>
       </div>
 
@@ -747,5 +859,6 @@ export default function AdminClientDetailPage() {
       {activeTab === "progress" && <ProgressionTab clientId={clientId} />}
       {activeTab === "profile" && <ProfileTab client={client} />}
     </div>
+    </DetailErrorBoundary>
   );
 }

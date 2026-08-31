@@ -159,7 +159,9 @@ function SubscriptionPageInner() {
     if (res.ok) {
       setMsg({
         type: "ok",
-        text: t("profile.subscription_cancel_success", { date: formatSubscriptionDate(res.cancelAt) }),
+        text: res.immediate
+          ? t("profile.subscription_cancel_success_trial")
+          : t("profile.subscription_cancel_success", { date: formatSubscriptionDate(res.cancelAt) }),
       });
       await refreshUser();
     } else {
@@ -395,11 +397,11 @@ function SubscriptionPageInner() {
               >
                 <ArrowUpCircle size={14} /> {t("profile.subscription_change_btn")}
               </button>
-              {subActive && !subPendingCancel && !inTrial && (
+              {(subActive || inTrial) && !subPendingCancel && (
                 <button
                   type="button"
                   onClick={() => setShowCancelModal(true)}
-                  className="text-sm font-semibold text-red-500 hover:text-red-600 px-3 py-2"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-red-200 bg-red-50 text-sm font-bold text-red-600 hover:bg-red-100"
                 >
                   {t("profile.subscription_cancel_btn")}
                 </button>

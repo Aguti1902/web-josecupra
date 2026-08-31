@@ -21,6 +21,20 @@ describe("clubPlayerPurge", () => {
     };
   });
 
+  it("stripPlayerFromClubData también quita staff, coaches y coach de equipo", () => {
+    const club = {
+      staff: [{ id: "c1", email: "coach@test.com" }],
+      coaches: [{ id: "c1", email: "coach@test.com" }],
+      users: [{ id: "c1", email: "coach@test.com" }],
+      teams: [{ id: "t1", coach: { id: "c1", email: "coach@test.com" }, squad: [] }],
+    };
+    const { data, changed } = stripPlayerFromClubData(club, "c1", "coach@test.com");
+    assert.equal(changed, true);
+    assert.equal((data.staff || []).length, 0);
+    assert.equal((data.coaches || []).length, 0);
+    assert.equal(data.teams[0].coach, null);
+  });
+
   it("stripPlayerFromClubData quita squad, users y deja tombstone", () => {
     const club = {
       users: [{ id: "u1", email: "a@test.com" }, { id: "u2", email: "b@test.com" }],

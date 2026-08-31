@@ -10,7 +10,7 @@ import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 import { getEvalValues, getRatingForEval } from "../../lib/teamTestRatings";
 import { resolveCurrentPlan, getPlanLimits } from "../../lib/subscription";
-import { canSeeClubPricing } from "../../lib/clubRoles";
+import { canSeeClubPricing, canEditSquadRoster, isWideClubRole, resolveClubTeamRole } from "../../lib/clubRoles";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import ChangePlanModal from "../../components/private/ChangePlanModal";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
@@ -39,7 +39,7 @@ const POSITION_COLORS = {
 
 const EMPTY_PLAYER = {
   name: "", number: "", position: "Centro",
-  age: "", weight: "", notes: "",
+  age: "", weight: "", notes: "", _teamId: "",
 };
 
 // ── Storage helpers (localStorage + Supabase sync) ──────────
@@ -126,8 +126,12 @@ function safe(color, fallback = "#0A36F7") { return lum(color) > 0.75 ? fallback
 // ════════════════════════════════════════════════════════════
 // Modal añadir / editar jugador
 // ════════════════════════════════════════════════════════════
-function PlayerModal({ initial, onSave, onClose, sa }) {
-  const [form, setForm] = useState(initial || EMPTY_PLAYER);
+function PlayerModal({ initial, onSave, onClose, sa, teams = [] }) {
+  const [form, setForm] = useState(() => ({
+    ...EMPTY_PLAYER,
+    ...(initial || {}),
+    _teamId: initial?._teamId || teams[0]?.id || "",
+  }));
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const isEdit = !!initial?.id;
 
@@ -166,6 +170,21 @@ function PlayerModal({ initial, onSave, onClose, sa }) {
               />
             </div>
           </div>
+
+          {teams.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-depro-dark mb-1">Equipo *</label>
+              <select
+                className="admin-input w-full"
+                value={form._teamId || ""}
+                onChange={(e) => set("_teamId", e.target.value)}
+              >
+                {teams.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-depro-dark mb-1">Posición *</label>
@@ -543,9 +562,7 @@ export default function SquadPage() {
   const multiTeamCoach = isProCoach && (club?.teams || []).length > 1;
   const isCoord   = ((teamRole === "coordinador" || teamRole === "administrador") && !viewingTeam)
     || (multiTeamCoach && !viewingTeam);
-  const canEdit   = isProCoach
-    ? !isCoord
-    : (teamRole !== "coordinador" && teamRole !== "administrador");
+  const canEdit = canEditSquadRoster(user, viewingTeam);
 
   const rawAccent = club?.primaryColor   || "#0A36F7";
   const rawSec    = club?.secondaryColor || "#ffffff";
@@ -791,10 +808,10 @@ export default function SquadPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // ── CRUD ─────────────────────────────────────────────────
-  const activeTeamId = isCoord ? null : myTeam?.id;
+  const activeTeamId = viewingTeam?.id || myTeam?.id || (isCoord && teamFilter !== "todos" ? teamFilter : "");
 
   const handleSave = (form) => {
-    const tid = activeTeamId;
+    const tid = form._teamId || activeTeamId;
     if (!tid || !clubId) {
       setTeamError(true);
       setShowModal(false);
@@ -830,7 +847,11 @@ export default function SquadPage() {
         <div className="flex-1">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide mb-2" style={{ color: sa }}>
             <Users size={13} />
-            {isCoord ? "Coordinador · Visión global" : `Entrenador · ${myTeam?.name || "Mi equipo"}`}
+            {isCoord
+              ? "Coordinador · Visión global"
+              : isWideClubRole(resolveClubTeamRole(user) || teamRole)
+                ? `Coordinador · ${myTeam?.name || "Equipo"}`
+                : `Entrenador · ${myTeam?.name || "Mi equipo"}`}
           </div>
           <h1 className="text-2xl md:text-3xl font-black text-depro-dark">Plantilla</h1>
           <p className="text-depro-gray text-sm mt-0.5">
@@ -840,14 +861,15 @@ export default function SquadPage() {
           </p>
         </div>
 
-        {/* Botón añadir — solo entrenador */}
+        {/* Botón añadir — entrenador, coordinador (global y por equipo) */}
         {canEdit && (
           <button
             onClick={() => {
-              if (!activeTeamId && !myTeam) { setTeamError(true); return; }
+              const tid = viewingTeam?.id || myTeam?.id || (teamFilter !== "todos" ? teamFilter : allTeams[0]?.id);
+              if (!tid && !allTeams.length) { setTeamError(true); return; }
               if (atPlayerLimit) { setShowUpgradeModal(true); return; }
               setTeamError(false);
-              setEditPlayer(null);
+              setEditPlayer({ ...EMPTY_PLAYER, _teamId: tid || "" });
               setShowModal(true);
             }}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors flex-shrink-0"
@@ -1070,7 +1092,7 @@ export default function SquadPage() {
                 Pulsa "Añadir jugador" para comenzar a registrar la plantilla.
               </p>
             )}
-            {unifiedPlayers.length === 0 && isCoord && (
+            {unifiedPlayers.length === 0 && isCoord && !canEdit && (
               <p className="text-sm text-depro-gray mt-1">
                 Los entrenadores de cada equipo añadirán a sus jugadores desde la página de Plantilla.
               </p>
@@ -1202,6 +1224,7 @@ export default function SquadPage() {
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditPlayer(null); }}
           sa={sa}
+          teams={canEdit && allTeams.length > 0 && (isCoord || isWideClubRole(resolveClubTeamRole(user) || teamRole) || !myTeam) ? allTeams : []}
         />
       )}
     </div>

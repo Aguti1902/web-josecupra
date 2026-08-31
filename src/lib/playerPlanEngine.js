@@ -88,10 +88,11 @@ function normalizeMaterial(material) {
 }
 
 export function normalizeLesions(lesion, lesionSubtipo) {
-  const base = (lesion || []).map((l) =>
-    l.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+  const asList = (v) => (Array.isArray(v) ? v : (v ? [v] : []));
+  const base = asList(lesion).map((l) =>
+    String(l).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
   );
-  const subAreas = (lesionSubtipo || []).map((s) => SUBTIPO_TO_AREA[s.toLowerCase()] || s.toLowerCase());
+  const subAreas = asList(lesionSubtipo).map((s) => SUBTIPO_TO_AREA[String(s).toLowerCase()] || String(s).toLowerCase());
   return [...new Set([...base, ...subAreas])].filter((l) => l && l !== "ninguna");
 }
 
@@ -658,11 +659,23 @@ export function buildFourWeekPlan(user) {
   return weeks;
 }
 
+function sessionExerciseList(session) {
+  const fromBlocks = (session?.blocks || []).flatMap((b) => b.exercises || []);
+  const fromList = session?.exercises || [];
+  return fromList.length ? fromList : fromBlocks;
+}
+
+function findSessionExercise(session, exerciseId) {
+  return sessionExerciseList(session).find((ex) => ex.id === exerciseId)
+    || (session?.blocks || []).flatMap((b) => b.exercises || []).find((ex) => ex.id === exerciseId)
+    || null;
+}
+
 export function refreshExercise(session, exerciseId, filterParams) {
-  const target = (session.exercises || []).find((ex) => ex.id === exerciseId);
+  const target = findSessionExercise(session, exerciseId);
   if (!target) return session;
 
-  const usedInSession = (session.exercises || [])
+  const usedInSession = sessionExerciseList(session)
     .map((ex) => ex.catalogId ?? parseCatalogId(ex.id))
     .filter((id) => id != null);
 
@@ -674,6 +687,7 @@ export function refreshExercise(session, exerciseId, filterParams) {
   const replacement = refreshExerciseInPool(
     {
       id: target.catalogId,
+      catalogId: target.catalogId,
       pool: target.pool,
       slotConstraints: target.slotConstraints,
       etiquetas: target.etiquetas,
@@ -688,15 +702,19 @@ export function refreshExercise(session, exerciseId, filterParams) {
   newEx.id = `v2_${replacement.id}_${Date.now()}`;
   newEx.slotConstraints = target.slotConstraints || replacement.slotConstraints;
 
+  const mapEx = (ex) => (ex.id === exerciseId ? newEx : ex);
   const updateBlocks = (session.blocks || []).map((block) => ({
     ...block,
-    exercises: (block.exercises || []).map((ex) => (ex.id === exerciseId ? newEx : ex)),
+    exercises: (block.exercises || []).map(mapEx),
   }));
+  const nextExercises = (session.exercises || []).length
+    ? (session.exercises || []).map(mapEx)
+    : updateBlocks.flatMap((b) => b.exercises);
 
   return {
     ...session,
     blocks: updateBlocks,
-    exercises: updateBlocks.flatMap((b) => b.exercises),
+    exercises: nextExercises,
     refreshedAt: Date.now(),
   };
 }
@@ -737,18 +755,32 @@ function shouldAutoRegenerateMonthly(user, plan) {
  * a todas las sesiones del microciclo y weeks[] del mesociclo.
  */
 export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterParams) {
-  if (!Array.isArray(plan) || !sessionId || !exerciseId) return plan;
+  const days = Array.isArray(plan)
+    ? plan
+    : (Array.isArray(plan?.days) ? plan.days : null);
+  if (!days || !exerciseId) return plan;
 
-  let target = null;
-  for (const day of plan) {
-    for (const s of day.sessions || []) {
-      if (s.id === sessionId) {
-        target = (s.exercises || []).find((ex) => ex.id === exerciseId);
-        break;
+  const allDaySessions = days.flatMap((d) => d.sessions || []);
+  let targetSession = sessionId
+    ? allDaySessions.find((s) => s.id === sessionId)
+    : null;
+  if (!targetSession) {
+    targetSession = allDaySessions.find((s) => findSessionExercise(s, exerciseId));
+  }
+  if (!targetSession) {
+    const weeksSource = Array.isArray(plan) ? plan.weeks : plan?.weeks;
+    if (Array.isArray(weeksSource)) {
+      for (const w of weeksSource) {
+        const weekSessions = [
+          ...(w.days || []).flatMap((d) => d.sessions || []),
+          ...(w.sessions || []),
+        ];
+        targetSession = weekSessions.find((s) => (sessionId && s.id === sessionId) || findSessionExercise(s, exerciseId));
+        if (targetSession) break;
       }
     }
-    if (target) break;
   }
+  const target = targetSession ? findSessionExercise(targetSession, exerciseId) : null;
   if (!target) return plan;
 
   const oldCatalogId = target.catalogId ?? parseCatalogId(target.id);
@@ -770,9 +802,7 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
     if (!replacement || replacement.id === target.catalogId) return plan;
     makeNew = (idx) => makeWarmupFromTemplate(replacement, idx);
   } else {
-    const usedInSession = (plan
-      .flatMap((d) => d.sessions || [])
-      .find((s) => s.id === sessionId)?.exercises || [])
+    const usedInSession = sessionExerciseList(targetSession)
       .map((ex) => ex.catalogId ?? parseCatalogId(ex.id))
       .filter((id) => id != null);
 
@@ -815,27 +845,34 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
       ...block,
       exercises: mapList(block.exercises),
     }));
-    const exercises = blocks.length
-      ? blocks.flatMap((b) => b.exercises)
-      : mapList(session.exercises);
+    const exercises = (session.exercises || []).length
+      ? mapList(session.exercises)
+      : (blocks.length ? blocks.flatMap((b) => b.exercises) : []);
     return { ...session, blocks, exercises, refreshedAt: Date.now() };
   };
 
   const seed = Number.parseInt(String(oldCatalogId).replace(/\D/g, ""), 10) || 1;
-  const next = plan.map((day, di) => ({
+  const mappedDays = days.map((day, di) => ({
     ...day,
     sessions: (day.sessions || []).map((s, si) => mapSession(s, seed + di * 20 + si)),
   }));
 
+  const next = Array.isArray(plan)
+    ? mappedDays
+    : { ...plan, days: mappedDays };
+
   // Conservar meta del array
-  for (const key of Object.keys(plan)) {
-    if (Number.isNaN(Number(key)) && next[key] === undefined) {
-      next[key] = plan[key];
+  if (Array.isArray(plan)) {
+    for (const key of Object.keys(plan)) {
+      if (Number.isNaN(Number(key)) && next[key] === undefined) {
+        next[key] = plan[key];
+      }
     }
   }
 
-  if (Array.isArray(plan.weeks)) {
-    next.weeks = plan.weeks.map((w, wi) => {
+  const weeksSource = Array.isArray(plan) ? plan.weeks : plan?.weeks;
+  if (Array.isArray(weeksSource)) {
+    next.weeks = weeksSource.map((w, wi) => {
       const mapped = { ...w };
       if (Array.isArray(w.days)) {
         mapped.days = w.days.map((day, di) => ({
