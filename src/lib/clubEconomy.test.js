@@ -5,6 +5,8 @@ import {
   clubCommissionPct,
   clubCommissionRate,
   commissionCents,
+  clubCommissionOnTotal,
+  stripePaidCents,
   clubMatchesDiscountCode,
   withSyncedDiscountCode,
   parseCommissionPct,
@@ -29,6 +31,22 @@ describe("clubEconomy", () => {
   it("calcula céntimos de comisión", () => {
     assert.equal(commissionCents(1999, 10), 200);
     assert.equal(commissionCents(10000, 15), 1500);
+  });
+
+  it("comisión sobre el total final, no un 10% fijo del catálogo", () => {
+    assert.equal(clubCommissionOnTotal(10000, { referralCommissionPct: 10 }), 1000);
+    assert.equal(clubCommissionOnTotal(9000, { referralCommissionPct: 10 }), 900);
+    assert.equal(clubCommissionOnTotal(10000, { referralCommissionPct: 25 }), 2500);
+    assert.equal(clubCommissionOnTotal(3900, { referralCommissionPct: 15 }), 585);
+  });
+
+  it("lee el importe cobrado de Stripe (total / amount_paid / líneas)", () => {
+    assert.equal(stripePaidCents({ amount_total: 9000 }), 9000);
+    assert.equal(stripePaidCents({ amount_paid: 0, total: 10900 }), 10900);
+    assert.equal(stripePaidCents({
+      lines: { data: [{ amount: 2610 }, { amount: 500 }, { amount: 500 }] },
+    }), 3610);
+    assert.equal(stripePaidCents({}), 0);
   });
 
   it("el código de descuento coincide con login o discount", () => {

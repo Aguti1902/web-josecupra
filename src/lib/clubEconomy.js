@@ -33,6 +33,29 @@ export function commissionCents(amountPaidCents, pct) {
   return Math.round((Number(amountPaidCents) || 0) * rate);
 }
 
+/**
+ * Importe real cobrado por Stripe (céntimos): total final de la compra
+ * (plan + extras del carrito), no el precio de catálogo.
+ */
+export function stripePaidCents(source) {
+  if (!source || typeof source !== "object") return 0;
+  for (const key of ["amount_paid", "amount_total", "total"]) {
+    const n = Number(source[key]);
+    if (Number.isFinite(n) && n > 0) return Math.round(n);
+  }
+  const lines = source.lines?.data;
+  if (Array.isArray(lines) && lines.length) {
+    const sum = lines.reduce((acc, line) => acc + (Number(line.amount) || 0), 0);
+    if (sum > 0) return Math.round(sum);
+  }
+  return 0;
+}
+
+/** Comisión = total final pagado × % configurado del club. */
+export function clubCommissionOnTotal(amountPaidCents, club) {
+  return commissionCents(amountPaidCents, clubCommissionPct(club));
+}
+
 export function clubPayoutAccount(club) {
   return {
     iban: String(club?.payoutIban || "").trim(),

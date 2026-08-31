@@ -45,6 +45,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
       email: formData?.email || "",
       nombre: formData?.nombre || "",
       phone: String(formData?.phone || formData?.telefono || "").trim(),
+      selectedAddons: (formData?.selectedAddons || []).join("|"),
     },
   };
   if (withTrial) {

@@ -24,17 +24,25 @@ export default async function handler(req, res) {
     const lineItem = buildAddonLineItem(resolvedId);
     if (!lineItem) return res.status(400).json({ error: "Extra no disponible" });
 
+    const clubMeta = {
+      type: "addon",
+      addonId: resolvedId,
+      featureId: def.featureId,
+      userId,
+      email,
+      audience: meta.audience || "player",
+      clubId: meta.clubId || "",
+      clubCode: meta.clubCode || "",
+      nombre: meta.name || "",
+      plan: meta.plan || "",
+    };
+
     const sessionParams = {
       mode: "subscription",
       payment_method_collection: "always",
       line_items: [lineItem],
-      metadata: {
-        type: "addon",
-        addonId: resolvedId,
-        featureId: def.featureId,
-        userId,
-        email,
-      },
+      metadata: clubMeta,
+      subscription_data: { metadata: clubMeta },
       success_url: `${site}/dashboard/subscription?addon_session={CHECKOUT_SESSION_ID}`,
       cancel_url: `${site}/dashboard/subscription?addon_cancel=1`,
       locale: "es",

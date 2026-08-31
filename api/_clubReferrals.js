@@ -1,8 +1,8 @@
 import {
-  clubCommissionRate,
   clubCommissionPct,
   clubDiscountCode,
-  commissionCents,
+  clubCommissionOnTotal,
+  clubMatchesDiscountCode,
   DEFAULT_CLUB_COMMISSION_PCT,
 } from "../src/lib/clubEconomy.js";
 
@@ -13,6 +13,23 @@ export async function loadClubEconomy(admin, clubId) {
   if (!clubId) return {};
   const { data } = await admin.from("clubs_detail").select("data").eq("club_id", clubId).maybeSingle();
   return data?.data || {};
+}
+
+export async function resolveClubEconomy(admin, { clubId, clubCode } = {}) {
+  if (clubId) {
+    const data = await loadClubEconomy(admin, clubId);
+    if (data && typeof data === "object" && Object.keys(data).length) {
+      return { ...data, id: data.id || clubId };
+    }
+  }
+  const code = String(clubCode || "").trim();
+  if (!code) return {};
+  try {
+    const { data: details } = await admin.from("clubs_detail").select("club_id, data");
+    const found = (details || []).find((d) => clubMatchesDiscountCode(d.data, code));
+    if (found) return { ...(found.data || {}), id: found.club_id };
+  } catch { /* ignore */ }
+  return {};
 }
 
 export async function loadReferralRegistry(admin) {
@@ -83,29 +100,44 @@ export async function recordReferralPayment(admin, {
   stripeInvoiceId,
   stripeSessionId,
 }) {
-  if (!clubId || !amountPaidCents || amountPaidCents <= 0) return { ok: false, reason: "invalid_input" };
+  if (!amountPaidCents || amountPaidCents <= 0) return { ok: false, reason: "invalid_input" };
+
+  const club = await resolveClubEconomy(admin, { clubId, clubCode });
+  const resolvedClubId = clubId || club.id;
+  if (!resolvedClubId) return { ok: false, reason: "invalid_input" };
 
   const registry = await loadReferralRegistry(admin);
-  const club = await loadClubEconomy(admin, clubId);
-  const bucket = ensureClubBucket(registry, clubId);
-  const rate = clubCommissionRate(club);
+  const bucket = ensureClubBucket(registry, resolvedClubId);
+  const pct = clubCommissionPct(club);
+  const rate = pct / 100;
   bucket.commissionRate = rate;
-  const commission = commissionCents(amountPaidCents, clubCommissionPct(club));
-  const dedupeKey = stripeInvoiceId || stripeSessionId;
-  if (dedupeKey && bucket.referrals.some((r) => r.stripeInvoiceId === dedupeKey || r.stripeSessionId === dedupeKey)) {
+  const commission = clubCommissionOnTotal(amountPaidCents, club);
+  const month = monthKey();
+  const emailLc = String(playerEmail || "").toLowerCase();
+  if (bucket.referrals.some((r) => {
+    if (stripeInvoiceId && r.stripeInvoiceId === stripeInvoiceId) return true;
+    if (stripeSessionId && r.stripeSessionId === stripeSessionId) return true;
+    const samePlayer = (playerId && r.playerId === playerId)
+      || (emailLc && String(r.playerEmail || "").toLowerCase() === emailLc);
+    return samePlayer
+      && r.month === month
+      && Number(r.amountPaid) === Number(amountPaidCents)
+      && Number(r.commission) > 0;
+  })) {
     return { ok: true, duplicate: true };
   }
 
   const entry = {
     id: `ref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    clubCode: clubCode || "",
+    clubCode: clubCode || clubDiscountCode(club) || "",
     playerEmail: playerEmail || "",
     playerName: playerName || playerEmail?.split("@")[0] || "Jugador",
     playerId: playerId || "",
     plan: plan || "",
     amountPaid: amountPaidCents,
     commission,
-    month: monthKey(),
+    commissionPct: pct,
+    month,
     payoutStatus: "pending",
     status: "active",
     stripeInvoiceId: stripeInvoiceId || null,
@@ -129,9 +161,11 @@ export async function recordClubCodeSignup(admin, {
   status = "trialing",
   stripeSessionId,
 }) {
-  if (!clubId) return { ok: false, reason: "invalid_input" };
+  const club = await resolveClubEconomy(admin, { clubId, clubCode });
+  const resolvedClubId = clubId || club.id;
+  if (!resolvedClubId) return { ok: false, reason: "invalid_input" };
   const registry = await loadReferralRegistry(admin);
-  const bucket = ensureClubBucket(registry, clubId);
+  const bucket = ensureClubBucket(registry, resolvedClubId);
   const dedupeKey = stripeSessionId || playerId || playerEmail;
   if (dedupeKey && bucket.referrals.some((r) =>
     r.stripeSessionId === stripeSessionId

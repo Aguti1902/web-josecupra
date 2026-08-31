@@ -1,7 +1,8 @@
 import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin, findUserByEmail } from "./_supabaseAdmin.js";
-import { recordClubCodeSignup } from "./_clubReferrals.js";
+import { recordClubCodeSignup, recordReferralPayment } from "./_clubReferrals.js";
 import { persistSoloCoachClub } from "./_soloCoachClub.js";
+import { stripePaidCents } from "../src/lib/clubEconomy.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -163,9 +164,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: adminErr.message || "Error al activar la cuenta", email });
     }
 
-    if (meta.clubId && meta.clubCode) {
+    if (meta.clubId || meta.clubCode) {
       try {
-        await recordClubCodeSignup(getSupabaseAdmin(), {
+        const admin = getSupabaseAdmin();
+        await recordClubCodeSignup(admin, {
           clubId: meta.clubId,
           clubCode: meta.clubCode,
           playerEmail: email,
@@ -175,6 +177,19 @@ export default async function handler(req, res) {
           status: subscriptionStatus === "trialing" ? "trialing" : "active",
           stripeSessionId: sessionId,
         });
+        const paid = stripePaidCents(session);
+        if (paid > 0) {
+          await recordReferralPayment(admin, {
+            clubId: meta.clubId,
+            clubCode: meta.clubCode,
+            playerEmail: email,
+            playerName: name,
+            playerId: userId,
+            plan: meta.plan,
+            amountPaidCents: paid,
+            stripeSessionId: sessionId,
+          });
+        }
       } catch { /* trazabilidad best-effort */ }
     }
 

@@ -1,7 +1,8 @@
 import { getStripe } from "./_stripeClient.js";
-import { getSupabaseAdmin } from "./_supabaseAdmin.js";
+import { getSupabaseAdmin, findUserByStripeCustomer } from "./_supabaseAdmin.js";
 import { syncCheckoutSession, syncSubscriptionToUser } from "./_stripeSync.js";
 import { recordReferralPayment } from "./_clubReferrals.js";
+import { stripePaidCents } from "../src/lib/clubEconomy.js";
 import { getStripeWebhookSecretFallback } from "./_stripeWebhookSecret.js";
 
 export const config = {
@@ -55,20 +56,41 @@ export default async function handler(req, res) {
   async function trackReferralFromMeta(meta, amountPaidCents, stripeInvoiceId, stripeSessionId) {
     const clubId = meta?.clubId || "";
     const clubCode = meta?.clubCode || "";
-    const audience = meta?.audience || "player";
-    if (!clubId || !clubCode || audience !== "player" || !amountPaidCents) return;
+    const audience = meta?.audience || meta?.role || "";
+    const isPlayer = audience === "player" || meta?.type === "addon" || (!audience && (clubId || clubCode));
+    if (!isPlayer || !amountPaidCents) return;
+    if (!clubId && !clubCode) return;
 
     await recordReferralPayment(supabaseAdmin, {
       clubId,
       clubCode,
       playerEmail: meta.email || "",
       playerName: meta.nombre || meta.name || "",
-      playerId: meta.authUserId || "",
-      plan: meta.plan || "",
+      playerId: meta.authUserId || meta.userId || "",
+      plan: meta.plan || meta.addonId || "",
       amountPaidCents,
       stripeInvoiceId,
       stripeSessionId,
     });
+  }
+
+  async function metaFromUser(customerId, emailHint, base = {}) {
+    try {
+      const user = await findUserByStripeCustomer(supabaseAdmin, customerId, emailHint);
+      const um = user?.user_metadata || {};
+      return {
+        ...base,
+        clubId: base.clubId || um.clubId || "",
+        clubCode: base.clubCode || um.clubCode || "",
+        audience: base.audience || um.audience || um.role || "",
+        email: base.email || user?.email || "",
+        nombre: base.nombre || base.name || um.name || "",
+        authUserId: base.authUserId || base.userId || user?.id || "",
+        plan: base.plan || um.plan || "",
+      };
+    } catch {
+      return base;
+    }
   }
 
   try {
@@ -78,8 +100,9 @@ export default async function handler(req, res) {
       case "checkout.session.completed": {
         const session = event.data.object;
         await syncCheckoutSession(supabaseAdmin, session);
-        if (session.amount_total > 0) {
-          await trackReferralFromMeta(session.metadata || {}, session.amount_total, null, session.id);
+        const paid = stripePaidCents(session);
+        if (paid > 0) {
+          await trackReferralFromMeta(session.metadata || {}, paid, null, session.id);
         }
         if (session.subscription) {
           const subId = typeof session.subscription === "string"
@@ -124,8 +147,12 @@ export default async function handler(req, res) {
             : invoice.subscription.id;
           const sub = await stripe.subscriptions.retrieve(subId);
           await syncSubscriptionToUser(supabaseAdmin, sub, invoice.customer_email);
-          const meta = sub.metadata || invoice.metadata || {};
-          await trackReferralFromMeta(meta, invoice.amount_paid, invoice.id, null);
+          const meta = await metaFromUser(
+            typeof sub.customer === "string" ? sub.customer : sub.customer?.id,
+            invoice.customer_email,
+            { ...(sub.metadata || {}), ...(invoice.metadata || {}) },
+          );
+          await trackReferralFromMeta(meta, stripePaidCents(invoice), invoice.id, null);
         }
         break;
       }

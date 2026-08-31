@@ -62,4 +62,50 @@ describe("club referrals", () => {
     assert.equal(commissionCents(10000, 10), 1000);
     assert.equal(commissionCents(10000, 25), 2500);
   });
+
+  it("registra comisión = total pagado × % del club (plan + extras)", async () => {
+    const { recordReferralPayment } = await import("./_clubReferrals.js");
+    const registry = { byClubId: {} };
+    const admin = {
+      from() {
+        let clubId = null;
+        return {
+          select() { return this; },
+          eq(_col, val) { clubId = val; return this; },
+          maybeSingle: async () => {
+            if (clubId === "CLUB_REFERRAL_REGISTRY") return { data: { data: registry } };
+            if (clubId === "club_udv") return { data: { data: { referralCommissionPct: 15 } } };
+            return { data: null };
+          },
+          upsert: async ({ data }) => { Object.assign(registry, data); return { error: null }; },
+        };
+      },
+    };
+    const r90 = await recordReferralPayment(admin, {
+      clubId: "club_udv",
+      clubCode: "UDV2026",
+      playerEmail: "a@test.com",
+      amountPaidCents: 9000,
+    });
+    assert.equal(r90.entry.commission, 1350);
+    assert.equal(r90.entry.commissionPct, 15);
+    assert.equal(r90.entry.amountPaid, 9000);
+
+    const r100 = await recordReferralPayment(admin, {
+      clubId: "club_udv",
+      clubCode: "UDV2026",
+      playerEmail: "b@test.com",
+      amountPaidCents: 10000,
+    });
+    assert.equal(r100.entry.commission, 1500);
+    assert.equal(r100.entry.amountPaid, 10000);
+
+    const withAddons = await recordReferralPayment(admin, {
+      clubId: "club_udv",
+      clubCode: "UDV2026",
+      playerEmail: "c@test.com",
+      amountPaidCents: 3900,
+    });
+    assert.equal(withAddons.entry.commission, 585);
+  });
 });

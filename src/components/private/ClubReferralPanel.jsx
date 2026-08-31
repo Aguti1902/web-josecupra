@@ -98,8 +98,9 @@ export default function ClubReferralPanel({
             <h3 className="font-black text-depro-dark">Código de descuento</h3>
           </div>
           <p className="text-sm text-depro-gray max-w-xl">
-            Cuando un jugador compra una planificación individual con este código, el club recibe un{" "}
-            <strong>{commissionPct ?? data?.commissionPct ?? REFERRAL_COMMISSION_PCT}%</strong> de lo pagado.
+            Cuando un jugador compra una planificación individual con este código, el club recibe el{" "}
+            <strong>{commissionPct ?? data?.commissionPct ?? REFERRAL_COMMISSION_PCT}%</strong>{" "}
+            sobre el precio total final (plan + extras del carrito).
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-xl border border-depro-border bg-white px-3 py-2 shrink-0">

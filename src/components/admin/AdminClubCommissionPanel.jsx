@@ -119,7 +119,8 @@ export default function AdminClubCommissionPanel({ club }) {
               <Wallet size={16} className="text-depro-blue" /> Generado con el código de descuento
             </h3>
             <p className="text-sm text-depro-gray mt-1">
-              Comisión del <strong>{pct}%</strong> sobre planificaciones individuales que usaron{" "}
+              Comisión del <strong>{pct}%</strong> configurado para este club sobre el{" "}
+              <strong>total pagado</strong> (plan + extras del carrito) de las planificaciones que usaron{" "}
               <span className="font-mono font-bold text-depro-dark">{code || "—"}</span>.
               Transfiere a mano y márcalo aquí cuando lo hayas enviado.
             </p>
@@ -219,6 +220,7 @@ export default function AdminClubCommissionPanel({ club }) {
                   <p className="text-xs text-depro-gray mt-0.5">{r.plan || "—"} · {r.month}</p>
                   <p className="text-sm mt-1">
                     Pagó {formatEuros(r.amountPaid)} → comisión <strong>{formatEuros(r.commission)}</strong>
+                    {r.commissionPct != null ? ` (${r.commissionPct}%)` : ""}
                     {r.payoutStatus === "paid" ? " · transferido" : " · pendiente"}
                   </p>
                 </div>

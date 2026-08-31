@@ -27,7 +27,7 @@ export default function ClubEconomyFields({
         />
         {showCodeHint && (
           <p className="text-xs text-depro-gray mt-1.5">
-            Lo usan jugadores en una planificación individual. El club cobra el porcentaje de comisión sobre ese pago.
+            Lo usan jugadores en una planificación individual. La comisión se calcula sobre el precio total final de esa compra (plan + extras del carrito), con el porcentaje de este club.
           </p>
         )}
       </div>
@@ -45,7 +45,7 @@ export default function ClubEconomyFields({
           onChange={(e) => set({ referralCommissionPct: e.target.value })}
         />
         <p className="text-xs text-depro-gray mt-1.5">
-          Porcentaje acordado con este club sobre lo que pague un jugador con el código. No tiene que ser el mismo en todos.
+          Porcentaje de este club. Ejemplo: total 100 € × 15 % = 15 €; total 90 € × 15 % = 13,50 €. No es un 10 % fijo ni se aplica solo al precio de catálogo.
         </p>
       </div>
       <div>
