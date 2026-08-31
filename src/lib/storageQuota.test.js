@@ -30,6 +30,16 @@ describe("storageQuota", () => {
     assert.equal(localStorage.getItem("depro_player_logo_u1"), null);
   });
 
+  it("reclaim agresivo borra planes cacheados y deja el token", () => {
+    localStorage.setItem("depro_plan_u1", "{\"weeks\":[]}");
+    localStorage.setItem("depro_onboarding_draft_v1", "{}");
+    localStorage.setItem("sb-xyz-auth-token", "keep");
+    assert.equal(reclaimLocalStorage({ aggressive: true }), 2);
+    assert.equal(localStorage.getItem("sb-xyz-auth-token"), "keep");
+    assert.equal(localStorage.getItem("depro_plan_u1"), null);
+    assert.equal(localStorage.getItem("depro_onboarding_draft_v1"), null);
+  });
+
   it("safeSetItem no lanza si la cuota está llena", () => {
     globalThis.localStorage.setItem = () => {
       const err = new Error("The quota has been exceeded.");

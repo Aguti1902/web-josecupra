@@ -56,8 +56,11 @@ function trainingMetaFromSnapshot(snap) {
   if (!snap || typeof snap !== "object") return null;
   const objetivos = resolveObjetivosMeta(snap);
   const lesion = normalizeMetaList(snap.lesion).filter((l) => !/^ninguna$/i.test(l));
+  const phone = String(snap.phone || snap.telefono || "").trim();
   return {
     edad: snap.edad != null && snap.edad !== "" ? String(snap.edad) : undefined,
+    phone: phone || undefined,
+    telefono: phone || undefined,
     deporte: snap.deporte || undefined,
     frecuencia: normalizeFrecuenciaMeta(snap.frecuencia) || undefined,
     objetivos: objetivos.length ? objetivos : undefined,
@@ -72,6 +75,37 @@ function trainingMetaFromSnapshot(snap) {
       ? normalizeMetaList(snap.disponibles)
       : undefined,
   };
+}
+
+/** Campos de identidad/billing que caben en el JWT. Nada de planes ni mesociclos. */
+const AUTH_META_KEEP = new Set([
+  "name", "audience", "role", "plan",
+  "objetivo", "objetivoSecundario", "objetivos",
+  "deporte", "frecuencia", "material", "experiencia", "diaCompeticion", "edad",
+  "phone", "telefono", "lesion", "lesionSubtipo", "disponibles",
+  "clubCode", "clubId", "teamId", "clubName", "teamRole", "managedTeamIds",
+  "primaryColor", "secondaryColor",
+  "subscriptionStatus", "stripeSubscriptionId", "stripeCustomerId", "trialEndsAt",
+  "billingSource", "coachAuto", "pendingPayment", "planPendingManual",
+  "hasAssignedPlan", "assignedPlanAt", "purchasedAddons", "isSoloCoach",
+  "posicion", "position", "manualPrice", "subscriptionCancelAt",
+  "isDraft", "paymentComplete", "discountCode",
+]);
+
+function slimAuthMetadata(meta = {}) {
+  const out = {};
+  for (const [k, v] of Object.entries(meta || {})) {
+    if (!AUTH_META_KEEP.has(k) || v === undefined) continue;
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      if (v.weeks || v.sessions || v.days || v.profileSnapshot) continue;
+    }
+    if (typeof v === "string" && v.length > 800) {
+      out[k] = v.slice(0, 800);
+      continue;
+    }
+    out[k] = v;
+  }
+  return out;
 }
 
 async function resolveCaller(req, admin) {
@@ -154,13 +188,18 @@ export default async function handler(req, res) {
         const cleaned = trainingMeta
           ? Object.fromEntries(Object.entries(trainingMeta).filter(([, v]) => v !== undefined))
           : {};
+        const prev = userData.user.user_metadata || {};
+        const phone = String(
+          cleaned.phone || cleaned.telefono || prev.phone || prev.telefono || "",
+        ).trim();
         await admin.auth.admin.updateUserById(userId, {
           user_metadata: {
-            ...(userData.user.user_metadata || {}),
+            ...slimAuthMetadata(prev),
             hasAssignedPlan: true,
             assignedPlanAt: new Date().toISOString(),
             planPendingManual: false,
             ...cleaned,
+            ...(phone ? { phone, telefono: phone } : {}),
           },
         });
       }

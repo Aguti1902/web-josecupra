@@ -14,7 +14,7 @@ import { getImpersonationSnapshot, stopImpersonation, isRealAdminUser } from "..
 import { parseCoachAutoFromMeta, isProCoachUser } from "../lib/clubAuto/clubAutoCoachBridge";
 import { isSessionPresenceEvent, isSignedOutEvent } from "../lib/authSession";
 import { applyPurgedPlayersToStorage, filterPurgedFromList } from "../lib/clubPlayerPurge";
-import { reclaimLocalStorage } from "../lib/storageQuota";
+import { reclaimLocalStorage, isQuotaError } from "../lib/storageQuota";
 import { isMetaClubId } from "../lib/adminGlobalBlobs";
 
 const AuthContext = createContext(null);
@@ -337,6 +337,38 @@ async function fetchProfile(userId) {
   }
 }
 
+function minimalUserFromAuth(authUser) {
+  const meta = authUser?.user_metadata || {};
+  const email = authUser?.email || "";
+  return {
+    id: authUser?.id,
+    email,
+    name: meta.name || email.split("@")[0] || "Usuario",
+    avatar: (meta.name || email || "U")[0]?.toUpperCase() || "U",
+    role: email === "jose@depro.es" ? "admin" : (meta.role || "player"),
+    plan: meta.plan || null,
+    phone: meta.phone || meta.telefono || null,
+    telefono: meta.telefono || meta.phone || null,
+    subscriptionStatus: meta.subscriptionStatus || null,
+    hasAssignedPlan: meta.hasAssignedPlan === true,
+  };
+}
+
+function hydrateUserFromAuth(authUser) {
+  try {
+    return withImpersonation(buildUser(authUser, null));
+  } catch (err) {
+    console.error("[auth] buildUser failed", err);
+    if (isQuotaError(err)) {
+      try { reclaimLocalStorage({ aggressive: true }); } catch { /* cupo */ }
+      try {
+        return withImpersonation(buildUser(authUser, null));
+      } catch { /* fallback mínimo */ }
+    }
+    return withImpersonation(minimalUserFromAuth(authUser));
+  }
+}
+
 function sessionIsDraftBlocked(authUser) {
   if (!authUser) return false;
   if (getImpersonationSnapshot()) return false;
@@ -464,7 +496,7 @@ export function AuthProvider({ children }) {
         setTimeout(() => { supabase.auth.signOut().catch(() => {}); }, 0);
         return;
       }
-      setUser(withImpersonation(buildUser(session.user, null)));
+      setUser(hydrateUserFromAuth(session.user));
       setLoading(false);
       if (enrich) enrichUser(session);
     };
@@ -676,12 +708,21 @@ export function AuthProvider({ children }) {
 
   // ── Login ──────────────────────────────────────────────────
   const login = async (email, password) => {
+    const creds = { email: email.trim().toLowerCase(), password };
     try {
       try { reclaimLocalStorage(); } catch { /* cupo: dejar sitio al token */ }
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      let data;
+      let error;
+      try {
+        ({ data, error } = await supabase.auth.signInWithPassword(creds));
+      } catch (signErr) {
+        if (isQuotaError(signErr)) {
+          try { reclaimLocalStorage({ aggressive: true }); } catch { /* cupo */ }
+          ({ data, error } = await supabase.auth.signInWithPassword(creds));
+        } else {
+          throw signErr;
+        }
+      }
 
       if (error) {
         const msg =
@@ -703,7 +744,7 @@ export function AuthProvider({ children }) {
       }
 
       if (data?.user) {
-        setUser(withImpersonation(buildUser(data.user, null)));
+        setUser(hydrateUserFromAuth(data.user));
       }
 
       const role =
@@ -712,8 +753,22 @@ export function AuthProvider({ children }) {
           : (data?.user?.user_metadata?.role ?? "player");
 
       return { success: true, role };
-    } catch {
-      return { success: false, error: "Error de conexión. Inténtalo de nuevo." };
+    } catch (err) {
+      console.error("[auth] login failed", err);
+      if (isQuotaError(err)) {
+        return {
+          success: false,
+          error: "El navegador no tiene espacio suficiente. Cierra pestañas o borra datos del sitio e inténtalo de nuevo.",
+        };
+      }
+      const msg = String(err?.message || "");
+      if (/fetch|network|failed to fetch|load failed|connection/i.test(msg)) {
+        return { success: false, error: "Error de conexión. Inténtalo de nuevo." };
+      }
+      return {
+        success: false,
+        error: msg || "No se pudo iniciar sesión. Inténtalo de nuevo.",
+      };
     }
   };
 

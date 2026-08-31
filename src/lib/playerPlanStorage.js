@@ -3,6 +3,8 @@
  * localStorage (caché) + API /api/player-plan (fuente de verdad cross-device).
  */
 
+import { safeSetItem } from "./storageQuota.js";
+
 export function playerPlanKey(userId) {
   return `depro_plan_${userId}`;
 }
@@ -144,9 +146,7 @@ export function loadPlayerPlan(userId) {
 
 export function savePlayerPlan(userId, plan) {
   if (!userId || !plan) return;
-  try {
-    localStorage.setItem(playerPlanKey(userId), JSON.stringify(plan));
-  } catch { /* ignore quota */ }
+  safeSetItem(localStorage, playerPlanKey(userId), JSON.stringify(plan));
 }
 
 export function clearPlayerPlan(userId) {

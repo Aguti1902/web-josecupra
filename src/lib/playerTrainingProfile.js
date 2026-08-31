@@ -81,6 +81,12 @@ export function resolveEdad(data = {}) {
   return String(raw).trim();
 }
 
+/** Teléfono del cuestionario / metadata (phone o telefono). */
+export function resolvePhone(data = {}) {
+  const raw = data.phone ?? data.telefono ?? data.tel ?? "";
+  return String(raw || "").trim();
+}
+
 export function resolveLesiones(data = {}) {
   const list = normalizeStringList(data.lesion);
   if (!list.length || (list.length === 1 && /ninguna/i.test(list[0]))) return ["Ninguna"];
@@ -111,6 +117,8 @@ export function trainingProfileSnapshotFromAny(data = {}) {
     : lesionRaw.filter((l) => !/ninguna/i.test(l));
   return {
     edad: resolveEdad(data),
+    phone: resolvePhone(data),
+    telefono: resolvePhone(data),
     deporte: data.deporte || "",
     frecuencia: normalizeFrecuencia(data.frecuencia),
     objetivos,
@@ -161,8 +169,11 @@ export function mergeTrainingSources(user = {}, plan = null) {
   const lesionUser = normalizeStringList(user.lesion);
   const disponiblesUser = normalizeStringList(user.disponibles);
 
+  const phone = firstNonEmpty(fromUser.phone || fromUser.telefono, fromPlan.phone || fromPlan.telefono) || "";
   const merged = {
     edad: firstNonEmpty(fromUser.edad, fromPlan.edad) || "",
+    phone,
+    telefono: phone,
     deporte: firstNonEmpty(fromUser.deporte, fromPlan.deporte) || "",
     frecuencia: firstNonEmpty(fromUser.frecuencia, fromPlan.frecuencia) || "",
     objetivos,
@@ -201,6 +212,8 @@ export function trainingFieldsToAuthMetadata(fields = {}) {
   const snap = trainingProfileSnapshotFromAny(fields);
   return {
     edad: snap.edad,
+    phone: snap.phone,
+    telefono: snap.telefono || snap.phone,
     deporte: snap.deporte,
     frecuencia: snap.frecuencia,
     objetivos: snap.objetivos,

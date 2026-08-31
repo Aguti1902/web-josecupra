@@ -681,10 +681,11 @@ function ProgressionTab({ clientId }) {
 /* ── PROFILE TAB ─────────────────────────────────────────────────── */
 function ProfileTab({ client }) {
   const accent = client.club?.primaryColor || "#0A36F7";
+  const phone = client.phone || client.telefono || "";
   const info = [
     { label: "Nombre", value: client.name },
     { label: "Email", value: client.email },
-    { label: "Teléfono", value: client.phone || client.telefono || "—" },
+    { label: "Teléfono", value: phone || "—" },
     { label: "Tipo", value: client.role },
     { label: "Plan", value: client.plan },
     { label: "Club", value: client.club?.name },
@@ -759,7 +760,16 @@ export default function AdminClientDetailPage() {
 
   const fromList = clients.find((c) => String(c.id) === String(clientId));
   const fromAll = allUsers.find((u) => String(u.id) === String(clientId));
-  const client = fromList || (fromAll ? mapPlayerToClient(fromAll) : null);
+  const mapped = fromList || (fromAll ? mapPlayerToClient(fromAll) : null);
+  let client = mapped;
+  if (client && !(client.phone || client.telefono)) {
+    try {
+      const plan = loadPlayerPlan(client.id);
+      const snap = plan?.profileSnapshot || plan?._meta?.profileSnapshot || {};
+      const fromPlan = snap.phone || snap.telefono || "";
+      if (fromPlan) client = { ...client, phone: fromPlan, telefono: fromPlan };
+    } catch { /* ignore */ }
+  }
 
   if (!client && clientsLoading) {
     return (

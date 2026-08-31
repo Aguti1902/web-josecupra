@@ -44,6 +44,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
       teamId: "",
       email: formData?.email || "",
       nombre: formData?.nombre || "",
+      phone: String(formData?.phone || formData?.telefono || "").trim(),
     },
   };
   if (withTrial) {
@@ -65,6 +66,8 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
       plan: planId,
       nombre: formData?.nombre || "",
       email: formData?.email || "",
+      phone: String(formData?.phone || formData?.telefono || "").trim(),
+      telefono: String(formData?.phone || formData?.telefono || "").trim(),
       edad: String(formData?.edad || ""),
       objetivo: formData?.objetivo || (formData?.objetivos?.[0] || ""),
       objetivoSecundario: formData?.objetivoSecundario || (formData?.objetivos?.[1] || ""),

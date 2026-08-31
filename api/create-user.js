@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     clubId, teamId, teamRole, managedTeamIds,
     plan, subscriptionStatus, billingSource,
     posicion, deporte, objetivo, edad, frecuencia, material, experiencia, disponibles, lesion,
-    clubName, clubCode, purchasedAddons, manualPrice, isSoloCoach,
+    clubName, clubCode, purchasedAddons, manualPrice, isSoloCoach, phone, telefono,
   } = req.body || {};
 
   if (!email || !password) {
@@ -96,6 +96,8 @@ export default async function handler(req, res) {
     deporte: deporte || undefined,
     objetivo: objetivo || undefined,
     edad: edad || undefined,
+    phone: phone || telefono || undefined,
+    telefono: telefono || phone || undefined,
     frecuencia: frecuencia || undefined,
     material: material || undefined,
     experiencia: experiencia || undefined,

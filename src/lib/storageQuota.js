@@ -10,6 +10,15 @@ const HEAVY_PREFIXES = [
   "depro_player_logo_",
   "depro_player_banner_",
 ];
+const AGGRESSIVE_PREFIXES = [
+  "depro_plan_",
+  "depro_player_plan_",
+  "depro_onboarding",
+  "depro_catalog",
+  "depro_global_plans",
+  "depro_player_logo_",
+  "depro_player_banner_",
+];
 
 function allKeys(storage) {
   const keys = [];
@@ -22,22 +31,38 @@ function allKeys(storage) {
   return keys;
 }
 
+function shouldReclaim(key, aggressive) {
+  if (HEAVY_PREFIXES.some((p) => key.startsWith(p))) return true;
+  if (!aggressive) return false;
+  return AGGRESSIVE_PREFIXES.some((p) => key.startsWith(p))
+    || key === "depro_onboarding_draft_v1"
+    || key === "depro_onboarding_draft";
+}
+
 /**
  * Libera espacio de branding/caché para que el token de sesión quepa.
  * No toca claves de autenticación.
+ * @param {boolean|{aggressive?: boolean}} [opts]
  */
-export function reclaimLocalStorage() {
+export function reclaimLocalStorage(opts = {}) {
   if (typeof localStorage === "undefined") return 0;
+  const aggressive = opts === true || opts?.aggressive === true;
   let removed = 0;
   const keys = allKeys(localStorage);
   for (const key of keys) {
     if (AUTH_KEY.test(key)) continue;
-    if (HEAVY_PREFIXES.some((p) => key.startsWith(p))) {
+    let drop = shouldReclaim(key, aggressive);
+    if (!drop && aggressive) {
       try {
-        localStorage.removeItem(key);
-        removed += 1;
+        const val = localStorage.getItem(key);
+        if (typeof val === "string" && val.length > 80000) drop = true;
       } catch { /* ignore */ }
     }
+    if (!drop) continue;
+    try {
+      localStorage.removeItem(key);
+      removed += 1;
+    } catch { /* ignore */ }
   }
   return removed;
 }
@@ -54,7 +79,13 @@ export function safeSetItem(storage, key, value) {
       storage.setItem(key, value);
       return true;
     } catch {
-      return false;
+      reclaimLocalStorage({ aggressive: true });
+      try {
+        storage.setItem(key, value);
+        return true;
+      } catch {
+        return false;
+      }
     }
   }
 }

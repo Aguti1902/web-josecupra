@@ -5,6 +5,7 @@ import {
   normalizeFrecuencia,
   resolveObjetivos,
   resolveEdad,
+  resolvePhone,
   filterCatalogObjetivos,
   trainingFieldsFromUser,
   mergeTrainingSources,
@@ -42,6 +43,12 @@ describe("playerTrainingProfile", () => {
     assert.equal(resolveEdad({ edad: "19" }), "19");
   });
 
+  it("resuelve teléfono desde phone o telefono", () => {
+    assert.equal(resolvePhone({ phone: "600123123" }), "600123123");
+    assert.equal(resolvePhone({ telefono: " 611222333 " }), "611222333");
+    assert.equal(resolvePhone({}), "");
+  });
+
   it("trainingFieldsFromUser marca respuestas del cuestionario", () => {
     const f = trainingFieldsFromUser({
       edad: "24",
@@ -65,6 +72,7 @@ describe("playerTrainingProfile", () => {
     const plan = {
       profileSnapshot: trainingProfileSnapshotFromAny({
         edad: "25",
+        phone: "600999888",
         frecuencia: "3",
         objetivos: ["Fuerza", "Velocidad"],
         deporte: "Fútbol",
@@ -76,6 +84,7 @@ describe("playerTrainingProfile", () => {
     };
     const merged = mergeTrainingSources({ objetivo: "Rendimiento" }, plan);
     assert.equal(merged.edad, "25");
+    assert.equal(merged.phone, "600999888");
     assert.equal(merged.frecuencia, "3 días / sem");
     assert.deepEqual(merged.objetivos, ["Fuerza", "Velocidad"]);
     assert.equal(merged.deporte, "Fútbol");
@@ -98,6 +107,7 @@ describe("playerTrainingProfile", () => {
   it("trainingFieldsToAuthMetadata exporta forma lista para Supabase", () => {
     const meta = trainingFieldsToAuthMetadata({
       edad: 22,
+      phone: "600111222",
       frecuencia: "3",
       objetivos: ["Fuerza", "Velocidad"],
       material: ["Mancuernas"],
@@ -105,6 +115,8 @@ describe("playerTrainingProfile", () => {
       disponibles: ["Lunes", "Jueves"],
     });
     assert.equal(meta.frecuencia, "3 días / sem");
+    assert.equal(meta.phone, "600111222");
+    assert.equal(meta.telefono, "600111222");
     assert.deepEqual(meta.objetivos, ["Fuerza", "Velocidad"]);
     assert.equal(meta.objetivo, "Fuerza");
     assert.equal(meta.objetivoSecundario, "Velocidad");
