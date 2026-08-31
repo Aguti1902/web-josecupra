@@ -8,15 +8,18 @@ import {
 import { EXERCISES, TAGS } from "../../data/exercises";
 import { CATALOG_FOLDERS } from "../../data/extraExercises";
 import { getYouTubeId } from "../../lib/youtube";
-import { invalidateCatalogMediaCache } from "../../lib/catalogMedia";
+import { invalidateCatalogMediaCache, overrideKeysForExercise } from "../../lib/catalogMedia";
 import { hideCatalogExercise } from "../../lib/exerciseSelector";
-import { mergePreferVideo, countOverrideVideos } from "../../lib/contentRestore";
+import {
+  loadLocalCatalogOverrides,
+  saveLocalCatalogOverrides,
+  persistCatalogOverrides,
+  hydrateCatalogOverrides,
+} from "../../lib/catalogOverridesPersist";
 
 /* ── Helpers ──────────────────────────────────────────────── */
-const CATALOG_OVERRIDES_KEY = "depro_catalog_overrides";
 const CATALOG_CUSTOM_KEY = "depro_catalog_custom_exercises";
 const CATALOG_HIDDEN_KEY = "depro_catalog_hidden_ids";
-const CATALOG_CLOUD_ID = "CATALOG_OVERRIDES";
 
 function loadCustomExercises() {
   try { return JSON.parse(localStorage.getItem(CATALOG_CUSTOM_KEY) || "[]"); }
@@ -32,37 +35,7 @@ function loadHiddenIds() {
 }
 
 function loadOverrides() {
-  try { return JSON.parse(localStorage.getItem(CATALOG_OVERRIDES_KEY) || "{}"); }
-  catch { return {}; }
-}
-async function fetchOverridesFromCloud() {
-  try {
-    const r = await fetch(`/api/admin-clubs?id=${encodeURIComponent(CATALOG_CLOUD_ID)}`);
-    if (r.ok) {
-      const data = await r.json();
-      const entry = (data.clubs || [])[0];
-      if (entry?.overrides) return entry.overrides;
-    }
-  } catch { /* ignore */ }
-  try {
-    const r = await fetch("/api/admin-clubs");
-    if (!r.ok) return null;
-    const data = await r.json();
-    const entry = (data.clubs || []).find((c) => c.id === CATALOG_CLOUD_ID);
-    return entry?.overrides ?? null;
-  } catch { return null; }
-}
-async function saveOverridesToCloud(overrides) {
-  localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(overrides));
-  const res = await fetch("/api/admin-clubs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      club: { id: CATALOG_CLOUD_ID, name: "Catalog Overrides" },
-      detail: { overrides },
-    }),
-  });
-  if (!res.ok) throw new Error(await res.text());
+  return loadLocalCatalogOverrides();
 }
 
 /* Etiqueta por tipo de material */
@@ -365,6 +338,7 @@ export default function AdminCatalogPage({ embedded = false }) {
   const [adding, setAdding]     = useState(false);
   const [syncing, setSyncing]   = useState(false);
   const [saved, setSaved]       = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [hiddenIds, setHiddenIds] = useState(loadHiddenIds);
 
   const allExercises = useMemo(
@@ -374,17 +348,18 @@ export default function AdminCatalogPage({ embedded = false }) {
 
   // Cargar overrides desde la nube al montar (no pisar vídeos locales)
   useEffect(() => {
-    fetchOverridesFromCloud().then((cloud) => {
-      const local = loadOverrides();
-      if (!cloud) return;
-      const merged = mergePreferVideo(local, cloud);
+    let cancelled = false;
+    hydrateCatalogOverrides().then(({ overrides: merged, shouldPush }) => {
+      if (cancelled) return;
       setOverrides(merged);
-      localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(merged));
       invalidateCatalogMediaCache();
-      if (countOverrideVideos(local) > 0 && countOverrideVideos(cloud) === 0) {
-        saveOverridesToCloud(merged).catch(() => {});
+      if (shouldPush) {
+        persistCatalogOverrides(merged).catch((err) => {
+          if (!cancelled) setSaveError(err.message || "No se pudieron subir los vídeos a la base de datos.");
+        });
       }
-    });
+    }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -393,24 +368,25 @@ export default function AdminCatalogPage({ embedded = false }) {
   }, [searchParams]);
 
   // Guardar override de un ejercicio
-  const handleSaveOverride = (exerciseId, data, exercise = null) => {
-    const updated = { ...overrides, [exerciseId]: { ...overrides[exerciseId], ...data } };
-    const aliases = new Set([String(exerciseId)]);
+  const handleSaveOverride = async (exerciseId, data, exercise = null) => {
     const ex = exercise || allExercises.find((e) => String(e.id) === String(exerciseId));
-    if (ex?.v2Id != null) {
-      aliases.add(String(ex.v2Id));
-      aliases.add(`v2_${ex.v2Id}`);
-    }
-    const raw = String(exerciseId);
-    if (raw.startsWith("v2_")) aliases.add(raw.replace(/^v2_/, "").split("_")[0]);
-    else if (/^\d+$/.test(raw)) aliases.add(`v2_${raw}`);
-    for (const key of aliases) {
-      updated[key] = { ...updated[key], ...data };
+    const updated = { ...overrides };
+    const payload = { ...data, name: ex?.nombre || ex?.name || data.name };
+    const keys = new Set([String(exerciseId), ...overrideKeysForExercise(ex || { id: exerciseId })]);
+    for (const key of keys) {
+      updated[key] = { ...updated[key], ...payload };
     }
     setOverrides(updated);
-    localStorage.setItem(CATALOG_OVERRIDES_KEY, JSON.stringify(updated));
+    saveLocalCatalogOverrides(updated);
     invalidateCatalogMediaCache();
-    saveOverridesToCloud(updated).catch(() => {});
+    setSaveError("");
+    try {
+      await persistCatalogOverrides(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setSaveError(err.message || "No se pudo guardar el vídeo en la base de datos. Inténtalo de nuevo.");
+    }
   };
 
   const handleAddExercise = (form) => {
@@ -457,12 +433,13 @@ export default function AdminCatalogPage({ embedded = false }) {
 
   const handleSyncNow = async () => {
     setSyncing(true);
+    setSaveError("");
     try {
-      await saveOverridesToCloud(overrides);
+      await persistCatalogOverrides(overrides);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
-      console.error("[DEPRO] Error sync catálogo", e);
+      setSaveError(e.message || "No se pudieron guardar los vídeos en la base de datos.");
     } finally {
       setSyncing(false);
     }
@@ -553,12 +530,23 @@ export default function AdminCatalogPage({ embedded = false }) {
       <div className="flex items-start gap-3 bg-depro-blue-light/30 border border-depro-blue/20 rounded-2xl px-4 py-3">
         <Info size={16} className="text-depro-blue flex-shrink-0 mt-0.5" />
         <p className="text-xs text-depro-dark/70">
-          Catálogo multi-eje del motor (objetivo · segmento · patrón · grupo muscular · rol · material).
-          Las «carpetas» son vistas filtradas por objetivo; un ejercicio puede aparecer en varias.
-          Añade vídeo, descripción y tips — el motor rellena slots con filtrado AND.
+          Las URLs de YouTube se guardan en la base de datos (no solo en este navegador).
+          Regenerar el catálogo no las borra. Si al guardar ves un error, no cierres hasta que aparezca «Guardado».
+          El motor usa estas URLs en las rutinas de los jugadores.
         </p>
       </div>
       </>
+      )}
+
+      {saveError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {saveError}
+        </div>
+      )}
+      {saved && !saveError && (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          Vídeos guardados en la base de datos.
+        </div>
       )}
 
       {embedded && (

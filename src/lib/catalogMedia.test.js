@@ -56,7 +56,32 @@ describe("catalogMedia", () => {
     assert.equal(url, "https://youtu.be/abcdefghijk");
   });
 
-  it("respeta videoUrl ya presente en el ejercicio", () => {
+  it("el override del admin gana sobre el videoUrl del catálogo compilado", () => {
+    const media = mergeCatalogMedia({
+      v2_1: { videoUrl: "https://youtu.be/adminvideo1" },
+    });
+    assert.equal(
+      resolveExerciseVideo({
+        id: 1,
+        catalogId: 1,
+        nombre: "Sentadilla clásica",
+        videoUrl: "https://youtu.be/catalogshare",
+      }, media),
+      "https://youtu.be/adminvideo1",
+    );
+  });
+
+  it("resuelve por clave name: si cambian los ids al regenerar", () => {
+    const media = mergeCatalogMedia({
+      "name:sentadilla clasica": { videoUrl: "https://youtu.be/byname12345" },
+    });
+    assert.equal(
+      resolveExerciseVideo({ id: 999, nombre: "Sentadilla clásica" }, media),
+      "https://youtu.be/byname12345",
+    );
+  });
+
+  it("usa el videoUrl del ejercicio si no hay override", () => {
     const media = mergeCatalogMedia({});
     assert.equal(
       resolveExerciseVideo({ nombre: "X", videoUrl: "https://youtu.be/zzzzzzzzzzz" }, media),

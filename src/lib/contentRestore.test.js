@@ -20,6 +20,16 @@ describe("contentRestore", () => {
     assert.equal(list[0].id, "cgw_1");
   });
 
+  it("POST de overrides nunca pisa un vídeo existente con vacío", () => {
+    const merged = mergePreferVideo(
+      { v2_1: { videoUrl: "" }, v2_3: { videoUrl: "https://youtu.be/nuevo123456" } },
+      { v2_1: { videoUrl: "https://youtu.be/keepme12345" }, v2_2: { videoUrl: "https://youtu.be/otroexist12" } },
+    );
+    assert.equal(merged.v2_1.videoUrl, "https://youtu.be/keepme12345");
+    assert.equal(merged.v2_2.videoUrl, "https://youtu.be/otroexist12");
+    assert.equal(merged.v2_3.videoUrl, "https://youtu.be/nuevo123456");
+  });
+
   it("no pisa un vídeo local con un override vacío de la nube", () => {
     const merged = mergePreferVideo(
       { v2_1: { videoUrl: "https://youtu.be/keepme12345" } },
