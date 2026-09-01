@@ -12,6 +12,8 @@ import {
   parseCommissionPct,
   formatCommissionPreview,
   looksLikeCatalogPlanAmount,
+  centsAfterClubPct,
+  clubCartTotals,
 } from "./clubEconomy.js";
 
 describe("clubEconomy", () => {
@@ -40,6 +42,18 @@ describe("clubEconomy", () => {
     assert.equal(clubCommissionOnTotal(9000, { referralCommissionPct: 10 }), 900);
     assert.equal(clubCommissionOnTotal(10000, { referralCommissionPct: 25 }), 2500);
     assert.equal(clubCommissionOnTotal(3900, { referralCommissionPct: 15 }), 585);
+  });
+
+  it("el % del club se aplica al plan + extras (29+10 → 35,10)", () => {
+    assert.equal(centsAfterClubPct(2900, 10), 2610);
+    assert.equal(centsAfterClubPct(500, 10), 450);
+    assert.equal(centsAfterClubPct(3900, 10), 3510);
+    const cart = clubCartTotals({ planPrice: 29, addonsTotal: 10, pct: 10, hasDiscount: true });
+    assert.equal(cart.subtotal, 39);
+    assert.equal(cart.discount, 3.9);
+    assert.equal(cart.total, 35.1);
+    const cart90 = clubCartTotals({ planPrice: 100, addonsTotal: 0, pct: 10, hasDiscount: true });
+    assert.equal(cart90.total, 90);
   });
 
   it("preview 100 € y 90 € con el % del club", () => {

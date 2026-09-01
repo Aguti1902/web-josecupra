@@ -22,6 +22,11 @@ describe("_addonCatalog", () => {
     assert.ok(item.price || item.price_data);
   });
 
+  it("al aplicar el % del club usa price_data con el extra descontado", () => {
+    const item = buildAddonLineItem("addon-pdf", 450);
+    assert.equal(item.price_data.unit_amount, 450);
+  });
+
   it("catálogo alineado con extras jugador y coach", () => {
     const ids = ["addon-pdf", "addon-cargas", "addon-progression", "addon-coach-ball-refresh", "addon-coach-teams"];
     ids.forEach((id) => {

@@ -89,17 +89,19 @@ export function getStripeAddonPriceId(addonId) {
   return pricesMap()[id] || null;
 }
 
-export function buildAddonLineItem(addonId) {
+export function buildAddonLineItem(addonId, amountCents) {
   const def = getAddonDef(addonId);
   if (!def) return null;
+  const amount = amountCents != null ? Math.round(Number(amountCents)) : def.amount;
+  if (!Number.isFinite(amount) || amount < 0) return null;
   const priceId = getStripeAddonPriceId(def.id);
-  if (priceId) {
+  if (priceId && amount === def.amount) {
     return { price: priceId, quantity: 1 };
   }
   return {
     price_data: {
       currency: "eur",
-      unit_amount: def.amount,
+      unit_amount: amount,
       recurring: { interval: "month" },
       product_data: {
         name: def.name,

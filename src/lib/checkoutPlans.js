@@ -1,6 +1,7 @@
 /** Planes de suscripción DEPRO — IDs alineados con landing y Stripe checkout */
 
 import { COACH_EXTRA_TEAMS_ADDON, COACH_STANDARD_MAX_TEAMS, COACH_TEAMS_WITH_ADDON } from "./coachAddons.js";
+import { centsAfterClubPct, DEFAULT_CLUB_COMMISSION_PCT } from "./clubEconomy.js";
 
 export const AUDIENCES = {
   coach: { id: "coach", label: "Entrenador" },
@@ -197,12 +198,12 @@ export function formatPrice(price) {
   return `${price.toFixed(2).replace(".", ",")}€`;
 }
 
-/** Descuento del código club en planificaciones individuales (10%). */
-export const CLUB_DISCOUNT_PCT = 10;
+/** Descuento del código club: % del club sobre el total (plan + extras). */
+export const CLUB_DISCOUNT_PCT = DEFAULT_CLUB_COMMISSION_PCT;
 
 export function applyClubDiscount(price, pct = CLUB_DISCOUNT_PCT) {
-  const rate = 1 - (Number(pct) || CLUB_DISCOUNT_PCT) / 100;
-  return Math.round(price * rate * 100) / 100;
+  const euros = Number(price) || 0;
+  return centsAfterClubPct(Math.round(euros * 100), pct) / 100;
 }
 
 /** Límites del plan. Si el plan no se reconoce, se devuelve ilimitado (fail-open). */

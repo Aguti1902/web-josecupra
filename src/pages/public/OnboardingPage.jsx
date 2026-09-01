@@ -7,15 +7,15 @@ import {
   ChevronRight, ChevronDown, BadgeCheck, MapPin, Building2, Users,
 } from "lucide-react";
 import {
-  AUDIENCES, PLANS, resolvePlanId, plansForAudience, formatPrice, applyClubDiscount,
-  planHasCheckoutTrial,
+  AUDIENCES, PLANS, resolvePlanId, plansForAudience, formatPrice,
+  planHasCheckoutTrial, CLUB_DISCOUNT_PCT,
 } from "../../lib/checkoutPlans";
 import { useAuth } from "../../context/AuthContext";
 import { PLAYER_ADDONS } from "../../lib/playerAddons";
 import { COACH_ADDONS } from "../../lib/coachAddons";
 import TeamBrandingFields, { saveCoachBrandingDraft } from "../../components/shared/TeamBrandingFields";
 import { COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
-import { clubMatchesDiscountCode } from "../../lib/clubEconomy";
+import { clubMatchesDiscountCode, clubCartTotals, clubCommissionPct } from "../../lib/clubEconomy";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 import EmbeddedStripeCheckout from "../../components/public/EmbeddedStripeCheckout";
 import CoachAutoQuestionnaire from "../../components/shared/CoachAutoQuestionnaire";
@@ -425,22 +425,34 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
   const email = loggedInEmail || form.email;
   const [clubCodeMsg, setClubCodeMsg] = useState("");
 
-  const resolveClubFromCode = (codeRaw) => {
+  const resolveClubFromCode = async (codeRaw) => {
     if (!codeRaw?.trim()) {
       setClubCodeMsg("");
-      setForm((f) => ({ ...f, clubId: "", clubTeamId: "" }));
+      setForm((f) => ({ ...f, clubId: "", clubTeamId: "", clubCommissionPct: "" }));
       return true;
     }
+    const code = codeRaw.trim().toUpperCase();
+    try {
+      const res = await fetch(`/api/club-code?code=${encodeURIComponent(code)}`);
+      const data = await res.json().catch(() => ({}));
+      if (data?.valid) {
+        const pct = clubCommissionPct({ referralCommissionPct: data.commissionPct });
+        setClubCodeMsg(`Club encontrado${data.name ? `: ${data.name}` : ""}. El ${pct}% se aplica al total (plan + extras).`);
+        setForm((f) => ({ ...f, clubId: data.clubId || "", clubTeamId: "", clubCommissionPct: pct }));
+        return true;
+      }
+    } catch { /* fallback local */ }
     try {
       const clubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
-      const code = codeRaw.trim().toUpperCase();
       const found = clubs.find((c) => clubMatchesDiscountCode(c, code));
       if (!found) {
         setClubCodeMsg("Código no encontrado");
+        setForm((f) => ({ ...f, clubId: "", clubTeamId: "", clubCommissionPct: "" }));
         return false;
       }
-      setClubCodeMsg(`Club encontrado: ${found.name}. Se aplica el descuento y la identidad visual, sin asignarte a un equipo.`);
-      setForm((f) => ({ ...f, clubId: found.id, clubTeamId: "" }));
+      const pct = clubCommissionPct(found);
+      setClubCodeMsg(`Club encontrado: ${found.name}. El ${pct}% se aplica al total (plan + extras).`);
+      setForm((f) => ({ ...f, clubId: found.id, clubTeamId: "", clubCommissionPct: pct }));
       return true;
     } catch {
       setClubCodeMsg("No se pudo validar el código");
@@ -464,14 +476,14 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
   const handleNext = () => {
     if (clubCodeBlocking) {
       // No bloquear el cuestionario por un código mal escrito
-      setForm((f) => ({ ...f, clubCode: "", clubId: "", clubTeamId: "" }));
+      setForm((f) => ({ ...f, clubCode: "", clubId: "", clubTeamId: "", clubCommissionPct: "" }));
       setClubCodeMsg("Código no válido: continuamos sin descuento de club.");
     }
     setForm((f) => ({
       ...f,
       email: (loggedInEmail || f.email || "").trim(),
       nombre: (f.nombre || "").trim(),
-      ...(clubCodeBlocking ? { clubCode: "", clubId: "", clubTeamId: "" } : {}),
+      ...(clubCodeBlocking ? { clubCode: "", clubId: "", clubTeamId: "", clubCommissionPct: "" } : {}),
     }));
     if (audience === "coach" || audience === "club") {
       try {
@@ -488,7 +500,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
   };
 
   const clearClubCode = () => {
-    setForm((f) => ({ ...f, clubCode: "", clubId: "", clubTeamId: "" }));
+    setForm((f) => ({ ...f, clubCode: "", clubId: "", clubTeamId: "", clubCommissionPct: "" }));
     setClubCodeMsg("");
   };
 
@@ -581,7 +593,7 @@ function StepDatos({ audience, form, setForm, onNext, onBack, loggedInEmail, pla
               <input
                 type="text" value={form.clubCode}
                 onChange={(e) => {
-                  setForm((f) => ({ ...f, clubCode: e.target.value.toUpperCase(), clubId: "", clubTeamId: "" }));
+                  setForm((f) => ({ ...f, clubCode: e.target.value.toUpperCase(), clubId: "", clubTeamId: "", clubCommissionPct: "" }));
                   setClubCodeMsg("");
                 }}
                 onBlur={() => { if (form.clubCode?.trim()) resolveClubFromCode(form.clubCode); }}
@@ -1000,6 +1012,25 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
       status: "pending",
     });
   }, [authUserId, form.clubId, form.nombre, form.email, plan?.id]);
+
+  useEffect(() => {
+    const code = form.clubCode?.trim();
+    if (!code || plan?.audience !== "player") return;
+    if (form.clubCommissionPct != null && form.clubCommissionPct !== "") return;
+    let cancelled = false;
+    fetch(`/api/club-code?code=${encodeURIComponent(code)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled || !data?.valid) return;
+        setForm((f) => ({
+          ...f,
+          clubId: f.clubId || data.clubId || "",
+          clubCommissionPct: clubCommissionPct({ referralCommissionPct: data.commissionPct }),
+        }));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [form.clubCode, form.clubCommissionPct, plan?.audience, setForm]);
   const addonsTotal = effectiveAddons.reduce((sum, id) => sum + (cartAddons.find((a) => a.id === id)?.price || 0), 0);
 
   const toggleAddon = (id) => {
@@ -1039,8 +1070,15 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
   }
 
   const hasDiscount = !!form.clubCode && plan.audience === "player";
-  const discount    = hasDiscount ? Math.round((plan.price - applyClubDiscount(plan.price)) * 100) / 100 : 0;
-  const total       = (hasDiscount ? applyClubDiscount(plan.price) : plan.price) + addonsTotal;
+  const discountPct = hasDiscount
+    ? clubCommissionPct({ referralCommissionPct: form.clubCommissionPct || CLUB_DISCOUNT_PCT })
+    : 0;
+  const { total, discount, pct: shownPct } = clubCartTotals({
+    planPrice: plan.price,
+    addonsTotal,
+    pct: discountPct,
+    hasDiscount,
+  });
   const hasTrial = planHasCheckoutTrial(plan.id);
   const isImmediateCharge = !hasTrial;
 
@@ -1126,17 +1164,17 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
             <div className="p-5 space-y-2 text-sm">
               <div className="flex justify-between text-depro-gray">
                 <span>Plan {plan.audience === "club" ? "club" : plan.audience === "coach" ? "entrenador" : ""}</span>
-                <span className={hasDiscount ? "line-through text-depro-gray/70" : ""}>{formatPrice(plan.price)}</span>
+                <span>{formatPrice(plan.price)}</span>
               </div>
-              {hasDiscount && (
-                <div className="flex justify-between text-depro-green">
-                  <span className="flex items-center gap-1"><BadgeCheck size={13} /> Código club (−10%)</span>
-                  <span>– {formatPrice(discount)}</span>
-                </div>
-              )}
               {addonsTotal > 0 && (
                 <div className="flex justify-between text-depro-gray">
                   <span>Extras</span><span>{formatPrice(addonsTotal)}</span>
+                </div>
+              )}
+              {hasDiscount && (
+                <div className="flex justify-between text-depro-green">
+                  <span className="flex items-center gap-1"><BadgeCheck size={13} /> Código club (−{shownPct}% sobre el total)</span>
+                  <span>– {formatPrice(discount)}</span>
                 </div>
               )}
               <div className="border-t border-depro-border pt-3 flex justify-between items-baseline">
@@ -1354,6 +1392,7 @@ export default function OnboardingPage() {
     clubCode: "",
     clubId: "",
     clubTeamId: "",
+    clubCommissionPct: "",
     logo: "",
     primaryColor: "#0A36F7",
     secondaryColor: "#ffffff",
@@ -1420,6 +1459,7 @@ export default function OnboardingPage() {
       clubCode: "",
       clubId: "",
       clubTeamId: "",
+      clubCommissionPct: "",
       logo: "",
       primaryColor: "#0A36F7",
       secondaryColor: "#ffffff",

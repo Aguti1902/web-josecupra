@@ -2,11 +2,12 @@ import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 import {
   getAddonDef,
-  getStripeAddonPriceId,
   buildAddonLineItem,
   addonIdsFromSubscriptionItems,
   resolveAddonId,
 } from "./_addonCatalog.js";
+import { resolveClubEconomy } from "./_clubReferrals.js";
+import { centsAfterClubPct, clubCommissionPct } from "../src/lib/clubEconomy.js";
 
 function mergePurchasedAddons(existing = [], addonId) {
   const id = resolveAddonId(addonId);
@@ -62,8 +63,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, addonId: resolvedId, synced: true });
     }
 
-    const priceId = getStripeAddonPriceId(resolvedId);
-    const lineItem = buildAddonLineItem(resolvedId);
+    let addonAmount = undefined;
+    if (meta.clubId || meta.clubCode) {
+      try {
+        const club = await resolveClubEconomy(supabaseAdmin, {
+          clubId: meta.clubId,
+          clubCode: meta.clubCode,
+        });
+        if (club?.id) addonAmount = centsAfterClubPct(def.amount, clubCommissionPct(club));
+      } catch { /* catálogo */ }
+    }
+    const lineItem = buildAddonLineItem(resolvedId, addonAmount);
     if (!lineItem) return res.status(400).json({ error: "Extra no configurado en Stripe" });
 
     const extraItem = lineItem.price

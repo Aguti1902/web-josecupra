@@ -1,14 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
 import { PRICES, TRIAL_PERIOD_DAYS, buildCheckoutLineItem, planHasCheckoutTrial } from "./_planCatalog.js";
 import { buildAddonLineItem, getAddonDef } from "./_addonCatalog.js";
 import { getStripe, getSiteUrl } from "./_stripeClient.js";
-import { SUPABASE_SERVICE_ROLE_FALLBACK } from "./_serviceRoleKey.js";
-import { clubMatchesDiscountCode } from "../src/lib/clubEconomy.js";
+import { centsAfterClubPct, clubCommissionPct } from "../src/lib/clubEconomy.js";
 import { serializeCoachAutoForMeta } from "../src/lib/clubAuto/clubAutoCoachBridge.js";
 import { isClubSelfServeOpen, isClubCheckoutPlan, CLUB_COMING_SOON_COPY } from "../src/lib/productAvailability.js";
-
-const SUPABASE_URL = "https://lkbyybhtdeimktpaqgil.supabase.co";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_ROLE_FALLBACK;
+import { lookupClubByDiscountCode } from "./_clubReferrals.js";
+import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 
 function generatePassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -18,17 +15,14 @@ function generatePassword() {
 async function validateClubCode(code) {
   if (!code) return { valid: false };
   try {
-    const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-    const { data: clubs } = await sb.from("clubs").select("id, login_code").eq("login_code", code.toUpperCase()).limit(1);
-    if (clubs?.length) return { valid: true, clubId: clubs[0].id };
-    const { data: details } = await sb.from("clubs_detail").select("club_id, data");
-    const found = (details || []).find((d) => clubMatchesDiscountCode(d.data, code));
-    if (found) return { valid: true, clubId: found.club_id || found.id };
+    const admin = getSupabaseAdmin();
+    const found = await lookupClubByDiscountCode(admin, code);
+    if (found?.valid) return found;
   } catch { /* ignore */ }
   return { valid: false };
 }
 
-function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPassword, lineItems }) {
+function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPassword, lineItems, clubCommissionPct: pct }) {
   const lesionArr = formData?.lesion || [];
   const subArr = formData?.lesionSubtipo || [];
   const dispArr = formData?.disponibles || [];
@@ -46,6 +40,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
       nombre: formData?.nombre || "",
       phone: String(formData?.phone || formData?.telefono || "").trim(),
       selectedAddons: (formData?.selectedAddons || []).join("|"),
+      clubCommissionPct: pct != null && pct !== "" ? String(pct) : "",
     },
   };
   if (withTrial) {
@@ -86,6 +81,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
       equipos: formData?.equipos || "",
       clubCode,
       clubId,
+      clubCommissionPct: pct != null && pct !== "" ? String(pct) : "",
       teamId: "",
       authUserId: formData?.authUserId || "",
       tempPassword,
@@ -99,14 +95,17 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
   };
 }
 
-function buildLineItems(planId, finalAmount, formData) {
+function buildLineItems(planId, finalAmount, formData, discountPct = 0) {
   const planItem = buildCheckoutLineItem(planId, finalAmount);
   if (!planItem) return null;
   const items = [planItem];
   const selected = Array.isArray(formData?.selectedAddons) ? formData.selectedAddons : [];
+  const pct = Number(discountPct) || 0;
   for (const addonId of selected) {
-    if (!getAddonDef(addonId)) continue;
-    const addonItem = buildAddonLineItem(addonId);
+    const def = getAddonDef(addonId);
+    if (!def) continue;
+    const addonAmount = pct > 0 ? centsAfterClubPct(def.amount, pct) : def.amount;
+    const addonItem = buildAddonLineItem(addonId, addonAmount);
     if (addonItem) items.push(addonItem);
   }
   return items;
@@ -161,13 +160,15 @@ export default async function handler(req, res) {
   const clubCode = (formData?.clubCode || "").trim().toUpperCase();
   let clubId = "";
   let hasDiscount = false;
+  let discountPct = 0;
   if (clubCode && audience === "player") {
     const v = await validateClubCode(clubCode);
     hasDiscount = v.valid;
     clubId = v.clubId || "";
+    discountPct = hasDiscount ? clubCommissionPct({ referralCommissionPct: v.commissionPct }) : 0;
   }
 
-  const finalAmount = hasDiscount ? Math.round(price.amount * 0.90) : price.amount;
+  const finalAmount = hasDiscount ? centsAfterClubPct(price.amount, discountPct) : price.amount;
   const chosenPassword = formData?.password || formData?.pendingPassword || "";
   const tempPassword = typeof chosenPassword === "string" && chosenPassword.length >= 8
     ? chosenPassword
@@ -175,14 +176,17 @@ export default async function handler(req, res) {
 
   try {
     const stripe = await getStripe();
-    const lineItems = buildLineItems(planId, finalAmount, formData);
+    const lineItems = buildLineItems(planId, finalAmount, formData, hasDiscount ? discountPct : 0);
     if (!lineItems?.length) {
       return res.status(400).json({ error: "Plan no válido" });
     }
 
     const session = await createCheckoutSession(
       stripe,
-      buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPassword, lineItems }),
+      buildSessionBase({
+        planId, audience, formData, clubCode, clubId, tempPassword, lineItems,
+        clubCommissionPct: hasDiscount ? discountPct : "",
+      }),
       embedded,
       origin,
     );

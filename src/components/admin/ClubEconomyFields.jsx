@@ -3,6 +3,7 @@ import {
   clubDiscountCode,
   parseCommissionPct,
   formatCommissionPreview,
+  clubCartTotals,
 } from "../../lib/clubEconomy";
 
 /** Campos que José edita a nivel de club: código de descuento, comisión, IBAN y titular. */
@@ -54,7 +55,7 @@ export default function ClubEconomyFields({
         <div className="mt-2 rounded-xl border border-depro-blue/20 bg-depro-blue/5 px-3 py-2.5 text-sm text-depro-dark">
           <p className="font-semibold">Comisión = total final de la compra × {pct}%</p>
           <p className="text-xs text-depro-gray mt-1">
-            Incluye el plan y cualquier extra del carrito. No es un 10 % fijo ni se aplica solo al precio de catálogo.
+            En el checkout se aplica al total (plan + extras). Ejemplo: 29 € + 10 € de extras = 39 € → al {pct}% el jugador paga {clubCartTotals({ planPrice: 29, addonsTotal: 10, pct, hasDiscount: true }).total.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €.
           </p>
           <ul className="text-xs mt-1.5 space-y-0.5">
             <li>Si el total es 100 € → comisión <strong>{preview100.toLocaleString("es-ES", { minimumFractionDigits: preview100 % 1 ? 2 : 0, maximumFractionDigits: 2 })} €</strong></li>

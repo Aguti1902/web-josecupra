@@ -93,6 +93,29 @@ export function clubCommissionOnTotal(amountPaidCents, club) {
   return commissionCents(amountPaidCents, clubCommissionPct(club));
 }
 
+/** Importe en céntimos tras aplicar el % del club (plan o extra). */
+export function centsAfterClubPct(cents, pct) {
+  const p = parseCommissionPct(pct);
+  return Math.round((Number(cents) || 0) * (1 - p / 100));
+}
+
+/** Totales del carrito (euros): el % se aplica al plan + extras, no solo al catálogo. */
+export function clubCartTotals({ planPrice = 0, addonsTotal = 0, pct, hasDiscount = false } = {}) {
+  const subtotal = Math.round((Number(planPrice) + Number(addonsTotal)) * 100) / 100;
+  if (!hasDiscount) {
+    return { subtotal, total: subtotal, discount: 0, pct: 0 };
+  }
+  const p = parseCommissionPct(pct);
+  const subCents = Math.round(subtotal * 100);
+  const totalCents = centsAfterClubPct(subCents, p);
+  return {
+    subtotal,
+    total: totalCents / 100,
+    discount: (subCents - totalCents) / 100,
+    pct: p,
+  };
+}
+
 export function formatCommissionPreview(euros, pct) {
   const rate = parseCommissionPct(pct) / 100;
   const n = Number(euros) || 0;

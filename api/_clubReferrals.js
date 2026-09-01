@@ -35,6 +35,34 @@ export async function resolveClubEconomy(admin, { clubId, clubCode } = {}) {
   return {};
 }
 
+export async function lookupClubByDiscountCode(admin, code) {
+  const normalized = String(code || "").trim();
+  if (!normalized || !admin) return null;
+  const byDetail = await resolveClubEconomy(admin, { clubCode: normalized });
+  if (byDetail?.id) {
+    return {
+      valid: true,
+      clubId: byDetail.id,
+      name: byDetail.name || "",
+      commissionPct: clubCommissionPct(byDetail),
+    };
+  }
+  try {
+    const upper = normalized.toUpperCase();
+    const { data: clubs } = await admin.from("clubs").select("id, name, login_code").eq("login_code", upper).limit(1);
+    if (clubs?.length) {
+      const extra = await loadClubEconomy(admin, clubs[0].id);
+      return {
+        valid: true,
+        clubId: clubs[0].id,
+        name: clubs[0].name || extra.name || "",
+        commissionPct: clubCommissionPct(extra),
+      };
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 export async function loadReferralRegistry(admin) {
   const { data } = await admin.from("clubs_detail").select("data").eq("club_id", REGISTRY_ID).maybeSingle();
   return data?.data || { byClubId: {} };
