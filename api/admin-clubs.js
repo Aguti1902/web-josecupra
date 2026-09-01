@@ -5,6 +5,7 @@ import {
 } from "../src/lib/clubEconomy.js";
 import { isMetaClubId, buildMetaClubPayload } from "../src/lib/adminGlobalBlobs.js";
 import { mergePreferVideo, protectContentList } from "../src/lib/contentRestore.js";
+import { syncClubReferralCommissions } from "./_clubReferrals.js";
 
 export const config = {
   maxDuration: 60,
@@ -227,6 +228,10 @@ export default async function handler(req, res) {
         error: result.error,
         hint: "Ejecuta en Supabase SQL Editor:\n\nCREATE TABLE IF NOT EXISTS clubs_detail (club_id text primary key, data jsonb not null default '{}', updated_at timestamptz default now());\nALTER TABLE clubs_detail DISABLE ROW LEVEL SECURITY;\nGRANT SELECT ON clubs_detail TO authenticated;\nGRANT SELECT ON clubs TO authenticated;"
       });
+    }
+
+    if (caller.isAdmin && payload.referralCommissionPct != null) {
+      try { await syncClubReferralCommissions(admin, clubId); } catch { /* best-effort */ }
     }
 
     return res.status(200).json({ ok: true, id: clubId });

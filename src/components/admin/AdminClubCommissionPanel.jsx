@@ -220,7 +220,7 @@ export default function AdminClubCommissionPanel({ club }) {
                   <p className="text-xs text-depro-gray mt-0.5">{r.plan || "—"} · {r.month}</p>
                   <p className="text-sm mt-1">
                     Pagó {formatEuros(r.amountPaid)} → comisión <strong>{formatEuros(r.commission)}</strong>
-                    {r.commissionPct != null ? ` (${r.commissionPct}%)` : ""}
+                    {` (${r.commissionPct != null ? r.commissionPct : pct}%)`}
                     {r.payoutStatus === "paid" ? " · transferido" : " · pendiente"}
                   </p>
                 </div>
@@ -233,6 +233,7 @@ export default function AdminClubCommissionPanel({ club }) {
                     <th className="text-left px-4 py-2">Jugador</th>
                     <th className="text-left px-4 py-2">Plan</th>
                     <th className="text-right px-4 py-2">Pagó</th>
+                    <th className="text-right px-4 py-2">%</th>
                     <th className="text-right px-4 py-2">Comisión</th>
                     <th className="text-right px-4 py-2">Mes</th>
                     <th className="text-right px-4 py-2">Estado</th>
@@ -244,6 +245,7 @@ export default function AdminClubCommissionPanel({ club }) {
                       <td className="px-4 py-2">{r.playerName || r.playerEmail}</td>
                       <td className="px-4 py-2 text-depro-gray">{r.plan || "—"}</td>
                       <td className="px-4 py-2 text-right">{formatEuros(r.amountPaid)}</td>
+                      <td className="px-4 py-2 text-right text-depro-gray">{r.commissionPct != null ? r.commissionPct : pct}%</td>
                       <td className="px-4 py-2 text-right font-bold">{formatEuros(r.commission)}</td>
                       <td className="px-4 py-2 text-right text-depro-gray">{r.month}</td>
                       <td className="px-4 py-2 text-right">

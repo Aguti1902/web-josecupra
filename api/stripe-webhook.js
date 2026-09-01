@@ -61,6 +61,7 @@ export default async function handler(req, res) {
     if (!isPlayer || !amountPaidCents) return;
     if (!clubId && !clubCode) return;
 
+    const selectedAddons = meta.selectedAddons || meta.addonId || "";
     await recordReferralPayment(supabaseAdmin, {
       clubId,
       clubCode,
@@ -69,6 +70,7 @@ export default async function handler(req, res) {
       playerId: meta.authUserId || meta.userId || "",
       plan: meta.plan || meta.addonId || "",
       amountPaidCents,
+      selectedAddons,
       stripeInvoiceId,
       stripeSessionId,
     });
@@ -87,6 +89,9 @@ export default async function handler(req, res) {
         nombre: base.nombre || base.name || um.name || "",
         authUserId: base.authUserId || base.userId || user?.id || "",
         plan: base.plan || um.plan || "",
+        selectedAddons: base.selectedAddons || um.selectedAddons || (
+          Array.isArray(um.purchasedAddons) ? um.purchasedAddons.join("|") : ""
+        ),
       };
     } catch {
       return base;
@@ -100,7 +105,13 @@ export default async function handler(req, res) {
       case "checkout.session.completed": {
         const session = event.data.object;
         await syncCheckoutSession(supabaseAdmin, session);
-        const paid = stripePaidCents(session);
+        let paidSession = session;
+        try {
+          paidSession = await stripe.checkout.sessions.retrieve(session.id, {
+            expand: ["line_items", "invoice"],
+          });
+        } catch { /* usar el objeto del evento */ }
+        const paid = stripePaidCents(paidSession) || stripePaidCents(paidSession.invoice);
         if (paid > 0) {
           await trackReferralFromMeta(session.metadata || {}, paid, null, session.id);
         }
@@ -145,14 +156,21 @@ export default async function handler(req, res) {
           const subId = typeof invoice.subscription === "string"
             ? invoice.subscription
             : invoice.subscription.id;
-          const sub = await stripe.subscriptions.retrieve(subId);
+          const sub = await stripe.subscriptions.retrieve(subId, {
+            expand: ["items.data.price.product"],
+          });
           await syncSubscriptionToUser(supabaseAdmin, sub, invoice.customer_email);
           const meta = await metaFromUser(
             typeof sub.customer === "string" ? sub.customer : sub.customer?.id,
             invoice.customer_email,
             { ...(sub.metadata || {}), ...(invoice.metadata || {}) },
           );
-          await trackReferralFromMeta(meta, stripePaidCents(invoice), invoice.id, null);
+          let fullInvoice = invoice;
+          try {
+            fullInvoice = await stripe.invoices.retrieve(invoice.id, { expand: ["lines"] });
+          } catch { /* usar el objeto del evento */ }
+          const paid = stripePaidCents(fullInvoice);
+          await trackReferralFromMeta(meta, paid, invoice.id, null);
         }
         break;
       }

@@ -4,7 +4,10 @@ import {
   clubCommissionOnTotal,
   clubMatchesDiscountCode,
   DEFAULT_CLUB_COMMISSION_PCT,
+  parseAddonIdList,
+  looksLikeCatalogPlanAmount,
 } from "../src/lib/clubEconomy.js";
+import { getAddonDef } from "./_addonCatalog.js";
 
 const REGISTRY_ID = "CLUB_REFERRAL_REGISTRY";
 export const REFERRAL_COMMISSION_RATE = DEFAULT_CLUB_COMMISSION_PCT / 100;
@@ -46,6 +49,65 @@ export async function saveReferralRegistry(admin, registry) {
 
 function monthKey(date = new Date()) {
   return date.toISOString().slice(0, 7);
+}
+
+function extrasCentsFromIds(addonIds) {
+  return parseAddonIdList(addonIds).reduce((sum, id) => {
+    const def = getAddonDef(id);
+    return sum + (Number(def?.amount) || 0);
+  }, 0);
+}
+
+/**
+ * Total sobre el que se calcula la comisión.
+ * Si Stripe (o un asiento viejo) solo guardó el precio de catálogo y hay extras
+ * del carrito, se suman. Si el total ya incluye extras, no se duplican.
+ */
+export function paidTotalForCommission(amountPaidCents, addonIds) {
+  const paid = Math.round(Number(amountPaidCents) || 0);
+  if (paid <= 0) return 0;
+  const extras = extrasCentsFromIds(addonIds);
+  if (extras > 0 && looksLikeCatalogPlanAmount(paid)) return paid + extras;
+  return paid;
+}
+
+export function applyClubCommissionToReferral(entry, club) {
+  const selectedAddons = parseAddonIdList(entry?.selectedAddons);
+  const amountPaid = paidTotalForCommission(entry?.amountPaid, selectedAddons);
+  const pct = clubCommissionPct(club);
+  const commission = amountPaid > 0 ? clubCommissionOnTotal(amountPaid, club) : 0;
+  return {
+    ...entry,
+    selectedAddons,
+    amountPaid,
+    commission,
+    commissionPct: pct,
+  };
+}
+
+/** Reescribe asientos del club: comisión = total pagado × % configurado ahora. */
+export async function syncClubReferralCommissions(admin, clubId) {
+  if (!clubId) return { ok: false, changed: 0 };
+  const club = await loadClubEconomy(admin, clubId);
+  const registry = await loadReferralRegistry(admin);
+  const bucket = registry.byClubId?.[clubId];
+  if (!bucket?.referrals?.length) return { ok: true, changed: 0 };
+
+  let changed = 0;
+  bucket.referrals = bucket.referrals.map((r) => {
+    const next = applyClubCommissionToReferral(r, club);
+    if (
+      Number(next.commission) !== Number(r.commission)
+      || Number(next.amountPaid) !== Number(r.amountPaid)
+      || Number(next.commissionPct) !== Number(r.commissionPct)
+    ) {
+      changed += 1;
+    }
+    return next;
+  });
+  bucket.commissionRate = clubCommissionPct(club) / 100;
+  if (changed) await saveReferralRegistry(admin, registry);
+  return { ok: true, changed };
 }
 
 function ensureClubBucket(registry, clubId) {
@@ -97,10 +159,13 @@ export async function recordReferralPayment(admin, {
   playerId,
   plan,
   amountPaidCents,
+  selectedAddons,
   stripeInvoiceId,
   stripeSessionId,
 }) {
-  if (!amountPaidCents || amountPaidCents <= 0) return { ok: false, reason: "invalid_input" };
+  const addonIds = parseAddonIdList(selectedAddons);
+  const paid = paidTotalForCommission(amountPaidCents, addonIds);
+  if (!paid || paid <= 0) return { ok: false, reason: "invalid_input" };
 
   const club = await resolveClubEconomy(admin, { clubId, clubCode });
   const resolvedClubId = clubId || club.id;
@@ -111,7 +176,7 @@ export async function recordReferralPayment(admin, {
   const pct = clubCommissionPct(club);
   const rate = pct / 100;
   bucket.commissionRate = rate;
-  const commission = clubCommissionOnTotal(amountPaidCents, club);
+  const commission = clubCommissionOnTotal(paid, club);
   const month = monthKey();
   const emailLc = String(playerEmail || "").toLowerCase();
   if (bucket.referrals.some((r) => {
@@ -121,7 +186,7 @@ export async function recordReferralPayment(admin, {
       || (emailLc && String(r.playerEmail || "").toLowerCase() === emailLc);
     return samePlayer
       && r.month === month
-      && Number(r.amountPaid) === Number(amountPaidCents)
+      && Number(r.amountPaid) === Number(paid)
       && Number(r.commission) > 0;
   })) {
     return { ok: true, duplicate: true };
@@ -134,7 +199,8 @@ export async function recordReferralPayment(admin, {
     playerName: playerName || playerEmail?.split("@")[0] || "Jugador",
     playerId: playerId || "",
     plan: plan || "",
-    amountPaid: amountPaidCents,
+    selectedAddons: addonIds,
+    amountPaid: paid,
     commission,
     commissionPct: pct,
     month,

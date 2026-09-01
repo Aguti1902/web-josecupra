@@ -2260,7 +2260,7 @@ export default function AdminClubDetailPage() {
       (club.teams || []).forEach((t) => { if (t.coach?.email) n++; });
       return n;
     })() },
-    { id: "comisiones", label: "Transferencias", icon: Wallet },
+    { id: "comisiones", label: "Comisión", icon: Wallet },
   ];
 
   const planLabel = isManualPlanningClub(club)
@@ -2303,7 +2303,7 @@ export default function AdminClubDetailPage() {
       }
     }
 
-    setPlanMsg({ ok: true, text: "Plan personalizado actualizado." });
+    setPlanMsg({ ok: true, text: "Comisión y economía del club guardadas." });
     setPlanSaving(false);
     setTimeout(() => setPlanMsg(null), 3000);
   };
@@ -2621,6 +2621,7 @@ export default function AdminClubDetailPage() {
                 if (patch.referralCommissionPct != null) setCommissionPct(patch.referralCommissionPct);
                 if (patch.payoutIban != null) setPayoutIban(patch.payoutIban);
                 if (patch.payoutAccountName != null) setPayoutAccountName(patch.payoutAccountName);
+                setClub((c) => ({ ...c, ...patch }));
               }}
             />
           </div>
@@ -2651,6 +2652,47 @@ export default function AdminClubDetailPage() {
       {/* CONTENIDO (§3.1) */}
       {activeTab === "contenido" && (
         <div className="space-y-4">
+          <div className="bg-white border border-depro-border rounded-2xl p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-depro-dark flex items-center gap-2">
+                  <Wallet size={16} className="text-depro-blue" /> Comisión
+                </h3>
+                <p className="text-sm text-depro-gray mt-1">
+                  Porcentaje de este club sobre el <strong>precio total final</strong> de cada compra
+                  (plan + extras del carrito). Cada club puede tener un % distinto.
+                </p>
+              </div>
+            </div>
+            <ClubEconomyFields
+              compactCommission
+              discountCode={discountCode}
+              commissionPct={commissionPct}
+              payoutIban={payoutIban}
+              payoutAccountName={payoutAccountName}
+              onChange={(patch) => {
+                if (patch.discountCode != null) setDiscountCode(patch.discountCode);
+                if (patch.referralCommissionPct != null) setCommissionPct(patch.referralCommissionPct);
+                if (patch.payoutIban != null) setPayoutIban(patch.payoutIban);
+                if (patch.payoutAccountName != null) setPayoutAccountName(patch.payoutAccountName);
+                setClub((c) => ({ ...c, ...patch }));
+              }}
+            />
+            {planMsg && (
+              <p className={`text-sm ${planMsg.ok ? "text-green-700" : "text-red-600"}`}>{planMsg.text}</p>
+            )}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleSavePlan}
+                disabled={planSaving}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark disabled:opacity-50"
+              >
+                {planSaving ? "Guardando…" : "Guardar comisión"}
+              </button>
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-2">
             {clubIsManual ? (
               [

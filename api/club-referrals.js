@@ -5,6 +5,7 @@ import {
   summarizeReferrals,
   markReferralPayout,
   scrubUnpaidReferralsMissingUsers,
+  syncClubReferralCommissions,
 } from "./_clubReferrals.js";
 import {
   clubCommissionPct,
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
       const club = await loadClubEconomy(admin, clubId);
       const rate = clubCommissionRate(club);
       try { await scrubUnpaidReferralsMissingUsers(admin, clubId); } catch { /* ignore */ }
+      try { await syncClubReferralCommissions(admin, clubId); } catch { /* ignore */ }
       const fresh = await loadReferralRegistry(admin);
       const bucket = fresh.byClubId[clubId] || registry.byClubId[clubId] || {
         commissionRate: rate,

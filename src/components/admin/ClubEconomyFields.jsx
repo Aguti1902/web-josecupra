@@ -2,6 +2,7 @@ import {
   DEFAULT_CLUB_COMMISSION_PCT,
   clubDiscountCode,
   parseCommissionPct,
+  formatCommissionPreview,
 } from "../../lib/clubEconomy";
 
 /** Campos que José edita a nivel de club: código de descuento, comisión, IBAN y titular. */
@@ -12,11 +13,16 @@ export default function ClubEconomyFields({
   payoutAccountName,
   onChange,
   showCodeHint = true,
+  compactCommission = false,
 }) {
   const set = (patch) => onChange(patch);
+  const pct = parseCommissionPct(commissionPct);
+  const preview100 = formatCommissionPreview(100, pct);
+  const preview90 = formatCommissionPreview(90, pct);
 
   return (
     <div className="space-y-4">
+      {!compactCommission && (
       <div>
         <label className="block text-sm font-medium text-depro-dark mb-1">Código de descuento</label>
         <input
@@ -31,6 +37,7 @@ export default function ClubEconomyFields({
           </p>
         )}
       </div>
+      )}
       <div>
         <label className="block text-sm font-medium text-depro-dark mb-1">Comisión del club (%)</label>
         <input
@@ -44,10 +51,19 @@ export default function ClubEconomyFields({
           value={commissionPct ?? ""}
           onChange={(e) => set({ referralCommissionPct: e.target.value })}
         />
-        <p className="text-xs text-depro-gray mt-1.5">
-          Porcentaje de este club. Ejemplo: total 100 € × 15 % = 15 €; total 90 € × 15 % = 13,50 €. No es un 10 % fijo ni se aplica solo al precio de catálogo.
-        </p>
+        <div className="mt-2 rounded-xl border border-depro-blue/20 bg-depro-blue/5 px-3 py-2.5 text-sm text-depro-dark">
+          <p className="font-semibold">Comisión = total final de la compra × {pct}%</p>
+          <p className="text-xs text-depro-gray mt-1">
+            Incluye el plan y cualquier extra del carrito. No es un 10 % fijo ni se aplica solo al precio de catálogo.
+          </p>
+          <ul className="text-xs mt-1.5 space-y-0.5">
+            <li>Si el total es 100 € → comisión <strong>{preview100.toLocaleString("es-ES", { minimumFractionDigits: preview100 % 1 ? 2 : 0, maximumFractionDigits: 2 })} €</strong></li>
+            <li>Si el total es 90 € → comisión <strong>{preview90.toLocaleString("es-ES", { minimumFractionDigits: preview90 % 1 ? 2 : 0, maximumFractionDigits: 2 })} €</strong></li>
+          </ul>
+        </div>
       </div>
+      {!compactCommission && (
+      <>
       <div>
         <label className="block text-sm font-medium text-depro-dark mb-1">Titular de la cuenta</label>
         <input
@@ -69,6 +85,8 @@ export default function ClubEconomyFields({
           Cuenta a la que se transfiere la comisión de las planificaciones individuales.
         </p>
       </div>
+      </>
+      )}
     </div>
   );
 }

@@ -187,6 +187,7 @@ export default async function handler(req, res) {
             playerId: userId,
             plan: meta.plan,
             amountPaidCents: paid,
+            selectedAddons: meta.selectedAddons || "",
             stripeSessionId: sessionId,
           });
         }

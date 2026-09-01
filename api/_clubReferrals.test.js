@@ -108,4 +108,54 @@ describe("club referrals", () => {
     });
     assert.equal(withAddons.entry.commission, 585);
   });
+
+  it("si el asiento solo tiene el precio de catálogo, suma los extras del carrito", async () => {
+    const { paidTotalForCommission, applyClubCommissionToReferral } = await import("./_clubReferrals.js");
+    assert.equal(paidTotalForCommission(2610, ["addon-pdf", "addon-cargas"]), 3610);
+    assert.equal(paidTotalForCommission(9000, ["addon-pdf"]), 9000);
+    assert.equal(paidTotalForCommission(3900, ["addon-pdf"]), 3900);
+
+    const rec = applyClubCommissionToReferral(
+      { amountPaid: 2900, selectedAddons: ["addon-pdf"], commission: 290, commissionPct: 10 },
+      { referralCommissionPct: 15 },
+    );
+    assert.equal(rec.amountPaid, 3400);
+    assert.equal(rec.commission, 510);
+    assert.equal(rec.commissionPct, 15);
+  });
+
+  it("recalcula asientos guardados al cambiar el % del club", async () => {
+    const { syncClubReferralCommissions } = await import("./_clubReferrals.js");
+    const registry = {
+      byClubId: {
+        club_udv: {
+          commissionRate: 0.1,
+          referrals: [
+            { amountPaid: 10000, commission: 1000, commissionPct: 10, selectedAddons: [] },
+            { amountPaid: 2900, commission: 290, commissionPct: 10, selectedAddons: ["addon-pdf"] },
+          ],
+        },
+      },
+    };
+    const admin = {
+      from() {
+        let clubId = null;
+        return {
+          select() { return this; },
+          eq(_col, val) { clubId = val; return this; },
+          maybeSingle: async () => {
+            if (clubId === "CLUB_REFERRAL_REGISTRY") return { data: { data: registry } };
+            if (clubId === "club_udv") return { data: { data: { referralCommissionPct: 20 } } };
+            return { data: null };
+          },
+          upsert: async ({ data }) => { Object.assign(registry, data); return { error: null }; },
+        };
+      },
+    };
+    const result = await syncClubReferralCommissions(admin, "club_udv");
+    assert.equal(result.changed, 2);
+    assert.equal(registry.byClubId.club_udv.referrals[0].commission, 2000);
+    assert.equal(registry.byClubId.club_udv.referrals[1].amountPaid, 3400);
+    assert.equal(registry.byClubId.club_udv.referrals[1].commission, 680);
+  });
 });

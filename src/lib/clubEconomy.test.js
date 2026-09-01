@@ -10,6 +10,8 @@ import {
   clubMatchesDiscountCode,
   withSyncedDiscountCode,
   parseCommissionPct,
+  formatCommissionPreview,
+  looksLikeCatalogPlanAmount,
 } from "./clubEconomy.js";
 
 describe("clubEconomy", () => {
@@ -40,12 +42,30 @@ describe("clubEconomy", () => {
     assert.equal(clubCommissionOnTotal(3900, { referralCommissionPct: 15 }), 585);
   });
 
+  it("preview 100 € y 90 € con el % del club", () => {
+    assert.equal(formatCommissionPreview(100, 10), 10);
+    assert.equal(formatCommissionPreview(90, 10), 9);
+    assert.equal(formatCommissionPreview(100, 15), 15);
+    assert.equal(formatCommissionPreview(90, 15), 13.5);
+  });
+
+  it("detecta importe de catálogo (sin extras del carrito)", () => {
+    assert.equal(looksLikeCatalogPlanAmount(2900), true);
+    assert.equal(looksLikeCatalogPlanAmount(2610), true);
+    assert.equal(looksLikeCatalogPlanAmount(3900), false);
+    assert.equal(looksLikeCatalogPlanAmount(10000), false);
+  });
+
   it("lee el importe cobrado de Stripe (total / amount_paid / líneas)", () => {
     assert.equal(stripePaidCents({ amount_total: 9000 }), 9000);
     assert.equal(stripePaidCents({ amount_paid: 0, total: 10900 }), 10900);
     assert.equal(stripePaidCents({
       lines: { data: [{ amount: 2610 }, { amount: 500 }, { amount: 500 }] },
     }), 3610);
+    assert.equal(stripePaidCents({
+      line_items: { data: [{ amount_total: 2610 }, { amount_total: 500 }] },
+    }), 3110);
+    assert.equal(stripePaidCents({ amount_total: 0, payment_status: "no_payment_required", lines: { data: [{ amount: 2610 }] } }), 0);
     assert.equal(stripePaidCents({}), 0);
   });
 

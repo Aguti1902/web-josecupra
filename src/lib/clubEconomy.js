@@ -33,19 +33,56 @@ export function commissionCents(amountPaidCents, pct) {
   return Math.round((Number(amountPaidCents) || 0) * rate);
 }
 
+/** Precios de catálogo (céntimos) con y sin el −10 % del código club. */
+export const CATALOG_PLAN_CENTS = new Set([
+  2900, 2610,
+  9900, 8910,
+  3000, 2700,
+  4500, 4050,
+]);
+
+export function looksLikeCatalogPlanAmount(cents) {
+  return CATALOG_PLAN_CENTS.has(Math.round(Number(cents) || 0));
+}
+
+export function parseAddonIdList(value) {
+  if (Array.isArray(value)) {
+    return value.map((id) => String(id || "").trim()).filter(Boolean);
+  }
+  return String(value || "")
+    .split(/[|,]/)
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
 /**
  * Importe real cobrado por Stripe (céntimos): total final de la compra
  * (plan + extras del carrito), no el precio de catálogo.
+ * Si no se ha cobrado (trial / no_payment_required) → 0.
  */
 export function stripePaidCents(source) {
   if (!source || typeof source !== "object") return 0;
-  for (const key of ["amount_paid", "amount_total", "total"]) {
-    const n = Number(source[key]);
-    if (Number.isFinite(n) && n > 0) return Math.round(n);
-  }
-  const lines = source.lines?.data;
-  if (Array.isArray(lines) && lines.length) {
-    const sum = lines.reduce((acc, line) => acc + (Number(line.amount) || 0), 0);
+
+  const paymentStatus = String(source.payment_status || "");
+  if (paymentStatus === "no_payment_required" || paymentStatus === "unpaid") return 0;
+
+  const amountPaid = Number(source.amount_paid);
+  const amountTotal = Number(source.amount_total);
+  const total = Number(source.total);
+
+  if (Number.isFinite(amountPaid) && amountPaid > 0) return Math.round(amountPaid);
+  if (Number.isFinite(amountTotal) && amountTotal > 0) return Math.round(amountTotal);
+  if (Number.isFinite(total) && total > 0) return Math.round(total);
+
+  // amount_total=0 en trial: no usar las líneas recurrentes como si estuvieran cobradas.
+  if (amountPaid === 0 || amountTotal === 0) return 0;
+
+  const lineItems = source.line_items?.data || source.lines?.data;
+  if (Array.isArray(lineItems) && lineItems.length) {
+    const sum = lineItems.reduce((acc, line) => {
+      const n = Number(line.amount_total ?? line.amount ?? line.amount_subtotal ?? 0);
+      return acc + (Number.isFinite(n) ? n : 0);
+    }, 0);
     if (sum > 0) return Math.round(sum);
   }
   return 0;
@@ -54,6 +91,12 @@ export function stripePaidCents(source) {
 /** Comisión = total final pagado × % configurado del club. */
 export function clubCommissionOnTotal(amountPaidCents, club) {
   return commissionCents(amountPaidCents, clubCommissionPct(club));
+}
+
+export function formatCommissionPreview(euros, pct) {
+  const rate = parseCommissionPct(pct) / 100;
+  const n = Number(euros) || 0;
+  return Math.round(n * rate * 100) / 100;
 }
 
 export function clubPayoutAccount(club) {
