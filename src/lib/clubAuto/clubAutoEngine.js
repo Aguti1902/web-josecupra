@@ -6,6 +6,7 @@ import { getProtocolTemplate, PROTOCOL_DAY_META } from "./clubAutoTemplates.js";
 import { selectProtocolExercises } from "./clubAutoProtocolSelector.js";
 import { selectGeneralWarmup, selectBallWarmup, selectMainTask } from "./clubAutoTaskSelector.js";
 import { CLUB_AUTO_OBSERVACIONES } from "../../data/clubAutoCatalog.js";
+import { cycleEndDate } from "../planSwapLimits.js";
 
 export const DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 /** Días seleccionables en el cuestionario (incluye fin de semana). */
@@ -239,31 +240,31 @@ export function assignProtocolsToDays(trainDays, matchDay) {
   }));
 }
 
-function buildSession({ day, protocol, nivel, gymAccess, seed, weekOffset = 0, variant = 0, materials = [] }) {
+function buildSession({ day, protocol, nivel, gymAccess, seed, weekOffset = 0, variant = 0, materials = [], weekStart = "" }) {
   const template = getProtocolTemplate(protocol, gymAccess);
-  const warmup = selectGeneralWarmup({ seed: `${seed}|${day}|${weekOffset}|v${variant}|w` });
-  const ball = selectBallWarmup({ nivel, protocolo: protocol, seed: `${seed}|${day}|${weekOffset}|v${variant}|b` });
+  const warmup = selectGeneralWarmup({ seed: `${seed}|${day}|w` });
+  const ball = selectBallWarmup({ nivel, protocolo: protocol, seed: `${seed}|${day}|b` });
   const { exercises: protocolExercises } = selectProtocolExercises({
     protocolo: protocol,
     gymAccess,
     materials,
-    seed: `${seed}|${day}|${weekOffset}|v${variant}|p`,
+    seed: `${seed}|${day}|p`,
   });
   const mainTask = selectMainTask({
     nivel,
     protocolo: protocol,
     gymAccess,
-    seed: `${seed}|${day}|${weekOffset}|v${variant}|m`,
+    seed: `${seed}|${day}|m`,
     avoidId: ball?.id,
   });
 
   return {
-    id: `club_auto_${day}_${protocol}_${weekOffset}_v${variant}`,
+    id: `club_auto_${day}_${protocol}_${weekStart || weekOffset}`,
     assignedDay: day,
     protocol,
     protocolLabel: PROTOCOL_DAY_META[protocol]?.label || protocol,
     intensityDay: PROTOCOL_DAY_META[protocol]?.intensidadDia,
-    sessionVariant: variant + 1,
+    sessionVariant: 1,
     title: `Sesión ${protocol} · ${day}`,
     structure: [
       { type: "calentamiento_general", label: "1. Calentamiento general", item: warmup },
@@ -317,6 +318,18 @@ export function addDaysIso(dateStr, n) {
   const d = asLocalDate(dateStr);
   d.setDate(d.getDate() + n);
   return isoDateLocal(d);
+}
+
+/** Lunes ISO que cubren [startDate, endDate). */
+export function isoWeekStartsForCycle(startDate, endDate) {
+  const end = endDate || cycleEndDate(startDate);
+  let cur = startOfIsoWeek(startDate);
+  const out = [];
+  while (cur < end && out.length < 6) {
+    out.push(cur);
+    cur = addDaysIso(cur, 7);
+  }
+  return out.length ? out : [startOfIsoWeek(startDate)];
 }
 
 /** Primer y último día del mes calendario. */
@@ -376,10 +389,15 @@ export function generateClubAutoMicrociclo(questionnaire, options = {}) {
   }
 
   const q = validation.normalized;
-  const monthKey = options.monthKey || monthKeyFromDate(options.weekStart);
-  const weekOffset = options.weekOffset ?? weekOffsetInMonth(options.weekStart);
-  const variant = options.variant ?? variantIndexForWeek(weekOffset);
-  const seed = options.seed || `${monthKey}|v${variant}|${q.nivel}|${q.dia_partido}|${q.dias_exactos_entrenamiento.join("-")}`;
+  const cycleStart = options.cycleStart
+    || (options.weekStart && String(options.weekStart).slice(0, 10))
+    || (options.monthKey && /^\d{4}-\d{2}-\d{2}/.test(options.monthKey) ? String(options.monthKey).slice(0, 10) : null)
+    || (options.monthKey && /^\d{4}-\d{2}$/.test(options.monthKey) ? `${options.monthKey}-01` : null)
+    || isoDateLocal(new Date());
+  const cycleEnd = options.cycleEnd || cycleEndDate(cycleStart);
+  const weekOffset = 0;
+  const variant = 0;
+  const seed = options.seed || `${cycleStart}|${q.nivel}|${q.dia_partido}|${q.dias_exactos_entrenamiento.join("-")}`;
   const plan = assignProtocolsToDays(q.dias_exactos_entrenamiento, q.dia_partido);
 
   const sessions = plan.map(({ day, protocol, distance, meta }) => ({
@@ -392,11 +410,14 @@ export function generateClubAutoMicrociclo(questionnaire, options = {}) {
       seed,
       weekOffset,
       variant,
+      weekStart: options.weekStart || "",
     }),
     matchDistance: distance,
     dayMeta: meta,
-    monthKey,
-    sessionVariant: variant + 1,
+    monthKey: cycleStart,
+    cycleStartDate: cycleStart,
+    cycleEndDate: cycleEnd,
+    sessionVariant: 1,
   }));
 
   return {
@@ -404,7 +425,9 @@ export function generateClubAutoMicrociclo(questionnaire, options = {}) {
     errors: [],
     questionnaire: q,
     sessions,
-    monthKey,
+    monthKey: cycleStart,
+    cycleStartDate: cycleStart,
+    cycleEndDate: cycleEnd,
     summary: sessions.map((s) => `${s.assignedDay}: ${s.protocol}`).join(" · "),
   };
 }
@@ -414,24 +437,34 @@ export function generateClubAutoMicrociclo(questionnaire, options = {}) {
  * @param {object} questionnaire
  * @param {{ cycles?: number }} [options]
  */
-export function generateClubAutoFourWeeks(questionnaire, { cycles = 1, monthKey } = {}) {
+export function generateClubAutoFourWeeks(questionnaire, { cycles = 1, monthKey, startDate } = {}) {
   const n = Math.max(1, Math.min(6, Number(cycles) || 1));
-  const mk = monthKey || monthKeyFromDate(new Date());
+  const cycleStart = startDate || (monthKey && /^\d{4}-\d{2}-\d{2}/.test(monthKey) ? monthKey : null) || isoDateLocal(new Date());
+  const cycleEnd = cycleEndDate(cycleStart);
+  const base = generateClubAutoMicrociclo(questionnaire, {
+    cycleStart,
+    cycleEnd,
+    weekOffset: 0,
+    variant: 0,
+    seed: `${cycleStart}|same`,
+  });
   const weeks = [];
   for (let c = 0; c < n; c++) {
     for (let w = 0; w < 4; w++) {
-      const weekOffset = c * 4 + w;
+      const weekNum = c * 4 + w + 1;
       weeks.push({
-        week: weekOffset + 1,
-        label: `Semana ${weekOffset + 1}`,
+        ...base,
+        week: weekNum,
+        label: `Semana ${weekNum}`,
         cycle: c + 1,
-        monthKey: mk,
-        ...generateClubAutoMicrociclo(questionnaire, {
-          weekOffset,
-          monthKey: mk,
-          variant: variantIndexForWeek(weekOffset),
-          seed: `${mk}|c${c}|w${w}|v${variantIndexForWeek(weekOffset)}`,
-        }),
+        monthKey: cycleStart,
+        cycleStartDate: cycleStart,
+        cycleEndDate: cycleEnd,
+        sameRoutine: true,
+        sessions: (base.sessions || []).map((s) => ({
+          ...s,
+          id: `${s.id}_c${c}_w${w}`,
+        })),
       });
     }
   }

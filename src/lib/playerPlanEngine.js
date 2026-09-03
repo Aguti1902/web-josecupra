@@ -13,7 +13,7 @@ import {
   normalizeMaterialList,
 } from "./exerciseSelector.js";
 import { normalizePlayerPlan, savePlayerPlan as savePlanLocal } from "./playerPlanStorage.js";
-import { needsMonthlyPlanRefresh, resetCycleCounters } from "./planSwapLimits.js";
+import { needsMonthlyPlanRefresh, resetCycleCounters, cycleEndDate, weekCountForCycle } from "./planSwapLimits.js";
 import {
   DAY_ORDER,
   DAY_SHORT,
@@ -123,6 +123,8 @@ function buildUserProfile(filterParams) {
     adaptedIntensity: filterParams.adaptedIntensity,
     dayIntensity: filterParams.dayIntensity,
     objetivo: filterParams.objetivo,
+    resistanceSessionCount: filterParams.resistanceSessionCount || 0,
+    resistanceKind: filterParams.resistanceKind || null,
   };
 }
 
@@ -433,6 +435,13 @@ function emptyWeek(planError) {
   return week;
 }
 
+/** YYYY-MM-DD local (fecha de compra / inicio de ciclo). */
+export function todayISO(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(12, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+
 /** Lunes ISO (YYYY-MM-DD) de la semana de `date`. */
 export function mondayOfDate(date = new Date()) {
   const d = new Date(date);
@@ -462,7 +471,8 @@ function attachPlanMeta(weekPlan, meta) {
   weekPlan.userId = meta.userId || null;
   weekPlan.semana_actual = meta.week || 1;
   weekPlan.mesociclo_id = meta.mesocicloId || `meso_${meta.userId || "anon"}`;
-  weekPlan.startDate = meta.startDate || mondayOfDate();
+  weekPlan.startDate = meta.startDate || todayISO();
+  weekPlan.endDate = meta.endDate || cycleEndDate(weekPlan.startDate);
   weekPlan.sesiones_semana = meta.sesionesSemana || [];
   weekPlan.sesiones_pendientes_compensar = meta.pendingCompensate || {
     fuerza: 0,
@@ -556,6 +566,10 @@ export function buildPlayerPlan(user, options = {}) {
 
   validateMuscleCoverage(resolvedAssignments);
 
+  filterParams.resistanceSessionCount = resolvedAssignments.filter((a) =>
+    /resistencia/i.test(String(a.sessionType || a.templateKey || "")),
+  ).length;
+
   const usedIds = new Set();
   const dayMap = {};
   const sesionesSemana = [];
@@ -567,7 +581,10 @@ export function buildPlayerPlan(user, options = {}) {
 
     const session = fillTemplate(
       sessionType,
-      filterParams,
+      {
+        ...filterParams,
+        resistanceKind: getTemplate(templateKey || sessionType)?.resistanceKind || null,
+      },
       usedIds,
       weekOffset + i,
       templateKey || sessionType,
@@ -620,7 +637,7 @@ export function buildPlayerPlan(user, options = {}) {
   return attachPlanMeta(weekPlan, {
     userId: user?.id,
     week,
-    startDate: mondayOfDate(),
+    startDate: todayISO(),
     pendingCompensate: {
       fuerza: pending.fuerza || 0,
       velocidad: pending.velocidad || 0,
@@ -633,16 +650,41 @@ export function buildPlayerPlan(user, options = {}) {
   });
 }
 
-export function buildFourWeekPlan(user) {
+function cloneWeekDays(weekPlan, weekIndex) {
+  const days = JSON.parse(JSON.stringify([...weekPlan]));
+  for (const day of days) {
+    day.sessions = (day.sessions || []).map((s) => ({
+      ...s,
+      id: String(s.id || `gen_${day.day}_w0_0`).replace(/_w\d+_/, `_w${weekIndex}_`),
+      week: weekIndex + 1,
+      weekNumber: weekIndex + 1,
+    }));
+  }
+  for (const key of Object.keys(weekPlan)) {
+    if (Number.isNaN(Number(key)) && days[key] === undefined) {
+      days[key] = weekPlan[key];
+    }
+  }
+  days.semana_actual = weekIndex + 1;
+  return days;
+}
+
+export function buildFourWeekPlan(user, { startDate } = {}) {
+  const start = startDate || todayISO();
+  const first = buildPlayerPlan(user, { weekOffset: 0 });
+  if (first?.planError) {
+    return [{ week: 1, label: "Semana 1", sessions: [], days: first, planError: first.planError }];
+  }
+  first.startDate = start;
+  first.endDate = cycleEndDate(start);
+  const nWeeks = weekCountForCycle(start);
   const weeks = [];
-  let lastMuscleGroup = null;
-  let pendingCompensate = null;
-  for (let w = 0; w < 4; w++) {
-    const weekPlan = buildPlayerPlan(user, { weekOffset: w, lastMuscleGroup, pendingCompensate });
-    lastMuscleGroup = weekPlan._lastMuscleGroup ?? lastMuscleGroup;
-    pendingCompensate = weekPlan.sesiones_pendientes_compensar || pendingCompensate;
-    const sessions = weekPlan
-      .filter((d) => d.sessions.length)
+  for (let w = 0; w < nWeeks; w++) {
+    const days = cloneWeekDays(first, w);
+    days.startDate = start;
+    days.endDate = first.endDate;
+    const sessions = days
+      .filter((d) => d.sessions?.length)
       .map((d) => ({
         ...d.sessions[0],
         dayName: d.day,
@@ -652,10 +694,15 @@ export function buildFourWeekPlan(user) {
       week: w + 1,
       label: `Semana ${w + 1}`,
       sessions,
-      days: weekPlan,
-      sesiones_pendientes_compensar: weekPlan.sesiones_pendientes_compensar,
+      days,
+      sameRoutine: true,
+      startDate: start,
+      endDate: first.endDate,
+      sesiones_pendientes_compensar: first.sesiones_pendientes_compensar,
     });
   }
+  weeks.startDate = start;
+  weeks.endDate = first.endDate;
   return weeks;
 }
 
@@ -755,30 +802,25 @@ function shouldAutoRegenerateMonthly(user, plan) {
  * a todas las sesiones del microciclo y weeks[] del mesociclo.
  */
 export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterParams) {
-  const days = Array.isArray(plan)
-    ? plan
-    : (Array.isArray(plan?.days) ? plan.days : null);
-  if (!days || !exerciseId) return plan;
+  if (!plan || !exerciseId) return plan;
+  const isDaysArray = Array.isArray(plan) && (plan.length === 0 || plan[0]?.day != null || plan[0]?.sessions != null);
+  const days = isDaysArray ? plan : (Array.isArray(plan?.days) ? plan.days : null);
+  const weeksSource = Array.isArray(plan) ? plan.weeks : plan?.weeks;
 
-  const allDaySessions = days.flatMap((d) => d.sessions || []);
+  const collectSessions = (list) => (list || []).flatMap((d) => d.sessions || []);
+  let allDaySessions = collectSessions(days);
+  if (!allDaySessions.length && Array.isArray(weeksSource)) {
+    allDaySessions = weeksSource.flatMap((w) => [
+      ...collectSessions(w.days),
+      ...(w.sessions || []),
+    ]);
+  }
+
   let targetSession = sessionId
     ? allDaySessions.find((s) => s.id === sessionId)
     : null;
   if (!targetSession) {
     targetSession = allDaySessions.find((s) => findSessionExercise(s, exerciseId));
-  }
-  if (!targetSession) {
-    const weeksSource = Array.isArray(plan) ? plan.weeks : plan?.weeks;
-    if (Array.isArray(weeksSource)) {
-      for (const w of weeksSource) {
-        const weekSessions = [
-          ...(w.days || []).flatMap((d) => d.sessions || []),
-          ...(w.sessions || []),
-        ];
-        targetSession = weekSessions.find((s) => (sessionId && s.id === sessionId) || findSessionExercise(s, exerciseId));
-        if (targetSession) break;
-      }
-    }
   }
   const target = targetSession ? findSessionExercise(targetSession, exerciseId) : null;
   if (!target) return plan;
@@ -852,14 +894,16 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
   };
 
   const seed = Number.parseInt(String(oldCatalogId).replace(/\D/g, ""), 10) || 1;
-  const mappedDays = days.map((day, di) => ({
-    ...day,
-    sessions: (day.sessions || []).map((s, si) => mapSession(s, seed + di * 20 + si)),
-  }));
+  const mappedDays = Array.isArray(days)
+    ? days.map((day, di) => ({
+      ...day,
+      sessions: (day.sessions || []).map((s, si) => mapSession(s, seed + di * 20 + si)),
+    }))
+    : days;
 
-  const next = Array.isArray(plan)
+  const next = isDaysArray
     ? mappedDays
-    : { ...plan, days: mappedDays };
+    : { ...plan, ...(mappedDays ? { days: mappedDays } : {}) };
 
   // Conservar meta del array
   if (Array.isArray(plan)) {
@@ -870,7 +914,6 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
     }
   }
 
-  const weeksSource = Array.isArray(plan) ? plan.weeks : plan?.weeks;
   if (Array.isArray(weeksSource)) {
     next.weeks = weeksSource.map((w, wi) => {
       const mapped = { ...w };
@@ -892,10 +935,14 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
 }
 
 function regenerateEssentialPlan(user) {
-  const plan = buildPlayerPlan(user);
+  const weeks = buildFourWeekPlan(user);
+  const plan = weeks[0]?.days || buildPlayerPlan(user);
   if (!plan.planError) {
-    const start = plan.startDate || mondayOfDate();
+    const start = weeks.startDate || plan.startDate || todayISO();
     resetCycleCounters(user.id, start);
+    plan.weeks = weeks;
+    plan.startDate = start;
+    plan.endDate = weeks.endDate || cycleEndDate(start);
     plan.refrescos_usados_mes = 0;
     plan.semana_actual = 1;
     plan.monthlyRefreshAt = new Date().toISOString();
@@ -956,7 +1003,7 @@ export function ensurePlayerPlan(user) {
 /**
  * Carga el plan preferiendo el servidor (asignación admin cross-device).
  * Sustituye premiumPending cuando ya hay plan asignado.
- * Regenera Essential automáticamente al vencer el mesociclo (~28 días).
+ * Regenera Essential automáticamente al vencer el mesociclo (1 mes calendario).
  */
 export async function hydratePlayerPlan(user) {
   if (!user?.id) return null;

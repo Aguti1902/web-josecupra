@@ -4,6 +4,7 @@
  */
 import { savePlayerPlan, loadPlayerPlan, normalizePlayerPlan, persistPlayerPlanRemote } from "./playerPlanStorage.js";
 import { buildFourWeekPlan, buildPlayerPlan } from "./playerPlanEngine.js";
+import { cycleEndDate } from "./planSwapLimits.js";
 import {
   questionnaireToCoachConfig,
   generateClubAutoWeekForCoach,
@@ -249,23 +250,23 @@ export async function assignPlanToPlayer({
   let assigned = plan;
   if (!assigned && profile) {
     const n = Math.max(1, Math.min(6, Number(cycles) || 1));
-    if (n <= 1) {
-      assigned = buildPlayerPlan(profile);
-    } else {
+    const four = buildFourWeekPlan(profile);
+    assigned = {
+      weeks: four,
+      days: four[0]?.days || buildPlayerPlan(profile),
+      startDate: four.startDate,
+      endDate: four.endDate,
+    };
+    if (n > 1) {
       const weeks = [];
       for (let c = 0; c < n; c++) {
-        const four = buildFourWeekPlan(profile);
         weeks.push(...(four || []).map((w, i) => ({
           ...w,
-          week: c * 4 + (w.week || i + 1),
+          week: c * (four.length || 4) + (w.week || i + 1),
           cycle: c + 1,
         })));
       }
-      assigned = {
-        weeks,
-        cycles: n,
-        multiCycle: true,
-      };
+      assigned = { ...assigned, weeks, cycles: n, multiCycle: true };
     }
   } else if (assigned && cycles > 1 && Array.isArray(assigned.weeks)) {
     const n = Math.max(1, Math.min(6, Number(cycles) || 1));
@@ -288,9 +289,10 @@ export async function assignPlanToPlayer({
     ? trainingProfileSnapshotFromAny(profile)
     : (assigned.profileSnapshot || null);
 
+  const start = startDate || assigned.startDate || new Date().toISOString().slice(0, 10);
   const meta = {
-    startDate: startDate || new Date().toISOString().slice(0, 10),
-    endDate: endDate || null,
+    startDate: start,
+    endDate: endDate || assigned.endDate || cycleEndDate(start),
     assignedAt: new Date().toISOString(),
     assignedBy: "admin",
   };

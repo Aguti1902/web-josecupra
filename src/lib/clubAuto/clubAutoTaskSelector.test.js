@@ -68,15 +68,15 @@ describe("catálogo club · etiquetas de plantilla", () => {
   });
 });
 
-describe("dos sesiones por tipo al mes", () => {
-  it("variante 1 y 2 se alternan por semana", () => {
+describe("rutina igual durante el mes", () => {
+  it("variante 1 y 2 se mantienen por compatibilidad numérica", () => {
     assert.equal(variantIndexForWeek(0), 0);
     assert.equal(variantIndexForWeek(1), 1);
     assert.equal(variantIndexForWeek(2), 0);
     assert.equal(variantIndexForWeek(3), 1);
   });
 
-  it("misma semana con distinta variante cambia el id de sesión", () => {
+  it("todas las semanas del mes usan la misma rutina", () => {
     const q = {
       nivel: "B",
       dias_exactos_entrenamiento: ["Lunes", "Miércoles", "Viernes"],
@@ -90,8 +90,14 @@ describe("dos sesiones por tipo al mes", () => {
     const b = generateClubAutoMicrociclo(q, { weekOffset: 1, monthKey: "2026-08", variant: 1 });
     assert.equal(a.ok, true);
     assert.equal(b.ok, true);
-    assert.notEqual(a.sessions[0].id, b.sessions[0].id);
+    const namesA = (a.sessions[0].structure || [])
+      .flatMap((block) => (block.exercises || []).map((ex) => ex.nombre || ex.name || ex.id))
+      .join("|");
+    const namesB = (b.sessions[0].structure || [])
+      .flatMap((block) => (block.exercises || []).map((ex) => ex.nombre || ex.name || ex.id))
+      .join("|");
+    assert.equal(namesA, namesB);
     assert.equal(a.sessions[0].sessionVariant, 1);
-    assert.equal(b.sessions[0].sessionVariant, 2);
+    assert.equal(b.sessions[0].sessionVariant, 1);
   });
 });

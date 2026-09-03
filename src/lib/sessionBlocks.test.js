@@ -53,18 +53,20 @@ describe("sessionBlocks · copia exacta de plantilla individual", () => {
     })),
   };
 
-  it("Velocidad conserva 4 bloques con los nombres de la plantilla, sin reagrupar", () => {
+  it("Velocidad conserva los bloques de la plantilla (isométricos antes de pliometría)", () => {
     const blocks = getSessionBlocks(velocitySession);
-    assert.equal(blocks.length, 4);
+    assert.equal(blocks.length, 5);
     assert.deepEqual(blocks.map(blockDisplayLabel), [
       "Calentamiento",
       "Fuerza máxima",
+      "Isométricos",
       "Pliometría",
       "Velocidad",
     ]);
     assert.deepEqual(blocks.map((b) => b.type), [
       "calentamiento",
       "principal",
+      "complementario",
       "complementario",
       "principal",
     ]);
@@ -94,5 +96,17 @@ describe("sessionBlocks · copia exacta de plantilla individual", () => {
     };
     const labels = getSessionBlocks(session).map(blockDisplayLabel);
     assert.deepEqual(labels, ["calentamiento", "fuerza máxima", "pliometría", "velocidad"]);
+  });
+});
+
+describe("sessionBlocks · resistencia y pliometría", () => {
+  it("resistencia aeróbica pone Core antes del trabajo", () => {
+    const labels = SESSION_TEMPLATES["Resistencia aeróbica"].blocks.map((b) => b.label);
+    assert.deepEqual(labels, ["Calentamiento", "Core", "Trabajo aeróbico"]);
+  });
+
+  it("pliometría pone Isométricos antes del bloque de pliometría", () => {
+    const labels = SESSION_TEMPLATES.Pliometría.blocks.map((b) => b.label);
+    assert.deepEqual(labels, ["Calentamiento", "Isométricos", "Pliometría"]);
   });
 });

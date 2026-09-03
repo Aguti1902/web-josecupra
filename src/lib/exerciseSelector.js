@@ -276,6 +276,112 @@ export function sameTrainingNature(ex, slot = {}, original = null) {
   return true;
 }
 
+const ANALYTIC_NAME_RE = /\bcurl\b|extension(?:es)? de|patada de isquio|elevaci[oó]n de gemelo|gemelos?\b|pantorrilla|femoral|aductor|abductor|p[aá]jaro|apertura|fly\b|pullover|face.?pull|kickback|patada de triceps/i;
+const COMPOUND_NAME_RE = /sentadilla|peso muerto|zancada|lunges?|step.?up|puente de gl[uú]teo|hip thrust|press |dominada|jal[oó]n|remo |flexi[oó]n(?:es)?|fondos|thruster|split squat|bulgarian|pull.?up|chin.?up/i;
+
+export function normalizeExerciseName(ex) {
+  return String(ex?.nombre || ex?.name || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export function isAnalyticExercise(ex) {
+  if (!ex) return false;
+  const pats = asArray(tagsOf(ex).patron).map((p) => String(p).toLowerCase());
+  if (pats.includes("analitico") || pats.includes("aislamiento")) return true;
+  return ANALYTIC_NAME_RE.test(String(ex.nombre || ex.name || ""));
+}
+
+export function isMultiarticularExercise(ex) {
+  if (!ex || isAnalyticExercise(ex)) return false;
+  if (COMPOUND_NAME_RE.test(String(ex.nombre || ex.name || ""))) return true;
+  const pats = asArray(tagsOf(ex).patron).map((p) => String(p).toLowerCase());
+  return pats.some((p) => ["cadena_anterior", "cadena_posterior", "empuje", "traccion", "sentadilla", "bisagra"].includes(p));
+}
+
+export function inferredSlotNature(slot = {}) {
+  if (slot.nature) return slot.nature;
+  const obj = asArray(slot.objetivo).map((o) => String(o).toLowerCase());
+  const patron = String(slot.patron || "");
+  if (patron === "analitico") return "analitico";
+  if (["pliometria", "isometrico", "aceleracion", "aerobico", "umbral", "anaerobico"].includes(patron)) return "";
+  if (obj.some((o) => ["resistencia", "velocidad", "prevencion", "movilidad"].includes(o))) return "";
+  if (slot.rol === "basico") return "multiarticular";
+  if (slot.rol === "complementario") return "analitico";
+  return "";
+}
+
+export function matchesSlotNature(ex, slot = {}) {
+  const nature = inferredSlotNature(slot);
+  if (nature === "multiarticular") return !isAnalyticExercise(ex);
+  if (nature === "analitico") return isAnalyticExercise(ex);
+  return true;
+}
+
+export function userHasLoadEquipment(material) {
+  const mats = normalizeMaterialList(material);
+  if (!mats.length) return false;
+  return mats.some((m) => !/sin_material|peso_corporal|bodyweight|campo|ninguno/.test(String(m)));
+}
+
+function isLoadedStrengthSlot(slot = {}) {
+  const nature = inferredSlotNature(slot);
+  if (nature === "multiarticular") return true;
+  const obj = asArray(slot.objetivo).map((o) => String(o).toLowerCase());
+  return slot.rol === "basico" && obj.includes("fuerza") && !obj.includes("resistencia");
+}
+
+export function isRunningEnduranceExercise(ex) {
+  const n = String(ex?.nombre || ex?.name || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (/bici|bike|remo|rowerg|skierg|eliptica/.test(n)) return false;
+  return /carrera|correr|trote|running|sprint/.test(n);
+}
+
+export function isMachineEnduranceExercise(ex) {
+  const n = String(ex?.nombre || ex?.name || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (/bikeerg|rowerg|skierg|bici|eliptica/.test(n)) return true;
+  return asArray(tagsOf(ex).material).some((m) => /maquina/.test(String(m).toLowerCase()));
+}
+
+function hasKneeOrAnkleInjury(userProfile = {}) {
+  const lesions = asArray(userProfile.lesiones || userProfile.lesion).map((l) =>
+    String(l || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, ""),
+  );
+  return lesions.some((l) => /rodilla|tobillo|knee|ankle/.test(l));
+}
+
+function isResistanceSlot(slot = {}) {
+  const obj = asArray(slot.objetivo).map((o) => String(o).toLowerCase());
+  return obj.includes("resistencia") || ["aerobico", "umbral", "anaerobico"].includes(String(slot.patron || ""));
+}
+
+export function preferResistanceBand(candidates, userProfile = {}, slot = {}) {
+  if (!candidates.length || !isResistanceSlot(slot)) return candidates;
+  const injured = hasKneeOrAnkleInjury(userProfile);
+  const extraAnaerobicOnMachine =
+    Number(userProfile.resistanceSessionCount || 0) > 1
+    && (String(slot.patron || "") === "anaerobico" || String(userProfile.resistanceKind || "") === "anaerobico");
+  if (injured || extraAnaerobicOnMachine) {
+    const machines = candidates.filter(isMachineEnduranceExercise);
+    if (machines.length) return machines;
+    return candidates;
+  }
+  const runs = candidates.filter(isRunningEnduranceExercise);
+  return runs.length ? runs : candidates;
+}
+
 /** Prioriza material del perfil; fallback a peso corporal / sin material. */
 export function rankByMaterialPreference(candidates, userProfile = {}) {
   const mats = normalizeMaterialList(userProfile.material);
@@ -341,15 +447,38 @@ function pickFrom(candidates, userProfile, slot, _usedExerciseIds, seedExtra) {
   return pickDeterministic(candidates, seed);
 }
 
+function usedNameSet(usedIds = []) {
+  const names = new Set();
+  const byId = new Map(catalogPool().map((e) => [e.id, normalizeExerciseName(e)]));
+  for (const id of usedIds) {
+    const n = byId.get(id) || byId.get(Number(id));
+    if (n) names.add(n);
+  }
+  return names;
+}
+
+function isUsedInRoutine(ex, usedIds, usedNames) {
+  if (!ex) return true;
+  if (usedIds.includes(ex.id) || usedIds.includes(String(ex.id)) || usedIds.includes(Number(ex.id))) {
+    return true;
+  }
+  const n = normalizeExerciseName(ex);
+  return !!(n && usedNames.has(n));
+}
+
 export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], seedExtra = "") {
+  const usedNames = usedNameSet(usedExerciseIds);
+  const softReuse = slot.rol === "calentamiento" || slot.rol === "core";
   const filterPool = (pool, allowReuse = false) => {
     let candidates = filterExercisesForUser(pool, userProfile);
-    if (!allowReuse) candidates = candidates.filter((ex) => !usedExerciseIds.includes(ex.id));
+    if (!allowReuse) {
+      candidates = candidates.filter((ex) => !isUsedInRoutine(ex, usedExerciseIds, usedNames));
+    }
     return candidates;
   };
 
   const pool = catalogPool();
-  const natureOk = (ex) => sameTrainingNature(ex, slot);
+  const natureOk = (ex) => sameTrainingNature(ex, slot) && matchesSlotNature(ex, slot);
   let candidates = filterPool(pool.filter((ex) => matchSlotTags(ex, slot) && natureOk(ex)));
 
   for (let step = 1; candidates.length === 0 && step <= 3; step++) {
@@ -367,11 +496,11 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
         p: relaxed.patron,
       });
     if (same) continue;
-    candidates = filterPool(pool.filter((ex) => matchSlotTags(ex, relaxed) && natureOk(ex)));
+    candidates = filterPool(pool.filter((ex) => matchSlotTags(ex, { ...relaxed, nature: slot.nature }) && natureOk(ex)));
   }
 
-  // Reutilizar ejercicio ya usado en la sesión si el pool se agotó (antes que dejar el slot vacío)
-  if (!candidates.length) {
+  // Solo calentamiento/core pueden reutilizar si el pool se agotó. Fuerza no repite en la rutina.
+  if (!candidates.length && softReuse) {
     candidates = filterPool(pool.filter((ex) => matchSlotTags(ex, slot) && natureOk(ex)), true);
     for (let step = 1; candidates.length === 0 && step <= 3; step++) {
       const relaxed = relaxSlot(slot, step);
@@ -385,12 +514,13 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
   if (!candidates.length && slot.rol) {
     const constrained = {
       rol: slot.rol,
+      nature: slot.nature,
       ...(slot.objetivo ? { objetivo: slot.objetivo } : {}),
       ...(slot.segmento ? { segmento: slot.segmento } : {}),
     };
     candidates = filterPool(
       pool.filter((ex) => matchSlotTags(ex, constrained) && natureOk(ex)),
-      true,
+      softReuse,
     );
   }
 
@@ -404,11 +534,24 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
 
   if (!candidates.length) return null;
   const ranked = rankByMaterialPreference(candidates, userProfile);
-  // Prioridad: material del perfil → solo peso corporal (nunca otro equipo)
   const mats = normalizeMaterialList(userProfile.material);
+  const hasLoad = userHasLoadEquipment(userProfile.material);
+  const wantsLoaded = hasLoad && isLoadedStrengthSlot(slot);
   const preferMatched = ranked.filter((ex) => materialMatches(tagsOf(ex).material, mats));
+  const loadedMatched = preferMatched.filter((ex) => !isBodyweightMaterial(tagsOf(ex).material));
   const bodyFallback = ranked.filter((ex) => isBodyweightMaterial(tagsOf(ex).material));
-  const rankedPool = preferMatched.length ? preferMatched : bodyFallback;
+  let rankedPool;
+  if (wantsLoaded) {
+    rankedPool = loadedMatched.length ? loadedMatched : (preferMatched.length ? preferMatched.filter((ex) => !isBodyweightMaterial(tagsOf(ex).material)) : []);
+    if (!rankedPool.length) {
+      rankedPool = ranked.filter((ex) => !isBodyweightMaterial(tagsOf(ex).material));
+    }
+    // Solo peso corporal si no hay ninguna variante con material
+    if (!rankedPool.length) rankedPool = bodyFallback;
+  } else {
+    rankedPool = preferMatched.length ? preferMatched : bodyFallback;
+  }
+  rankedPool = preferResistanceBand(rankedPool, userProfile, slot);
   if (!rankedPool.length) return null;
   return pickFrom(rankedPool, userProfile, slot, usedExerciseIds, seedExtra);
 }
@@ -489,6 +632,7 @@ export function fillBlockSlots(block, userProfile, sessionUsedIds = [], sessionU
             segmento: slot.segmento,
             grupo_muscular: slot.grupo_muscular,
             objetivo: slot.objetivo,
+            nature: slot.nature,
           },
           sets: vol.sets,
           reps: vol.reps,
@@ -782,4 +926,8 @@ export default {
   normalizeMaterialList,
   materialMatches,
   getExercisesByPattern,
+  userHasLoadEquipment,
+  isAnalyticExercise,
+  isMultiarticularExercise,
+  matchesSlotNature,
 };
