@@ -32,12 +32,14 @@ describe("planSwapLimits — ciclo mensual", () => {
     assert.equal(MAX_PLAN_SWAPS, 5);
   });
 
-  it("needsMonthlyPlanRefresh tras 28 días", () => {
+  it("needsMonthlyPlanRefresh al cumplirse 1 mes calendario", () => {
     const plan = { startDate: "2026-07-01" };
     assert.equal(needsMonthlyPlanRefresh(plan, new Date("2026-07-20T12:00:00")), false);
-    assert.equal(needsMonthlyPlanRefresh(plan, new Date("2026-07-29T12:00:00")), true);
-    assert.equal(cycleEndDate("2026-07-01"), "2026-07-29");
-    assert.equal(PLAN_CYCLE_DAYS, 28);
+    assert.equal(needsMonthlyPlanRefresh(plan, new Date("2026-07-29T12:00:00")), false);
+    assert.equal(needsMonthlyPlanRefresh(plan, new Date("2026-08-01T12:00:00")), true);
+    assert.equal(cycleEndDate("2026-07-01"), "2026-08-01");
+    assert.equal(cycleEndDate("2026-09-02"), "2026-10-02");
+    assert.equal(PLAN_CYCLE_DAYS, 30);
   });
 
   it("no refresca planes admin", () => {

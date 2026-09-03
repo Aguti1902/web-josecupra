@@ -14,10 +14,8 @@ import {
   generateClubAutoWeekForCoach,
   generateClubAutoMesocicloForCoach,
   coachConfigFingerprint,
-  weekIndexInMonth,
-  monthKeyFromDate,
-  monthBounds,
 } from "./clubAuto/clubAutoCoachBridge";
+import { cycleEndDate } from "./planSwapLimits.js";
 
 function weekKeyFor(clubId, teamId, weekStart) {
   return `depro_coach_week_${clubId}_${teamId}_${weekStart}`;
@@ -34,15 +32,34 @@ function lsSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 
-function weekMatchesEngine(week, config, weekStart) {
+function todayIso() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function resolveCoachCycle(clubId, teamId) {
+  const meso = lsGet(mesoKeyFor(clubId, teamId), null);
+  const today = todayIso();
+  const start = meso?.cycleStartDate || meso?.startDate;
+  const end = meso?.cycleEndDate || (start ? cycleEndDate(start) : null);
+  if (start && end && today < end) {
+    return { startDate: start, endDate: end };
+  }
+  return { startDate: today, endDate: cycleEndDate(today) };
+}
+
+function weekMatchesEngine(week, config) {
   if (!week) return false;
   const fp = coachConfigFingerprint(config);
   if (week.configFingerprint && week.configFingerprint !== fp) return false;
   if (usesClubAutoEngine(config)) {
     if (week.engine !== "club_auto") return false;
-    const offset = weekIndexInMonth(weekStart);
-    if (week.weekOffset == null) return offset === 0;
-    return week.weekOffset === offset;
+    const end = week.cycleEndDate || (week.cycleStartDate ? cycleEndDate(week.cycleStartDate) : null);
+    if (end && todayIso() >= end) return false;
+    return true;
   }
   return week.engine !== "club_auto";
 }
@@ -54,31 +71,44 @@ function withFingerprint(data, config) {
 export function loadOrGenerateWeek({ clubId, teamId, weekStart, config, library }) {
   const key = weekKeyFor(clubId, teamId, weekStart);
   const cached = lsGet(key, null);
-  if (weekMatchesEngine(cached, config, weekStart)) return cached;
+  if (weekMatchesEngine(cached, config)) return cached;
 
   const detail = loadClubDetail(clubId);
   const remote = detail?.coachWeeks?.[`${teamId}_${weekStart}`];
-  if (weekMatchesEngine(remote, config, weekStart)) {
+  if (weekMatchesEngine(remote, config)) {
     lsSet(key, remote);
     return remote;
   }
 
-  const offset = weekIndexInMonth(weekStart);
-  const monthKey = monthKeyFromDate(weekStart);
+  const cycle = resolveCoachCycle(clubId, teamId);
   let generated;
   try {
     generated = withFingerprint(
       usesClubAutoEngine(config)
-        ? generateClubAutoWeekForCoach(config, { weekStart, weekOffset: offset, monthKey })
+        ? generateClubAutoWeekForCoach(config, {
+          weekStart,
+          cycleStart: cycle.startDate,
+        })
         : generateMicrociclo({ config, weekStart, library }),
       config,
     );
   } catch {
     generated = withFingerprint({ sessions: [], weekStart, engine: usesClubAutoEngine(config) ? "club_auto" : "depro" }, config);
   }
-  // No congelar una semana vacía: si el cuestionario aún no vale, se reintenta en la siguiente carga.
   if (Array.isArray(generated?.sessions) && generated.sessions.length > 0) {
     saveWeek({ clubId, teamId, weekStart, data: generated });
+    const mesoKey = mesoKeyFor(clubId, teamId);
+    const meso = lsGet(mesoKey, null) || {};
+    if (!meso.cycleStartDate || todayIso() >= (meso.cycleEndDate || "")) {
+      lsSet(mesoKey, {
+        ...meso,
+        cycleStartDate: cycle.startDate,
+        cycleEndDate: cycle.endDate,
+        startDate: cycle.startDate,
+        endDate: cycle.endDate,
+        engine: usesClubAutoEngine(config) ? "club_auto" : meso.engine,
+      });
+    }
   }
   return generated;
 }
@@ -113,20 +143,24 @@ export function removeSessionFromWeek({ clubId, teamId, weekStart, sessionId }) 
 export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, endDate, numWeeks, library }) {
   const key = mesoKeyFor(clubId, teamId);
   const fp = coachConfigFingerprint(config);
-  const bounds = monthBounds(startDate || new Date());
-  const start = startDate || bounds.startDate;
-  const end = endDate || bounds.endDate;
+  const cycle = resolveCoachCycle(clubId, teamId);
+  const start = startDate || cycle.startDate;
+  const end = endDate || cycle.endDate;
   const cached = lsGet(key, null);
-  if (cached && cached.startDate === start && (cached.endDate || start) === end && cached.configFingerprint === fp) {
-    if (!(usesClubAutoEngine(config) && cached.engine !== "club_auto")) {
-      return cached;
+  if (cached && cached.configFingerprint === fp) {
+    const cachedEnd = cached.cycleEndDate || cached.endDate;
+    if (cachedEnd && todayIso() < cachedEnd) {
+      if (!(usesClubAutoEngine(config) && cached.engine !== "club_auto")) {
+        return cached;
+      }
     }
   }
 
   const detail = loadClubDetail(clubId);
   const remote = detail?.coachMesociclo?.[teamId];
-  if (remote && remote.startDate === start && (remote.endDate || start) === end) {
-    if ((!remote.configFingerprint || remote.configFingerprint === fp)
+  if (remote && (!remote.configFingerprint || remote.configFingerprint === fp)) {
+    const remoteEnd = remote.cycleEndDate || remote.endDate;
+    if (remoteEnd && todayIso() < remoteEnd
       && !(usesClubAutoEngine(config) && remote.engine !== "club_auto")) {
       lsSet(key, remote);
       return remote;
@@ -152,6 +186,8 @@ export function loadOrGenerateMesociclo({ clubId, teamId, config, startDate, end
     }, config);
   }
   if (Array.isArray(generated?.weeks) && generated.weeks.length > 0) {
+    generated.cycleStartDate = generated.cycleStartDate || start;
+    generated.cycleEndDate = generated.cycleEndDate || end;
     saveMesociclo({ clubId, teamId, data: generated });
   }
   return generated;

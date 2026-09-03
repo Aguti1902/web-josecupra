@@ -29,7 +29,7 @@ import {
 import { loadPlanBlocks, savePlanBlock, deletePlanBlock, togglePlanBlock, loadMedia } from "../../lib/adminStorage";
 import { EXERCISES, TAGS } from "../../data/exercises";
 import { Search, List, BookOpen } from "lucide-react";
-import { buildPlayerPlan, buildFourWeekPlan, refreshExercise, normalizeLesions } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildFourWeekPlan, refreshExerciseAcrossPlan, normalizeLesions } from "../../lib/playerPlanEngine";
 import { DAY_ORDER, COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 import { getYouTubeId } from "../../lib/youtube";
@@ -143,17 +143,18 @@ function IASimulator() {
       deporte: user.deporte,
       experiencia: user.experiencia?.includes("Nunca") || user.experiencia?.includes("Menos") ? "novato"
         : user.experiencia?.includes("Más de 3") ? "avanzado" : "intermedio",
+      userId: user.id || "admin-sim",
     };
-    const weeks = simulated.weeks.map((w, wi) => {
-      if (wi !== weekIdx) return w;
-      return {
-        ...w,
-        sessions: w.sessions.map((s) =>
-          s.id === sessionId ? refreshExercise(s, exerciseId, filterParams) : s
-        ),
-      };
+    const next = refreshExerciseAcrossPlan(
+      { weeks: simulated.weeks, days: simulated.weeks?.[weekIdx]?.days },
+      sessionId,
+      exerciseId,
+      filterParams,
+    );
+    setSimulated({
+      ...simulated,
+      weeks: next.weeks || simulated.weeks,
     });
-    setSimulated({ weeks });
   };
 
   const currentWeek = simulated?.weeks?.[viewWeek - 1];

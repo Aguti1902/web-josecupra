@@ -1,13 +1,15 @@
 /**
- * Límites del mesociclo de planificación individual (~28 días).
- * - Regeneración automática mensual
+ * Límites del mesociclo de planificación individual (1 mes calendario).
+ * Compra el 2 de septiembre → sesiones hasta el 2 de octubre.
+ * - Regeneración automática al vencer el mes
  * - Máx. 1 cambio de perfil que regenere el plan
  * - Máx. 5 refrescos de ejercicio (propagados a todo el plan)
  */
 
 export const MAX_PLAN_SWAPS = 5;
 export const MAX_PROFILE_REGENS_PER_CYCLE = 1;
-export const PLAN_CYCLE_DAYS = 28;
+/** Aproximación para copys; el vencimiento real usa mes calendario. */
+export const PLAN_CYCLE_DAYS = 30;
 export const UNLIMITED_EXERCISES_ADDON = "addon-unlimited-exercises";
 
 export const MAINTENANCE_MESSAGE =
@@ -48,12 +50,18 @@ export function addDaysISO(isoDate, days) {
   return d.toISOString().slice(0, 10);
 }
 
-export function cycleEndDate(startDateISO) {
-  if (!startDateISO) return null;
-  return addDaysISO(startDateISO, PLAN_CYCLE_DAYS);
+export function addCalendarMonthISO(isoDate) {
+  if (!isoDate) return null;
+  const d = new Date(`${isoDate}T12:00:00`);
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 10);
 }
 
-/** True si el mesociclo (startDate + 28 días) ya venció. */
+export function cycleEndDate(startDateISO) {
+  return addCalendarMonthISO(startDateISO);
+}
+
+/** True si el mesociclo (startDate + 1 mes) ya venció. */
 export function needsMonthlyPlanRefresh(plan, now = new Date()) {
   if (!plan || plan.premiumPending || plan.planPendingManual || plan.planError) return false;
   if (plan.source === "admin_manual" || plan.assignment) return false;
@@ -64,6 +72,22 @@ export function needsMonthlyPlanRefresh(plan, now = new Date()) {
   today.setHours(12, 0, 0, 0);
   const endDate = new Date(`${end}T12:00:00`);
   return today >= endDate;
+}
+
+/** Número de semanas ISO que cubren [start, end). */
+export function weekCountForCycle(startDateISO) {
+  const end = cycleEndDate(startDateISO);
+  if (!startDateISO || !end) return 4;
+  const startMon = mondayOfDateLocal(new Date(`${startDateISO}T12:00:00`));
+  const lastDay = addDaysISO(end, -1);
+  const lastMon = mondayOfDateLocal(new Date(`${lastDay}T12:00:00`));
+  let n = 0;
+  let cur = startMon;
+  while (cur <= lastMon && n < 6) {
+    n += 1;
+    cur = addDaysISO(cur, 7);
+  }
+  return Math.max(1, n);
 }
 
 function readJson(key, fallback) {

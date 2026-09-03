@@ -3,8 +3,30 @@
  * Keys públicas = nombres de sesión; templateCode = F_* del prompt.
  */
 
+/** Naturaleza de selección: básicos/fuerza máx = multiarticulares; complementarios = analíticos. */
+function inferSlotNature(c = {}) {
+  const obj = (Array.isArray(c.objetivo) ? c.objetivo : [c.objetivo].filter(Boolean))
+    .map((o) => String(o).toLowerCase());
+  const patron = String(c.patron || "");
+  if (patron === "analitico") return "analitico";
+  if (["pliometria", "isometrico", "aceleracion", "aerobico", "umbral", "anaerobico"].includes(patron)) {
+    return null;
+  }
+  if (obj.some((o) => ["resistencia", "velocidad", "prevencion", "movilidad"].includes(o))) {
+    return null;
+  }
+  if (c.rol === "basico") return "multiarticular";
+  if (c.rol === "complementario") return "analitico";
+  return null;
+}
+
 function slot(constraints) {
-  return { qty: 1, ...constraints };
+  const next = { qty: 1, ...constraints };
+  if (!next.nature) {
+    const inferred = inferSlotNature(next);
+    if (inferred) next.nature = inferred;
+  }
+  return next;
 }
 
 function block(type, label, duration, slots, extra = {}) {
@@ -31,6 +53,12 @@ const CORE = block("core", "Core", "6 min", [
     description: "Core / control",
     slotId: "core",
   }),
+]);
+
+/** Bloque isométrico corto delante de pliometría. */
+const ISOMETRICOS_PRE = block("complementario", "Isométricos", "8 min", [
+  slot({ rol: "complementario", patron: "isometrico", description: "Iso 1", slotId: "iso_pre_1" }),
+  slot({ rol: "complementario", patron: "isometrico", description: "Iso 2", slotId: "iso_pre_2" }),
 ]);
 
 export const SESSION_TEMPLATES = {
@@ -112,6 +140,7 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Fuerza máx. anterior", slotId: "vel_fm1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Fuerza máx. posterior", slotId: "vel_fm2" }),
       ]),
+      ISOMETRICOS_PRE,
       block("complementario", "Pliometría", "10 min", [
         slot({ rol: "complementario", patron: "pliometria", segmento: "tren_inferior", carpeta: "pliometria", description: "Pliometría 1", slotId: "vel_p1" }),
         slot({ rol: "complementario", patron: "pliometria", segmento: "tren_inferior", carpeta: "pliometria", description: "Pliometría 2", slotId: "vel_p2" }),
@@ -241,6 +270,7 @@ export const SESSION_TEMPLATES = {
     },
     blocks: [
       CALENTAMIENTO_CORTO,
+      CORE,
       block("principal", "Trabajo aeróbico", "25 min", [
         slot({ rol: "basico", objetivo: "resistencia", patron: "aerobico", description: "Aeróbico", slotId: "ra_p" }),
       ]),
@@ -261,6 +291,7 @@ export const SESSION_TEMPLATES = {
     },
     blocks: [
       CALENTAMIENTO_CORTO,
+      CORE,
       block("principal", "Umbral", "28 min", [
         slot({ rol: "basico", objetivo: "resistencia", patron: "umbral", description: "Umbral", slotId: "ru_p" }),
       ]),
@@ -281,6 +312,7 @@ export const SESSION_TEMPLATES = {
     },
     blocks: [
       CALENTAMIENTO_CORTO,
+      CORE,
       block("principal", "Anaeróbico", "25 min", [
         slot({ rol: "basico", objetivo: "resistencia", patron: "anaerobico", description: "Anaeróbico", slotId: "rn_p" }),
       ]),
@@ -314,6 +346,7 @@ SESSION_TEMPLATES.Pliometría = {
   templateCode: "F_PLIO",
   blocks: [
     CALENTAMIENTO_CORTO,
+    ISOMETRICOS_PRE,
     block("complementario", "Pliometría", "20 min", [
       slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 1", slotId: "pl_1" }),
       slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 2", slotId: "pl_2" }),

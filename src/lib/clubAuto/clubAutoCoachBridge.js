@@ -13,10 +13,13 @@ import {
   monthBounds,
   isoWeekStartsInMonth,
   isoWeekStartsInMonthFrom,
+  isoWeekStartsForCycle,
   startOfIsoWeek,
   addDaysIso,
+  isoDateLocal,
   gymAccessFromMaterials,
 } from "./clubAutoEngine.js";
+import { cycleEndDate } from "../planSwapLimits.js";
 
 export {
   TRAIN_DAYS,
@@ -29,6 +32,7 @@ export {
   monthBounds,
   isoWeekStartsInMonth,
   isoWeekStartsInMonthFrom,
+  isoWeekStartsForCycle,
   startOfIsoWeek,
   addDaysIso,
 };
@@ -198,8 +202,6 @@ export function loadCoachAutoDraftFromStorage() {
 export function coachConfigFingerprint(config = {}) {
   const q = coachConfigToQuestionnaire(config);
   const auto = usesClubAutoEngine(config) || usesClubAutoEngine({ coachConfig: config });
-  const monthKey = monthKeyFromDate(new Date());
-  const planStart = startOfIsoWeek(new Date());
   return JSON.stringify({
     engine: auto ? "club_auto" : "legacy",
     nivel: q.nivel,
@@ -210,8 +212,6 @@ export function coachConfigFingerprint(config = {}) {
     material: [...(q.material || [])].map(String).sort(),
     duration: q.duracion_sesion || "",
     jugadores: q.num_jugadores || "",
-    monthKey,
-    planStart,
   });
 }
 
@@ -330,50 +330,71 @@ export function adaptClubAutoWeek(result, weekStart) {
   };
 }
 
-export function generateClubAutoWeekForCoach(config, { weekStart, weekOffset, monthKey: monthKeyOpt } = {}) {
+export function generateClubAutoWeekForCoach(config, { weekStart, monthKey: monthKeyOpt, cycleStart: cycleStartOpt } = {}) {
   const q = coachConfigToQuestionnaire(config);
-  const monthKey = monthKeyOpt || monthKeyFromDate(weekStart || new Date());
-  const offset = weekOffset ?? weekIndexInMonth(weekStart);
-  const variant = variantIndexForWeek(offset);
+  const rawStart = cycleStartOpt || monthKeyOpt;
+  const cycleStart = (rawStart && /^\d{4}-\d{2}-\d{2}/.test(rawStart))
+    ? String(rawStart).slice(0, 10)
+    : (rawStart && /^\d{4}-\d{2}$/.test(rawStart))
+      ? `${rawStart}-01`
+      : isoDateLocal(weekStart ? new Date(`${String(weekStart).slice(0, 10)}T12:00:00`) : new Date());
+  const cycleEnd = cycleEndDate(cycleStart);
   const result = generateClubAutoMicrociclo(q, {
-    weekOffset: offset,
-    monthKey,
-    variant,
+    weekOffset: 0,
+    variant: 0,
+    cycleStart,
+    cycleEnd,
     weekStart,
-    seed: `${monthKey}|v${variant}|${q.nivel}`,
+    seed: `${cycleStart}|${q.nivel}`,
   });
   const adapted = adaptClubAutoWeek(result, weekStart);
-  return { ...adapted, weekOffset: offset, monthKey };
+  return {
+    ...adapted,
+    weekOffset: 0,
+    monthKey: cycleStart,
+    cycleStartDate: cycleStart,
+    cycleEndDate: cycleEnd,
+    sameRoutine: true,
+  };
 }
 
 export function generateClubAutoMesocicloForCoach(config, { startDate, endDate, numWeeks, fromDate } = {}) {
   const q = coachConfigToQuestionnaire(config);
   const now = fromDate || startDate || new Date();
-  const bounds = monthBounds(now);
-  const monthEnd = endDate || bounds.endDate;
-  const monthKey = monthKeyFromDate(now);
+  const cycleStart = typeof now === "string" ? String(now).slice(0, 10) : isoDateLocal(now);
+  const cycleEnd = endDate || cycleEndDate(cycleStart);
   const planStart = startOfIsoWeek(fromDate || startDate || now);
-  let usedStarts = isoWeekStartsInMonthFrom(now, planStart);
+  let usedStarts = isoWeekStartsForCycle(cycleStart, cycleEnd).filter((w) => w >= planStart || w === planStart);
+  if (!usedStarts.length) usedStarts = isoWeekStartsForCycle(cycleStart, cycleEnd);
   if (Number.isFinite(numWeeks) && numWeeks > 0) usedStarts = usedStarts.slice(0, numWeeks);
   if (!usedStarts.length) usedStarts = [planStart];
   const nivelLabel = CLUB_AUTO_NIVELES.find((n) => n.id === q.nivel)?.label || q.nivel;
+  const base = generateClubAutoMicrociclo(q, {
+    weekOffset: 0,
+    variant: 0,
+    cycleStart,
+    cycleEnd,
+    seed: `${cycleStart}|${q.nivel}`,
+  });
   return {
     engine: "club_auto",
     startDate: usedStarts[0],
-    endDate: monthEnd,
-    monthKey,
+    endDate: cycleEnd,
+    cycleStartDate: cycleStart,
+    cycleEndDate: cycleEnd,
+    monthKey: cycleStart,
     numWeeks: usedStarts.length,
+    sameRoutine: true,
     objetivoLabel: `Planificación mensual · Nivel ${nivelLabel}`,
     weeks: usedStarts.map((weekStart, i) => {
-      const offset = weekIndexInMonth(weekStart);
       const adapted = adaptClubAutoWeek(
-        generateClubAutoMicrociclo(q, {
-          weekOffset: offset,
-          monthKey,
-          variant: variantIndexForWeek(offset),
-          weekStart,
-          seed: `${monthKey}|w${offset}|v${variantIndexForWeek(offset)}|${q.nivel}`,
-        }),
+        {
+          ...base,
+          sessions: (base.sessions || []).map((s) => ({
+            ...s,
+            id: `${s.id}_${weekStart}`,
+          })),
+        },
         weekStart,
       );
       const sessions = adapted.sessions || [];
@@ -383,7 +404,15 @@ export function generateClubAutoMesocicloForCoach(config, { startDate, endDate, 
         label: `Semana ${i + 1}`,
         summary: adapted.summary,
         sessions,
-        microciclo: { sessions, weekStart, engine: "club_auto", summary: adapted.summary, weekOffset: offset },
+        microciclo: {
+          sessions,
+          weekStart,
+          engine: "club_auto",
+          summary: adapted.summary,
+          weekOffset: 0,
+          cycleStartDate: cycleStart,
+          cycleEndDate: cycleEnd,
+        },
         focus: adapted.summary,
       };
     }),

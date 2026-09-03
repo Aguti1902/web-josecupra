@@ -7,7 +7,7 @@ import {
   Phone, ExternalLink, PencilRuler,
 } from "lucide-react";
 import { useAdmin, mapPlayerToClient } from "../../context/AdminContext";
-import { refreshExercise as refreshExerciseInEngine, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
+import { refreshExerciseAcrossPlan, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
 import { isPlayerPro } from "../../lib/subscription";
 import { loadPlayerPlan, weekDaysFromPlan } from "../../lib/playerPlanStorage";
 import { getChatMessages, sendChatMessage } from "../../lib/internalChat";
@@ -79,7 +79,7 @@ class DetailErrorBoundary extends Component {
 
 /* ── WEEK PLAN TAB ───────────────────────────────────────────────── */
 function PlanTab({ clientId, client }) {
-  const { clientPlans, updateSession, addSession, deleteSession, addExercise, updateExercise, deleteExercise } = useAdmin();
+  const { clientPlans, updateSession, addSession, deleteSession, addExercise, updateExercise, deleteExercise, setClientPlan } = useAdmin();
   const raw = clientPlans[clientId];
   const pending = !!(raw?.premiumPending || raw?.planPendingManual);
   const plan = Array.isArray(raw) ? raw : weekDaysFromPlan(raw);
@@ -104,12 +104,13 @@ function PlanTab({ clientId, client }) {
   const handleAddSession = () => { addSession(clientId, selectedDay, { ...newSession }); setNewSession({ title: "", duration: "60 min", intensity: "Media", type: "Fuerza", objective: "", status: "upcoming", exercises: [] }); setShowAddSession(false); };
   const handleAddExercise = (sIdx) => { addExercise(clientId, selectedDay, sIdx, { ...newExercise }); setNewExercise({ name: "", duration: "15 min", sets: "3", reps: "5", description: "", tips: "", videoUrl: "" }); setShowAddExercise(null); };
 
-  /** Sustituye ejercicio por otro compatible del mismo slot (PDF §3.4). */
+  /** Sustituye ejercicio y conserva el cambio en todas las semanas al asignar. */
   const handleRefreshExercise = (dIdx, sIdx, eIdx) => {
     const session = plan[dIdx]?.sessions?.[sIdx];
     const ex = session?.exercises?.[eIdx];
     if (!session || !ex) return;
-    const next = refreshExerciseInEngine(session, ex.id, {
+    const stored = loadPlayerPlan(clientId) || (Array.isArray(plan) ? plan : raw);
+    const next = refreshExerciseAcrossPlan(stored, session.id, ex.id, {
       material: client?.material || ["Gimnasio completo"],
       lesiones: client?.lesion || [],
       lesionSubtipo: client?.lesionSubtipo || [],
@@ -117,7 +118,12 @@ function PlanTab({ clientId, client }) {
       experiencia: client?.experiencia || "intermedio",
       userId: clientId,
     });
-    const refreshed = (next.exercises || [])[eIdx];
+    if (next && setClientPlan) {
+      setClientPlan(clientId, next);
+      return;
+    }
+    const nextSession = (Array.isArray(next) ? next[dIdx]?.sessions?.[sIdx] : null) || session;
+    const refreshed = (nextSession.exercises || [])[eIdx];
     if (!refreshed || refreshed.name === ex.name) return;
     updateExercise(clientId, dIdx, sIdx, eIdx, {
       ...ex,
