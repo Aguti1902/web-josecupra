@@ -304,6 +304,7 @@ export async function assignPlanToPlayer({
     source: "admin_manual",
     premiumPending: false,
     planPendingManual: false,
+    lastEditedAt: assigned.lastEditedAt || new Date().toISOString(),
     ...(profileSnapshot ? { profileSnapshot } : {}),
   };
 

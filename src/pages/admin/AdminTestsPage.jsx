@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { PlayCircle, Save, CheckCircle, RefreshCw, Info } from "lucide-react";
-import { EVAL_TEST_DEFAULTS, mergeEvalTests } from "../../lib/evalTestDefaults";
-import { mergeListsPreferVideo, countListVideos } from "../../lib/contentRestore";
+import { EVAL_TEST_DEFAULTS } from "../../lib/evalTestDefaults";
+import { persistGlobalTests } from "../../lib/adminStorage";
+import { hydrateGlobalTests, readLocalGlobalTests, writeLocalGlobalTests, pushLocalGlobalTestsIfRicher } from "../../lib/globalTestsSync";
+import { describeCloudSaveError } from "../../lib/adminGlobalBlobs";
 
 const BASE_TESTS = EVAL_TEST_DEFAULTS;
-
-const STORAGE_KEY = "depro_global_tests";
 
 function getYouTubeId(url) {
   if (!url) return null;
@@ -14,31 +14,15 @@ function getYouTubeId(url) {
 }
 
 function loadTests() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
-  catch { return []; }
-}
-
-async function fetchTestsFromCloud() {
-  try {
-    const r = await fetch("/api/admin-clubs");
-    if (!r.ok) return null;
-    const data = await r.json();
-    const entry = (data.clubs || []).find((c) => c.id === "GLOBAL_TESTS");
-    return entry?.tests ?? null;
-  } catch { return null; }
+  return readLocalGlobalTests();
 }
 
 async function saveTestsToCloud(tests) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tests));
-  const res = await fetch("/api/admin-clubs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      club: { id: "GLOBAL_TESTS", name: "Global Tests" },
-      detail: { tests },
-    }),
-  });
-  if (!res.ok) throw new Error(await res.text());
+  writeLocalGlobalTests(tests);
+  const result = await persistGlobalTests(tests);
+  if (!result.ok) {
+    throw new Error(describeCloudSaveError(result));
+  }
 }
 
 function defaultTests() {
@@ -52,17 +36,12 @@ export default function AdminTestsPage() {
   });
   const [syncing, setSyncing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
-    fetchTestsFromCloud().then((cloud) => {
-      const local = loadTests();
-      if (cloud == null) return;
-      const merged = mergeEvalTests(mergeListsPreferVideo(local, cloud));
-      setTests(merged);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-      if (countListVideos(local) > 0 && countListVideos(cloud) === 0) {
-        saveTestsToCloud(merged).catch(() => {});
-      }
+    hydrateGlobalTests().then((merged) => {
+      setTests(merged.length ? merged : defaultTests());
+      pushLocalGlobalTestsIfRicher().catch(() => {});
     });
   }, []);
 
@@ -71,12 +50,14 @@ export default function AdminTestsPage() {
 
   const handleSave = async () => {
     setSyncing(true);
+    setSaveError("");
     try {
       await saveTestsToCloud(tests);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       console.error("[DEPRO] Error guardando tests", e);
+      setSaveError(e?.message || "No se pudo guardar en la nube");
     } finally {
       setSyncing(false);
     }
@@ -98,6 +79,9 @@ export default function AdminTestsPage() {
           {syncing ? "Guardando…" : saved ? "¡Guardado!" : "Guardar en la nube"}
         </button>
       </div>
+      {saveError && (
+        <p className="text-sm text-depro-red font-semibold">{saveError}</p>
+      )}
 
       {/* Nota */}
       <div className="flex items-start gap-3 bg-depro-blue-light/30 border border-depro-blue/20 rounded-2xl px-4 py-3">

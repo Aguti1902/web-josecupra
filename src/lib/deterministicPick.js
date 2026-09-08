@@ -14,3 +14,13 @@ export function pickDeterministic(candidates, seed = "") {
   const sorted = [...candidates].sort((a, b) => a.id - b.id);
   return sorted[hashSeed(seed) % sorted.length];
 }
+
+/**
+ * Refresco: no reutilizar la misma semilla. Excluye el actual y rota.
+ */
+export function pickVaried(candidates, seed = "") {
+  if (!candidates?.length) return null;
+  const sorted = [...candidates].sort((a, b) => String(a.id).localeCompare(String(b.id), "en"));
+  const extra = `${Date.now()}|${Math.random()}|${seed}`;
+  return sorted[hashSeed(extra) % sorted.length];
+}

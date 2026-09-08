@@ -20,8 +20,22 @@ export function loadSeasonData(playerId) {
   }
 }
 
-export function saveSeasonData(playerId, data) {
+export function saveSeasonData(playerId, data, ctx = {}) {
   localStorage.setItem(seasonTestsKey(playerId), JSON.stringify(data));
+  const clubId = ctx.clubId;
+  const teamId = ctx.teamId;
+  if (!clubId || !teamId || !playerId) return;
+  import("./adminStorage.js").then(({ loadClubDetail, saveClubDetail }) => {
+    const detail = loadClubDetail(clubId) || {};
+    const seasonTests = {
+      ...(detail.seasonTests && typeof detail.seasonTests === "object" ? detail.seasonTests : {}),
+    };
+    seasonTests[teamId] = {
+      ...(seasonTests[teamId] && typeof seasonTests[teamId] === "object" ? seasonTests[teamId] : {}),
+      [playerId]: data,
+    };
+    saveClubDetail(clubId, { seasonTests }).catch(() => {});
+  }).catch(() => {});
 }
 
 export function getEvalValues(playerId, testId) {

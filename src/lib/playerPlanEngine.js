@@ -836,7 +836,7 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
 
   let makeNew;
   if (isSinBalonWarmup(target) || (target.blockType === "calentamiento" && target.warmupSource === "sin_balon")) {
-    const seed = `${sessionId}|${exerciseId}|${oldCatalogId || ""}`;
+    const seed = `${sessionId}|${exerciseId}|${oldCatalogId || ""}|${Date.now()}|${Math.random()}`;
     let replacement = selectGeneralWarmup({ seed, avoidId: target.catalogId });
     if (!replacement || replacement.placeholder || replacement.id === target.catalogId) {
       replacement = selectGeneralWarmup({ seed: `${seed}|alt` });
@@ -862,7 +862,7 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
       },
       userProfile,
       excludeIds,
-      `${sessionId}|${exerciseId}|${oldCatalogId || ""}`,
+      `${sessionId}|${exerciseId}|${oldCatalogId || ""}|${Date.now()}|${Math.random()}`,
     );
     if (!replacement) return plan;
     makeNew = (seed) => {
@@ -931,6 +931,7 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
   }
 
   next.refrescos_usados_mes = (Number(plan.refrescos_usados_mes) || 0) + 1;
+  next.lastEditedAt = new Date().toISOString();
   return next;
 }
 

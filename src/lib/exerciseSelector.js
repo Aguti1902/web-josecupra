@@ -2,7 +2,7 @@
  * DEPRO — Selección de ejercicios por etiquetas multi-eje (AND) + pickDeterministic.
  */
 import { EXERCISES } from "./exerciseCatalog.js";
-import { pickDeterministic } from "./deterministicPick.js";
+import { pickDeterministic, pickVaried } from "./deterministicPick.js";
 
 const EXP_LEVELS = { novato: 1, intermedio: 2, avanzado: 3 };
 
@@ -466,7 +466,7 @@ function isUsedInRoutine(ex, usedIds, usedNames) {
   return !!(n && usedNames.has(n));
 }
 
-export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], seedExtra = "") {
+export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], seedExtra = "", opts = {}) {
   const usedNames = usedNameSet(usedExerciseIds);
   const softReuse = slot.rol === "calentamiento" || slot.rol === "core";
   const filterPool = (pool, allowReuse = false) => {
@@ -553,6 +553,7 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
   }
   rankedPool = preferResistanceBand(rankedPool, userProfile, slot);
   if (!rankedPool.length) return null;
+  if (opts.varied) return pickVaried(rankedPool, seedExtra);
   return pickFrom(rankedPool, userProfile, slot, usedExerciseIds, seedExtra);
 }
 
@@ -666,7 +667,7 @@ function isSameCatalogExercise(ex, current) {
   return (a != null && (a === b || a === c)) || (ex.catalogId != null && (ex.catalogId === b || ex.catalogId === c));
 }
 
-/** Refresco: mismo slot; si el pool está agotado, relaja y elige otro similar. */
+/** Refresco: mismo slot; rota alternativas y no repite los de la rutina. */
 export function refreshExercise(currentExercise, userProfile, excludeIds = [], seed = "") {
   const tags = tagsOf(currentExercise);
   const constraints = currentExercise.slotConstraints || {
@@ -678,49 +679,63 @@ export function refreshExercise(currentExercise, userProfile, excludeIds = [], s
   };
 
   const used = [...excludeIds, currentExercise.id, currentExercise.catalogId].filter((id) => id != null);
-  const baseSeed = seed || `${Date.now()}|${currentExercise.id}`;
+  const tried = new Set(used);
+  const baseSeed = `${seed}|${Date.now()}|${Math.random()}|${currentExercise.id}`;
 
   const accept = (picked) => {
     if (!picked || isSameCatalogExercise(picked, currentExercise)) return null;
     return picked;
   };
 
-  let picked = accept(selectExerciseForSlot(
-    { ...constraints, slotId: constraints.slotId || `refresh_${currentExercise.id}` },
-    userProfile,
-    used,
-    baseSeed,
-  ));
-
-  if (!picked && (constraints.rol || constraints.segmento || constraints.objetivo)) {
-    picked = accept(selectExerciseForSlot(
-      {
-        rol: constraints.rol,
-        segmento: constraints.segmento,
-        objetivo: constraints.objetivo,
-        slotId: `refresh_relax_${currentExercise.id}`,
-      },
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const raw = selectExerciseForSlot(
+      { ...constraints, slotId: constraints.slotId || `refresh_${currentExercise.id}_${attempt}` },
       userProfile,
-      used,
-      `${baseSeed}|relax`,
-    ));
+      [...tried],
+      `${baseSeed}|a${attempt}`,
+      { varied: true },
+    );
+    if (raw?.id != null) tried.add(raw.id);
+    const picked = accept(raw);
+    if (picked) return picked;
   }
 
-  if (!picked) {
-    const pool = catalogPool();
-    const filtered = filterExercisesForUser(pool, userProfile)
-      .filter((ex) => !isSameCatalogExercise(ex, currentExercise) && !used.includes(ex.id));
-    const similar = filtered.filter((ex) => sameTrainingNature(ex, constraints, currentExercise));
-    const samePool = currentExercise.pool
-      ? similar.filter((ex) => ex.pool === currentExercise.pool)
-      : [];
-    const list = (samePool.length ? samePool : similar).length
-      ? (samePool.length ? samePool : similar)
-      : filtered;
-    if (list.length) picked = accept(pickDeterministic(list, `${baseSeed}|pool`));
+  if (constraints.rol || constraints.segmento || constraints.objetivo) {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const picked = accept(selectExerciseForSlot(
+        {
+          rol: constraints.rol,
+          segmento: constraints.segmento,
+          objetivo: constraints.objetivo,
+          slotId: `refresh_relax_${currentExercise.id}_${attempt}`,
+        },
+        userProfile,
+        [...tried],
+        `${baseSeed}|relax${attempt}`,
+        { varied: true },
+      ));
+      if (picked) return picked;
+    }
   }
 
-  return picked || null;
+  const pool = catalogPool();
+  const filtered = filterExercisesForUser(pool, userProfile)
+    .filter((ex) => !isSameCatalogExercise(ex, currentExercise) && !used.includes(ex.id) && !used.includes(String(ex.id)));
+  const similar = filtered.filter((ex) => sameTrainingNature(ex, constraints, currentExercise));
+  const samePool = currentExercise.pool
+    ? similar.filter((ex) => ex.pool === currentExercise.pool)
+    : [];
+  const list = (samePool.length ? samePool : similar).length
+    ? (samePool.length ? samePool : similar)
+    : filtered;
+  if (list.length) {
+    const picked = accept(pickVaried(list, `${baseSeed}|pool`));
+    if (picked) return picked;
+    const rest = list.filter((ex) => !isSameCatalogExercise(ex, currentExercise));
+    if (rest.length) return pickVaried(rest, `${baseSeed}|rest`) || rest[0];
+  }
+
+  return null;
 }
 
 export function getPreventionInjectionIds(lesiones = []) {

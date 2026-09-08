@@ -19,6 +19,9 @@ import {
   filterPurgedFromList,
   purgePlayerClubArtifacts,
 } from "../../lib/clubPlayerPurge";
+import { saveClubDetail, fetchClubById, loadClubDetail } from "../../lib/adminStorage";
+import { hydrateClubDeviceCache, squadStorageKey } from "../../lib/clubDeviceCache";
+import { pickSquadForRead } from "../../lib/clubDataMerge";
 
 // ── Constantes ───────────────────────────────────────────────
 const POSITIONS = [
@@ -44,65 +47,46 @@ const EMPTY_PLAYER = {
 
 // ── Storage helpers (localStorage + Supabase sync) ──────────
 function squadKey(clubId, teamId) {
-  return `depro_squad_${clubId}_${teamId}`;
+  return squadStorageKey(clubId, teamId);
 }
 function loadSquad(clubId, teamId) {
   try { return JSON.parse(localStorage.getItem(squadKey(clubId, teamId)) || "[]"); }
   catch { return []; }
 }
 function saveSquad(clubId, teamId, players) {
-  // 1. localStorage (inmediato)
   localStorage.setItem(squadKey(clubId, teamId), JSON.stringify(players));
-  // 2. Supabase (en segundo plano, sin bloquear)
   syncSquadToSupabase(clubId, teamId, players).catch(() => {});
 }
 async function syncSquadToSupabase(clubId, teamId, players) {
   try {
-    const r = await fetch("/api/admin-clubs");
-    if (!r.ok) return;
-    const data = await r.json();
-    const club = (data.clubs || []).find((c) => c.id === clubId);
-    if (!club) return;
-    const teams = (club.teams || []).map((t) =>
-      t.id === teamId ? { ...t, squad: players } : t
-    );
-    await fetch("/api/admin-clubs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ club: { ...club, teams } }),
-    });
-    // Actualizar caché local
-    const allClubs = JSON.parse(localStorage.getItem("depro_clubs") || "[]");
-    const idx = allClubs.findIndex((c) => c.id === clubId);
-    const updated = { ...club, teams };
-    if (idx >= 0) allClubs[idx] = updated; else allClubs.unshift(updated);
-    localStorage.setItem("depro_clubs", JSON.stringify(allClubs));
-    localStorage.setItem(`depro_club_${clubId}`, JSON.stringify(updated));
+    const remote = await fetchClubById(clubId);
+    const local = loadClubDetail(clubId) || remote || { id: clubId, teams: [] };
+    const club = remote ? { ...local, ...remote, teams: remote.teams || local.teams } : local;
+    const teams = Array.isArray(club.teams) ? club.teams.map((t) => ({ ...t })) : [];
+    const idx = teams.findIndex((t) => t.id === teamId);
+    const stamp = new Date().toISOString();
+    if (idx >= 0) {
+      teams[idx] = { ...teams[idx], squad: players, squadUpdatedAt: stamp };
+    } else {
+      teams.push({ id: teamId, squad: players, squadUpdatedAt: stamp });
+    }
+    const result = await saveClubDetail(clubId, { ...club, id: clubId, teams });
+    if (!result?.ok) {
+      console.warn("[SquadPage] sync squad failed:", result?.error);
+    }
+    hydrateClubDeviceCache({ ...club, id: clubId, teams });
   } catch (e) {
     console.warn("[SquadPage] sync squad to Supabase failed:", e.message);
   }
 }
-async function loadClubFromSupabase(clubId) {
-  try {
-    const r = await fetch(`/api/admin-clubs?id=${encodeURIComponent(clubId)}`);
-    if (!r.ok) {
-      const all = await fetch("/api/admin-clubs");
-      if (!all.ok) return null;
-      const data = await all.json();
-      return (data.clubs || []).find((c) => c.id === clubId) || null;
-    }
-    const data = await r.json();
-    return data.club || (data.clubs || []).find((c) => c.id === clubId) || null;
-  } catch {
-    return null;
-  }
-}
 async function loadSquadFromSupabase(clubId, teamId) {
-  const club = await loadClubFromSupabase(clubId);
+  const club = await fetchClubById(clubId);
   if (!club) return { squad: null, purgedPlayers: [] };
+  hydrateClubDeviceCache(club);
   const team = (club.teams || []).find((t) => t.id === teamId);
+  const local = loadSquad(clubId, teamId);
   return {
-    squad: Array.isArray(team?.squad) ? team.squad : null,
+    squad: pickSquadForRead(team?.squad, local),
     purgedPlayers: club.purgedPlayers || [],
   };
 }
