@@ -6,6 +6,11 @@ import {
 import { isMetaClubId, buildMetaClubPayload } from "../src/lib/adminGlobalBlobs.js";
 import { mergePreferVideo, protectContentList } from "../src/lib/contentRestore.js";
 import { syncClubReferralCommissions } from "./_clubReferrals.js";
+import {
+  mergeTeamsForWrite,
+  mergeTeamCargasMaps,
+  mergeSeasonTestsMaps,
+} from "../src/lib/clubDataMerge.js";
 
 export const config = {
   maxDuration: 60,
@@ -220,6 +225,11 @@ export default async function handler(req, res) {
     } catch (_) { /* non-fatal */ }
 
     const fullDetail = detail ? { ...payload, ...detail } : payload;
+    fullDetail.teams = mergeTeamsForWrite(existing.teams, fullDetail.teams);
+    fullDetail.teamCargas = mergeTeamCargasMaps(existing.teamCargas, fullDetail.teamCargas);
+    fullDetail.seasonTests = mergeSeasonTestsMaps(existing.seasonTests, fullDetail.seasonTests);
+    delete fullDetail.coachWeeks;
+    delete fullDetail.coachMesociclo;
     const result = await upsertClubDetail(admin, clubId, fullDetail);
 
     if (!result.ok) {

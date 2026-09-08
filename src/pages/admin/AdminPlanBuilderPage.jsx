@@ -154,6 +154,7 @@ function IASimulator() {
     setSimulated({
       ...simulated,
       weeks: next.weeks || simulated.weeks,
+      lastEditedAt: next.lastEditedAt || new Date().toISOString(),
     });
   };
 
@@ -476,7 +477,11 @@ function IASimulator() {
         onClose={() => setAssignOpen(false)}
         mode="player"
         profile={buildUser()}
-        planPreview={simulated && !simulated.error ? { weeks: simulated.weeks, sesiones: simulated.sesiones } : null}
+        planPreview={simulated && !simulated.error ? {
+          weeks: simulated.weeks,
+          sesiones: simulated.sesiones,
+          lastEditedAt: simulated.lastEditedAt,
+        } : null}
         defaultCycles={1}
         defaultSelectedId={preselectClientId}
         defaultSelectedLabel={preselectName}

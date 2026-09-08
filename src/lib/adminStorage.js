@@ -9,6 +9,12 @@
 import { supabase } from "./supabase.js";
 import { clonePlans } from "./clubManualPlans.js";
 import { describeCloudSaveError } from "./adminGlobalBlobs.js";
+import {
+  mergeClubDataFields,
+  mergeTeamsForWrite,
+  mergeTeamCargasMaps,
+  mergeSeasonTestsMaps,
+} from "./clubDataMerge.js";
 
 const AUTH_TIMEOUT_MS = 4000;
 const API_TIMEOUT_MS = 20000;
@@ -189,6 +195,7 @@ function withoutHeavyCoachPayload(club) {
 function mergeClubRecord(localClub, remote) {
   const local = localClub && typeof localClub === "object" ? localClub : {};
   const src = remote && typeof remote === "object" ? remote : {};
+  const dataFields = mergeClubDataFields(local, src);
   return withoutHeavyCoachPayload({
     ...local,
     ...src,
@@ -198,7 +205,9 @@ function mergeClubRecord(localClub, remote) {
     primaryColor: src.primaryColor ?? local.primaryColor ?? null,
     secondaryColor: src.secondaryColor ?? local.secondaryColor ?? null,
     slogan: src.slogan ?? local.slogan ?? null,
-    teams: (src.teams?.length > 0 ? src.teams : null) ?? local.teams ?? [],
+    teams: dataFields.teams,
+    teamCargas: dataFields.teamCargas,
+    seasonTests: dataFields.seasonTests,
     users: (src.users?.length > 0 ? src.users : null) ?? local.users ?? [],
     plans: (src.plans?.length > 0 ? src.plans : null) ?? local.plans ?? [],
     coachConfig: (src.coachConfig?.nivel || src.coachConfig?.engine)
@@ -354,7 +363,17 @@ export async function patchClubDetail(clubId, fields) {
 
 export async function saveClubDetail(clubId, data) {
   const prev = lsGet(`depro_club_${clubId}`, null) || {};
-  const localMerged = withoutHeavyCoachPayload({ id: clubId, ...prev, ...data });
+  const incoming = data && typeof data === "object" ? data : {};
+  const localMerged = withoutHeavyCoachPayload({
+    id: clubId,
+    ...prev,
+    ...incoming,
+    teams: incoming.teams
+      ? mergeTeamsForWrite(prev.teams, incoming.teams)
+      : (prev.teams || []),
+    teamCargas: mergeTeamCargasMaps(prev.teamCargas, incoming.teamCargas),
+    seasonTests: mergeSeasonTestsMaps(prev.seasonTests, incoming.seasonTests),
+  });
 
   // 1. localStorage — caché local inmediata (offline-first)
   lsSet(`depro_club_${clubId}`, localMerged);
@@ -366,6 +385,9 @@ export async function saveClubDetail(clubId, data) {
     ...((idx >= 0 ? clubs[idx] : {}) || {}),
     ...data,
     id: clubId,
+    teams: localMerged.teams,
+    teamCargas: localMerged.teamCargas,
+    seasonTests: localMerged.seasonTests,
   });
   if (idx >= 0) {
     clubs[idx] = listPatch;
@@ -399,6 +421,41 @@ export async function persistGlobalPlans(plans) {
     result.data = { ...(result.data || {}), error: describeCloudSaveError(result) };
   }
   return result;
+}
+
+export async function persistGlobalTests(tests) {
+  const list = Array.isArray(tests) ? tests : [];
+  lsSet("depro_global_tests", list);
+  const result = await apiClubs("POST", {
+    club: { id: "GLOBAL_TESTS", name: "Global Tests", tests: list },
+    detail: { tests: list },
+  });
+  if (!result.ok && !result.data?.error) {
+    result.data = { ...(result.data || {}), error: describeCloudSaveError(result) };
+  }
+  return result;
+}
+
+/** GET de un club concreto (plantilla, cargas, tests). */
+export async function fetchClubById(clubId) {
+  if (!clubId) return null;
+  const headers = await getAuthHeaders();
+  try {
+    const res = await fetch(`/api/admin-clubs?id=${encodeURIComponent(clubId)}`, { headers });
+    if (!res.ok) return lsGet(`depro_club_${clubId}`, null);
+    const json = await res.json().catch(() => ({}));
+    const club = json.club
+      || (json.clubs || []).find((c) => c.id === clubId)
+      || (json.clubs || [])[0]
+      || null;
+    if (!club) return lsGet(`depro_club_${clubId}`, null);
+    const prev = lsGet(`depro_club_${clubId}`, null);
+    const merged = mergeClubRecord(prev, { ...club, id: clubId });
+    lsSet(`depro_club_${clubId}`, merged);
+    return merged;
+  } catch {
+    return lsGet(`depro_club_${clubId}`, null);
+  }
 }
 
 // ════════════════════════════════════════════════════════════

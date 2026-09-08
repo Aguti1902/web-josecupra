@@ -74,6 +74,19 @@ export function getWellnessMap(userId) {
   }
 }
 
+export function writeWellnessMap(userId, map) {
+  if (!userId) return;
+  try {
+    localStorage.setItem(storageKey(userId), JSON.stringify(map && typeof map === "object" ? map : {}));
+  } catch { /* cupo */ }
+}
+
+function queueSync(userId, map) {
+  import("./userDataSync.js").then(({ persistUserData }) => {
+    persistUserData(userId, { wellness: map }).catch(() => {});
+  }).catch(() => {});
+}
+
 export function getWellnessEntry(userId, weekKey) {
   const map = getWellnessMap(userId);
   return map[weekKey] ? { ...emptyWellnessEntry(weekKey), ...map[weekKey] } : emptyWellnessEntry(weekKey);
@@ -91,9 +104,8 @@ export function saveWellnessEntry(userId, entry) {
     updatedAt: new Date().toISOString(),
   };
   map[entry.weekKey] = next;
-  try {
-    localStorage.setItem(storageKey(userId), JSON.stringify(map));
-  } catch { /* ignore */ }
+  writeWellnessMap(userId, map);
+  queueSync(userId, map);
   return next;
 }
 
@@ -102,4 +114,5 @@ export function clearWellnessLogs(userId) {
   try {
     localStorage.removeItem(storageKey(userId));
   } catch { /* ignore */ }
+  queueSync(userId, {});
 }

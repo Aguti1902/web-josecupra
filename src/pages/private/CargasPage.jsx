@@ -6,7 +6,8 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam } from "../../context/ViewContext";
 import FeatureGate from "../../components/private/FeatureGate";
-import { saveClubDetail, loadClubDetail } from "../../lib/adminStorage";
+import { saveClubDetail, loadClubDetail, fetchClubById } from "../../lib/adminStorage";
+import { hydrateClubDeviceCache, cargasStorageKey } from "../../lib/clubDeviceCache";
 import { supabase } from "../../lib/supabase";
 
 /* ── Helpers ──────────────────────────────────────────────── */
@@ -65,7 +66,7 @@ function getWeekSessionKeys(trainingDaysCount) {
   return keys;
 }
 
-const STORAGE_KEY = (clubId, teamId) => `depro_cargas_${clubId}_${teamId}`;
+const STORAGE_KEY = (clubId, teamId) => cargasStorageKey(clubId, teamId);
 
 const SESSIONS = [
   { key: "partido", label: "Partido",          isPartido: true },
@@ -410,6 +411,32 @@ export default function CargasPage() {
           });
         }
       }).catch(() => {});
+    fetchClubById(club.id).then((remote) => {
+      if (!remote) return;
+      hydrateClubDeviceCache(remote);
+      try {
+        const raw = localStorage.getItem(`depro_squad_${club.id}_${team.id}`);
+        const manual = JSON.parse(raw || "[]");
+        if (manual.length) {
+          setPlayers((prev) => {
+            const byId = new Map();
+            for (const p of [...manual, ...prev]) {
+              if (p?.id) byId.set(p.id, { ...byId.get(p.id), ...p });
+            }
+            return [...byId.values()];
+          });
+        }
+        const cargas = remote.teamCargas?.[team.id];
+        if (cargas && typeof cargas === "object") {
+          setAllData((prev) => {
+            const localKeys = Object.keys(prev || {}).length;
+            const remoteKeys = Object.keys(cargas).length;
+            if (!localKeys) return cargas;
+            return { ...cargas, ...prev };
+          });
+        }
+      } catch { /* ignore */ }
+    }).catch(() => {});
   }, [club?.id, team?.id]);
 
   // ── Vista mensual ────────────────────────────────────────

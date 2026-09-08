@@ -7,7 +7,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import FeatureGate from "../../components/private/FeatureGate";
 import { getYouTubeId } from "../../lib/youtube";
-import { mergeListsPreferVideo } from "../../lib/contentRestore";
+import { hydrateGlobalTests } from "../../lib/globalTestsSync";
+import { persistUserData, readPlayerTests, writePlayerTests, hydrateUserPersonalData } from "../../lib/userDataSync";
 
 /** Misma fuente que clubs (TeamTestsPage) — no duplicar. */
 function loadAdminTestProtocols() {
@@ -16,17 +17,6 @@ function loadAdminTestProtocols() {
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
-  }
-}
-async function fetchAdminTestProtocols() {
-  try {
-    const r = await fetch("/api/admin-clubs");
-    if (!r.ok) return null;
-    const data = await r.json();
-    const entry = (data.clubs || []).find((c) => c.id === "GLOBAL_TESTS");
-    return entry?.tests ?? null;
-  } catch {
-    return null;
   }
 }
 
@@ -106,6 +96,10 @@ function loadHistory(uid, tid) {
 }
 function saveHistory(uid, tid, entries) {
   localStorage.setItem(storageKey(uid, tid), JSON.stringify(entries));
+  if (!uid) return;
+  const playerTests = { ...readPlayerTests(uid), [tid]: entries };
+  writePlayerTests(uid, playerTests);
+  persistUserData(uid, { playerTests }).catch(() => {});
 }
 function getRange(test, value) {
   const v = parseFloat(value);
@@ -421,19 +415,18 @@ export default function PhysicalPage() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const cloud = await fetchAdminTestProtocols();
-      const local = loadAdminTestProtocols();
-      if (!cancelled && Array.isArray(cloud)) {
-        const merged = mergeListsPreferVideo(local, cloud);
-        if (merged.length) {
-          setAdminTests(merged);
-          try { localStorage.setItem("depro_global_tests", JSON.stringify(merged)); } catch { /* ignore */ }
-        }
+    hydrateGlobalTests().then((merged) => {
+      if (!cancelled && Array.isArray(merged) && merged.length) {
+        setAdminTests(merged);
       }
-    })();
+    });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    hydrateUserPersonalData(user.id).catch(() => {});
+  }, [user?.id]);
 
   // Carga rápida de último valor para la card
   function lastValue(testId) {

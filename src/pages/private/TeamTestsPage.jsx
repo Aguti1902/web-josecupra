@@ -11,8 +11,10 @@ import {
   getRatingForEval, getLastEvalInfo,
 } from "../../lib/teamTestRatings";
 import { mergeEvalTests } from "../../lib/evalTestDefaults";
-import { mergeListsPreferVideo } from "../../lib/contentRestore";
+import { hydrateGlobalTests } from "../../lib/globalTestsSync";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
+import { fetchClubById } from "../../lib/adminStorage";
+import { hydrateClubDeviceCache } from "../../lib/clubDeviceCache";
 
 /* ── Helper: cargar config de tests del admin ─────────────── */
 function loadAdminTests() {
@@ -20,15 +22,6 @@ function loadAdminTests() {
     const stored = localStorage.getItem("depro_global_tests");
     return stored ? JSON.parse(stored) : [];
   } catch { return []; }
-}
-async function fetchAdminTestsFromCloud() {
-  try {
-    const r = await fetch("/api/admin-clubs");
-    if (!r.ok) return null;
-    const data = await r.json();
-    const entry = (data.clubs || []).find((c) => c.id === "GLOBAL_TESTS");
-    return entry?.tests ?? null;
-  } catch { return null; }
 }
 function getYouTubeId(url) {
   if (!url) return null;
@@ -228,7 +221,7 @@ function PlayerEvolutionPanel({ player, accent, playerIds, onEdit }) {
 }
 
 /* ── Modal para registrar/editar las 3 marcas de un jugador ── */
-function EditMarksModal({ player, accent, players, onClose, onSave }) {
+function EditMarksModal({ player, accent, players, clubId, teamId, onClose, onSave }) {
   const [inputs, setInputs] = useState(() => {
     const d = loadSeasonData(player.id);
     const init = {};
@@ -242,7 +235,7 @@ function EditMarksModal({ player, accent, players, onClose, onSave }) {
     TESTS.forEach((t) => {
       const d = loadSeasonData(player.id);
       d[t.id] = inputs[t.id];
-      saveSeasonData(player.id, d);
+      saveSeasonData(player.id, d, { clubId, teamId });
     });
     onSave();
     onClose();
@@ -354,15 +347,8 @@ function TeamTestsPageInner() {
 
   /* Carga tests del admin desde la nube */
   useEffect(() => {
-    fetchAdminTestsFromCloud().then((cloud) => {
-      const local = loadAdminTests();
-      if (cloud == null) {
-        setAdminTests(mergeEvalTests(local));
-        return;
-      }
-      const merged = mergeEvalTests(mergeListsPreferVideo(local, cloud));
+    hydrateGlobalTests().then((merged) => {
       setAdminTests(merged);
-      localStorage.setItem("depro_global_tests", JSON.stringify(merged));
     });
   }, []);
 
@@ -370,23 +356,31 @@ function TeamTestsPageInner() {
   useEffect(() => {
     const clubId = user?.club?.id, teamId = activeTeam?.id;
     if (!clubId || !teamId) return;
-    const manual = JSON.parse(localStorage.getItem(`depro_squad_${clubId}_${teamId}`) || "[]");
-    const registered = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key?.startsWith("depro_player_club_")) continue;
-      try {
-        const val  = JSON.parse(localStorage.getItem(key) || "null");
-        if (!val)  continue;
-        const pClubId = typeof val === "object" ? val.clubId : val;
-        const pTeamId = typeof val === "object" ? val.teamId : null;
-        if (pClubId !== clubId || pTeamId !== teamId) continue;
-        const pid = key.replace("depro_player_club_", "");
-        registered.push({ id: pid, name: val.name || val.email || pid, isRegistered: true });
-      } catch { /* ignore */ }
-    }
-    const ids = new Set(manual.map((p) => p.id));
-    setPlayers([...manual, ...registered.filter((p) => !ids.has(p.id))]);
+    const loadLocal = () => {
+      const manual = JSON.parse(localStorage.getItem(`depro_squad_${clubId}_${teamId}`) || "[]");
+      const registered = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key?.startsWith("depro_player_club_")) continue;
+        try {
+          const val  = JSON.parse(localStorage.getItem(key) || "null");
+          if (!val)  continue;
+          const pClubId = typeof val === "object" ? val.clubId : val;
+          const pTeamId = typeof val === "object" ? val.teamId : null;
+          if (pClubId !== clubId || pTeamId !== teamId) continue;
+          const pid = key.replace("depro_player_club_", "");
+          registered.push({ id: pid, name: val.name || val.email || pid, isRegistered: true });
+        } catch { /* ignore */ }
+      }
+      const ids = new Set(manual.map((p) => p.id));
+      setPlayers([...manual, ...registered.filter((p) => !ids.has(p.id))]);
+    };
+    loadLocal();
+    fetchClubById(clubId).then((club) => {
+      if (!club) return;
+      hydrateClubDeviceCache(club);
+      loadLocal();
+    }).catch(() => {});
   }, [user?.club?.id, activeTeam?.id]);
 
   /* Ordenar */
@@ -715,6 +709,8 @@ function TeamTestsPageInner() {
           player={editingPlayer}
           accent={accent}
           players={players}
+          clubId={user?.club?.id}
+          teamId={activeTeam?.id}
           onClose={() => setEditing(null)}
           onSave={() => { setTick((v) => v + 1); setExpanded(editingPlayer.id); }}
         />

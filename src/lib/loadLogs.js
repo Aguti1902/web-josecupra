@@ -13,6 +13,19 @@ export function getLoadLogs(userId) {
   }
 }
 
+export function writeLoadLogs(userId, logs) {
+  if (!userId) return;
+  try {
+    localStorage.setItem(loadLogsKey(userId), JSON.stringify((logs || []).slice(0, 500)));
+  } catch { /* cupo */ }
+}
+
+function queueSync(userId, logs) {
+  import("./userDataSync.js").then(({ persistUserData }) => {
+    persistUserData(userId, { loadLogs: logs.slice(0, 500) }).catch(() => {});
+  }).catch(() => {});
+}
+
 export function saveLoadLog(userId, entry) {
   if (!userId) return null;
   const record = {
@@ -21,19 +34,23 @@ export function saveLoadLog(userId, entry) {
     ...entry,
   };
   const logs = [record, ...getLoadLogs(userId)];
-  localStorage.setItem(loadLogsKey(userId), JSON.stringify(logs.slice(0, 500)));
+  const clipped = logs.slice(0, 500);
+  writeLoadLogs(userId, clipped);
+  queueSync(userId, clipped);
   return record;
 }
 
 export function updateLoadLog(userId, logId, patch) {
   const logs = getLoadLogs(userId).map((l) => (l.id === logId ? { ...l, ...patch, updatedAt: new Date().toISOString() } : l));
-  localStorage.setItem(loadLogsKey(userId), JSON.stringify(logs));
+  writeLoadLogs(userId, logs);
+  queueSync(userId, logs);
   return logs.find((l) => l.id === logId) || null;
 }
 
 export function clearTrialLoadLogs(userId) {
   if (!userId) return;
   localStorage.removeItem(loadLogsKey(userId));
+  queueSync(userId, []);
 }
 
 /** Campos sugeridos según objetivo/tipo de sesión */
