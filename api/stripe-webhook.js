@@ -4,6 +4,8 @@ import { syncCheckoutSession, syncSubscriptionToUser } from "./_stripeSync.js";
 import { recordReferralPayment } from "./_clubReferrals.js";
 import { stripePaidCents } from "../src/lib/clubEconomy.js";
 import { getStripeWebhookSecretFallback } from "./_stripeWebhookSecret.js";
+import { cancelOrphanSubscription } from "./_stripeBillingCleanup.js";
+import { shouldCancelOrphanInvoice, isTooNewToTreatAsOrphan } from "../src/lib/stripeBillingCleanup.js";
 
 export const config = {
   api: {
@@ -146,7 +148,26 @@ export default async function handler(req, res) {
             ? invoice.subscription
             : invoice.subscription.id;
           const sub = await stripe.subscriptions.retrieve(subId);
-          await syncSubscriptionToUser(supabaseAdmin, sub, invoice.customer_email);
+          const synced = await syncSubscriptionToUser(supabaseAdmin, sub, invoice.customer_email);
+          if (synced?.reason === "user_not_found" && !isTooNewToTreatAsOrphan(sub)) {
+            await cancelOrphanSubscription(stripe, supabaseAdmin, sub, invoice.customer_email);
+          }
+        }
+        break;
+      }
+      case "invoice.upcoming": {
+        const invoice = event.data.object;
+        if (!invoice.subscription) break;
+        const subId = typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : invoice.subscription.id;
+        const sub = await stripe.subscriptions.retrieve(subId);
+        const synced = await syncSubscriptionToUser(supabaseAdmin, sub, invoice.customer_email);
+        if (
+          synced?.reason === "user_not_found"
+          && shouldCancelOrphanInvoice(invoice, false, sub)
+        ) {
+          await cancelOrphanSubscription(stripe, supabaseAdmin, sub, invoice.customer_email);
         }
         break;
       }
@@ -159,7 +180,14 @@ export default async function handler(req, res) {
           const sub = await stripe.subscriptions.retrieve(subId, {
             expand: ["items.data.price.product"],
           });
-          await syncSubscriptionToUser(supabaseAdmin, sub, invoice.customer_email);
+          const synced = await syncSubscriptionToUser(supabaseAdmin, sub, invoice.customer_email);
+          if (
+            synced?.reason === "user_not_found"
+            && shouldCancelOrphanInvoice(invoice, false, sub)
+          ) {
+            await cancelOrphanSubscription(stripe, supabaseAdmin, sub, invoice.customer_email);
+            break;
+          }
           const meta = await metaFromUser(
             typeof sub.customer === "string" ? sub.customer : sub.customer?.id,
             invoice.customer_email,
