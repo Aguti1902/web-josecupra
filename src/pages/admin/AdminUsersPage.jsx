@@ -101,6 +101,8 @@ export default function AdminUsersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [billingEmail, setBillingEmail] = useState("");
 
   useEffect(() => {
     const alta = searchParams.get("alta");
@@ -177,9 +179,10 @@ export default function AdminUsersPage() {
   };
 
   const confirmDelete = async () => {
-    if (!pendingDelete?.id) return;
+    if (!pendingDelete?.id && !pendingDelete?.email) return;
     setDeleting(true);
     setError("");
+    setNotice("");
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
@@ -189,14 +192,33 @@ export default function AdminUsersPage() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ userId: pendingDelete.id, email: pendingDelete.email || "" }),
+        body: JSON.stringify({
+          userId: pendingDelete.billingOnly ? "" : (pendingDelete.id || ""),
+          email: pendingDelete.email || "",
+          billingOnly: !!pendingDelete.billingOnly,
+        }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "No se pudo eliminar");
-      purgePlayerClubArtifacts(pendingDelete.id, pendingDelete.email);
-      setUsers((prev) => prev.filter((x) => x.id !== pendingDelete.id));
+      if (pendingDelete.id) {
+        purgePlayerClubArtifacts(pendingDelete.id, pendingDelete.email);
+        setUsers((prev) => prev.filter((x) => x.id !== pendingDelete.id));
+      }
       setPendingDelete(null);
       refreshClients();
+      const billing = json.billing || {};
+      const parts = [];
+      if (billing.canceledCount) parts.push(`${billing.canceledCount} suscripción(es) cancelada(s)`);
+      if (billing.refundedCents) parts.push(`reembolso de ${billing.refundedEuros}€`);
+      if (billing.voidedCount) parts.push(`${billing.voidedCount} factura(s) anulada(s)`);
+      if (billing.errors?.length) {
+        setError(`Cuenta procesada, pero Stripe avisó: ${billing.errors.join(" · ")}`);
+      }
+      setNotice(parts.length
+        ? `Listo. ${parts.join(". ")}.`
+        : (json.alreadyGone
+          ? "No había cuenta en la app. Se ha buscado el email en Stripe por si quedaba algún cobro."
+          : "Cuenta eliminada."));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -320,6 +342,38 @@ export default function AdminUsersPage() {
       {error && (
         <div className="rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">{error}</div>
       )}
+      {notice && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-4 py-3">{notice}</div>
+      )}
+
+      <form
+        className="bg-white border border-depro-border rounded-2xl p-4 flex flex-col sm:flex-row gap-3 sm:items-end"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const email = billingEmail.trim().toLowerCase();
+          if (!email) return;
+          setPendingDelete({ email, name: "Cobros de Stripe", billingOnly: true });
+        }}
+      >
+        <div className="flex-1">
+          <label className="block text-xs font-bold text-depro-gray uppercase tracking-wide mb-1">
+            Anular cobros Stripe (usuario ya borrado)
+          </label>
+          <input
+            type="email"
+            className="w-full px-3 py-2.5 border border-depro-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-depro-blue/30"
+            placeholder="email de la prueba que te cobró"
+            value={billingEmail}
+            onChange={(e) => setBillingEmail(e.target.value)}
+          />
+        </div>
+        <button
+          type="submit"
+          className="px-4 py-2.5 rounded-xl bg-depro-dark text-white text-sm font-semibold hover:bg-black"
+        >
+          Cancelar y reembolsar
+        </button>
+      </form>
 
       <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
         {loading ? (
@@ -408,13 +462,17 @@ export default function AdminUsersPage() {
             <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
               <Trash2 size={22} className="text-red-500" />
             </div>
-            <h2 className="text-lg font-bold text-depro-dark text-center mb-2">¿Eliminar esta cuenta?</h2>
+            <h2 className="text-lg font-bold text-depro-dark text-center mb-2">
+              {pendingDelete.billingOnly ? "¿Anular cobros de Stripe?" : "¿Eliminar esta cuenta?"}
+            </h2>
             <p className="text-sm text-depro-gray text-center mb-1">
               <strong className="text-depro-dark">{pendingDelete.name}</strong>
             </p>
             <p className="text-xs text-depro-gray text-center font-mono mb-5">{pendingDelete.email}</p>
             <p className="text-sm text-depro-gray text-center mb-6">
-              Se eliminará de la plataforma, clubs, equipos y cualquier vinculación. Esta acción no se puede deshacer.
+              {pendingDelete.billingOnly
+                ? "Se cancelan todas las suscripciones de ese email (plan y extras) y se reembolsa el cobro si es de los últimos 14 días."
+                : "Se elimina de la plataforma y se cancelan los cobros de Stripe (plan y extras). Si acaba de cobrarse, se reembolsa. Esta acción no se puede deshacer."}
             </p>
             <div className="flex gap-3">
               <button
@@ -431,7 +489,11 @@ export default function AdminUsersPage() {
                 disabled={deleting}
                 className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50"
               >
-                {deleting ? "Eliminando…" : "Eliminar"}
+                {deleting
+                  ? "Procesando…"
+                  : pendingDelete.billingOnly
+                    ? "Anular cobros"
+                    : "Eliminar"}
               </button>
             </div>
           </div>

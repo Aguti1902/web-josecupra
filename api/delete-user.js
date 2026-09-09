@@ -3,6 +3,7 @@ import { stripPlayerFromClubData } from "../src/lib/clubPlayerPurge.js";
 import { removePlayerFromReferralRegistry } from "./_clubReferrals.js";
 import { getSupabaseAdmin, findUserByEmail } from "./_supabaseAdmin.js";
 import { getStripe } from "./_stripeClient.js";
+import { purgeStripeBilling } from "./_stripeBillingCleanup.js";
 
 function playerRowMatches(entry, userId, email) {
   if (!entry || typeof entry !== "object") return false;
@@ -108,8 +109,9 @@ export default async function handler(req, res) {
   const body = parseBody(req);
   const userId = String(body.userId || req.query?.userId || "").trim();
   const emailHint = String(body.email || "").trim().toLowerCase();
+  const billingOnly = body.billingOnly === true || body.billingOnly === "true";
   if (!userId && !emailHint) return res.status(400).json({ error: "userId requerido" });
-  if (userId && userId === caller.user.id) {
+  if (!billingOnly && userId && userId === caller.user.id) {
     return res.status(400).json({ error: "No puedes eliminar tu propia cuenta" });
   }
 
@@ -132,6 +134,32 @@ export default async function handler(req, res) {
 
     const homeClubId = String(targetUser?.user_metadata?.clubId || "");
 
+    if (billingOnly) {
+      let billing = null;
+      try {
+        const stripe = await getStripe();
+        billing = await purgeStripeBilling(stripe, {
+          email,
+          customerId: targetUser?.user_metadata?.stripeCustomerId || "",
+          subscriptionId: targetUser?.user_metadata?.stripeSubscriptionId || "",
+          refundRecent: true,
+        });
+      } catch (stripeErr) {
+        billing = {
+          errors: [stripeErr.message || "No se pudo contactar con Stripe"],
+          canceledCount: 0,
+          refundedCents: 0,
+        };
+      }
+      return res.status(200).json({
+        ok: true,
+        billingOnly: true,
+        alreadyGone: !targetUser,
+        email,
+        billing,
+      });
+    }
+
     try {
       await removePlayerFromReferralRegistry(admin, { userId: resolvedId, email });
     } catch (refErr) {
@@ -152,12 +180,26 @@ export default async function handler(req, res) {
       try { await admin.from("squad_players").delete().eq("email", email); } catch { /* ignore */ }
     }
 
-    const stripeSubId = targetUser?.user_metadata?.stripeSubscriptionId;
-    if (stripeSubId) {
-      try {
-        const stripe = await getStripe();
-        await stripe.subscriptions.cancel(stripeSubId);
-      } catch { /* la cuenta se borra igual */ }
+    let billing = null;
+    try {
+      const stripe = await getStripe();
+      billing = await purgeStripeBilling(stripe, {
+        email,
+        customerId: targetUser?.user_metadata?.stripeCustomerId || "",
+        subscriptionId: targetUser?.user_metadata?.stripeSubscriptionId || "",
+        refundRecent: true,
+      });
+    } catch (stripeErr) {
+      billing = {
+        errors: [stripeErr.message || "No se pudo contactar con Stripe"],
+        canceledCount: 0,
+        refundedCents: 0,
+      };
+      console.warn("delete-user stripe:", stripeErr.message);
+    }
+
+    if (resolvedId) {
+      try { await admin.from("clubs_detail").delete().eq("club_id", `USER_DATA_${resolvedId}`); } catch { /* ignore */ }
     }
 
     await stripFromClubs(admin, resolvedId, email, homeClubId);
@@ -169,7 +211,13 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ ok: true, userId: resolvedId, email, alreadyGone: !targetUser });
+    return res.status(200).json({
+      ok: true,
+      userId: resolvedId,
+      email,
+      alreadyGone: !targetUser,
+      billing,
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message || "No se pudo eliminar" });
   }
