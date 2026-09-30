@@ -9,7 +9,7 @@ import {
 import { useAdmin, mapPlayerToClient } from "../../context/AdminContext";
 import { refreshExerciseAcrossPlan, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
 import { isPlayerPro } from "../../lib/subscription";
-import { loadPlayerPlan, weekDaysFromPlan } from "../../lib/playerPlanStorage";
+import { loadPlayerPlan, weekDaysFromPlan, persistPlayerPlanRemote } from "../../lib/playerPlanStorage";
 import { getChatMessages, sendChatMessage } from "../../lib/internalChat";
 import { getWellnessMap, formatWeekLabel, recentWeekKeys } from "../../lib/wellnessLogs";
 import { getLoadLogs } from "../../lib/loadLogs";
@@ -120,6 +120,7 @@ function PlanTab({ clientId, client }) {
     });
     if (next && setClientPlan) {
       setClientPlan(clientId, next);
+      persistPlayerPlanRemote(clientId, next).catch(() => {});
       return;
     }
     const nextSession = (Array.isArray(next) ? next[dIdx]?.sessions?.[sIdx] : null) || session;

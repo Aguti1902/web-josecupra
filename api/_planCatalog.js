@@ -6,7 +6,7 @@ import stripePricesTest from "./stripe-prices.test.json" with { type: "json" };
 import { isStripeTestMode } from "./_stripeMode.js";
 import { planHasCheckoutTrial } from "../src/lib/checkoutPlans.js";
 
-export const TRIAL_PERIOD_DAYS = 15;
+export const TRIAL_PERIOD_DAYS = 7;
 export { planHasCheckoutTrial };
 
 /** Price IDs en stripe-prices.*.json pueden ser de importes antiguos (19,99 / 14,99…).

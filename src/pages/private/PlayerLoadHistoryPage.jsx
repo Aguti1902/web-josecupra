@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Gauge, Calendar, Dumbbell, TrendingUp, Activity, Target,
@@ -14,6 +14,10 @@ import {
   getLogsByDomain,
 } from "../../lib/loadAnalytics";
 import { loadProgressIds, weekKey } from "../../lib/sessionProgress";
+import { hydrateUserPersonalData } from "../../lib/userDataSync";
+import { buildLoadGrid, uniquePlayersFromLogs } from "../../lib/loadGrid";
+import { loadPlayerPlan } from "../../lib/playerPlanStorage";
+import PlayerLoadGrid from "../../components/private/PlayerLoadGrid";
 
 const TEST_IDS = [
   { id: "resistencia", name: "Resistencia aeróbica", unit: "rectas" },
@@ -218,25 +222,36 @@ export default function PlayerLoadHistoryPage() {
   const { user } = useAuth();
   const accent = accentOf(user);
   const [tab, setTab] = useState("fuerza");
+  const [weekFilter, setWeekFilter] = useState("all");
+  const [playerFilter, setPlayerFilter] = useState("all");
+  const [tick, setTick] = useState(0);
   const now = useMemo(() => new Date(), []);
   const monthLabel = now.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
 
-  const logs = useMemo(() => getLoadLogs(user?.id), [user?.id]);
-  const domainBuckets = useMemo(() => getLogsByDomain(user?.id), [user?.id]);
-  const improvements = useMemo(() => getPracticalImprovements(user?.id), [user?.id]);
-  const highlight = useMemo(() => getImprovementSummary(user?.id), [user?.id]);
-  const testData = useMemo(() => loadTestHistory(user?.id), [user?.id]);
-  const currentWeekKey = weekKey(now);
+  useEffect(() => {
+    if (!user?.id) return;
+    hydrateUserPersonalData(user.id).then(() => setTick((n) => n + 1)).catch(() => {});
+  }, [user?.id]);
 
-  const tabRows = improvements[tab] || [];
+  const logs = useMemo(() => getLoadLogs(user?.id), [user?.id, tick]);
+  const domainBuckets = useMemo(() => getLogsByDomain(user?.id), [user?.id, tick]);
+  const improvements = useMemo(() => getPracticalImprovements(user?.id), [user?.id, tick]);
+  const highlight = useMemo(() => getImprovementSummary(user?.id), [user?.id, tick]);
+  const testData = useMemo(() => loadTestHistory(user?.id), [user?.id, tick]);
+  const currentWeekKey = weekKey(now);
+  const plan = useMemo(() => loadPlayerPlan(user?.id), [user?.id, tick]);
+  const players = useMemo(() => uniquePlayersFromLogs(user?.id), [user?.id, tick]);
+  const grid = useMemo(() => buildLoadGrid(user?.id, tab, {
+    startDate: plan?.startDate || null,
+    weekFilter,
+  }), [user?.id, tab, weekFilter, plan?.startDate, tick]);
+
   const positiveCount = useMemo(() => {
     const all = [...improvements.fuerza, ...improvements.velocidad, ...improvements.resistencia];
     return all.filter((r) => r.tone === "positive").length;
   }, [improvements]);
 
   const weekCompleted = user?.id ? loadProgressIds(user.id, currentWeekKey).length : 0;
-  const needsMoreData = tabRows.length === 0;
-  const domainCount = (domainBuckets[tab] || []).length;
 
   return (
     <FeatureGate user={user} feature="cargas">
@@ -307,66 +322,33 @@ export default function PlayerLoadHistoryPage() {
           </div>
         )}
 
-        <section className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden">
-          <div className="px-5 py-4 border-b border-depro-border">
-            <h2 className="text-base font-black text-depro-dark flex items-center gap-2">
-              <Gauge size={18} style={{ color: accent }} /> Comparativa por ejercicio
-            </h2>
-            <p className="text-xs text-depro-gray mt-0.5">
-              Fuerza: % peso y reps · Velocidad/resistencia: tiempo y FC media entre la última y la anterior sesión
-            </p>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {PROGRESSION_TABS.map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTab(id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
-                    tab === id
-                      ? "bg-depro-blue border-depro-blue text-white"
-                      : "border-depro-border text-depro-gray hover:border-depro-blue"
-                  }`}
-                >
-                  <Icon size={12} /> {label}
-                  <span className="opacity-70">({(improvements[id] || []).length})</span>
-                </button>
-              ))}
-            </div>
+        <section className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {PROGRESSION_TABS.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                  tab === id
+                    ? "bg-depro-blue border-depro-blue text-white"
+                    : "border-depro-border text-depro-gray hover:border-depro-blue"
+                }`}
+              >
+                <Icon size={12} /> {label}
+                <span className="opacity-70">({(domainBuckets[id] || []).length})</span>
+              </button>
+            ))}
           </div>
-          <div className="p-5">
-            {needsMoreData ? (
-              <div className="text-center py-8 px-4">
-                <div className="w-14 h-14 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
-                  {tab === "fuerza" ? <Dumbbell size={24} className="text-depro-gray" />
-                    : tab === "velocidad" ? <Zap size={24} className="text-depro-gray" />
-                      : <Heart size={24} className="text-depro-gray" />}
-                </div>
-                <p className="font-bold text-depro-dark mb-1">
-                  {domainCount === 0
-                    ? `Sin registros de ${tab} todavía`
-                    : `Necesitas al menos 2 sesiones del mismo ejercicio`}
-                </p>
-                <p className="text-sm text-depro-gray max-w-md mx-auto mb-5">
-                  {tab === "fuerza"
-                    ? "Registra peso y reps en tu plan. Aquí verás el % de subida (o bajada) respecto a la sesión anterior."
-                    : "Registra tiempo y FC media. Te diremos si bajaste tiempo, si la FC mejoró aunque el tiempo no, o ambos."}
-                </p>
-                <Link
-                  to="/dashboard/plan"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-                  style={{ backgroundColor: accent }}
-                >
-                  Ir al plan <ArrowRight size={14} />
-                </Link>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {tab === "fuerza"
-                  ? tabRows.map((row) => <FuerzaImproveCard key={row.exerciseName} row={row} />)
-                  : tabRows.map((row) => <TimeHrImproveCard key={row.exerciseName} row={row} />)}
-              </div>
-            )}
-          </div>
+          <PlayerLoadGrid
+            grid={grid}
+            domain={tab}
+            weekFilter={weekFilter}
+            onWeekFilter={setWeekFilter}
+            playerFilter={playerFilter}
+            onPlayerFilter={setPlayerFilter}
+            players={players}
+          />
         </section>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">

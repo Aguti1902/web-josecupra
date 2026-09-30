@@ -134,6 +134,65 @@ export function weekDaysFromPlan(plan) {
   return emptyPhysicalWeekPlan();
 }
 
+/**
+ * JSON.stringify de un Array descarta weeks/startDate/etc.
+ * Guardamos siempre un objeto plano para que el mesociclo sobreviva recargas.
+ */
+export function toPersistablePlan(plan) {
+  if (!plan) return plan;
+  if (plan.premiumPending || plan.planPendingManual || plan.planError) {
+    return {
+      premiumPending: !!plan.premiumPending,
+      planPendingManual: !!plan.planPendingManual,
+      planError: plan.planError || null,
+      message: plan.message || "",
+      sessions: plan.sessions || [],
+      createdAt: plan.createdAt || null,
+    };
+  }
+  const weeks = Array.isArray(plan.weeks) && plan.weeks.length ? plan.weeks : null;
+  if (weeks) {
+    return {
+      weeks,
+      assignment: plan.assignment || null,
+      source: plan.source || "engine",
+      assignedTo: plan.assignedTo || null,
+      sesiones: plan.sesiones || null,
+      semana_actual: plan.semana_actual || 1,
+      startDate: plan.startDate || weeks[0]?.startDate || null,
+      endDate: plan.endDate || weeks[0]?.endDate || weeks.endDate || null,
+      profileSnapshot: plan.profileSnapshot || null,
+      refrescos_usados_mes: plan.refrescos_usados_mes || 0,
+      lastEditedAt: plan.lastEditedAt || null,
+      userId: plan.userId || null,
+      monthlyRefreshAt: plan.monthlyRefreshAt || null,
+      hasAssignedPlan: !!plan.hasAssignedPlan,
+    };
+  }
+  if (Array.isArray(plan)) {
+    return {
+      weeks: [{
+        week: 1,
+        label: "Semana 1",
+        days: plan.map((d) => ({ ...d })),
+        sessions: plan.flatMap((d) => (d.sessions || []).map((s) => ({ ...s, dayName: d.day }))),
+        sameRoutine: true,
+        startDate: plan.startDate || null,
+        endDate: plan.endDate || null,
+      }],
+      source: plan.source || "engine",
+      startDate: plan.startDate || null,
+      endDate: plan.endDate || null,
+      semana_actual: plan.semana_actual || 1,
+      profileSnapshot: plan.profileSnapshot || null,
+      refrescos_usados_mes: plan.refrescos_usados_mes || 0,
+      lastEditedAt: plan.lastEditedAt || null,
+      userId: plan.userId || null,
+    };
+  }
+  return plan;
+}
+
 export function loadPlayerPlan(userId) {
   if (!userId) return null;
   try {
@@ -146,7 +205,7 @@ export function loadPlayerPlan(userId) {
 
 export function savePlayerPlan(userId, plan) {
   if (!userId || !plan) return;
-  safeSetItem(localStorage, playerPlanKey(userId), JSON.stringify(plan));
+  safeSetItem(localStorage, playerPlanKey(userId), JSON.stringify(toPersistablePlan(plan)));
 }
 
 export function clearPlayerPlan(userId) {
@@ -178,7 +237,7 @@ export async function fetchPlayerPlan(userId) {
     if (!json.plan) return null;
     const normalized = normalizePlayerPlan(json.plan);
     savePlayerPlan(userId, normalized);
-    return normalized;
+    return loadPlayerPlan(userId) || normalized;
   } catch {
     return null;
   }
@@ -195,11 +254,11 @@ export async function persistPlayerPlanRemote(userId, plan) {
     const res = await fetch("/api/player-plan", {
       method: "POST",
       headers,
-      body: JSON.stringify({ userId, plan }),
+      body: JSON.stringify({ userId, plan: toPersistablePlan(plan) }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, error: json.error || "Error al guardar" };
-    savePlayerPlan(userId, normalizePlayerPlan(plan));
+    savePlayerPlan(userId, plan);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e?.message || "Error de red" };

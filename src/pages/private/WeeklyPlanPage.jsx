@@ -16,7 +16,7 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildMesoPlayerPlan, ensurePlayerPlan, hydratePlayerPlan, buildMinimalSession, refreshExerciseAcrossPlan, normalizeLesions, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildFourWeekPlan, buildMesoPlayerPlan, ensurePlayerPlan, hydratePlayerPlan, buildMinimalSession, refreshExerciseAcrossPlan, persistStablePlayerPlan, normalizeLesions, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
 import PlanCompatibilityModal from "../../components/private/PlanCompatibilityModal";
 import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "../../lib/sessionProgress";
 import {
@@ -25,7 +25,7 @@ import {
 import { canPersistInTrial } from "../../lib/trialPersistence";
 import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
 import { consumeTrialPdfOrExplain } from "../../lib/trialPdfLimit";
-import { savePlayerPlan } from "../../lib/playerPlanStorage";
+import { hydrateUserPersonalData } from "../../lib/userDataSync";
 import CoachSessions from "../../components/private/CoachSessions";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans, filterPlansForTeam } from "../../lib/clubManualPlans";
@@ -393,6 +393,7 @@ function PlayerWeeklyPlan({ accent }) {
     (async () => {
       const hydrated = await hydratePlayerPlan(user);
       if (!cancelled && hydrated) setPlan(hydrated);
+      if (user?.id) hydrateUserPersonalData(user.id).catch(() => {});
     })();
     return () => { cancelled = true; };
   }, [planKey, user?.id, user?.plan, user?.hasAssignedPlan]);
@@ -408,7 +409,17 @@ function PlayerWeeklyPlan({ accent }) {
   const runGenerate = async () => {
     setGen(true);
     try {
-      let generated = buildPlayerPlan(user);
+      const weeks = buildFourWeekPlan(user);
+      let generated = weeks[0]?.days || buildPlayerPlan(user);
+      if (generated?.planError) {
+        setPlan(generated);
+        return;
+      }
+      generated.weeks = weeks;
+      generated.startDate = weeks.startDate;
+      generated.endDate = weeks.endDate;
+      generated.semana_actual = 1;
+      generated.source = "engine";
       try {
         const firstSession = generated.flatMap((d) => d.sessions)[0];
         if (firstSession) {
@@ -439,14 +450,18 @@ function PlayerWeeklyPlan({ accent }) {
                   : s
               ),
             }));
+            generated.weeks = weeks;
+            generated.startDate = weeks.startDate;
+            generated.endDate = weeks.endDate;
+            generated.source = "engine";
           }
         }
       } catch { /* motor local como fallback */ }
-      setPlan(generated);
-      if (!generated.planError) {
-        localStorage.setItem(planKey, JSON.stringify(generated));
+      if (user?.id) {
+        const stable = await persistStablePlayerPlan(user.id, generated);
+        setPlan(stable);
       } else {
-        localStorage.removeItem(planKey);
+        setPlan(generated);
       }
     } finally {
       setGen(false);
@@ -495,33 +510,33 @@ function PlayerWeeklyPlan({ accent }) {
     userId: user?.id || "",
   });
 
-  const handleExerciseSwap = (sessionId, exerciseId) => {
+  const handleExerciseSwap = (sessionId, exerciseId, chosenCatalog = null) => {
     if (swapping) return;
     if (!canSwapExercise(user, plan)) {
       alert(`Has usado tus ${MAX_PLAN_SWAPS} cambios de ejercicio este mesociclo. Añade el extra «Ejercicios ilimitados» en Suscripción.`);
       return;
     }
-    if (!hasUnlimitedSwaps(user) && !window.confirm(`${MAINTENANCE_MESSAGE}\n\n¿Sustituir este ejercicio en todo el plan?`)) return;
+    if (!chosenCatalog && !hasUnlimitedSwaps(user) && !window.confirm(`${MAINTENANCE_MESSAGE}\n\n¿Sustituir este ejercicio en todo el plan (semanas 1 a 4)?`)) return;
 
     setSwapping(true);
     window.setTimeout(() => {
-      try {
-        const nextPlan = refreshExerciseAcrossPlan(plan, sessionId, exerciseId, buildFilterParams());
-        if (!nextPlan || nextPlan === plan) {
-          alert("No hay un ejercicio alternativo compatible con tu material y este hueco. Prueba con otro ejercicio.");
-          return;
+      (async () => {
+        try {
+          const nextPlan = refreshExerciseAcrossPlan(plan, sessionId, exerciseId, buildFilterParams(), chosenCatalog);
+          if (!nextPlan || nextPlan === plan) {
+            alert("No hay un ejercicio alternativo compatible con tu material y este hueco. Prueba con otro ejercicio o elige uno del listado.");
+            return;
+          }
+          const stable = user?.id ? await persistStablePlayerPlan(user.id, nextPlan) : nextPlan;
+          setPlan(stable);
+          if (user?.id) recordSwap(user.id, stable);
+        } catch (err) {
+          console.error("[DEPRO] swap ejercicio", err);
+          alert("No se pudo cambiar el ejercicio. Inténtalo de nuevo.");
+        } finally {
+          setSwapping(false);
         }
-        setPlan(nextPlan);
-        if (user?.id) {
-          savePlayerPlan(user.id, nextPlan);
-          recordSwap(user.id, nextPlan);
-        }
-      } catch (err) {
-        console.error("[DEPRO] swap ejercicio", err);
-        alert("No se pudo cambiar el ejercicio. Inténtalo de nuevo.");
-      } finally {
-        setSwapping(false);
-      }
+      })();
     }, 0);
   };
 
@@ -831,7 +846,13 @@ function PlayerWeeklyPlan({ accent }) {
       const microRef = resolveMicroSession(activeSession);
       return (
       <PlayerSessionFullscreen
-        session={{ ...activeSession, status: microRef.status, completion: microRef.completion }}
+        session={{
+          ...activeSession,
+          status: microRef.status,
+          completion: microRef.completion,
+          planStartDate: plan?.startDate || null,
+          weekNumber: activeSession.weekNumber || activeSession.week || plan?.semana_actual || null,
+        }}
         sessionNumber={activeSession.sessionNumber}
         dayLabel={activeSession.dayName}
         accentColor={accent}
@@ -854,6 +875,8 @@ function PlayerWeeklyPlan({ accent }) {
           sessionPdf(activeSession);
         } : undefined}
         onSwapExercise={(exerciseId) => handleExerciseSwap(activeSession.id, exerciseId)}
+        onPickExercise={(exerciseId, catalogEx) => handleExerciseSwap(activeSession.id, exerciseId, catalogEx)}
+        filterParams={buildFilterParams()}
         canSwap={!swapping && canSwapExercise(user, plan)}
         swapMessage={MAINTENANCE_MESSAGE}
         swapTooltip={SWAP_TOOLTIP}

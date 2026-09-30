@@ -20,7 +20,7 @@ function GoogleIcon({ size = 18 }) {
 }
 
 const SIDEBAR_CARDS = [
-  { icon: Gift, title: "15 días gratis", desc: "Sin tarjeta de crédito" },
+  { icon: Gift, title: "7 días gratis", desc: "Sin tarjeta de crédito" },
   { icon: Layers, title: "3 perfiles en uno", desc: "Coach · Club · Jugador" },
   { icon: Sparkles, title: "Planificación IA", desc: "Microciclos automáticos" },
 ];
@@ -234,7 +234,7 @@ export default function LoginPage() {
           <p className="text-center text-sm text-depro-gray mt-6">
             ¿No tienes cuenta?{" "}
             <Link to="/comprar" className="font-bold text-depro-blue hover:underline">
-              Prueba 15 días gratis
+              Prueba 7 días gratis
             </Link>
           </p>
 

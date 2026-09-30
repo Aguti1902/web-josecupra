@@ -26,7 +26,7 @@ function buildSessionBase({ planId, audience, formData, clubCode, clubId, tempPa
   const lesionArr = formData?.lesion || [];
   const subArr = formData?.lesionSubtipo || [];
   const dispArr = formData?.disponibles || [];
-  // Prueba gratis 15 días: Standard jugador y Standard entrenador. Premium y clubs se cobran al confirmar.
+  // Prueba gratis 7 días: Standard jugador y Standard entrenador. Premium y clubs se cobran al confirmar.
   const withTrial = planHasCheckoutTrial(planId);
 
   const subscriptionData = {

@@ -7,7 +7,7 @@ import { isProCoachUser } from "./clubAuto/clubAutoCoachBridge";
 import { shouldCancelSubscriptionImmediately } from "./subscriptionCancel.js";
 
 const STORAGE_PREFIX = "depro_subscription_";
-export const TRIAL_PERIOD_DAYS = 15;
+export const TRIAL_PERIOD_DAYS = 7;
 
 export const PLAN_LABELS = {
   "coach-starter": "Entrenador Standard",

@@ -195,17 +195,17 @@ function StepPlan({ audience, onAudienceChange, selected, onSelect, onNext }) {
               <p className="text-xs text-depro-gray mt-0.5 mb-3">{plan.tagline}</p>
               {plan.audience === "player" && plan.id === "player-pro" && (
                 <p className="text-[11px] font-bold text-depro-green bg-depro-green/10 rounded-lg px-2 py-1 mb-3">
-                  15 días de prueba · 0 € hoy · feedback al activar
+                  7 días de prueba · 0 € hoy · feedback al activar
                 </p>
               )}
               {plan.audience === "player" && plan.id === "player-essential" && (
                 <p className="text-[11px] font-bold text-depro-green bg-depro-green/10 rounded-lg px-2 py-1 mb-3">
-                  15 días de prueba · 0 € hoy
+                  7 días de prueba · 0 € hoy
                 </p>
               )}
               {plan.audience === "coach" && planHasCheckoutTrial(plan.id) && (
                 <p className="text-[11px] font-bold text-depro-green bg-depro-green/10 rounded-lg px-2 py-1 mb-3">
-                  15 días de prueba · 0 € hoy
+                  7 días de prueba · 0 € hoy
                 </p>
               )}
 
@@ -320,7 +320,7 @@ function StepCuenta({ form, setForm, onNext, onBack }) {
       <h2 className="text-2xl md:text-3xl font-black text-depro-dark mb-2">Datos de acceso</h2>
       <p className="text-depro-gray text-sm mb-8">
         Indica email y contraseña. Tu cuenta se crea al completar el checkout
-        (Standard y Premium: 15 días de prueba con 0 € hoy; el feedback Premium se activa al confirmar la suscripción).
+        (Standard y Premium: 7 días de prueba con 0 € hoy; el feedback Premium se activa al confirmar la suscripción).
       </p>
 
       <div className="bg-white border border-depro-border rounded-2xl p-6 shadow-card space-y-5">
@@ -1112,7 +1112,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
             </>
           ) : (
             <>
-              Introduce tu método de pago para activar <strong className="text-depro-dark">15 días de prueba gratis</strong>.
+              Introduce tu método de pago para activar <strong className="text-depro-dark">7 días de prueba gratis</strong>.
               Hoy se autoriza la tarjeta con <strong className="text-depro-dark">0 €</strong>; el primer cargo de {formatPrice(total)}/mes llega al terminar el trial.
             </>
           )}
@@ -1132,7 +1132,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
                 }`}
               >
                 <BadgeCheck size={12} />
-                {isImmediateCharge ? "Sin prueba gratis · cobro desde el día 1" : "15 días gratis · 0 € hoy"}
+                {isImmediateCharge ? "Sin prueba gratis · cobro desde el día 1" : "7 días gratis · 0 € hoy"}
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: plan.bg }}>
@@ -1184,7 +1184,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
               <p className="text-[11px] text-depro-gray pt-1">
                 {isImmediateCharge
                   ? "Se cobra el plan al confirmar el pago. Cancela cuando quieras."
-                  : "Se pide tarjeta ahora (cargo 0 €). Primer cobro tras 15 días. Cancela cuando quieras."}
+                  : "Se pide tarjeta ahora (cargo 0 €). Primer cobro tras 7 días. Cancela cuando quieras."}
               </p>
             </div>
 
@@ -1272,7 +1272,7 @@ function StepPago({ form, setForm, plan, onBack, authUserId }) {
                 </>
               ) : (
                 <>
-                  Añade tu tarjeta para empezar la prueba de <strong className="text-depro-dark">15 días</strong>.
+                  Añade tu tarjeta para empezar la prueba de <strong className="text-depro-dark">7 días</strong>.
                   Hoy el cargo es <strong className="text-depro-dark">0 €</strong>; el cobro del plan comienza al terminar el trial.
                 </>
               )}

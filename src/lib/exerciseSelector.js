@@ -738,6 +738,41 @@ export function refreshExercise(currentExercise, userProfile, excludeIds = [], s
   return null;
 }
 
+/** Lista para el desplegable de elección manual (mismo hueco / naturaleza). */
+export function listManualSwapOptions(currentExercise, userProfile, excludeIds = [], { limit = 80 } = {}) {
+  if (!currentExercise) return [];
+  const tags = tagsOf(currentExercise);
+  const constraints = currentExercise.slotConstraints || {
+    rol: tags.rol,
+    patron: tags.patron?.[0],
+    segmento: tags.segmento,
+    grupo_muscular: tags.grupo_muscular,
+    objetivo: tags.objetivo?.[0],
+  };
+  const used = [...excludeIds, currentExercise.id, currentExercise.catalogId].filter((id) => id != null);
+  const pool = catalogPool();
+  const filtered = filterExercisesForUser(pool, userProfile)
+    .filter((ex) => !isSameCatalogExercise(ex, currentExercise) && !used.includes(ex.id) && !used.includes(String(ex.id)));
+  const similar = filtered.filter((ex) => sameTrainingNature(ex, constraints, currentExercise));
+  const samePool = currentExercise.pool
+    ? similar.filter((ex) => ex.pool === currentExercise.pool)
+    : [];
+  const ranked = [
+    ...samePool,
+    ...similar.filter((ex) => !samePool.includes(ex)),
+    ...filtered.filter((ex) => !similar.includes(ex)),
+  ];
+  const seen = new Set();
+  const out = [];
+  for (const ex of ranked) {
+    if (ex?.id == null || seen.has(ex.id)) continue;
+    seen.add(ex.id);
+    out.push(ex);
+    if (out.length >= limit) break;
+  }
+  return out.sort((a, b) => String(a.nombre || a.name || "").localeCompare(String(b.nombre || b.name || ""), "es"));
+}
+
 export function getPreventionInjectionIds(lesiones = []) {
   const tags = new Set();
   for (const l of lesiones) {

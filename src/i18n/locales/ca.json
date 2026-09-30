@@ -407,7 +407,7 @@
   },
   "features": {
     "locked": "Secció bloquejada",
-    "trial_locked_desc": "Aquesta secció no està disponible durant els 15 dies de prova gratuïta.",
+    "trial_locked_desc": "Aquesta secció no està disponible durant els 7 dies de prova gratuïta.",
     "plan_locked_desc": "El teu pla actual no inclou aquesta funcionalitat.",
     "trial_note": "Activa la subscripció per desbloquejar aquesta secció.",
     "upgrade_to": "Millorar a {{plan}} · {{price}}/mes",
@@ -432,9 +432,9 @@
     "hero_label": "SaaS · Preparació física en futbol",
     "hero_title": "Preparació física professional, automatitzada per IA.",
     "hero_subtitle": "DEPRO és el programari que genera periodització, sessions i seguiment de càrrega per a entrenadors, clubs i jugadors. Un producte. Tres perfils. Tot centralitzat.",
-    "hero_trial_badge": "15 dies gratis · sense targeta necessària",
-    "hero_trial_note": "Prova gratuïta de 15 dies en tots els plans. Cancel·la quan vulguis.",
-    "hero_cta_primary": "Comença gratis 15 dies",
+    "hero_trial_badge": "7 dies gratis · sense targeta necessària",
+    "hero_trial_note": "Prova gratuïta de 7 dies en tots els plans. Cancel·la quan vulguis.",
+    "hero_cta_primary": "Comença gratis 7 dies",
     "hero_cta_secondary": "Coneixer el producte",
     "hero_stat_ai": "Automatitzat amb IA",
     "hero_stat_profiles": "Perfils d'usuari",
@@ -455,9 +455,9 @@
     "pricing_desc": "Subscripció mensual. Sense permanència. Tots els plans inclouen generació automàtica amb IA.",
     "price_period": "/ mes",
     "plan_cta": "Comença ara",
-    "plan_trial_hint": "Inclou 15 dies de prova gratuïta",
-    "pricing_trial_badge": "Tots els plans inclouen 15 dies de prova gratuïta",
-    "pricing_footnote": "Preus en EUR · IVA no inclòs · Prova gratis 15 dies · Cancel·la quan vulguis",
+    "plan_trial_hint": "Inclou 7 dies de prova gratuïta",
+    "pricing_trial_badge": "Tots els plans inclouen 7 dies de prova gratuïta",
+    "pricing_footnote": "Preus en EUR · IVA no inclòs · Prova gratis 7 dies · Cancel·la quan vulguis",
     "tab_coach": "Entrenador",
     "tab_club": "Club",
     "tab_player": "Jugador",
@@ -475,7 +475,7 @@
       {"id": "club-elite", "name": "Elite", "price": "699€", "subtext": "Equips il·limitats", "features": ["Tot Professional +", "API", "Scouting i cantera", "SLA dedicat", "Comptes il·limitats"], "ctaLink": "/para-clubs"}
     ],
     "pricing_player": [
-      {"id": "player-essential", "name": "Standard", "price": "29€", "subtext": "Pla mensual IA · prova 15 dies", "features": ["Planificació amb IA", "Metodologia DEPRO", "Rànquing intern", "15 dies de prova", "Codi de club (−10%)"], "ctaLink": "/comprar?audience=player&plan=essential"},
+      {"id": "player-essential", "name": "Standard", "price": "29€", "subtext": "Pla mensual IA · prova 7 dies", "features": ["Planificació amb IA", "Metodologia DEPRO", "Rànquing intern", "7 dies de prova", "Codi de club (−10%)"], "ctaLink": "/comprar?audience=player&plan=essential"},
       {"id": "player-pro", "name": "Premium", "price": "99€", "subtext": "Seguiment humà · sense prova", "badge": "Recomanat", "highlighted": true, "features": ["Tot Standard +", "Seguiment CAFE", "Tots els extres", "Places limitades (40)"], "ctaLink": "/comprar?audience=player&plan=pro"}
     ],
     "referral_label": "Programa de referits",

@@ -914,7 +914,7 @@ export default function ProfilePage() {
           Plan actual:{" "}
           <span className="font-bold text-depro-dark">
             {isPlayerPro(user) ? "Premium" : "Standard"}
-            {isInTrial(user) ? " · prueba 15 días" : ""}
+            {isInTrial(user) ? " · prueba 7 días" : ""}
           </span>
         </p>
         <p className="text-sm text-depro-gray mb-4">
@@ -980,7 +980,7 @@ export default function ProfilePage() {
               <h3 className="font-bold text-depro-dark text-sm mb-1">Pasar a Premium</h3>
               <p className="text-xs text-depro-gray mb-2">
                 Feedback del preparador, todos los extras y seguimiento humano.
-                <strong className="text-depro-dark"> 15 días de prueba</strong> (feedback al activar) · plazas limitadas ({PREMIUM_PLAYER_CAP}).
+                <strong className="text-depro-dark"> 7 días de prueba</strong> (feedback al activar) · plazas limitadas ({PREMIUM_PLAYER_CAP}).
                 {premiumCap?.ok && (
                   <> · Disponibles: <strong>{premiumCap.remaining}</strong></>
                 )}

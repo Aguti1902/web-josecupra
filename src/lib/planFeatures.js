@@ -1,6 +1,6 @@
 /**
  * Registro de funcionalidades del panel: qué plan las incluye y si
- * quedan bloqueadas durante el periodo de prueba de 15 días.
+ * quedan bloqueadas durante el periodo de prueba de 7 días.
  *
  * PDF §6: durante la demo el usuario explora casi todo; solo se bloquea
  * persistencia (PDF, export, guardar progreso/cargas/estadísticas).

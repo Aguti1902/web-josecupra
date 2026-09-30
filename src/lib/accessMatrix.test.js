@@ -29,12 +29,12 @@ describe("accesos Standard / Premium / extras", () => {
     assert.equal(PREMIUM_PLAYER_CAP, 40);
   });
 
-  it("Premium incluye prueba de 15 días, igual que Standard", async () => {
+  it("Premium incluye prueba de 7 días, igual que Standard", async () => {
     const { PLANS, planHasCheckoutTrial } = await import("./checkoutPlans.js");
-    assert.ok(PLANS["player-pro"].features.some((f) => /15 días/i.test(f)));
-    assert.ok(/15 días/i.test(PLANS["player-pro"].tagline));
+    assert.ok(PLANS["player-pro"].features.some((f) => /7 días/i.test(f)));
+    assert.ok(/7 días/i.test(PLANS["player-pro"].tagline));
     assert.equal(planHasCheckoutTrial("player-pro"), true);
-    assert.ok(PLANS["player-essential"].features.some((f) => /15 días/i.test(f)));
+    assert.ok(PLANS["player-essential"].features.some((f) => /7 días/i.test(f)));
   });
 
   it("feedback solo Premium: Standard manual y trial bloqueados", () => {

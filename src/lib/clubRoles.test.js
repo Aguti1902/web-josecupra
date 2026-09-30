@@ -70,6 +70,13 @@ describe("clubRoles economía", () => {
     }, null), false);
   });
 
+  it("coordinador con equipo asignado entra en vista de entrenador, no en overview", () => {
+    const coord = { role: "club", team_role: "coordinador", team: { id: "sub12", name: "Sub-12" } };
+    assert.equal(isClubGlobalView(coord, null), false);
+    assert.equal(isClubGlobalView(coord, { id: "sub12" }), false);
+    assert.equal(isClubGlobalView({ role: "club", team_role: "coordinador" }, null), true);
+  });
+
   it("coordinador puede añadir plantilla en vista global y por equipo", () => {
     const coord = { role: "club", team_role: "coordinador" };
     assert.equal(canEditSquadRoster(coord, null), true);

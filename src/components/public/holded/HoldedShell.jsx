@@ -69,7 +69,7 @@ export function ExitIntentModal({ open, onClose }) {
             <span className="w-2 h-2 rounded-full bg-holded-blue animate-pulse" /> Prueba gratuita
           </span>
           <h2 className="text-2xl md:text-3xl font-black mb-2 leading-tight">
-            Prueba DEPRO 15 días
+            Prueba DEPRO 7 días
           </h2>
           <p className="text-holded-muted text-sm mb-6">Tarjeta requerida · cargo 0 € hoy. Acceso a planificación IA, cargas y tests.</p>
           <div className="mb-6">
@@ -133,7 +133,7 @@ function TopBar() {
   return (
     <div className="bg-holded-topbar text-white text-center text-xs sm:text-sm py-2 px-4 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-4">
       <span>
-        Empieza ahora y prueba <strong className="underline underline-offset-2">15 días gratis</strong> · 0 € hoy
+        Empieza ahora y prueba <strong className="underline underline-offset-2">7 días gratis</strong> · 0 € hoy
       </span>
       <span className="hidden sm:inline text-white/40">|</span>
       <a href="mailto:ventas@depro.es" className="text-white/90 hover:text-white font-medium">
@@ -273,7 +273,7 @@ export function HoldedFooter() {
     <footer className="bg-holded-dark text-white pt-16 pb-8 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-black mb-3">Prueba DEPRO gratis durante 15 días</h2>
+          <h2 className="text-3xl md:text-4xl font-black mb-3">Prueba DEPRO gratis durante 7 días</h2>
           <p className="text-holded-muted mb-8">Sin tarjeta de crédito. Sin compromiso. Cancela cuando quieras.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/comprar" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-bold px-8 py-3.5 rounded-full hover:bg-gray-100 shadow-[0_0_40px_rgba(255,255,255,0.12)]">
@@ -384,7 +384,7 @@ export function HoldedHero({ subtitle = "El software todo en uno para el deporte
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
           <Link to="/comprar" className="inline-flex items-center justify-center gap-2 bg-transparent text-white font-bold px-8 py-3.5 rounded-full border-2 border-white hover:bg-white/10 transition-colors">
-            Prueba gratis 15 días
+            Prueba gratis 7 días
           </Link>
           <Link to="/login" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-bold px-6 sm:px-8 py-3.5 rounded-full hover:bg-gray-100 transition-colors">
             <GoogleIcon /> <span className="hidden sm:inline">Empezar gratis con </span>Google

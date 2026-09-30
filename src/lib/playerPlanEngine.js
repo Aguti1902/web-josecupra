@@ -12,7 +12,7 @@ import {
   applyContraindicationSwaps,
   normalizeMaterialList,
 } from "./exerciseSelector.js";
-import { normalizePlayerPlan, savePlayerPlan as savePlanLocal } from "./playerPlanStorage.js";
+import { normalizePlayerPlan, savePlayerPlan as savePlanLocal, persistPlayerPlanRemote } from "./playerPlanStorage.js";
 import { needsMonthlyPlanRefresh, resetCycleCounters, cycleEndDate, weekCountForCycle } from "./planSwapLimits.js";
 import {
   DAY_ORDER,
@@ -706,6 +706,58 @@ export function buildFourWeekPlan(user, { startDate } = {}) {
   return weeks;
 }
 
+/** Si el plan solo tiene 1 semana, clona la rutina al resto del mes. */
+export function ensureFourWeekPlan(plan) {
+  if (!plan || plan.premiumPending || plan.planPendingManual || plan.planError) return plan;
+  const existing = Array.isArray(plan.weeks) ? plan.weeks : null;
+  if (existing && existing.length >= 4) return plan;
+  const firstDays = existing?.[0]?.days
+    || (Array.isArray(plan) && plan[0]?.day != null ? plan : null)
+    || plan.days;
+  if (!Array.isArray(firstDays) || !firstDays.length) return plan;
+  const start = plan.startDate || existing?.[0]?.startDate || existing?.startDate || todayISO();
+  const end = plan.endDate || existing?.[0]?.endDate || cycleEndDate(start);
+  const nWeeks = Math.max(4, weekCountForCycle(start));
+  const weeks = [];
+  for (let w = 0; w < nWeeks; w++) {
+    const days = existing?.[w]?.days
+      ? existing[w].days
+      : cloneWeekDays(firstDays, w);
+    days.startDate = start;
+    days.endDate = end;
+    const sessions = days
+      .filter((d) => d.sessions?.length)
+      .map((d) => ({
+        ...d.sessions[0],
+        dayName: d.day,
+        week: w + 1,
+      }));
+    weeks.push({
+      week: w + 1,
+      label: `Semana ${w + 1}`,
+      sessions: existing?.[w]?.sessions || sessions,
+      days,
+      sameRoutine: true,
+      startDate: start,
+      endDate: end,
+    });
+  }
+  weeks.startDate = start;
+  weeks.endDate = end;
+  if (Array.isArray(plan)) {
+    const next = plan.map((d) => ({ ...d }));
+    for (const key of Object.keys(plan)) {
+      if (Number.isNaN(Number(key)) && next[key] === undefined) next[key] = plan[key];
+    }
+    next.weeks = weeks;
+    next.startDate = start;
+    next.endDate = end;
+    next.semana_actual = plan.semana_actual || 1;
+    return next;
+  }
+  return { ...plan, weeks, startDate: start, endDate: end, semana_actual: plan.semana_actual || 1 };
+}
+
 function sessionExerciseList(session) {
   const fromBlocks = (session?.blocks || []).flatMap((b) => b.exercises || []);
   const fromList = session?.exercises || [];
@@ -801,7 +853,7 @@ function shouldAutoRegenerateMonthly(user, plan) {
  * Sustituye un ejercicio y propaga el mismo cambio (mismo catalogId)
  * a todas las sesiones del microciclo y weeks[] del mesociclo.
  */
-export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterParams) {
+export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterParams, chosenCatalogExercise = null) {
   if (!plan || !exerciseId) return plan;
   const isDaysArray = Array.isArray(plan) && (plan.length === 0 || plan[0]?.day != null || plan[0]?.sessions != null);
   const days = isDaysArray ? plan : (Array.isArray(plan?.days) ? plan.days : null);
@@ -853,7 +905,9 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
       material: normalizeMaterial(filterParams.material),
     });
     const excludeIds = usedInSession.filter((id) => id !== oldCatalogId);
-    const replacement = refreshExerciseInPool(
+    const replacement = chosenCatalogExercise && chosenCatalogExercise.id != null
+      ? chosenCatalogExercise
+      : refreshExerciseInPool(
       {
         id: target.catalogId,
         pool: target.pool,
@@ -932,7 +986,17 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
 
   next.refrescos_usados_mes = (Number(plan.refrescos_usados_mes) || 0) + 1;
   next.lastEditedAt = new Date().toISOString();
-  return next;
+  return ensureFourWeekPlan(next);
+}
+
+export async function persistStablePlayerPlan(userId, plan) {
+  if (!userId || !plan) return plan;
+  const stable = ensureFourWeekPlan(plan);
+  savePlanLocal(userId, stable);
+  try {
+    await persistPlayerPlanRemote(userId, stable);
+  } catch { /* el cache local ya está */ }
+  return stable;
 }
 
 function regenerateEssentialPlan(user) {
@@ -967,7 +1031,7 @@ export function ensurePlayerPlan(user) {
         return parsed;
       } else {
         const normalized = normalizePlayerPlan(parsed);
-        const plan = normalized || parsed;
+        const plan = ensureFourWeekPlan(normalized || parsed);
         if (Array.isArray(plan) && !plan.startDate) {
           plan.startDate = resolvePlayerPlanStartDate(plan);
         }
@@ -975,11 +1039,7 @@ export function ensurePlayerPlan(user) {
           localStorage.removeItem(planKey);
           return regenerateEssentialPlan(user);
         }
-        if (normalized && normalized !== parsed) {
-          savePlanLocal(user.id, plan);
-        } else if (Array.isArray(plan) && plan.startDate && !parsed.startDate) {
-          savePlanLocal(user.id, plan);
-        }
+        savePlanLocal(user.id, plan);
         return plan;
       }
     }
@@ -1016,11 +1076,12 @@ export async function hydratePlayerPlan(user) {
       if (normalized && Array.isArray(normalized) && !normalized.startDate) {
         normalized.startDate = resolvePlayerPlanStartDate(normalized);
       }
-      if (shouldAutoRegenerateMonthly(user, normalized)) {
+      const stable = ensureFourWeekPlan(normalized);
+      if (shouldAutoRegenerateMonthly(user, stable)) {
         return regenerateEssentialPlan(user);
       }
-      savePlanLocal(user.id, normalized);
-      return normalized;
+      savePlanLocal(user.id, stable);
+      return stable;
     }
   } catch { /* ignore */ }
   return ensurePlayerPlan(user);

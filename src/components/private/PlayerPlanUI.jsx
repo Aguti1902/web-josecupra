@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   ArrowLeft, CheckCircle, Clock, Dumbbell, FileText, Flame, Gauge, Info,
   Layers, Pause, Repeat2, Target, Video, Wind, X, RefreshCw,
 } from "lucide-react";
 import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS, blockDisplayLabel, blockNavId } from "../../lib/sessionBlocks";
 import { prefetchCatalogMedia, exerciseYouTubeId } from "../../lib/catalogMedia";
-import { saveLoadLog } from "../../lib/loadLogs";
+import { saveLoadLog, findLatestLoadLog } from "../../lib/loadLogs";
 import {
   loadFieldsForExercise,
   blockAllowsLoadLogging,
@@ -15,6 +15,7 @@ import {
 } from "../../lib/loadAnalytics";
 import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
 import { hasFeatureAccess } from "../../lib/subscription";
+import { listManualSwapOptions } from "../../lib/exerciseSelector";
 
 const BLOCK_CONFIG = {
   calentamiento:  { label: "Calentamiento",     Icon: Flame,    color: "#F59E0B" },
@@ -54,7 +55,7 @@ function isBodyweightExercise(exercise) {
   return !list.length || list.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno|campo/.test(m));
 }
 
-function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap, swapTooltip }) {
+function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, onPickExercise, filterParams, canSwap, swapTooltip }) {
   const ytId = exerciseYouTubeId(exercise);
   const typedExercise = {
     ...exercise,
@@ -80,6 +81,45 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
   const [loadDraft, setLoadDraft] = useState({});
   const [loadSaved, setLoadSaved] = useState(false);
   const [loadNotice, setLoadNotice] = useState("");
+  const [pickedId, setPickedId] = useState("");
+
+  useEffect(() => {
+    const prev = findLatestLoadLog(user?.id, {
+      exerciseId: exercise.id,
+      catalogId: exercise.catalogId,
+      exerciseName: exercise.name || exercise.nombre,
+      sessionId: sessionMeta?.sessionId,
+      weekNumber: sessionMeta?.weekNumber,
+    });
+    if (!prev) return;
+    if (Array.isArray(prev.series) && prev.series.length) {
+      setSeries(Array.from({ length: setCount }, (_, i) => ({
+        weight: prev.series[i]?.weight || "",
+        reps: prev.series[i]?.reps || "",
+      })));
+    }
+    setLoadDraft({
+      time: prev.time || "",
+      heartRate: prev.heartRate || "",
+      distance: prev.distance || "",
+      rpe: prev.rpe || "",
+      notes: prev.notes || "",
+      intensity: prev.intensity || "",
+    });
+  }, [exercise.id, user?.id, sessionMeta?.sessionId, sessionMeta?.weekNumber, setCount]);
+
+  const swapOptions = useMemo(() => {
+    if (!filterParams || !exercise) return [];
+    return listManualSwapOptions(exercise, {
+      material: filterParams.material,
+      lesiones: filterParams.lesiones || [],
+      edad: filterParams.edad || 18,
+      experiencia: filterParams.experiencia || "intermedio",
+      userId: filterParams.userId || user?.id || "",
+    });
+  }, [exercise, filterParams, user?.id]);
+
+  const isPremium = /player-pro|premium|^pro$/.test(String(user?.plan || "").toLowerCase());
 
   const handleSaveLoad = () => {
     if (!canPersistInTrial(user, "save_loads")) {
@@ -92,10 +132,13 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
     }
     const payload = {
       exerciseId: exercise.id,
+      catalogId: exercise.catalogId ?? null,
       exerciseName: exercise.name || exercise.nombre,
       sessionId: sessionMeta?.sessionId,
       sessionTitle: sessionMeta?.sessionTitle,
       weekLabel: sessionMeta?.weekLabel || new Date().toISOString().slice(0, 10),
+      weekNumber: sessionMeta?.weekNumber || null,
+      planStartDate: sessionMeta?.planStartDate || null,
       objective,
       blockType,
       tipoRegistro,
@@ -318,13 +361,42 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
           </div>
         )}
 
+        {(onPickExercise || onSwap) && swapOptions.length > 0 && (
+          <div className="mb-4">
+            <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">
+              {isPremium ? "Elegir ejercicio a mano (Premium)" : "Elegir ejercicio a mano"}
+            </label>
+            <select
+              className="admin-input w-full text-sm mt-1"
+              value={pickedId}
+              disabled={!canSwap}
+              onChange={(e) => {
+                const id = e.target.value;
+                setPickedId(id);
+                const chosen = swapOptions.find((ex) => String(ex.id) === String(id));
+                if (!chosen || !onPickExercise) return;
+                onPickExercise(exercise.id, chosen);
+                onClose();
+              }}
+            >
+              <option value="">Sustituir por…</option>
+              {swapOptions.map((ex) => (
+                <option key={ex.id} value={ex.id}>{ex.nombre || ex.name}</option>
+              ))}
+            </select>
+            <p className="text-[11px] text-depro-gray mt-1">
+              El cambio se aplica a las 4 semanas del mes.
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-2">
           {onSwap && (
             <button
               type="button"
               disabled={!canSwap}
               title={swapTooltip || (canSwap
-                ? "Recomendamos seguir el ejercicio indicado. Refresca solo si no puedes hacerlo."
+                ? "Recomendamos seguir el ejercicio indicado. Refresca solo si no puedes hacerlo. El cambio se aplica a las 4 semanas."
                 : "Sin refrescos disponibles este mesociclo")}
               onClick={() => { onSwap(exercise.id); onClose(); }}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-depro-border hover:border-depro-blue hover:text-depro-blue transition-all disabled:opacity-40"
@@ -507,6 +579,8 @@ export function PlayerSessionFullscreen({
   user,
   objective,
   onSwapExercise,
+  onPickExercise,
+  filterParams,
   canSwap = true,
   swapMessage,
   swapTooltip,
@@ -701,8 +775,16 @@ export function PlayerSessionFullscreen({
           accent={accentColor}
           user={user}
           objective={objective}
-          sessionMeta={{ sessionId: session.id, sessionTitle: session.title, weekLabel: dayLabel }}
+          sessionMeta={{
+            sessionId: session.id,
+            sessionTitle: session.title,
+            weekLabel: dayLabel,
+            weekNumber: session.weekNumber || session.week || null,
+            planStartDate: session.planStartDate || null,
+          }}
           onSwap={onSwapExercise}
+          onPickExercise={onPickExercise}
+          filterParams={filterParams}
           canSwap={canSwap}
           swapTooltip={swapTooltip}
         />

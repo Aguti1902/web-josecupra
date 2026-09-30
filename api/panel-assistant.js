@@ -40,7 +40,7 @@ function localAnswer(message, pathname) {
 }
 
 const KNOWLEDGE = `DEPRO: preparación física para fútbol. Perfiles: Jugador, Club (entrenador/coordinador), DEPRO Coach, Admin.
-Sidebar izquierdo = navegación. Prueba 15 días gratis. Mi Club = configuración autogestionada.`;
+Sidebar izquierdo = navegación. Prueba 7 días gratis. Mi Club = configuración autogestionada.`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });

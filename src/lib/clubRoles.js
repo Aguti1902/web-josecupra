@@ -66,6 +66,7 @@ export function isClubGlobalView(user, viewingTeam) {
   if (viewingTeam) return false;
   if (isProCoachOverview(user, viewingTeam)) return true;
   if (user?.role !== "club" || user?.club?.isSoloCoach) return false;
+  if (isClubCoordinator(user) && user?.team) return false;
   return isClubAdmin(user) || isClubCoordinator(user);
 }
 

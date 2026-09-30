@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   try {
     const stripe = await getStripe();
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    // Con trial de 15 días, Stripe no cobra en el checkout: payment_status = "no_payment_required"
+    // Con trial de 7 días, Stripe no cobra en el checkout: payment_status = "no_payment_required"
     const okStatuses = ["paid", "no_payment_required"];
     if (!okStatuses.includes(session.payment_status)) {
       return res.status(400).json({ error: "Pago no completado" });
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     const email = meta.email || session.customer_email;
     if (!email) return res.status(400).json({ error: "Email no encontrado en la sesión" });
 
-    // Datos de la suscripción de Stripe (trial de 15 días incluido en create-checkout)
+    // Datos de la suscripción de Stripe (trial de 7 días incluido en create-checkout)
     let stripeSubscriptionId = null;
     let stripeCustomerId = null;
     let subscriptionStatus = "active";

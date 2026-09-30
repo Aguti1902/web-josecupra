@@ -9,12 +9,12 @@ export const WEBSITE_QUICK_QUESTIONS = [
 
 export const WEBSITE_FAQ = [
   {
-    keywords: ["prueba", "gratis", "15 días", "tarjeta"],
-    answer: "El plan **Standard** y el **Premium** de jugador incluyen **15 días de prueba** (tarjeta con 0 € hoy). En prueba puedes ver casi todo; el feedback del preparador se desbloquea al activar la cuenta. Cancela cuando quieras.",
+    keywords: ["prueba", "gratis", "7 días", "tarjeta"],
+    answer: "El plan **Standard** y el **Premium** de jugador incluyen **7 días de prueba** (tarjeta con 0 € hoy). En prueba puedes ver casi todo; el feedback del preparador se desbloquea al activar la cuenta. Cancela cuando quieras.",
   },
   {
     keywords: ["premium", "sin prueba", "jugador premium"],
-    answer: "**Premium** (jugador) también tiene **15 días de prueba**, igual que Standard. El feedback y el contacto con el preparador se activan al confirmar la suscripción. Plazas limitadas (40).",
+    answer: "**Premium** (jugador) también tiene **7 días de prueba**, igual que Standard. El feedback y el contacto con el preparador se activan al confirmar la suscripción. Plazas limitadas (40).",
   },
   {
     keywords: ["precio", "precios", "cuesta", "plan", "€", "euro"],
@@ -50,7 +50,7 @@ export const WEBSITE_FAQ = [
   },
   {
     keywords: ["registr", "empezar", "login", "google", "cuenta"],
-    answer: "Pulsa **«Prueba gratis 15 días»** o **«Empezar con Google»** en la home. En 2 minutos tendrás tu cuenta activa.",
+    answer: "Pulsa **«Prueba gratis 7 días»** o **«Empezar con Google»** en la home. En 2 minutos tendrás tu cuenta activa.",
   },
   {
     keywords: ["contacto", "ventas", "soporte", "email"],

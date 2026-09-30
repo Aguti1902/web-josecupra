@@ -407,7 +407,7 @@
   },
   "features": {
     "locked": "Section locked",
-    "trial_locked_desc": "This section is not available during the 15-day free trial.",
+    "trial_locked_desc": "This section is not available during the 7-day free trial.",
     "plan_locked_desc": "Your current plan does not include this feature.",
     "trial_note": "Activate your subscription to unlock this section.",
     "upgrade_to": "Upgrade to {{plan}} · {{price}}/mo",
@@ -432,9 +432,9 @@
     "hero_label": "SaaS · Football physical preparation",
     "hero_title": "Professional physical preparation, AI-automated.",
     "hero_subtitle": "DEPRO is the software that generates periodization, sessions and load tracking for coaches, clubs and players. One product. Three profiles. All centralized.",
-    "hero_trial_badge": "15 days free · €0 today",
-    "hero_trial_note": "15-day free trial on all plans. Cancel anytime.",
-    "hero_cta_primary": "Start free for 15 days",
+    "hero_trial_badge": "7 days free · €0 today",
+    "hero_trial_note": "7-day free trial on all plans. Cancel anytime.",
+    "hero_cta_primary": "Start free for 7 days",
     "hero_cta_secondary": "Explore the product",
     "hero_stat_ai": "AI-automated",
     "hero_stat_profiles": "User profiles",
@@ -455,9 +455,9 @@
     "pricing_desc": "Monthly subscription. No commitment. All plans include AI-generated content.",
     "price_period": "/ mo",
     "plan_cta": "Get started",
-    "plan_trial_hint": "Includes a 15-day free trial",
-    "pricing_trial_badge": "All plans include a 15-day free trial",
-    "pricing_footnote": "Prices in EUR · VAT not included · 15-day free trial · Cancel anytime",
+    "plan_trial_hint": "Includes a 7-day free trial",
+    "pricing_trial_badge": "All plans include a 7-day free trial",
+    "pricing_footnote": "Prices in EUR · VAT not included · 7-day free trial · Cancel anytime",
     "tab_coach": "Coach",
     "tab_club": "Club",
     "tab_player": "Player",
@@ -475,7 +475,7 @@
       {"id": "club-elite", "name": "Elite", "price": "€699", "subtext": "Unlimited teams · unlimited players", "features": ["Everything in Professional +", "API & integrations", "Scouting & academy", "Dedicated SLA", "Unlimited staff accounts"], "ctaLink": "/para-clubs"}
     ],
     "pricing_player": [
-      {"id": "player-essential", "name": "Standard", "price": "€29", "subtext": "Monthly AI plan · 15-day trial", "features": ["AI planning", "DEPRO methodology", "Internal ranking", "15-day trial", "Club code (−10%)"], "ctaLink": "/comprar?audience=player&plan=essential"},
+      {"id": "player-essential", "name": "Standard", "price": "€29", "subtext": "Monthly AI plan · 7-day trial", "features": ["AI planning", "DEPRO methodology", "Internal ranking", "7-day trial", "Club code (−10%)"], "ctaLink": "/comprar?audience=player&plan=essential"},
       {"id": "player-pro", "name": "Premium", "price": "€99", "subtext": "Human follow-up · no free trial", "badge": "Recommended", "highlighted": true, "features": ["Everything in Standard +", "Human CAFE follow-up", "All extras included", "Limited spots (40)"], "ctaLink": "/comprar?audience=player&plan=pro"}
     ],
     "referral_label": "Referral program",

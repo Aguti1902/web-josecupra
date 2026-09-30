@@ -126,7 +126,7 @@ const PLANS = {
         "Plan mensual IA por posición",
         "Sesiones adaptadas a objetivos",
         "Ejercicios de prevención básicos",
-        "15 días de prueba (1 PDF)",
+        "7 días de prueba (1 PDF)",
         "Extras opcionales: PDF, tests, cargas",
         "Descuento −10% con código club",
         "Soporte email",
@@ -209,7 +209,7 @@ export default function PricingPage() {
     player: [
       { q: "¿Cómo funciona el descuento de club?", a: "Al registrarte con el código de tu entrenador obtienes 10% de descuento permanente en tu suscripción. El club recibe una comisión del 10% sobre esas ventas." },
       { q: "¿Puedo usar DEPRO Player sin club?", a: "Sí. Es totalmente independiente. El código de club es opcional y añade descuento + conexión con tu entrenador." },
-      { q: "¿Premium tiene prueba gratis?", a: "No. La prueba de 15 días aplica solo al plan Standard. Premium se cobra desde el primer día (seguimiento humano, plazas limitadas)." },
+      { q: "¿Premium tiene prueba gratis?", a: "No. La prueba de 7 días aplica solo al plan Standard. Premium se cobra desde el primer día (seguimiento humano, plazas limitadas)." },
     ],
   };
 
@@ -220,7 +220,7 @@ export default function PricingPage() {
         theme="dark"
         badge="Precios · Transparentes"
         title="Planes que crecen contigo"
-        description="Elige el perfil que mejor encaje — entrenador individual, club/academia o jugador. Standard (jugador) incluye 15 días de prueba; Premium jugador no tiene prueba gratis."
+        description="Elige el perfil que mejor encaje — entrenador individual, club/academia o jugador. Standard (jugador) incluye 7 días de prueba; Premium jugador no tiene prueba gratis."
         bullets={["Sin permanencia", "Cancela cuando quieras", "Datos conservados 30 días", "Soporte en español"]}
         primaryCta={{ label: "Empezar prueba gratis", to: "/comprar" }}
         secondaryCta={{ label: "Comparar funcionalidades", to: "/funcionalidades" }}
@@ -228,7 +228,7 @@ export default function PricingPage() {
       <section className="py-4 bg-holded-dark border-b border-white/5">
         <div className="max-w-xl mx-auto px-4 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 text-white text-sm font-bold px-4 py-2 rounded-full">
-            <Gift size={15} className="text-holded-green" /> 15 días gratis en todos los planes de jugador y entrenador
+            <Gift size={15} className="text-holded-green" /> 7 días gratis en todos los planes de jugador y entrenador
           </div>
         </div>
       </section>
@@ -311,7 +311,7 @@ export default function PricingPage() {
                   </span>
                 ) : (
                   <Link to={`/comprar?audience=${audience}`} className={`w-full py-3.5 rounded-full font-bold text-sm flex items-center justify-center gap-2 mt-auto ${plan.hi ? "bg-holded-blue text-white hover:bg-holded-blue/90" : "border border-gray-200 text-gray-800 hover:bg-gray-50"}`}>
-                    Probar 15 días gratis <ChevronRight size={15} />
+                    Probar 7 días gratis <ChevronRight size={15} />
                   </Link>
                 )}
               </div>

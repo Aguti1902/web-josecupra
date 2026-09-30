@@ -123,7 +123,7 @@ export const PLANS = {
     id: "player-essential",
     audience: "player",
     name: "Standard",
-    tagline: "IA especializada · metodología DEPRO · prueba 15 días",
+    tagline: "IA especializada · metodología DEPRO · prueba 7 días",
     price: 29,
     period: "/ mes",
     limits: { maxTeams: null, maxPlayers: null },
@@ -131,7 +131,7 @@ export const PLANS = {
       "Planificación con IA diseñada por un profesional CAFE (UB)",
       "Metodología propia adaptada a tus cuestionarios y datos",
       "Ranking interno y seguimiento de progreso",
-      "15 días de prueba: acceso a todo (datos no se guardan · 1 PDF)",
+      "7 días de prueba: acceso a todo (datos no se guardan · 1 PDF)",
       "Extras opcionales (+5€/mes): PDF, Tests con registro, Mis cargas",
       "Feedback del preparador solo en Premium",
       "Código de club aplicable",
@@ -143,13 +143,13 @@ export const PLANS = {
     id: "player-pro",
     audience: "player",
     name: "Premium",
-    tagline: "Seguimiento humano · 15 días de prueba · 40 plazas",
+    tagline: "Seguimiento humano · 7 días de prueba · 40 plazas",
     price: 99,
     period: "/ mes",
     limits: { maxTeams: null, maxPlayers: null },
     features: [
       "Todo el plan Standard incluido",
-      "15 días de prueba: acceso a todo (datos no se guardan · 1 PDF)",
+      "7 días de prueba: acceso a todo (datos no se guardan · 1 PDF)",
       "Feedback y seguimiento 100% personalizado (CAFE · UB) al activar",
       "Videollamada inicial + contacto continuo (WhatsApp)",
       "Plan diseñado y revisado manualmente",
@@ -175,7 +175,7 @@ const PLAN_SLUGS = {
   player: { essential: "player-essential", pro: "player-pro", basic: "player-essential", premium: "player-pro" },
 };
 
-/** Trial de 15 días en checkout: jugador y entrenador (incl. Premium). Clubs se cobran al confirmar. */
+/** Trial de 7 días en checkout: jugador y entrenador (incl. Premium). Clubs se cobran al confirmar. */
 export function planHasCheckoutTrial(planId) {
   return planId === "player-essential"
     || planId === "player-pro"

@@ -68,7 +68,7 @@ export default function Navbar() {
               {t("nav.login")}
             </Link>
             <Link to="/comprar" className="btn-primary text-sm py-2.5 rounded-xl">
-              15 días gratis
+              7 días gratis
             </Link>
           </div>
 

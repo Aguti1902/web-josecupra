@@ -1,6 +1,6 @@
 const WEBSITE_FAQ = [
-  { keywords: ["prueba", "gratis", "15 días", "tarjeta"], answer: "El plan **Standard** y el **Premium** de jugador tienen **15 días de prueba** (0 € hoy con tarjeta). En prueba, el feedback del preparador queda bloqueado hasta activar." },
-  { keywords: ["premium", "sin prueba"], answer: "**Premium** jugador también incluye prueba de 15 días. El feedback y el seguimiento humano se activan al confirmar la cuenta. Plazas limitadas." },
+  { keywords: ["prueba", "gratis", "7 días", "tarjeta"], answer: "El plan **Standard** y el **Premium** de jugador tienen **7 días de prueba** (0 € hoy con tarjeta). En prueba, el feedback del preparador queda bloqueado hasta activar." },
+  { keywords: ["premium", "sin prueba"], answer: "**Premium** jugador también incluye prueba de 7 días. El feedback y el seguimiento humano se activan al confirmar la cuenta. Plazas limitadas." },
   { keywords: ["precio", "precios", "cuesta", "plan", "€"], answer: "Los planes de entrenador empiezan desde **30 €/mes**. Consulta /precios para comparar." },
   { keywords: ["club", "clubs", "coordinador"], answer: "**DEPRO Club**: multi-equipo, white-label y panel coordinador." },
   { keywords: ["entrenador", "coach"], answer: "**DEPRO Coach** para entrenadores: microciclos, 90+ ejercicios, cargas y tests." },
@@ -28,7 +28,7 @@ function resolveWebsiteAnswer(message) {
 const KNOWLEDGE = `DEPRO es una plataforma de preparación física para fútbol.
 Perfiles: Entrenador (DEPRO Coach), Club/Coordinador (DEPRO Club), Jugador.
 Funcionalidades: planificación IA con microciclos, control de carga RPE, tests físicos T1→T3, plantilla, periodización.
-Prueba gratis 15 días sin tarjeta (jugador Standard). Entrenador desde 30 €/mes.
+Prueba gratis 7 días sin tarjeta (jugador Standard). Entrenador desde 30 €/mes.
 Contacto: ventas@depro.es`;
 
 export default async function handler(req, res) {

@@ -31,6 +31,7 @@ export function saveLoadLog(userId, entry) {
   const record = {
     id: `load_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     recordedAt: new Date().toISOString(),
+    catalogId: entry?.catalogId ?? null,
     ...entry,
   };
   const logs = [record, ...getLoadLogs(userId)];
@@ -38,6 +39,30 @@ export function saveLoadLog(userId, entry) {
   writeLoadLogs(userId, clipped);
   queueSync(userId, clipped);
   return record;
+}
+
+function logMatchesExercise(log, { exerciseId, catalogId, exerciseName } = {}) {
+  if (!log) return false;
+  if (exerciseId && log.exerciseId === exerciseId) return true;
+  const cid = catalogId ?? null;
+  if (cid != null && (log.catalogId === cid || String(log.exerciseId || "").includes(`v2_${cid}_`))) return true;
+  const name = String(exerciseName || "").trim().toLowerCase();
+  if (name && String(log.exerciseName || log.nombre || "").trim().toLowerCase() === name) return true;
+  return false;
+}
+
+/** Último registro de un ejercicio (sobrevive si el plan se regeneró con otro instance id). */
+export function findLatestLoadLog(userId, match = {}) {
+  const logs = getLoadLogs(userId);
+  const sameSession = logs.filter((l) => logMatchesExercise(l, match)
+    && (!match.sessionId || l.sessionId === match.sessionId));
+  const pool = sameSession.length ? sameSession : logs.filter((l) => logMatchesExercise(l, match));
+  if (match.weekNumber != null) {
+    const weekHits = pool.filter((l) => Number(l.weekNumber) === Number(match.weekNumber)
+      || String(l.weekLabel || "").includes(String(match.weekNumber)));
+    if (weekHits.length) return weekHits[0];
+  }
+  return pool[0] || null;
 }
 
 export function updateLoadLog(userId, logId, patch) {
