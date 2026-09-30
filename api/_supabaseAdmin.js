@@ -24,12 +24,10 @@ export async function findUserByEmail(supabaseAdmin, email) {
   }
   return null;
 }
+
 export async function findUserByStripeCustomer(supabaseAdmin, customerId, emailHint) {
   if (emailHint) {
-    const { data } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-    const byEmail = data?.users?.find(
-      (u) => u.email?.toLowerCase() === String(emailHint).toLowerCase(),
-    );
+    const byEmail = await findUserByEmail(supabaseAdmin, emailHint);
     if (byEmail) return byEmail;
   }
   if (!customerId) return null;

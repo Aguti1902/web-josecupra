@@ -4,6 +4,7 @@ import { removePlayerFromReferralRegistry } from "./_clubReferrals.js";
 import { getSupabaseAdmin, findUserByEmail } from "./_supabaseAdmin.js";
 import { getStripe } from "./_stripeClient.js";
 import { purgeStripeBilling } from "./_stripeBillingCleanup.js";
+import { shouldBlockUserDelete } from "../src/lib/stripeBillingCleanup.js";
 
 function playerRowMatches(entry, userId, email) {
   if (!entry || typeof entry !== "object") return false;
@@ -133,23 +134,46 @@ export default async function handler(req, res) {
     }
 
     const homeClubId = String(targetUser?.user_metadata?.clubId || "");
+    const stripeCustomerId = targetUser?.user_metadata?.stripeCustomerId || "";
+    const stripeSubscriptionId = targetUser?.user_metadata?.stripeSubscriptionId || "";
+
+    let billing = null;
+    try {
+      const stripe = await getStripe();
+      billing = await purgeStripeBilling(stripe, {
+        email,
+        customerId: stripeCustomerId,
+        subscriptionId: stripeSubscriptionId,
+        refundRecent: true,
+        detachPayments: true,
+        deleteCustomer: true,
+        immediate: true,
+      });
+    } catch (stripeErr) {
+      if (billingOnly || stripeCustomerId || stripeSubscriptionId) {
+        return res.status(409).json({
+          error: "No se pudo contactar con Stripe. El usuario no se ha eliminado para evitar cobros futuros.",
+          billing: { errors: [stripeErr.message || "No se pudo contactar con Stripe"] },
+          billingOnly: !!billingOnly,
+        });
+      }
+      billing = {
+        errors: [],
+        canceledCount: 0,
+        stillActive: false,
+        customerIds: [],
+      };
+    }
 
     if (billingOnly) {
-      let billing = null;
-      try {
-        const stripe = await getStripe();
-        billing = await purgeStripeBilling(stripe, {
+      if (billing.stillActive) {
+        return res.status(409).json({
+          error: "Stripe todavía tiene una suscripción activa. Revisa el email o inténtalo de nuevo.",
+          billingOnly: true,
+          alreadyGone: !targetUser,
           email,
-          customerId: targetUser?.user_metadata?.stripeCustomerId || "",
-          subscriptionId: targetUser?.user_metadata?.stripeSubscriptionId || "",
-          refundRecent: true,
+          billing,
         });
-      } catch (stripeErr) {
-        billing = {
-          errors: [stripeErr.message || "No se pudo contactar con Stripe"],
-          canceledCount: 0,
-          refundedCents: 0,
-        };
       }
       return res.status(200).json({
         ok: true,
@@ -158,6 +182,18 @@ export default async function handler(req, res) {
         email,
         billing,
       });
+    }
+
+    if (billing.stillActive || stripeCustomerId || stripeSubscriptionId) {
+      const block = shouldBlockUserDelete({
+        stillActive: billing.stillActive,
+        customerIds: billing.customerIds,
+        canceledCount: billing.canceledCount,
+        stripeErrors: billing.errors,
+      });
+      if (block.block) {
+        return res.status(409).json({ error: block.reason, billing });
+      }
     }
 
     try {
@@ -180,24 +216,6 @@ export default async function handler(req, res) {
       try { await admin.from("squad_players").delete().eq("email", email); } catch { /* ignore */ }
     }
 
-    let billing = null;
-    try {
-      const stripe = await getStripe();
-      billing = await purgeStripeBilling(stripe, {
-        email,
-        customerId: targetUser?.user_metadata?.stripeCustomerId || "",
-        subscriptionId: targetUser?.user_metadata?.stripeSubscriptionId || "",
-        refundRecent: true,
-      });
-    } catch (stripeErr) {
-      billing = {
-        errors: [stripeErr.message || "No se pudo contactar con Stripe"],
-        canceledCount: 0,
-        refundedCents: 0,
-      };
-      console.warn("delete-user stripe:", stripeErr.message);
-    }
-
     if (resolvedId) {
       try { await admin.from("clubs_detail").delete().eq("club_id", `USER_DATA_${resolvedId}`); } catch { /* ignore */ }
     }
@@ -207,7 +225,7 @@ export default async function handler(req, res) {
     if (resolvedId) {
       const { error } = await admin.auth.admin.deleteUser(resolvedId);
       if (error && !/not found|does not exist/i.test(error.message || "")) {
-        return res.status(400).json({ error: error.message });
+        return res.status(400).json({ error: error.message, billing });
       }
     }
 
