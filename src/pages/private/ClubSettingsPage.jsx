@@ -118,6 +118,7 @@ function TeamModal({ team, clubId, onClose, onSave }) {
         clubId,
         teamId,
         teamRole: "entrenador",
+        billingSource: "manual",
       });
       userCreated = !!(result.ok || result.alreadyExists);
       userError = userCreated ? null : result.error;
@@ -313,6 +314,7 @@ function StaffModal({ teams, clubId, onClose, onCreate }) {
       clubId,
       teamId: form.teamId,
       teamRole: form.role,
+      billingSource: "manual",
     });
     const team = teams.find((t) => t.id === form.teamId);
     onCreate({
