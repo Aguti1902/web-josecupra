@@ -16,19 +16,16 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildFourWeekPlan, buildMesoPlayerPlan, ensurePlayerPlan, hydratePlayerPlan, buildMinimalSession, refreshExerciseAcrossPlan, persistStablePlayerPlan, normalizeLesions, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildFourWeekPlan, buildMesoPlayerPlan, hydratePlayerPlan, buildMinimalSession, persistStablePlayerPlan, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
 import PlanCompatibilityModal from "../../components/private/PlanCompatibilityModal";
-import { markSessionComplete, toggleSessionCompletion, touchLastTrain } from "../../lib/sessionProgress";
-import {
-  canSwapExercise, recordSwap, swapsRemaining, hasUnlimitedSwaps, MAINTENANCE_MESSAGE, MAX_PLAN_SWAPS, SWAP_TOOLTIP,
-} from "../../lib/planSwapLimits";
+import { markSessionComplete, toggleSessionCompletion, touchLastTrain, setClubSessionCompletion, loadClubSessionProgress } from "../../lib/sessionProgress";
 import { canPersistInTrial } from "../../lib/trialPersistence";
 import { hasFeatureAccess, isInTrial } from "../../lib/subscription";
 import { consumeTrialPdfOrExplain } from "../../lib/trialPdfLimit";
 import { hydrateUserPersonalData } from "../../lib/userDataSync";
 import CoachSessions from "../../components/private/CoachSessions";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
-import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans, filterPlansForTeam } from "../../lib/clubManualPlans";
+import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans, filterPlansForTeam, pickActiveMesocycles, pickCurrentMesocycle } from "../../lib/clubManualPlans";
 import DisenarTareas from "../../components/shared/DisenarTareas";
 import { createDefaultTaskDesigner } from "../../lib/taskDesigner";
 import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessionPdf";
@@ -378,21 +375,26 @@ function PlayerWeeklyPlan({ accent }) {
   const planKey = `depro_plan_${user?.id}`;
 
   const [plan, setPlan]       = useState(null);
+  const [hydrating, setHydrating] = useState(true);
   const [generating, setGen]  = useState(false);
   const [view, setView]       = useState("micro"); // "micro" | "meso"
   const [minimalSession, setMinimalSession] = useState(null);
   const [compatModal, setCompatModal] = useState(null); // { hardBlock, message }
   const [, setMediaTick] = useState(0);
-  const [swapping, setSwapping] = useState(false);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setHydrating(false);
+      return;
+    }
     prefetchCatalogMedia().then(() => setMediaTick((n) => n + 1)).catch(() => {});
     hydrateCustomWarmups().catch(() => {});
     let cancelled = false;
     (async () => {
       const hydrated = await hydratePlayerPlan(user);
-      if (!cancelled && hydrated) setPlan(hydrated);
+      if (cancelled) return;
+      setPlan(hydrated);
+      setHydrating(false);
       if (user?.id) hydrateUserPersonalData(user.id).catch(() => {});
     })();
     return () => { cancelled = true; };
@@ -500,48 +502,6 @@ function PlayerWeeklyPlan({ accent }) {
     if (persist) touchLastTrain(user?.id);
   };
 
-  const buildFilterParams = () => ({
-    material: user?.material || "sin_material",
-    lesiones: normalizeLesions(user?.lesion, user?.lesionSubtipo),
-    edad: parseInt(user?.edad, 10) || 20,
-    deporte: user?.deporte || "",
-    experiencia: user?.experiencia?.includes("Nunca") || user?.experiencia?.includes("Menos") ? "novato"
-      : user?.experiencia?.includes("Más de 3") ? "avanzado" : "intermedio",
-    userId: user?.id || "",
-  });
-
-  const handleExerciseSwap = (sessionId, exerciseId, chosenCatalog = null) => {
-    if (swapping) return;
-    if (!canSwapExercise(user, plan)) {
-      alert(`Has usado tus ${MAX_PLAN_SWAPS} cambios de ejercicio este mesociclo. Añade el extra «Ejercicios ilimitados» en Suscripción.`);
-      return;
-    }
-    if (!chosenCatalog && !hasUnlimitedSwaps(user) && !window.confirm(`${MAINTENANCE_MESSAGE}\n\n¿Sustituir este ejercicio en todo el plan (semanas 1 a 4)?`)) return;
-
-    setSwapping(true);
-    window.setTimeout(() => {
-      (async () => {
-        try {
-          const nextPlan = refreshExerciseAcrossPlan(plan, sessionId, exerciseId, buildFilterParams(), chosenCatalog);
-          if (!nextPlan || nextPlan === plan) {
-            alert("No hay un ejercicio alternativo compatible con tu material y este hueco. Prueba con otro ejercicio o elige uno del listado.");
-            return;
-          }
-          const stable = user?.id ? await persistStablePlayerPlan(user.id, nextPlan) : nextPlan;
-          setPlan(stable);
-          if (user?.id) recordSwap(user.id, stable);
-        } catch (err) {
-          console.error("[DEPRO] swap ejercicio", err);
-          alert("No se pudo cambiar el ejercicio. Inténtalo de nuevo.");
-        } finally {
-          setSwapping(false);
-        }
-      })();
-    }, 0);
-  };
-
-  const remainingSwaps = swapsRemaining(user, plan);
-
   const compatModalEl = (
     <PlanCompatibilityModal
       open={!!compatModal}
@@ -552,6 +512,21 @@ function PlayerWeeklyPlan({ accent }) {
       onContinue={runGenerate}
     />
   );
+
+  if (hydrating || generating) {
+    return (
+      <div className="dash-page">
+        {compatModalEl}
+        <h1 className="text-2xl md:text-3xl font-black text-depro-dark mb-1">{t("weekly_plan.title")}</h1>
+        <p className="text-depro-gray text-sm mb-8">{t("weekly_plan.subtitle")}</p>
+        <div className="bg-white border border-depro-border rounded-2xl p-8 text-center shadow-card">
+          <RefreshCw size={28} className="animate-spin text-depro-blue mx-auto mb-4" />
+          <p className="font-bold text-depro-dark">{t("weekly_plan.generating")}</p>
+          <p className="text-sm text-depro-gray mt-1">Preparando tu planificación automática…</p>
+        </div>
+      </div>
+    );
+  }
 
   // ── Sin plan generado ──────────────────────────────────────
   if (!plan) {
@@ -707,20 +682,6 @@ function PlayerWeeklyPlan({ accent }) {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-depro-dark mb-1">Plan de entrenamiento</h1>
           <p className="text-depro-gray text-sm">Objetivo: <strong>{user?.objetivo}</strong> · {user?.frecuencia} días/semana</p>
         </div>
-        <div className="flex-shrink-0 sm:text-right">
-          {remainingSwaps != null ? (
-            <p className="text-[11px] text-depro-gray">
-              Cambios restantes: <strong>{remainingSwaps}</strong>/{MAX_PLAN_SWAPS}
-            </p>
-          ) : (
-            <p className="text-[11px] text-depro-gray">Cambios ilimitados</p>
-          )}
-          {swapping && (
-            <p className="text-[11px] text-depro-blue font-semibold mt-1 inline-flex items-center gap-1">
-              <RefreshCw size={12} className="animate-spin" /> Cambiando ejercicio…
-            </p>
-          )}
-        </div>
       </div>
 
       {/* Toggle Microciclo / Mesociclo */}
@@ -874,12 +835,6 @@ function PlayerWeeklyPlan({ accent }) {
           if (!hasFeatureAccess(user, "pdf_export")) return;
           sessionPdf(activeSession);
         } : undefined}
-        onSwapExercise={(exerciseId) => handleExerciseSwap(activeSession.id, exerciseId)}
-        onPickExercise={(exerciseId, catalogEx) => handleExerciseSwap(activeSession.id, exerciseId, catalogEx)}
-        filterParams={buildFilterParams()}
-        canSwap={!swapping && canSwapExercise(user, plan)}
-        swapMessage={MAINTENANCE_MESSAGE}
-        swapTooltip={SWAP_TOOLTIP}
       />
       );
     })()}
@@ -1101,18 +1056,32 @@ function ClubSessionCard({
   session, accentColor, sessionNumber, readOnly = false, taskStorageKey,
   initialExpanded = false, initialTab = "resumen", cardRef,
   clubName = "", teamName = "", clubLogo = "", secondaryColor = "",
-  canDownloadPdf = false,
+  canDownloadPdf = false, clubId = null, teamId = null,
 }) {
   const { user } = useAuth();
   const safeInitialTab = CLUB_VISIBLE_TABS.includes(initialTab) ? initialTab : "resumen";
   const [expanded, setExpanded]       = useState(initialExpanded);
   const [activeBlock, setActiveBlock] = useState(safeInitialTab);
-  const [completion, setCompletion]   = useState(session.completion ?? 0);
+  const storedProgress = loadClubSessionProgress(clubId, teamId)?.[session.id];
+  const [completion, setCompletion]   = useState(
+    storedProgress?.completion ?? session.completion ?? 0,
+  );
 
   useEffect(() => {
     if (initialExpanded) setExpanded(true);
     if (initialTab) setActiveBlock(CLUB_VISIBLE_TABS.includes(initialTab) ? initialTab : "resumen");
   }, [initialExpanded, initialTab]);
+
+  const markComplete = () => {
+    setCompletion(100);
+    setClubSessionCompletion({
+      clubId,
+      teamId,
+      sessionId: session.id,
+      completed: true,
+      userId: user?.id,
+    });
+  };
 
   const sessionType = session.framework || getSessionType(session.intensity);
   const displayKey  = getSessionDisplayKey(session);
@@ -1241,7 +1210,7 @@ function ClubSessionCard({
                 {!readOnly && (
                   <CompletionButton
                     completion={completion}
-                    onComplete={() => setCompletion(100)}
+                    onComplete={markComplete}
                     accentColor={accentColor}
                   />
                 )}
@@ -1384,14 +1353,19 @@ function ClubMicrocycles({ accent }) {
       .catch(() => {});
   }, [user?.club?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Filtrar: coordinador ve todos; entrenador ve planes de su bloque de edad
-  // Sistema nuevo: filtra por ageBlock. Sistema antiguo (fallback): filtra por teamId.
-  const visiblePlans = isCoordinator
+  const filteredPlans = isCoordinator
     ? allPlans
     : filterPlansForTeam(allPlans, userTeamCategory);
+  const visiblePlans = pickActiveMesocycles(filteredPlans);
 
+  const currentId = pickCurrentMesocycle(visiblePlans)?.id;
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const micro = visiblePlans[selectedIdx] ?? visiblePlans[0];
+  useEffect(() => {
+    if (!visiblePlans.length) return;
+    const idx = visiblePlans.findIndex((p) => p.id === currentId);
+    setSelectedIdx(idx >= 0 ? idx : 0);
+  }, [currentId, visiblePlans.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const micro = visiblePlans[selectedIdx] ?? pickCurrentMesocycle(visiblePlans) ?? visiblePlans[0];
 
   const template = micro?.sessions || [];
   const totalCalendarWeeks = micro ? getMesocicloWeeks(micro.startDate, micro.endDate) : 1;
@@ -1631,6 +1605,8 @@ function ClubMicrocycles({ accent }) {
                 sessionNumber={idx + 1}
                 readOnly={isReadOnly}
                 taskStorageKey={taskKey}
+                clubId={clubId}
+                teamId={userTeamId}
                 clubName={user?.club?.name || ""}
                 teamName={activeTeam?.name || ""}
                 clubLogo={user?.club?.logo || ""}

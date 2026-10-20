@@ -13,6 +13,8 @@ import {
   PLAN_CYCLE_DAYS,
   isSuccessfulGeneratedPlan,
   hasUnlimitedSwaps,
+  currentCycleStartFromAlta,
+  resolvePlanAltaDate,
 } from "./planSwapLimits.js";
 import { refreshExerciseAcrossPlan } from "./playerPlanEngine.js";
 import { selectExerciseForSlot } from "./exerciseSelector.js";
@@ -40,6 +42,15 @@ describe("planSwapLimits — ciclo mensual", () => {
     assert.equal(cycleEndDate("2026-07-01"), "2026-08-01");
     assert.equal(cycleEndDate("2026-09-02"), "2026-10-02");
     assert.equal(PLAN_CYCLE_DAYS, 30);
+  });
+
+  it("renueva el mismo día del mes desde la fecha de alta", () => {
+    assert.equal(resolvePlanAltaDate({ createdAt: "2026-10-19T08:00:00.000Z" }, null), "2026-10-19");
+    assert.equal(currentCycleStartFromAlta("2026-10-19", new Date("2026-10-25T12:00:00")), "2026-10-19");
+    assert.equal(currentCycleStartFromAlta("2026-10-19", new Date("2026-11-19T12:00:00")), "2026-11-19");
+    const plan = { startDate: "2026-10-19", altaDate: "2026-10-19" };
+    assert.equal(needsMonthlyPlanRefresh(plan, new Date("2026-11-05T12:00:00")), false);
+    assert.equal(needsMonthlyPlanRefresh(plan, new Date("2026-11-19T12:00:00")), true);
   });
 
   it("no refresca planes admin", () => {

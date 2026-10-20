@@ -2,7 +2,7 @@
  * Asignación de planes desde admin (individuales + club auto).
  * Persistencia local alineada con playerPlanStorage / coachSessionsStorage.
  */
-import { savePlayerPlan, loadPlayerPlan, normalizePlayerPlan, persistPlayerPlanRemote } from "./playerPlanStorage.js";
+import { savePlayerPlan, loadPlayerPlan, normalizePlayerPlan, persistPlayerPlanRemote, clearPlayerPlan } from "./playerPlanStorage.js";
 import { buildFourWeekPlan, buildPlayerPlan } from "./playerPlanEngine.js";
 import { cycleEndDate } from "./planSwapLimits.js";
 import {
@@ -304,9 +304,14 @@ export async function assignPlanToPlayer({
     source: "admin_manual",
     premiumPending: false,
     planPendingManual: false,
-    lastEditedAt: assigned.lastEditedAt || new Date().toISOString(),
+    planRevision: Date.now(),
+    altaDate: meta.startDate,
+    lastEditedAt: new Date().toISOString(),
     ...(profileSnapshot ? { profileSnapshot } : {}),
   };
+
+  // Reasignar pisa siempre el plan anterior (Sub-16 → Sub-9, etc.)
+  clearPlayerPlan(userId);
 
   // Guardar forma canónica (weeks + días) en servidor; local = normalizado para UI admin
   const normalized = normalizePlayerPlan(payload);
@@ -365,6 +370,32 @@ export function resolveClubAutoAssignIds({ kind, clubId, teamId, targetId } = {}
     tid = club.teams[0].id || club.teams[0].name || null;
   }
   return { clubId: cid || null, teamId: tid || null, club };
+}
+
+/** Invalida el mesociclo cacheado para que la nueva asignación pise la anterior. */
+function clearLocalCoachPlanCache(clubId, teamId) {
+  if (!clubId) return;
+  try {
+    const keys = [];
+    if (typeof localStorage.length === "number" && typeof localStorage.key === "function") {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k) keys.push(k);
+      }
+    } else {
+      keys.push(...Object.keys(localStorage));
+    }
+    const prefixWeek = `depro_coach_week_${clubId}_`;
+    const prefixMeso = `depro_coach_meso_${clubId}_`;
+    for (const key of keys) {
+      if (!key.startsWith(prefixWeek) && !key.startsWith(prefixMeso) && key !== `depro_coach_meso_${clubId}_${teamId || ""}`) {
+        continue;
+      }
+      if (!teamId || key.includes(`_${teamId}_`) || key.endsWith(`_${teamId}`)) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch { /* ignore */ }
 }
 
 function persistAssignedWeeksToCoachPanel({
@@ -484,6 +515,10 @@ export function assignClubAutoPlan({
 
   const key = `depro_club_auto_plan_${targetId}`;
   safeSet(key, payload);
+
+  if (resolved.clubId) {
+    clearLocalCoachPlanCache(resolved.clubId, resolved.teamId || meta.teamId);
+  }
 
   persistAssignedWeeksToCoachPanel({
     clubId: meta.clubId,

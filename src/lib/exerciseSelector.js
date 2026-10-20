@@ -106,6 +106,31 @@ export function isBodyweightMaterial(exerciseMaterials = []) {
   return em.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno|campo/.test(m));
 }
 
+const HEAVY_LOAD_RE = /barra|maquina|máquina|prensa|gym_completo|mancuern/;
+const LIGHT_ONLY_RE = /gomas|banda|tubo|sin.?material|peso.?corporal|bodyweight|campo|ninguno/;
+
+export function isHeavyLoadMaterialTag(tag) {
+  return HEAVY_LOAD_RE.test(String(tag || "").toLowerCase());
+}
+
+/** Ejercicios de bandas / peso corporal (no válidos en fuerza máxima con gimnasio completo). */
+export function isLightAccessoryOnly(exerciseMaterials = []) {
+  const em = asArray(exerciseMaterials).map((x) => String(x).toLowerCase());
+  if (!em.length) return true;
+  if (em.some((m) => /mancuern/.test(m))) return false;
+  return em.every((m) => LIGHT_ONLY_RE.test(m));
+}
+
+export function playerUsesFullGym(material) {
+  const mats = normalizeMaterialList(material);
+  return mats.includes("gym_completo") || mats.some((m) => /gimnasio_completo|gymcompleto/.test(String(m)));
+}
+
+/** Carpeta de fuerza según material del jugador. */
+export function strengthMaterialFolder(playerMaterials) {
+  return playerUsesFullGym(playerMaterials) ? "gimnasio_completo" : "otros_materiales";
+}
+
 /**
  * ¿Puede usarse este ejercicio con el material del jugador?
  * Regla dura: solo material disponible del usuario O peso corporal.
@@ -383,23 +408,30 @@ export function preferResistanceBand(candidates, userProfile = {}, slot = {}) {
 }
 
 /** Prioriza material del perfil; fallback a peso corporal / sin material. */
-export function rankByMaterialPreference(candidates, userProfile = {}) {
+export function rankByMaterialPreference(candidates, userProfile = {}, slot = {}) {
   const mats = normalizeMaterialList(userProfile.material);
-  const fullGym = mats.includes("gym_completo") || mats.some((m) => /gimnasio|gym|completo/i.test(String(m)));
+  const fullGym = playerUsesFullGym(mats);
   const preferFree = fullGym || mats.some((m) => /barra|mancuern/i.test(String(m)));
+  const loadedSlot = isLoadedStrengthSlot(slot);
 
   const score = (ex) => {
     const et = tagsOf(ex);
     const em = asArray(et.material).map((x) => String(x).toLowerCase());
     const body = isBodyweightMaterial(et.material);
+    const lightOnly = isLightAccessoryOnly(et.material);
     // Solo puntuar candidatos ya permitidos
     if (!isExerciseAllowedForMaterials(et.material, mats)) return -1;
+    if (fullGym && loadedSlot && lightOnly) return -1;
     if (mats.length && materialMatches(et.material, mats)) {
-      if (preferFree && em.some((m) => /barra|mancuern/.test(m))) return 300;
+      if (fullGym && loadedSlot && em.some((m) => /barra/.test(m))) return 360;
+      if (fullGym && loadedSlot && em.some((m) => /maquina|máquina|prensa|polea/.test(m))) return 320;
+      if (preferFree && em.some((m) => /mancuern/.test(m))) return 300;
+      if (preferFree && em.some((m) => /barra/.test(m))) return 300;
       if (preferFree && em.some((m) => /maquina|máquina|polea/.test(m))) return 180;
       if (em.some((m) => mats.includes(m))) return 260;
       return 250;
     }
+    if (fullGym && loadedSlot) return 0;
     if (body) return 100;
     return 0;
   };
@@ -533,21 +565,26 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
   }
 
   if (!candidates.length) return null;
-  const ranked = rankByMaterialPreference(candidates, userProfile);
+  const ranked = rankByMaterialPreference(candidates, userProfile, slot);
   const mats = normalizeMaterialList(userProfile.material);
   const hasLoad = userHasLoadEquipment(userProfile.material);
   const wantsLoaded = hasLoad && isLoadedStrengthSlot(slot);
+  const fullGym = playerUsesFullGym(mats);
   const preferMatched = ranked.filter((ex) => materialMatches(tagsOf(ex).material, mats));
+  const heavyMatched = preferMatched.filter((ex) => !isLightAccessoryOnly(tagsOf(ex).material) && !isBodyweightMaterial(tagsOf(ex).material));
   const loadedMatched = preferMatched.filter((ex) => !isBodyweightMaterial(tagsOf(ex).material));
   const bodyFallback = ranked.filter((ex) => isBodyweightMaterial(tagsOf(ex).material));
   let rankedPool;
   if (wantsLoaded) {
-    rankedPool = loadedMatched.length ? loadedMatched : (preferMatched.length ? preferMatched.filter((ex) => !isBodyweightMaterial(tagsOf(ex).material)) : []);
-    if (!rankedPool.length) {
-      rankedPool = ranked.filter((ex) => !isBodyweightMaterial(tagsOf(ex).material));
+    if (fullGym && heavyMatched.length) {
+      rankedPool = heavyMatched;
+    } else {
+      rankedPool = loadedMatched.length ? loadedMatched : (preferMatched.length ? preferMatched.filter((ex) => !isBodyweightMaterial(tagsOf(ex).material)) : []);
     }
-    // Solo peso corporal si no hay ninguna variante con material
-    if (!rankedPool.length) rankedPool = bodyFallback;
+    if (!rankedPool.length) {
+      rankedPool = ranked.filter((ex) => !isLightAccessoryOnly(tagsOf(ex).material) && !isBodyweightMaterial(tagsOf(ex).material));
+    }
+    if (!rankedPool.length && !fullGym) rankedPool = bodyFallback;
   } else {
     rankedPool = preferMatched.length ? preferMatched : bodyFallback;
   }
@@ -557,7 +594,49 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
   return pickFrom(rankedPool, userProfile, slot, usedExerciseIds, seedExtra);
 }
 
-function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensity = null) {
+/** Series siempre con un número exacto (nunca 2-3 / 3-4). */
+export function exactSets(value, fallback = 3) {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(1, Math.round(value));
+  const s = String(value ?? "").trim();
+  const range = s.match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (range) return Math.max(1, Number(range[2]));
+  const n = parseInt(s, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+export function defaultVolumeForBlock(blockType, objective = "fuerza") {
+  if (blockType === "calentamiento" || blockType === "vuelta_calma") {
+    return { sets: 1, reps: "30–60\"", rest: "30\"", load: null };
+  }
+  if (blockType === "core") {
+    return { sets: 2, reps: "25–30\"", rest: "45 s", load: null };
+  }
+  if (objective === "hipertrofia") {
+    if (blockType === "principal") return { sets: 3, reps: "10", rest: "90 s", load: "65-75% RM" };
+    return { sets: 2, reps: "12", rest: "60 s", load: "65-75% RM" };
+  }
+  if (objective === "velocidad") {
+    return { sets: 3, reps: "5", rest: "3 min", load: "técnica" };
+  }
+  if (blockType === "principal") {
+    return { sets: 4, reps: "4-6", rest: "3 min", load: "80-90% RM" };
+  }
+  if (blockType === "complementario") {
+    return { sets: 2, reps: "8", rest: "90 s", load: "75-85% RM" };
+  }
+  return { sets: 3, reps: "8", rest: "90 s", load: null };
+}
+
+export function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensity = null, templateVolume = null) {
+  if (templateVolume && (templateVolume.sets != null || templateVolume.reps || templateVolume.rest)) {
+    const fallback = defaultVolumeForBlock(blockType, objective);
+    return {
+      sets: exactSets(templateVolume.sets, fallback.sets),
+      reps: templateVolume.reps || fallback.reps,
+      rest: templateVolume.rest || fallback.rest,
+      load: templateVolume.load ?? fallback.load,
+    };
+  }
   if (blockType === "calentamiento" || blockType === "vuelta_calma") {
     return { sets: 1, reps: "30–60\"", rest: "30\"", load: null };
   }
@@ -568,31 +647,41 @@ function getVolume(experiencia, blockType, objective = "fuerza", adaptedIntensit
     return { sets: 2, reps: "15", rest: "60\"", load: "peso corporal / gomas" };
   }
   if (adaptedIntensity === "media" && objective === "hipertrofia") {
-    return { sets: 3, reps: "15-20", rest: "60\"", load: "ligero" };
+    return { sets: 3, reps: "15", rest: "60\"", load: "ligero" };
   }
   if (adaptedIntensity === "baja" && (objective === "hipertrofia" || objective === "velocidad")) {
-    return { sets: 2, reps: "12-15", rest: "45\"", load: "técnica / movilidad" };
+    return { sets: 2, reps: "12", rest: "45\"", load: "técnica / movilidad" };
   }
 
   const tables = {
     fuerza: {
-      novato: { sets: "2-3", reps: "8-10", rest: "2-3 min", load: "80-90% RM" },
-      intermedio: { sets: 3, reps: "6-8", rest: "2-3 min", load: "80-90% RM" },
-      avanzado: { sets: "3-4", reps: "4-6", rest: "2-3 min", load: "80-90% RM" },
+      novato: { sets: 3, reps: "8-10", rest: "2 min", load: "80-90% RM" },
+      intermedio: { sets: 4, reps: "4-6", rest: "3 min", load: "80-90% RM" },
+      avanzado: { sets: 4, reps: "4-6", rest: "3 min", load: "80-90% RM" },
     },
     hipertrofia: {
-      novato: { sets: "2-3", reps: "10-12", rest: "60-90 s", load: "65-75% RM" },
-      intermedio: { sets: 3, reps: "10-12-10", rest: "60-90 s", load: "65-75% RM" },
-      avanzado: { sets: "3-4", reps: "10-12-10", rest: "60-90 s", load: "65-75% RM" },
+      novato: { sets: 3, reps: "10-12", rest: "90 s", load: "65-75% RM" },
+      intermedio: { sets: 3, reps: "10", rest: "90 s", load: "65-75% RM" },
+      avanzado: { sets: 3, reps: "10", rest: "90 s", load: "65-75% RM" },
     },
     velocidad: {
-      novato: { sets: 3, reps: "3-5", rest: "3-4 min", load: "técnica" },
-      intermedio: { sets: "3-4", reps: "3-5", rest: "3-4 min", load: "85-95% RM / máx" },
-      avanzado: { sets: "3-4", reps: "3-5", rest: "3-4 min", load: "85-95% RM / máx" },
+      novato: { sets: 3, reps: "5", rest: "3 min", load: "técnica" },
+      intermedio: { sets: 3, reps: "5", rest: "3 min", load: "85-95% RM / máx" },
+      avanzado: { sets: 3, reps: "5", rest: "3 min", load: "85-95% RM / máx" },
     },
   };
   const obj = tables[objective] || tables.fuerza;
-  return obj[experiencia] || obj.intermedio;
+  const picked = obj[experiencia] || obj.intermedio;
+  const byBlock = defaultVolumeForBlock(blockType, objective);
+  if (blockType === "principal" || blockType === "complementario") {
+    return {
+      sets: exactSets(byBlock.sets, picked.sets),
+      reps: byBlock.reps || picked.reps,
+      rest: byBlock.rest || picked.rest,
+      load: byBlock.load ?? picked.load,
+    };
+  }
+  return { ...picked, sets: exactSets(picked.sets) };
 }
 
 export function expectedSlotCount(block) {
@@ -623,7 +712,8 @@ export function fillBlockSlots(block, userProfile, sessionUsedIds = [], sessionU
       );
 
       if (exercise) {
-        const vol = slot.volume || getVolume(userProfile.experiencia, block.type, objective, adapted);
+        const templateVolume = slot.volume || block.volume || null;
+        const vol = getVolume(userProfile.experiencia, block.type, objective, adapted, templateVolume);
         exercises.push({
           ...exercise,
           slotDescription: slot.description,

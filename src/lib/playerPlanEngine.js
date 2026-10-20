@@ -13,7 +13,8 @@ import {
   normalizeMaterialList,
 } from "./exerciseSelector.js";
 import { normalizePlayerPlan, savePlayerPlan as savePlanLocal, persistPlayerPlanRemote } from "./playerPlanStorage.js";
-import { needsMonthlyPlanRefresh, resetCycleCounters, cycleEndDate, weekCountForCycle } from "./planSwapLimits.js";
+import { needsMonthlyPlanRefresh, resetCycleCounters, cycleEndDate, weekCountForCycle, resolvePlanAltaDate, currentCycleStartFromAlta } from "./planSwapLimits.js";
+import { applyProgressBlobToPlan, loadSessionProgressBlob } from "./sessionProgress.js";
 import {
   DAY_ORDER,
   DAY_SHORT,
@@ -846,7 +847,7 @@ function shouldAutoRegenerateMonthly(user, plan) {
   if (!user || !plan) return false;
   if (isPremiumManualUser(user) || user?.hasAssignedPlan) return false;
   if (isAdminAssignedPlan(plan)) return false;
-  return needsMonthlyPlanRefresh(plan);
+  return needsMonthlyPlanRefresh(plan, new Date(), user);
 }
 
 /**
@@ -1003,15 +1004,19 @@ function regenerateEssentialPlan(user) {
   const weeks = buildFourWeekPlan(user);
   const plan = weeks[0]?.days || buildPlayerPlan(user);
   if (!plan.planError) {
-    const start = weeks.startDate || plan.startDate || todayISO();
+    const alta = resolvePlanAltaDate(user, plan) || todayISO();
+    const start = currentCycleStartFromAlta(alta) || weeks.startDate || plan.startDate || todayISO();
     resetCycleCounters(user.id, start);
     plan.weeks = weeks;
     plan.startDate = start;
     plan.endDate = weeks.endDate || cycleEndDate(start);
+    plan.altaDate = alta;
     plan.refrescos_usados_mes = 0;
     plan.semana_actual = 1;
+    plan.source = plan.source || "engine";
     plan.monthlyRefreshAt = new Date().toISOString();
     savePlanLocal(user.id, plan);
+    persistPlayerPlanRemote(user.id, plan).catch(() => {});
   }
   return plan;
 }
@@ -1039,8 +1044,9 @@ export function ensurePlayerPlan(user) {
           localStorage.removeItem(planKey);
           return regenerateEssentialPlan(user);
         }
-        savePlanLocal(user.id, plan);
-        return plan;
+        const withProgress = applyProgressBlobToPlan(plan, loadSessionProgressBlob(user.id));
+        savePlanLocal(user.id, withProgress);
+        return withProgress;
       }
     }
   } catch { /* ignore */ }
@@ -1080,8 +1086,9 @@ export async function hydratePlayerPlan(user) {
       if (shouldAutoRegenerateMonthly(user, stable)) {
         return regenerateEssentialPlan(user);
       }
-      savePlanLocal(user.id, stable);
-      return stable;
+      const withProgress = applyProgressBlobToPlan(stable, loadSessionProgressBlob(user.id));
+      savePlanLocal(user.id, withProgress);
+      return withProgress;
     }
   } catch { /* ignore */ }
   return ensurePlayerPlan(user);

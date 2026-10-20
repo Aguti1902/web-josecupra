@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Save, Minus, Plus, Layers, ChevronDown, ChevronUp } from "lucide-react";
-import { getAllTemplates, updateTemplateBlockSlots, PLAYER_TEMPLATES, countBlockSlots, isV2Template } from "../../lib/planTemplates";
+import { getAllTemplates, updateTemplateBlockSlots, updateTemplateBlockVolume, PLAYER_TEMPLATES, countBlockSlots, isV2Template } from "../../lib/planTemplates";
 import { SESSION_INTENSITY } from "../../lib/planLoadRules";
 
 const INTENSITY_COLOR = {
@@ -51,6 +51,13 @@ function TemplateCard({ template, onUpdate }) {
   const [localSlots, setLocalSlots] = useState(() =>
     template.blocks.map((b) => (v2 ? countBlockSlots(b) : b.slots))
   );
+  const [localVolume, setLocalVolume] = useState(() =>
+    template.blocks.map((b) => ({
+      sets: b.volume?.sets ?? "",
+      reps: b.volume?.reps ?? "",
+      rest: b.volume?.rest ?? "",
+    }))
+  );
   const [saved, setSaved] = useState(false);
   const intensityKey = (
     SESSION_INTENSITY[template.id] || template.intensityLevel || template.intensity || "media"
@@ -65,8 +72,17 @@ function TemplateCard({ template, onUpdate }) {
     setSaved(false);
   };
 
+  const changeVolume = (idx, field, value) => {
+    setLocalVolume((prev) => {
+      const next = prev.map((row, i) => (i === idx ? { ...row, [field]: value } : row));
+      return next;
+    });
+    setSaved(false);
+  };
+
   const handleSave = () => {
     localSlots.forEach((slots, i) => updateTemplateBlockSlots(template.id, i, slots));
+    localVolume.forEach((vol, i) => updateTemplateBlockVolume(template.id, i, vol));
     onUpdate();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -110,21 +126,57 @@ function TemplateCard({ template, onUpdate }) {
             </div>
           )}
           {template.blocks.map((block, i) => (
-            <div key={`${block.label}-${i}`} className="flex items-start justify-between gap-4 py-2 border-b border-depro-border/50 last:border-0">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-depro-dark">{block.label}</p>
-                <p className="text-xs text-depro-gray whitespace-normal break-words">
-                  {block.duration} · {slotSummary(block)}
-                </p>
+            <div key={`${block.label}-${i}`} className="py-2 border-b border-depro-border/50 last:border-0 space-y-2">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-depro-dark">{block.label}</p>
+                  <p className="text-xs text-depro-gray whitespace-normal break-words">
+                    {block.duration} · {slotSummary(block)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button type="button" onClick={() => changeSlot(i, -1)} className="w-8 h-8 rounded-lg border border-depro-border flex items-center justify-center hover:bg-depro-gray-light">
+                    <Minus size={14} />
+                  </button>
+                  <span className="w-8 text-center font-bold text-depro-dark">{localSlots[i]}</span>
+                  <button type="button" onClick={() => changeSlot(i, 1)} className="w-8 h-8 rounded-lg border border-depro-border flex items-center justify-center hover:bg-depro-gray-light">
+                    <Plus size={14} />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button type="button" onClick={() => changeSlot(i, -1)} className="w-8 h-8 rounded-lg border border-depro-border flex items-center justify-center hover:bg-depro-gray-light">
-                  <Minus size={14} />
-                </button>
-                <span className="w-8 text-center font-bold text-depro-dark">{localSlots[i]}</span>
-                <button type="button" onClick={() => changeSlot(i, 1)} className="w-8 h-8 rounded-lg border border-depro-border flex items-center justify-center hover:bg-depro-gray-light">
-                  <Plus size={14} />
-                </button>
+              <div className="grid grid-cols-3 gap-2">
+                <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">
+                  Series
+                  <input
+                    type="number"
+                    min={1}
+                    max={12}
+                    className="admin-input w-full mt-1 text-xs py-1.5"
+                    value={localVolume[i]?.sets ?? ""}
+                    onChange={(e) => changeVolume(i, "sets", e.target.value)}
+                    placeholder="4"
+                  />
+                </label>
+                <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">
+                  Repeticiones
+                  <input
+                    type="text"
+                    className="admin-input w-full mt-1 text-xs py-1.5"
+                    value={localVolume[i]?.reps ?? ""}
+                    onChange={(e) => changeVolume(i, "reps", e.target.value)}
+                    placeholder="4-6"
+                  />
+                </label>
+                <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">
+                  Descanso
+                  <input
+                    type="text"
+                    className="admin-input w-full mt-1 text-xs py-1.5"
+                    value={localVolume[i]?.rest ?? ""}
+                    onChange={(e) => changeVolume(i, "rest", e.target.value)}
+                    placeholder="3 min"
+                  />
+                </label>
               </div>
             </div>
           ))}
@@ -137,7 +189,7 @@ function TemplateCard({ template, onUpdate }) {
             {saved ? "Guardado" : "Guardar cambios"}
           </button>
           <p className="text-xs text-depro-gray text-center pt-1">
-            Ajusta el nº de ejercicios por bloque. Los filtros AND del slot (rol / patrón / segmento) no se editan aquí.
+            Ajusta ejercicios, series (número exacto), repeticiones y descansos. El motor respeta estos valores al generar.
           </p>
         </div>
       )}

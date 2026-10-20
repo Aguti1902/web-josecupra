@@ -72,6 +72,7 @@ export default async function handler(req, res) {
       loadLogs: mergeField(current, body, "loadLogs") ?? current.loadLogs ?? [],
       wellness: mergeField(current, body, "wellness") ?? current.wellness ?? {},
       playerTests: mergeField(current, body, "playerTests") ?? current.playerTests ?? {},
+      sessionProgress: mergeField(current, body, "sessionProgress") ?? current.sessionProgress ?? {},
       updatedAt: new Date().toISOString(),
       updatedBy: caller.user.id,
     };

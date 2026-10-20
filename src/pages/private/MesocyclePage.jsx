@@ -18,7 +18,7 @@ import { getSessionDisplayKey } from "../../lib/mesocycleTemplates";
 import CoachPlanning from "../../components/private/CoachPlanning";
 import MesocycleCalendar from "../../components/private/MesocycleCalendar";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
-import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans, filterPlansForTeam } from "../../lib/clubManualPlans";
+import { pickPlansFromAdminClubsResponse, resolveClubPanelPlans, filterPlansForTeam, pickActiveMesocycles, pickCurrentMesocycle } from "../../lib/clubManualPlans";
 
 /* ── Contraste seguro ───────────────────────────────────── */
 function lum(hex) {
@@ -209,10 +209,16 @@ export default function MesocyclePage() {
   }, [user?.club?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isCoach = isProCoachUser(user);
-  const blockPlans = filterPlansForTeam(allPlans, teamCategory);
+  const blockPlans = pickActiveMesocycles(filterPlansForTeam(allPlans, teamCategory));
 
+  const currentId = pickCurrentMesocycle(blockPlans)?.id;
   const [selectedPlanIdx, setSelectedPlanIdx] = useState(0);
-  const activePlan = blockPlans[selectedPlanIdx] ?? blockPlans[0];
+  useEffect(() => {
+    if (!blockPlans.length) return;
+    const idx = Math.max(0, blockPlans.findIndex((p) => p.id === currentId));
+    setSelectedPlanIdx(idx < 0 ? 0 : idx);
+  }, [currentId, blockPlans.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const activePlan = blockPlans[selectedPlanIdx] ?? pickCurrentMesocycle(blockPlans) ?? blockPlans[0];
   const allSessions = activePlan?.sessions || [];
   const trainingDays = activeTeam?.trainingDays || [];
 

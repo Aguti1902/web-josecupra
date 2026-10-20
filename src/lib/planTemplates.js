@@ -84,15 +84,22 @@ export function getTemplate(sessionType) {
   if (isV2Template(base)) {
     if (!overrides?.v2Blocks) return base;
     const blocks = base.blocks.map((b, i) => {
-      const slotQtys = overrides.v2Blocks[i]?.slotQtys;
-      if (!slotQtys || !Array.isArray(b.slots)) return b;
-      return {
-        ...b,
-        slots: b.slots.map((s, si) => ({
-          ...s,
-          qty: Math.max(1, slotQtys[si] != null ? slotQtys[si] : (s.qty || 1)),
-        })),
-      };
+      const ov = overrides.v2Blocks[i] || {};
+      const slotQtys = ov.slotQtys;
+      let next = b;
+      if (slotQtys && Array.isArray(b.slots)) {
+        next = {
+          ...next,
+          slots: b.slots.map((s, si) => ({
+            ...s,
+            qty: Math.max(1, slotQtys[si] != null ? slotQtys[si] : (s.qty || 1)),
+          })),
+        };
+      }
+      if (ov.volume && typeof ov.volume === "object") {
+        next = { ...next, volume: { ...next.volume, ...ov.volume } };
+      }
+      return next;
     });
     return { ...base, blocks };
   }
@@ -110,6 +117,26 @@ export function getAllTemplates() {
     id: key,
     ...getTemplate(key),
   }));
+}
+
+export function updateTemplateBlockVolume(sessionType, blockIndex, volume) {
+  const overrides = loadOverrides();
+  if (!overrides[sessionType]) overrides[sessionType] = { blocks: [], v2Blocks: [] };
+  if (!overrides[sessionType].v2Blocks) overrides[sessionType].v2Blocks = [];
+  const prev = overrides[sessionType].v2Blocks[blockIndex] || {};
+  const sets = volume?.sets == null || volume.sets === ""
+    ? prev.volume?.sets
+    : Math.max(1, parseInt(volume.sets, 10) || 1);
+  overrides[sessionType].v2Blocks[blockIndex] = {
+    ...prev,
+    volume: {
+      ...(prev.volume || {}),
+      ...(sets != null ? { sets } : {}),
+      ...(volume?.reps != null ? { reps: String(volume.reps) } : {}),
+      ...(volume?.rest != null ? { rest: String(volume.rest) } : {}),
+    },
+  };
+  saveTemplateOverrides(overrides);
 }
 
 export function updateTemplateBlockSlots(sessionType, blockIndex, slots) {

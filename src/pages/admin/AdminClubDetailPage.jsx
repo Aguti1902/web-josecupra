@@ -48,7 +48,8 @@ import AdminClubPlantillasPage from "./AdminClubPlantillasPage";
 import AdminClubAutoMotorPage from "./AdminClubAutoMotorPage";
 import AdminClubExercisesPage from "./AdminClubExercisesPage";
 import AdminTestsPage from "./AdminTestsPage";
-import { loadClubs, saveClub, saveClubDetail, loadClubDetail, createClubUser, updateUserByEmail } from "../../lib/adminStorage";
+import { loadClubs, saveClub, saveClubDetail, loadClubDetail, createClubUser, updateUserByEmail, persistGlobalPlans } from "../../lib/adminStorage";
+import { normalizeAgeBlock, activateMesocycleInList } from "../../lib/clubManualPlans";
 import PlanSelectField, { SubscriptionStatusSelect, ManualPriceField } from "../../components/admin/PlanSelectField";
 import ClubEconomyFields from "../../components/admin/ClubEconomyFields";
 import AdminClubCommissionPanel from "../../components/admin/AdminClubCommissionPanel";
@@ -1044,16 +1045,16 @@ function NewMicrocycleModal({ teams, onClose, onCreate, initialAgeBlock = "" }) 
             <div className="grid grid-cols-3 gap-2">
               {AGE_BLOCKS.map((b, idx) => (
                 <button key={idx} type="button"
-                  onClick={() => setForm((f) => ({ ...f, ageBlock: b.label }))}
+                  onClick={() => setForm((f) => ({ ...f, ageBlock: b.id }))}
                   className={`p-2.5 rounded-xl border text-xs font-bold transition-colors text-left ${
-                    form.ageBlock === b.label
+                    normalizeAgeBlock(form.ageBlock) === b.id
                       ? "border-depro-blue bg-depro-blue text-white"
                       : "border-depro-border text-depro-dark hover:border-depro-blue/40"
                   }`}>
                   <div className="font-black text-[10px] uppercase tracking-wide mb-0.5">
                     Bloque {idx + 1}
                   </div>
-                  <div className={form.ageBlock === b.label ? "text-white/80" : "text-depro-gray"} style={{ fontSize: "9px" }}>
+                  <div className={normalizeAgeBlock(form.ageBlock) === b.id ? "text-white/80" : "text-depro-gray"} style={{ fontSize: "9px" }}>
                     {b.ages.join(" · ")}
                   </div>
                 </button>
@@ -1120,7 +1121,12 @@ function NewMicrocycleModal({ teams, onClose, onCreate, initialAgeBlock = "" }) 
           <button
             onClick={() => {
               if (!form.microcycle || !form.label) return;
-              onCreate({ ...form, id: `cp${Date.now()}`, sessions: [] });
+              onCreate({
+                ...form,
+                id: `cp${Date.now()}`,
+                sessions: [],
+                ageBlock: normalizeAgeBlock(form.ageBlock) || form.ageBlock,
+              });
               onClose();
             }}
             disabled={!form.microcycle || !form.label}
@@ -1447,7 +1453,7 @@ function PlanificacionSection({ plans, teams, onAddSession, onDeleteSession, onD
       {/* Grid de 3 bloques */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {AGE_BLOCKS.map((bloque) => {
-          const blockPlans = plans.filter((p) => p.ageBlock === bloque.id);
+          const blockPlans = plans.filter((p) => normalizeAgeBlock(p.ageBlock) === bloque.id);
           const blockTeams = (teams || []).filter((t) => getAgeBlock(t.category) === bloque.id);
           const isExpanded = expandedBloque === bloque.id;
 
@@ -2086,10 +2092,31 @@ export default function AdminClubDetailPage() {
   }, [id]);
 
   // Persistir cambios del club cuando cambia — devuelve promesa con { ok, error }
-  const persistClub = useCallback((updatedClub) => {
-    const { plans: _plans, plansSource: _src, ...rest } = updatedClub || {};
+  const persistClub = useCallback((updatedClub, nextPlans) => {
+    const { plansSource: _src, ...rest } = updatedClub || {};
+    if (Array.isArray(nextPlans)) {
+      rest.plans = nextPlans.map((p) => ({
+        ...p,
+        ageBlock: normalizeAgeBlock(p.ageBlock) || p.ageBlock,
+      }));
+    } else {
+      delete rest.plans;
+    }
     return saveClubDetail(id, rest);
   }, [id]);
+
+  const syncPlansToGlobal = (clubPlans) => {
+    try {
+      const global = JSON.parse(localStorage.getItem("depro_global_plans") || "[]");
+      const byId = new Map((Array.isArray(global) ? global : []).map((p) => [p.id, p]));
+      for (const p of clubPlans || []) {
+        byId.set(p.id, { ...p, ageBlock: normalizeAgeBlock(p.ageBlock) || p.ageBlock });
+      }
+      const merged = [...byId.values()];
+      localStorage.setItem("depro_global_plans", JSON.stringify(merged));
+      persistGlobalPlans(merged).catch(() => {});
+    } catch { /* ignore */ }
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><div className="spinner border-depro-blue/20 border-t-depro-blue" /></div>;
@@ -2229,13 +2256,21 @@ export default function AdminClubDetailPage() {
 
   const updatePlans = (updater) => {
     setPlans((prev) => {
-      const updated = typeof updater === "function" ? updater(prev) : updater;
+      let updated = typeof updater === "function" ? updater(prev) : updater;
+      updated = (updated || []).map((p) => ({
+        ...p,
+        ageBlock: normalizeAgeBlock(p.ageBlock) || p.ageBlock,
+      }));
       persistClub(club, updated);
+      syncPlansToGlobal(updated);
       return updated;
     });
   };
 
-  const addMicrocycle = (mc) => updatePlans((prev) => [...prev, mc]);
+  const addMicrocycle = (mc) => updatePlans((prev) => {
+    const next = [...prev, mc];
+    return mc?.status === "activo" ? activateMesocycleInList(next, mc.id) : next;
+  });
   const deleteMicrocycle = (mcId) => updatePlans((prev) => prev.filter((m) => m.id !== mcId));
   const addSession = (mcId, session) =>
     updatePlans((prev) =>

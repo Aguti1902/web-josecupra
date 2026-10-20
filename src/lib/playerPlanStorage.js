@@ -167,6 +167,8 @@ export function toPersistablePlan(plan) {
       userId: plan.userId || null,
       monthlyRefreshAt: plan.monthlyRefreshAt || null,
       hasAssignedPlan: !!plan.hasAssignedPlan,
+      altaDate: plan.altaDate || plan.assignment?.startDate || null,
+      planRevision: plan.planRevision || plan.assignment?.assignedAt || null,
     };
   }
   if (Array.isArray(plan)) {

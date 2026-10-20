@@ -197,6 +197,8 @@ function buildUser(authUser, profile) {
     return {
       ...profile,
       email,
+      createdAt: authUser.created_at || profile.createdAt || meta.createdAt || null,
+      created_at: authUser.created_at || null,
       role: resolvedRole,
       club,
       team,
@@ -262,6 +264,8 @@ function buildUser(authUser, profile) {
   return {
     id: authUser.id,
     email,
+    createdAt: authUser.created_at || meta.createdAt || null,
+    created_at: authUser.created_at || null,
     name:      meta.name      ?? email.split("@")[0],
     avatar:    (meta.name ?? email)[0]?.toUpperCase() ?? "U",
     role:      detectedRole,
@@ -334,6 +338,8 @@ function minimalUserFromAuth(authUser) {
   return {
     id: authUser?.id,
     email,
+    createdAt: authUser?.created_at || meta.createdAt || null,
+    created_at: authUser?.created_at || null,
     name: meta.name || email.split("@")[0] || "Usuario",
     avatar: (meta.name || email || "U")[0]?.toUpperCase() || "U",
     role: email === "jose@depro.es" ? "admin" : (meta.role || "player"),

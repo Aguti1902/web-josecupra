@@ -24,6 +24,7 @@ import ClubPlayersMonitor from "../../components/private/ClubPlayersMonitor";
 import { canSeeClubEconomy } from "../../lib/clubRoles";
 import { isProCoachUser } from "../../lib/clubAuto/clubAutoCoachBridge";
 import { applyPurgedPlayersToStorage, filterPurgedFromList } from "../../lib/clubPlayerPurge";
+import { filterPlansForTeam, pickCurrentMesocycle, pickActiveMesocycles } from "../../lib/clubManualPlans";
 
 const DAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -41,19 +42,6 @@ function getSessionTypeLetter(intensity) {
   if (low.includes("max") || low.includes("alta") || low === "alta") return "C";
   if (low.includes("media-alta") || low.includes("media alta")) return "B";
   return "A";
-}
-
-/* ── Helper: bloque de edad por categoría ─────────────────── */
-function getAgeBlock(category) {
-  const map = {
-    "Bloque 1": ["Sub-9","Sub-10","Sub-11","Sub-12"],
-    "Bloque 2": ["Sub-13","Sub-14","Sub-15"],
-    "Bloque 3": ["Sub-16","Juvenil"],
-  };
-  for (const [id, ages] of Object.entries(map)) {
-    if (ages.includes(category)) return id;
-  }
-  return null;
 }
 
 /* ── Carga planes globales desde localStorage + API ─────── */
@@ -632,17 +620,11 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
 
   // Determinar la próxima sesión: buscar en planes globales por bloque de edad
   const teamCategory = team?.category ?? null;
-  const ageBlock = getAgeBlock(teamCategory);
   const trainingDays = team?.trainingDays || [];
 
-  // Filtrar planes por bloque del equipo
-  const blockPlans = globalPlans.filter((p) => {
-    if (p.ageBlock && ageBlock) return p.ageBlock === ageBlock;
-    return true;
-  });
-
-  // Encontrar el mesociclo activo
-  const activePlan = blockPlans.find((p) => isMesocicloActive(p.startDate, p.endDate))
+  const blockPlans = pickActiveMesocycles(filterPlansForTeam(globalPlans, teamCategory));
+  const activePlan = pickCurrentMesocycle(blockPlans)
+    || blockPlans.find((p) => isMesocicloActive(p.startDate, p.endDate))
     || blockPlans[0];
 
   // Obtener sesiones de la semana actual

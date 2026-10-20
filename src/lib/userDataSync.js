@@ -5,6 +5,13 @@
 
 import { getLoadLogs, writeLoadLogs } from "./loadLogs.js";
 import { getWellnessMap, writeWellnessMap } from "./wellnessLogs.js";
+import {
+  loadSessionProgressBlob,
+  saveSessionProgressBlob,
+  mergeSessionProgressBlobs,
+  applyProgressBlobToPlan,
+} from "./sessionProgress.js";
+import { loadPlayerPlan, savePlayerPlan } from "./playerPlanStorage.js";
 
 const TEST_IDS = ["resistencia", "sprint", "cod", "cmj"];
 
@@ -73,6 +80,8 @@ export function mergeWellnessMaps(local = {}, remote = {}) {
   }
   return out;
 }
+
+export { mergeSessionProgressBlobs };
 
 export function mergePlayerTestsMaps(local = {}, remote = {}) {
   const keys = new Set([
@@ -153,17 +162,28 @@ export async function hydrateUserPersonalData(userId) {
   const loadLogs = mergeLoadLogLists(localLogs, remote?.loadLogs);
   const wellness = mergeWellnessMaps(localWellness, remote?.wellness);
   const playerTests = mergePlayerTestsMaps(localTests, remote?.playerTests);
+  const sessionProgress = mergeSessionProgressBlobs(
+    loadSessionProgressBlob(userId),
+    remote?.sessionProgress,
+  );
 
   writeLoadLogs(userId, loadLogs);
   writeWellnessMap(userId, wellness);
   writePlayerTests(userId, playerTests);
+  saveSessionProgressBlob(userId, sessionProgress);
+  const existingPlan = loadPlayerPlan(userId);
+  if (existingPlan) {
+    savePlayerPlan(userId, applyProgressBlobToPlan(existingPlan, sessionProgress));
+  }
 
   const hasLocal = localLogs.length || Object.keys(localWellness).length
-    || Object.values(localTests).some((a) => a?.length);
+    || Object.values(localTests).some((a) => a?.length)
+    || Object.keys(sessionProgress.sessions || {}).length;
   const hasRemote = remote && (remote.loadLogs?.length || Object.keys(remote.wellness || {}).length
-    || Object.values(remote.playerTests || {}).some((a) => a?.length));
+    || Object.values(remote.playerTests || {}).some((a) => a?.length)
+    || Object.keys(remote.sessionProgress?.sessions || {}).length);
   if (hasLocal || hasRemote) {
-    await persistUserData(userId, { loadLogs, wellness, playerTests });
+    await persistUserData(userId, { loadLogs, wellness, playerTests, sessionProgress });
   }
-  return { loadLogs, wellness, playerTests };
+  return { loadLogs, wellness, playerTests, sessionProgress };
 }
