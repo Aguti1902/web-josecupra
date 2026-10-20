@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { reclaimLocalStorage, safeSetItem } from "./storageQuota";
+import { reclaimLocalStorage, safeSetItem } from "./storageQuota.js";
 
 const env = (typeof import.meta !== "undefined" && import.meta.env) || {};
 const supabaseUrl =

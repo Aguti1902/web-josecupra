@@ -56,6 +56,16 @@ export function exerciseKey(log) {
   return `n:${String(log?.exerciseName || log?.nombre || "ejercicio").trim().toLowerCase()}`;
 }
 
+export function sessionIndexFromLog(log) {
+  if (log?.sessionNumber != null && Number(log.sessionNumber) >= 1) {
+    return Math.min(8, Math.max(1, Number(log.sessionNumber)));
+  }
+  const title = String(log?.sessionTitle || log?.title || "");
+  const labeled = title.match(/(?:sesi[oó]n|session)\s*(\d+)/i) || title.match(/^s(\d+)$/i);
+  if (labeled) return Math.min(8, Math.max(1, Number(labeled[1])));
+  return 1;
+}
+
 function seriesFromLog(log) {
   if (Array.isArray(log.series) && log.series.length) {
     return log.series.map((s) => ({
@@ -112,65 +122,38 @@ function pctFrom(current, baseline, { invert = false } = {}) {
   return Math.round(signed * 10) / 10;
 }
 
-/**
- * @returns {{ weeks: number[], rows: object[], sessionTotals: object[], charts: object }}
- */
-export function buildLoadGrid(userId, domain, { startDate = null, weekFilter = "all" } = {}) {
-  const buckets = getLogsByDomain(userId);
-  const logs = (buckets[domain] || []).slice().sort(
-    (a, b) => String(a.recordedAt || "").localeCompare(String(b.recordedAt || "")),
-  );
-  const weekSet = new Set();
-  const byEx = new Map();
-
-  for (const log of logs) {
-    const w = mesoWeekIndex(log.recordedAt, startDate || log.planStartDate, log.weekLabel, log.weekNumber);
-    weekSet.add(w);
-    const key = exerciseKey(log);
-    if (!byEx.has(key)) {
-      byEx.set(key, {
-        key,
-        name: log.exerciseName || log.nombre || "Ejercicio",
-        catalogId: log.catalogId || null,
-        weeks: {},
-      });
-    }
-    const row = byEx.get(key);
-    const prev = row.weeks[w];
-    const newer = !prev || String(log.recordedAt || "") >= String(prev.recordedAt || "");
-    if (!newer) continue;
-
-    if (domain === "fuerza") {
-      const series = seriesFromLog(log);
-      row.weeks[w] = {
-        recordedAt: log.recordedAt,
-        series,
-        maxWeight: maxWeightOfSeries(series),
-        volume: volumeOfSeries(series),
-        meanWeight: meanOf(series.map((s) => s.weightNum)),
-      };
-    } else if (domain === "resistencia") {
-      row.weeks[w] = {
-        recordedAt: log.recordedAt,
-        heartRate: parseNum(log.heartRate),
-        rpe: parseNum(log.rpe || log.intensity),
-        distance: parseNum(log.distance),
-        time: log.time || "",
-        timeSec: parseTimeToSeconds(log.time),
-      };
-    } else {
-      row.weeks[w] = {
-        recordedAt: log.recordedAt,
-        time: log.time || "",
-        timeSec: parseTimeToSeconds(log.time),
-        heartRate: parseNum(log.heartRate),
-        rpe: parseNum(log.rpe),
-      };
-    }
+function cellFromLog(domain, log) {
+  if (domain === "fuerza") {
+    const series = seriesFromLog(log);
+    return {
+      recordedAt: log.recordedAt,
+      series,
+      maxWeight: maxWeightOfSeries(series),
+      volume: volumeOfSeries(series),
+      meanWeight: meanOf(series.map((s) => s.weightNum)),
+    };
   }
+  if (domain === "resistencia") {
+    return {
+      recordedAt: log.recordedAt,
+      heartRate: parseNum(log.heartRate),
+      rpe: parseNum(log.rpe || log.intensity),
+      distance: parseNum(log.distance),
+      time: log.time || "",
+      timeSec: parseTimeToSeconds(log.time),
+    };
+  }
+  return {
+    recordedAt: log.recordedAt,
+    time: log.time || "",
+    timeSec: parseTimeToSeconds(log.time),
+    heartRate: parseNum(log.heartRate),
+    rpe: parseNum(log.rpe),
+  };
+}
 
-  const weeks = [1, 2, 3, 4].filter((w) => weekFilter === "all" || Number(weekFilter) === w);
-  const rows = [...byEx.values()].map((row) => {
+function decorateRows(byEx, domain) {
+  return [...byEx.values()].map((row) => {
     const w1 = row.weeks[1];
     const cells = {};
     for (const w of [1, 2, 3, 4]) {
@@ -214,6 +197,83 @@ export function buildLoadGrid(userId, domain, { startDate = null, weekFilter = "
       meanWeight: meanOf(means),
     };
   }).sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+function chartsFromRows(rows, domain, sessionTotals) {
+  return {
+    exerciseEvolution: rows.slice(0, 8).map((row) => ({
+      name: row.name,
+      points: [1, 2, 3, 4].map((w) => {
+        const c = row.cells[w];
+        if (!c) return { week: w, value: null };
+        if (domain === "fuerza") return { week: w, value: c.maxWeight };
+        if (domain === "resistencia") return { week: w, value: c.distance ?? c.heartRate };
+        return { week: w, value: c.timeSec };
+      }),
+    })),
+    improvement: rows
+      .filter((r) => r.pctFromS1 != null)
+      .sort((a, b) => (b.pctFromS1 || 0) - (a.pctFromS1 || 0))
+      .slice(0, 8)
+      .map((r) => ({ name: r.name, pct: r.pctFromS1, tone: r.tone })),
+    sessionVolume: sessionTotals.map((s) => ({
+      label: `S${s.week}`,
+      value: Math.round(s.volume),
+      title: s.title,
+    })),
+  };
+}
+
+/**
+ * @returns {{ weeks: number[], rows: object[], sessions: object[], sessionTotals: object[], charts: object }}
+ */
+export function buildLoadGrid(userId, domain, { startDate = null, weekFilter = "all" } = {}) {
+  const buckets = getLogsByDomain(userId);
+  const logs = (buckets[domain] || []).slice().sort(
+    (a, b) => String(a.recordedAt || "").localeCompare(String(b.recordedAt || "")),
+  );
+  const weekSet = new Set();
+  const byEx = new Map();
+  const bySession = new Map();
+
+  for (const log of logs) {
+    const w = mesoWeekIndex(log.recordedAt, startDate || log.planStartDate, log.weekLabel, log.weekNumber);
+    weekSet.add(w);
+    const sessN = sessionIndexFromLog(log);
+    const key = exerciseKey(log);
+    const cell = cellFromLog(domain, log);
+
+    const put = (map, extra = {}) => {
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          name: log.exerciseName || log.nombre || "Ejercicio",
+          catalogId: log.catalogId || null,
+          weeks: {},
+          ...extra,
+        });
+      }
+      const row = map.get(key);
+      const prev = row.weeks[w];
+      const newer = !prev || String(log.recordedAt || "") >= String(prev.recordedAt || "");
+      if (newer) row.weeks[w] = cell;
+    };
+
+    put(byEx);
+    if (!bySession.has(sessN)) {
+      bySession.set(sessN, {
+        sessionNumber: sessN,
+        title: log.sessionTitle || `Sesión ${sessN}`,
+        byEx: new Map(),
+      });
+    }
+    const sess = bySession.get(sessN);
+    if (log.sessionTitle) sess.title = log.sessionTitle;
+    put(sess.byEx);
+  }
+
+  const weeks = [1, 2, 3, 4].filter((w) => weekFilter === "all" || Number(weekFilter) === w);
+  const rows = decorateRows(byEx, domain);
 
   const sessionMap = new Map();
   for (const log of logs) {
@@ -236,31 +296,25 @@ export function buildLoadGrid(userId, domain, { startDate = null, weekFilter = "
   }
   const sessionTotals = [...sessionMap.values()].sort((a, b) => a.week - b.week || String(a.date).localeCompare(b.date));
 
-  const charts = {
-    exerciseEvolution: rows.slice(0, 8).map((row) => ({
-      name: row.name,
-      points: [1, 2, 3, 4].map((w) => {
-        const c = row.cells[w];
-        if (!c) return { week: w, value: null };
-        if (domain === "fuerza") return { week: w, value: c.maxWeight };
-        if (domain === "resistencia") return { week: w, value: c.distance ?? c.heartRate };
-        return { week: w, value: c.timeSec };
-      }),
-    })),
-    improvement: rows
-      .filter((r) => r.pctFromS1 != null)
-      .sort((a, b) => (b.pctFromS1 || 0) - (a.pctFromS1 || 0))
-      .slice(0, 8)
-      .map((r) => ({ name: r.name, pct: r.pctFromS1, tone: r.tone })),
-    sessionVolume: sessionTotals.map((s) => ({
-      label: `S${s.week}`,
-      value: Math.round(s.volume),
-      title: s.title,
-    })),
-  };
+  const sessions = [...bySession.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([n, sess]) => {
+      const sessRows = decorateRows(sess.byEx, domain);
+      return {
+        sessionNumber: n,
+        title: sess.title || `Sesión ${n}`,
+        rows: sessRows,
+        charts: chartsFromRows(sessRows, domain, sessionTotals.filter((s) => {
+          const idx = sessionIndexFromLog({ sessionTitle: s.title, sessionNumber: n });
+          return idx === n || s.title === sess.title;
+        })),
+      };
+    });
+
+  const charts = chartsFromRows(rows, domain, sessionTotals);
 
   void weekSet;
-  return { weeks, rows, sessionTotals, charts, domain };
+  return { weeks, rows, sessions, sessionTotals, charts, domain };
 }
 
 export function loadGridToCsv(grid, domain) {

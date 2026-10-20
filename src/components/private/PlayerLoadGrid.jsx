@@ -129,123 +129,147 @@ function VelocidadCell({ cell }) {
   );
 }
 
+function SessionGrid({ rows, domain, weekFilter, Cell }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm min-w-[720px]">
+        <thead className="bg-depro-gray-light">
+          <tr>
+            <th className="text-left px-3 py-2 text-[11px] font-bold uppercase text-depro-gray">Ejercicio</th>
+            {["Sem 1", "Sem 2", "Sem 3", "Sem 4"].map((label, i) => (
+              (weekFilter === "all" || Number(weekFilter) === i + 1) && (
+                <th key={label} className="text-left px-3 py-2 text-[11px] font-bold uppercase text-depro-gray">{label}</th>
+              )
+            ))}
+            {domain === "fuerza" && (
+              <>
+                <th className="text-left px-3 py-2 text-[11px] font-bold uppercase text-depro-gray">Máx</th>
+                <th className="text-left px-3 py-2 text-[11px] font-bold uppercase text-depro-gray">Media</th>
+              </>
+            )}
+            <th className="text-left px-3 py-2 text-[11px] font-bold uppercase text-depro-gray">% S1</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-depro-border">
+          {(rows || []).length === 0 ? (
+            <tr>
+              <td colSpan={8} className="px-3 py-8 text-center text-sm text-depro-gray">
+                Aún no hay registros de este tipo. Guárdalos en la sesión de la rutina.
+              </td>
+            </tr>
+          ) : rows.map((row) => (
+            <tr key={row.key}>
+              <td className="px-3 py-2 font-bold text-depro-dark">{row.name}</td>
+              {[1, 2, 3, 4].map((w) => (
+                (weekFilter === "all" || Number(weekFilter) === w) && (
+                  <td key={w} className="px-3 py-2 align-top">
+                    <Cell cell={row.cells[w]} />
+                  </td>
+                )
+              ))}
+              {domain === "fuerza" && (
+                <>
+                  <td className="px-3 py-2 tabular-nums font-black">{row.maxWeight ?? "—"}</td>
+                  <td className="px-3 py-2 tabular-nums">{row.meanWeight != null ? row.meanWeight.toFixed(1) : "—"}</td>
+                </>
+              )}
+              <td className="px-3 py-2">
+                {row.pctFromS1 == null ? "—" : (
+                  <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-black ${toneClass(row.tone)}`}>
+                    {row.pctFromS1 > 0 ? "+" : ""}{row.pctFromS1}%
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function PlayerLoadGrid({ grid, domain, weekFilter, onWeekFilter, playerFilter, onPlayerFilter, players = [] }) {
   const Cell = domain === "fuerza" ? FuerzaCell : domain === "resistencia" ? ResistenciaCell : VelocidadCell;
+  const sessions = (grid.sessions || []).length
+    ? grid.sessions
+    : [{ sessionNumber: 1, title: "Sesión 1", rows: grid.rows || [], charts: grid.charts }];
 
   return (
-    <div className="grid xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.9fr)] gap-4">
-      <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-depro-border flex flex-wrap items-center gap-2 justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold text-depro-gray">
-            <Filter size={13} />
+    <div className="space-y-5">
+      <div className="bg-white border border-depro-border rounded-2xl px-4 py-3 flex flex-wrap items-center gap-2 justify-between">
+        <div className="flex items-center gap-2 text-xs font-bold text-depro-gray">
+          <Filter size={13} />
+          <select
+            className="admin-input text-xs py-1.5"
+            value={weekFilter}
+            onChange={(e) => onWeekFilter(e.target.value)}
+          >
+            <option value="all">Semanas 1–4</option>
+            <option value="1">Sem 1</option>
+            <option value="2">Sem 2</option>
+            <option value="3">Sem 3</option>
+            <option value="4">Sem 4</option>
+          </select>
+          {players.length > 0 && (
             <select
               className="admin-input text-xs py-1.5"
-              value={weekFilter}
-              onChange={(e) => onWeekFilter(e.target.value)}
+              value={playerFilter || "all"}
+              onChange={(e) => onPlayerFilter?.(e.target.value)}
             >
-              <option value="all">Semanas 1–4</option>
-              <option value="1">S1</option>
-              <option value="2">S2</option>
-              <option value="3">S3</option>
-              <option value="4">S4</option>
+              <option value="all">Todos los jugadores</option>
+              {players.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
             </select>
-            {players.length > 0 && (
-              <select
-                className="admin-input text-xs py-1.5"
-                value={playerFilter || "all"}
-                onChange={(e) => onPlayerFilter?.(e.target.value)}
-              >
-                <option value="all">Todos los jugadores</option>
-                {players.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => downloadLoadGridCsv(grid, domain)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-depro-border text-xs font-bold text-depro-dark hover:border-depro-blue hover:text-depro-blue"
+        >
+          <Download size={13} /> Exportar Excel
+        </button>
+      </div>
+
+      {sessions.map((sess) => (
+        <section key={sess.sessionNumber} className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-black text-depro-dark">
+              Sesión {sess.sessionNumber}
+            </span>
+            {sess.title && sess.title !== `Sesión ${sess.sessionNumber}` && (
+              <span className="text-xs text-depro-gray">· {sess.title}</span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => downloadLoadGridCsv(grid, domain)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-depro-border text-xs font-bold text-depro-dark hover:border-depro-blue hover:text-depro-blue"
-          >
-            <Download size={13} /> Exportar Excel
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[720px]">
-            <thead className="bg-depro-gray-light">
-              <tr>
-                <th className="text-left px-3 py-2 text-[11px] font-bold uppercase text-depro-gray">Ejercicio</th>
-                {["S1", "S2", "S3", "S4"].map((label, i) => (
-                  (weekFilter === "all" || Number(weekFilter) === i + 1) && (
-                    <th key={label} className="text-left px-3 py-2 text-[11px] font-bold uppercase text-depro-gray">{label}</th>
-                  )
-                ))}
-                {domain === "fuerza" && (
-                  <>
-                    <th className="text-left px-3 py-2 text-[11px] font-bold uppercase text-depro-gray">Máx</th>
-                    <th className="text-left px-3 py-2 text-[11px] font-bold uppercase text-depro-gray">Media</th>
-                  </>
-                )}
-                <th className="text-left px-3 py-2 text-[11px] font-bold uppercase text-depro-gray">% S1</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-depro-border">
-              {(grid.rows || []).length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-sm text-depro-gray">
-                    Aún no hay registros de este tipo. Guárdalos en la sesión de la rutina.
-                  </td>
-                </tr>
-              ) : grid.rows.map((row) => (
-                <tr key={row.key}>
-                  <td className="px-3 py-2 font-bold text-depro-dark">{row.name}</td>
-                  {[1, 2, 3, 4].map((w) => (
-                    (weekFilter === "all" || Number(weekFilter) === w) && (
-                      <td key={w} className="px-3 py-2 align-top">
-                        <Cell cell={row.cells[w]} />
-                      </td>
-                    )
-                  ))}
-                  {domain === "fuerza" && (
-                    <>
-                      <td className="px-3 py-2 tabular-nums font-black">{row.maxWeight ?? "—"}</td>
-                      <td className="px-3 py-2 tabular-nums">{row.meanWeight != null ? row.meanWeight.toFixed(1) : "—"}</td>
-                    </>
-                  )}
-                  <td className="px-3 py-2">
-                    {row.pctFromS1 == null ? "—" : (
-                      <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-black ${toneClass(row.tone)}`}>
-                        {row.pctFromS1 > 0 ? "+" : ""}{row.pctFromS1}%
-                      </span>
-                    )}
-                  </td>
-                </tr>
+          <div className="grid xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.9fr)] gap-4">
+            <div className="bg-white border border-depro-border rounded-2xl overflow-hidden">
+              <SessionGrid rows={sess.rows} domain={domain} weekFilter={weekFilter} Cell={Cell} />
+            </div>
+            <div className="space-y-4">
+              {(sess.rows || []).map((row) => (
+                <LineChart
+                  key={`${sess.sessionNumber}-${row.key}`}
+                  title={`${row.name} · evolución semanal`}
+                  series={[{
+                    name: row.name,
+                    points: [1, 2, 3, 4].map((w) => {
+                      const c = row.cells?.[w];
+                      if (!c) return { week: w, value: null };
+                      if (domain === "fuerza") return { week: w, value: c.maxWeight };
+                      if (domain === "resistencia") return { week: w, value: c.distance ?? c.heartRate };
+                      return { week: w, value: c.timeSec };
+                    }),
+                  }]}
+                />
               ))}
-            </tbody>
-          </table>
-        </div>
-        {domain === "fuerza" && (grid.sessionTotals || []).length > 0 && (
-          <div className="px-4 py-3 border-t border-depro-border text-xs text-depro-gray">
-            Peso total por sesión (volumen kg×reps):{" "}
-            {grid.sessionTotals.map((s) => (
-              <span key={s.sessionId} className="inline-block mr-3 font-semibold text-depro-dark">
-                S{s.week} {s.title}: {Math.round(s.volume)}
-              </span>
-            ))}
+              {!sess.rows?.length && (
+                <LineChart title="Evolución por ejercicio" series={sess.charts?.exerciseEvolution} />
+              )}
+            </div>
           </div>
-        )}
-      </div>
-      <div className="space-y-4">
-        <LineChart title="Evolución por ejercicio" series={grid.charts?.exerciseEvolution} />
-        <MiniBars
-          title="Mejora vs semana 1 (%)"
-          items={(grid.charts?.improvement || []).map((r) => ({ label: r.name, value: r.pct }))}
-          unit="%"
-        />
-        {domain === "fuerza" && (
-          <MiniBars title="Peso total por sesión" items={grid.charts?.sessionVolume} />
-        )}
-      </div>
+        </section>
+      ))}
     </div>
   );
 }

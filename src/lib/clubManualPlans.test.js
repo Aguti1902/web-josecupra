@@ -7,6 +7,9 @@ import {
   filterPlansForTeam,
   resolveClubPanelPlans,
   pickPlansFromAdminClubsResponse,
+  activateMesocycleInList,
+  pickActiveMesocycles,
+  pickCurrentMesocycle,
   GLOBAL_PLANS_CLUB_ID,
 } from "./clubManualPlans.js";
 
@@ -27,9 +30,23 @@ describe("clubManualPlans — una fuente global", () => {
       { id: "old", ageBlock: null },
     ];
     const sub11 = filterPlansForTeam(plans, "Sub-11").map((p) => p.id);
-    assert.deepEqual(sub11, ["b1", "b1b", "old"]);
+    assert.deepEqual(sub11, ["b1", "b1b"]);
     const juv = filterPlansForTeam(plans, "Juvenil").map((p) => p.id);
-    assert.deepEqual(juv, ["b3", "old"]);
+    assert.deepEqual(juv, ["b3"]);
+  });
+
+  it("activar un mesociclo completa los del mismo bloque y el panel solo ve activos", () => {
+    const plans = [
+      { id: "old", ageBlock: "Bloque 1", status: "activo", startDate: "2026-08-01", endDate: "2026-08-31" },
+      { id: "new", ageBlock: "Bloque 1", status: "borrador", startDate: "2026-10-01", endDate: "2026-10-31" },
+      { id: "other", ageBlock: "Bloque 3", status: "activo" },
+    ];
+    const next = activateMesocycleInList(plans, "new");
+    assert.equal(next.find((p) => p.id === "new").status, "activo");
+    assert.equal(next.find((p) => p.id === "old").status, "completado");
+    assert.equal(next.find((p) => p.id === "other").status, "activo");
+    assert.deepEqual(pickActiveMesocycles(next).map((p) => p.id).sort(), ["new", "other"]);
+    assert.equal(pickCurrentMesocycle(next.filter((p) => p.ageBlock === "Bloque 1")).id, "new");
   });
 
   it("el panel ignora club.plans y usa GLOBAL_PLANS", () => {

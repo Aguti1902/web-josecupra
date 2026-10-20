@@ -12,6 +12,9 @@ import {
   userHasLoadEquipment,
   isRunningEnduranceExercise,
   isBodyweightMaterial,
+  isLightAccessoryOnly,
+  exactSets,
+  getVolume,
 } from "./exerciseSelector.js";
 import { EXERCISES } from "./exerciseCatalog.js";
 import { SESSION_TEMPLATES } from "./sessionTemplatesV2.js";
@@ -102,6 +105,37 @@ describe("material en básicos / fuerza máxima", () => {
     );
     assert.ok(ex);
     assert.equal(isBodyweightMaterial(ex.etiquetas?.material), false, `${ex.nombre} no debe ser peso corporal`);
+  });
+
+  it("con gimnasio completo el básico no es gomas / bandas", () => {
+    const picked = [];
+    for (let i = 0; i < 6; i++) {
+      const ex = selectExerciseForSlot(
+        {
+          rol: "basico",
+          objetivo: "fuerza",
+          segmento: "tren_inferior",
+          patron: "cadena_anterior",
+          nature: "multiarticular",
+          slotId: `gym-heavy-${i}`,
+        },
+        gymProfile({ userId: `u-heavy-${i}` }),
+      );
+      if (ex) picked.push(ex);
+    }
+    assert.ok(picked.length > 0);
+    for (const ex of picked) {
+      assert.equal(isLightAccessoryOnly(ex.etiquetas?.material), false, `${ex.nombre} no debe ser gomas/PC`);
+    }
+  });
+
+  it("las series del volumen son un número exacto", () => {
+    assert.equal(exactSets("2-3"), 3);
+    assert.equal(exactSets("3-4"), 4);
+    assert.equal(exactSets(4), 4);
+    const vol = getVolume("avanzado", "principal", "fuerza");
+    assert.equal(typeof vol.sets, "number");
+    assert.equal(String(vol.sets).includes("-"), false);
   });
 });
 

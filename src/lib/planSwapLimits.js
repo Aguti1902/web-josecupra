@@ -61,13 +61,52 @@ export function cycleEndDate(startDateISO) {
   return addCalendarMonthISO(startDateISO);
 }
 
+/** Fecha de alta (suscripción / asignación) para renovar el mes el mismo día. */
+export function resolvePlanAltaDate(user = null, plan = null) {
+  const candidates = [
+    plan?.altaDate,
+    plan?.assignment?.startDate,
+    user?.assignedPlanAt,
+    user?.createdAt,
+    user?.created_at,
+    user?.trialStartedAt,
+    user?.user_metadata?.createdAt,
+    plan?.startDate,
+  ];
+  for (const raw of candidates) {
+    const iso = String(raw || "").slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  }
+  return null;
+}
+
+/** Inicio del ciclo mensual vigente desde la fecha de alta (19 oct → 19 nov). */
+export function currentCycleStartFromAlta(altaISO, now = new Date()) {
+  if (!altaISO) return mondayOfDateLocal(now);
+  const today = new Date(now);
+  today.setHours(12, 0, 0, 0);
+  let start = String(altaISO).slice(0, 10);
+  let guard = 0;
+  while (guard < 36) {
+    const end = cycleEndDate(start);
+    const endDate = new Date(`${end}T12:00:00`);
+    if (today < endDate) return start;
+    start = end;
+    guard += 1;
+  }
+  return start;
+}
+
 /** True si el mesociclo (startDate + 1 mes) ya venció. */
-export function needsMonthlyPlanRefresh(plan, now = new Date()) {
+export function needsMonthlyPlanRefresh(plan, now = new Date(), user = null) {
   if (!plan || plan.premiumPending || plan.planPendingManual || plan.planError) return false;
   if (plan.source === "admin_manual" || plan.assignment) return false;
-  const start = resolveStart(plan);
+  const alta = resolvePlanAltaDate(user, plan);
+  const start = alta ? currentCycleStartFromAlta(alta, now) : resolveStart(plan);
   if (!start) return false;
-  const end = cycleEndDate(start);
+  const cycleStart = resolveStart(plan) || start;
+  if (alta && cycleStart < start) return true;
+  const end = cycleEndDate(cycleStart);
   const today = new Date(now);
   today.setHours(12, 0, 0, 0);
   const endDate = new Date(`${end}T12:00:00`);

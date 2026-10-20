@@ -21,6 +21,11 @@ import {
 } from "../../lib/mesocycleTemplates";
 import { persistGlobalPlans } from "../../lib/adminStorage";
 import { describeCloudSaveError } from "../../lib/adminGlobalBlobs";
+import {
+  activateMesocycleInList,
+  normalizeAgeBlock,
+  withNormalizedAgeBlocks,
+} from "../../lib/clubManualPlans";
 
 /* ── Constantes globales ─────────────────────────────────── */
 const AGE_BLOCKS = [
@@ -688,13 +693,30 @@ export default function AdminPlanificacionPage() {
   }, []);
 
   const persist = (newPlans) => {
-    setPlans(newPlans);
-    saveGlobalPlans(newPlans);
+    const normalized = withNormalizedAgeBlocks(newPlans);
+    setPlans(normalized);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); } catch { /* cuota */ }
+    saveGlobalPlans(normalized);
   };
 
-  const addMicrocycle = (mc) => persist([...plans, normalizeMesocycle({ ...mc, sessions: mc.sessions || [] })]);
+  const addMicrocycle = (mc) => {
+    const created = normalizeMesocycle({
+      ...mc,
+      ageBlock: normalizeAgeBlock(mc.ageBlock) || mc.ageBlock,
+      sessions: mc.sessions || [],
+    });
+    const next = [...plans, created];
+    persist(created.status === "activo" ? activateMesocycleInList(next, created.id) : next);
+  };
   const deleteMicrocycle = (id) => persist(plans.filter((p) => p.id !== id));
-  const updateMicrocycle = (updated) => persist(plans.map((p) => p.id === updated.id ? normalizeMesocycle({ ...p, ...updated }) : p));
+  const updateMicrocycle = (updated) => {
+    const patched = {
+      ...updated,
+      ageBlock: normalizeAgeBlock(updated.ageBlock) || updated.ageBlock,
+    };
+    const mapped = plans.map((p) => p.id === patched.id ? normalizeMesocycle({ ...p, ...patched }) : p);
+    persist(patched.status === "activo" ? activateMesocycleInList(mapped, patched.id) : mapped);
+  };
   const addSession = (mcId, session) =>
     persist(plans.map((p) => {
       if (p.id !== mcId) return p;
@@ -788,7 +810,7 @@ export default function AdminPlanificacionPage() {
       {/* Grid de 3 bloques */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {AGE_BLOCKS.map((bloque) => {
-          const blockPlans = plans.filter((p) => p.ageBlock === bloque.id);
+          const blockPlans = plans.filter((p) => normalizeAgeBlock(p.ageBlock) === bloque.id);
 
           return (
             <div key={bloque.id} className="rounded-2xl border flex flex-col overflow-hidden"

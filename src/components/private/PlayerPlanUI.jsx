@@ -136,6 +136,7 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
       exerciseName: exercise.name || exercise.nombre,
       sessionId: sessionMeta?.sessionId,
       sessionTitle: sessionMeta?.sessionTitle,
+      sessionNumber: sessionMeta?.sessionNumber ?? null,
       weekLabel: sessionMeta?.weekLabel || new Date().toISOString().slice(0, 10),
       weekNumber: sessionMeta?.weekNumber || null,
       planStartDate: sessionMeta?.planStartDate || null,
@@ -620,6 +621,7 @@ export function PlayerSessionFullscreen({
       exerciseName: "RPE sesión",
       sessionId: session.id,
       sessionTitle: session.title,
+      sessionNumber: sessionNumber ?? session.sessionNumber ?? null,
       weekLabel: dayLabel || new Date().toISOString().slice(0, 10),
       objective: objective || session.type,
       tipoRegistro: "session_rpe",
@@ -778,6 +780,7 @@ export function PlayerSessionFullscreen({
           sessionMeta={{
             sessionId: session.id,
             sessionTitle: session.title,
+            sessionNumber: sessionNumber ?? session.sessionNumber ?? null,
             weekLabel: dayLabel,
             weekNumber: session.weekNumber || session.week || null,
             planStartDate: session.planStartDate || null,

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mesoWeekIndex, exerciseKey, buildLoadGrid, loadGridToCsv } from "./loadGrid.js";
+import { mesoWeekIndex, exerciseKey, buildLoadGrid, loadGridToCsv, sessionIndexFromLog } from "./loadGrid.js";
 
 describe("loadGrid", () => {
   it("calcula S1–S4 desde la fecha de inicio del mesociclo", () => {
@@ -57,6 +57,64 @@ describe("loadGrid", () => {
     const csv = loadGridToCsv(grid, "fuerza");
     assert.match(csv, /Extensión/);
     assert.match(csv, /45/);
+    globalThis.localStorage = orig;
+  });
+
+  it("agrupa gráficos por sesión y compara semanas", () => {
+    assert.equal(sessionIndexFromLog({ sessionNumber: 2 }), 2);
+    assert.equal(sessionIndexFromLog({ sessionTitle: "Sesión 3 · Fuerza" }), 3);
+    const orig = globalThis.localStorage;
+    const store = {};
+    globalThis.localStorage = {
+      getItem: (k) => store[k] ?? null,
+      setItem: (k, v) => { store[k] = String(v); },
+      removeItem: (k) => { delete store[k]; },
+    };
+    store.depro_load_logs_u2 = JSON.stringify([
+      {
+        id: "s1w1",
+        exerciseName: "Sentadilla",
+        catalogId: 1,
+        tipoRegistro: "fuerza",
+        weekNumber: 1,
+        sessionNumber: 1,
+        sessionTitle: "Sesión 1",
+        series: [{ weight: "80", reps: "5" }],
+        recordedAt: "2026-10-01T10:00:00.000Z",
+      },
+      {
+        id: "s1w2",
+        exerciseName: "Sentadilla",
+        catalogId: 1,
+        tipoRegistro: "fuerza",
+        weekNumber: 2,
+        sessionNumber: 1,
+        sessionTitle: "Sesión 1",
+        series: [{ weight: "85", reps: "5" }],
+        recordedAt: "2026-10-08T10:00:00.000Z",
+      },
+      {
+        id: "s2w1",
+        exerciseName: "Press banca",
+        catalogId: 2,
+        tipoRegistro: "fuerza",
+        weekNumber: 1,
+        sessionNumber: 2,
+        sessionTitle: "Sesión 2",
+        series: [{ weight: "60", reps: "5" }],
+        recordedAt: "2026-10-02T10:00:00.000Z",
+      },
+    ]);
+    const grid = buildLoadGrid("u2", "fuerza", { startDate: "2026-10-01" });
+    assert.ok(grid.sessions.length >= 2);
+    const s1 = grid.sessions.find((s) => s.sessionNumber === 1);
+    assert.ok(s1);
+    assert.equal(s1.rows.length, 1);
+    assert.equal(s1.rows[0].cells[1].maxWeight, 80);
+    assert.equal(s1.rows[0].cells[2].maxWeight, 85);
+    const s2 = grid.sessions.find((s) => s.sessionNumber === 2);
+    assert.ok(s2);
+    assert.equal(s2.rows[0].name, "Press banca");
     globalThis.localStorage = orig;
   });
 });
