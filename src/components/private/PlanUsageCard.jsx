@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowUpCircle, CreditCard, Shield, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { resolveCurrentPlan, getPlanLimits, getNextPlan } from "../../lib/subscription";
+import { resolveCurrentPlan, getEffectivePlanLimits, getNextPlan, hasUnlimitedClubAccess } from "../../lib/subscription";
 import { formatPrice } from "../../lib/checkoutPlans";
 import { canSeeClubPricing } from "../../lib/clubRoles";
 import ChangePlanModal from "./ChangePlanModal";
@@ -49,8 +49,8 @@ export default function PlanUsageCard({ club, user, audience = "club", highlight
   const canSeePricing = canSeeClubPricing(user);
 
   const plan = useMemo(() => resolveCurrentPlan(user, club), [user, club]);
-  const purchased = user?.purchasedAddons || [];
-  const limits = plan ? getPlanLimits(plan.id, { purchasedAddons: purchased }) : { maxTeams: null, maxPlayers: null };
+  const limits = useMemo(() => getEffectivePlanLimits(user, club), [user, club]);
+  const unlimitedClub = hasUnlimitedClubAccess(user, club);
   const nextPlan = plan ? getNextPlan(plan.id) : null;
 
   const teamsUsed = (club?.teams || []).length;
@@ -77,13 +77,15 @@ export default function PlanUsageCard({ club, user, audience = "club", highlight
               <p className="text-xs text-depro-gray mt-0.5">{formatPrice(plan.price)}{plan.period}</p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-depro-blue border border-depro-blue/30 bg-depro-blue-light px-3 py-2 rounded-lg hover:bg-depro-blue/10 transition-colors flex-shrink-0"
-          >
-            <ArrowUpCircle size={13} /> {t("billing.change_plan")}
-          </button>
+          {!unlimitedClub && (
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-1.5 text-xs font-bold text-depro-blue border border-depro-blue/30 bg-depro-blue-light px-3 py-2 rounded-lg hover:bg-depro-blue/10 transition-colors flex-shrink-0"
+            >
+              <ArrowUpCircle size={13} /> {t("billing.change_plan")}
+            </button>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -116,7 +118,7 @@ export default function PlanUsageCard({ club, user, audience = "club", highlight
       </div>
 
       <ChangePlanModal
-        open={showModal}
+        open={showModal && !unlimitedClub}
         onClose={() => setShowModal(false)}
         audience={audience}
         currentPlanId={plan?.id}

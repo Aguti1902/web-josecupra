@@ -5,6 +5,9 @@ import { isClubAdmin } from "./clubRoles";
 import { evaluateFeatureAccess } from "./featureAccess";
 import { isProCoachUser } from "./clubAuto/clubAutoCoachBridge";
 import { shouldCancelSubscriptionImmediately } from "./subscriptionCancel.js";
+import { hasUnlimitedClubAccess, getEffectivePlanLimits } from "./clubUnlimitedAccess.js";
+
+export { hasUnlimitedClubAccess, getEffectivePlanLimits };
 
 const STORAGE_PREFIX = "depro_subscription_";
 export const TRIAL_PERIOD_DAYS = 7;
@@ -212,7 +215,10 @@ export function hasFeatureAccess(user, featureId) {
   const sub = getSubscriptionFromUser(user);
   const planId = sub?.plan || user.plan || null;
   const purchased = user.purchasedAddons || sub?.purchasedAddons || [];
-  const billingSource = sub?.billingSource || user.billingSource || null;
+  let billingSource = sub?.billingSource || user.billingSource || null;
+  if (hasUnlimitedClubAccess(user) && billingSource !== "stripe") {
+    billingSource = "manual";
+  }
 
   return evaluateFeatureAccess({
     audience,

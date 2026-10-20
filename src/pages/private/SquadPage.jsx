@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
 import { getEvalValues, getRatingForEval } from "../../lib/teamTestRatings";
-import { resolveCurrentPlan, getPlanLimits } from "../../lib/subscription";
+import { resolveCurrentPlan, getEffectivePlanLimits, hasUnlimitedClubAccess } from "../../lib/subscription";
 import { canSeeClubPricing, canEditSquadRoster, isWideClubRole, resolveClubTeamRole } from "../../lib/clubRoles";
 import PlanUsageCard from "../../components/private/PlanUsageCard";
 import ChangePlanModal from "../../components/private/ChangePlanModal";
@@ -778,7 +778,8 @@ export default function SquadPage() {
 
   // ── Límite de jugadores según plan ────────────────────────
   const plan = useMemo(() => resolveCurrentPlan(user, club), [user, club]);
-  const limits = plan ? getPlanLimits(plan.id, { purchasedAddons: user?.purchasedAddons || [] }) : { maxTeams: null, maxPlayers: null };
+  const limits = useMemo(() => getEffectivePlanLimits(user, club), [user, club]);
+  const unlimitedClub = hasUnlimitedClubAccess(user, club);
   // Total de jugadores en TODO el club (mi equipo cargado + resto de equipos ya sincronizados)
   const clubTotalPlayers = useMemo(() => {
     if (isCoord) return stats.total;
@@ -851,7 +852,10 @@ export default function SquadPage() {
             onClick={() => {
               const tid = viewingTeam?.id || myTeam?.id || (teamFilter !== "todos" ? teamFilter : allTeams[0]?.id);
               if (!tid && !allTeams.length) { setTeamError(true); return; }
-              if (atPlayerLimit) { setShowUpgradeModal(true); return; }
+              if (atPlayerLimit && !unlimitedClub) {
+                setShowUpgradeModal(true);
+                return;
+              }
               setTeamError(false);
               setEditPlayer({ ...EMPTY_PLAYER, _teamId: tid || "" });
               setShowModal(true);
@@ -870,7 +874,7 @@ export default function SquadPage() {
       )}
 
       <ChangePlanModal
-        open={showUpgradeModal}
+        open={showUpgradeModal && !unlimitedClub}
         onClose={() => setShowUpgradeModal(false)}
         audience="club"
         currentPlanId={plan?.id}
