@@ -13,6 +13,7 @@ const WEBHOOK_EVENTS = [
   "customer.subscription.deleted",
   "invoice.payment_failed",
   "invoice.paid",
+  "invoice.upcoming",
 ];
 
 export default async function handler(req, res) {

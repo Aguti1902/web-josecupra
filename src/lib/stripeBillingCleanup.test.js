@@ -2,9 +2,14 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   isCancelableSubscription,
+  willStripeChargeAgain,
   isRefundableInvoice,
   refundableAmountCents,
   summarizeBillingCleanup,
+  shouldBlockUserDelete,
+  shouldCancelOrphanInvoice,
+  isTooNewToTreatAsOrphan,
+  isStripeMissingError,
 } from "./stripeBillingCleanup.js";
 
 describe("stripeBillingCleanup", () => {
@@ -13,6 +18,13 @@ describe("stripeBillingCleanup", () => {
     assert.equal(isCancelableSubscription({ status: "active" }), true);
     assert.equal(isCancelableSubscription({ status: "past_due" }), true);
     assert.equal(isCancelableSubscription({ status: "canceled" }), false);
+  });
+
+  it("cancel_at_period_end no genera cobro futuro pero sí se puede anular al borrar", () => {
+    const sub = { status: "active", cancel_at_period_end: true };
+    assert.equal(isCancelableSubscription(sub), true);
+    assert.equal(willStripeChargeAgain(sub), false);
+    assert.equal(willStripeChargeAgain({ status: "trialing" }), true);
   });
 
   it("reembolsa una factura pagada de los últimos 14 días", () => {
@@ -55,5 +67,48 @@ describe("stripeBillingCleanup", () => {
     assert.equal(s.canceledCount, 2);
     assert.equal(s.refundedCents, 2000);
     assert.equal(s.refundedEuros, "20,00");
+  });
+
+  it("bloquea el borrado si Stripe sigue activo o no se ha podido comprobar", () => {
+    assert.equal(shouldBlockUserDelete({ stillActive: true }).block, true);
+    assert.equal(shouldBlockUserDelete({
+      stillActive: false,
+      stripeErrors: ["customers: timeout"],
+      canceledCount: 0,
+      customerIds: [],
+    }).block, true);
+    assert.equal(shouldBlockUserDelete({ stillActive: false, canceledCount: 2, customerIds: ["cus_1"] }).block, false);
+    assert.equal(shouldBlockUserDelete({
+      stillActive: false,
+      stripeErrors: ["retrieve: No such subscription: sub_x"],
+      canceledCount: 0,
+      customerIds: [],
+    }).block, false);
+  });
+
+  it("cancela la factura huérfana al terminar el trial, no el alta reciente", () => {
+    const now = Date.parse("2026-09-09T12:00:00.000Z");
+    const oldSub = { created: Math.floor(Date.parse("2026-08-20T00:00:00.000Z") / 1000) };
+    const newSub = { created: Math.floor(now / 1000) - 60 };
+    assert.equal(shouldCancelOrphanInvoice({ amount_paid: 0 }, false, oldSub, now), false);
+    assert.equal(shouldCancelOrphanInvoice({
+      amount_paid: 2000,
+      billing_reason: "subscription_create",
+    }, false, newSub, now), false);
+    assert.equal(shouldCancelOrphanInvoice({
+      amount_paid: 2000,
+      billing_reason: "subscription_cycle",
+    }, false, oldSub, now), true);
+    assert.equal(shouldCancelOrphanInvoice({
+      amount_paid: 2000,
+      billing_reason: "subscription_cycle",
+    }, true, oldSub, now), false);
+    assert.equal(isTooNewToTreatAsOrphan(newSub, now), true);
+    assert.equal(isTooNewToTreatAsOrphan(oldSub, now), false);
+  });
+
+  it("detecta errores de recurso inexistente en Stripe", () => {
+    assert.equal(isStripeMissingError("No such customer: cus_x"), true);
+    assert.equal(isStripeMissingError("timeout contacting Stripe"), false);
   });
 });
