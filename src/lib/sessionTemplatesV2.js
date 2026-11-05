@@ -58,13 +58,26 @@ const CORE = block("core", "Core", "6 min", [
     description: "Core / control",
     slotId: "core",
   }),
-]);
+], {
+  patternCycle: [
+    { patronOr: ["anti_extension", "isometrico"], description: "Anti-extensión" },
+    { patron: "anti_rotacion", description: "Anti-rotación" },
+    { patron: "anti_flexion", description: "Anti-flexión" },
+    { patron: "isometrico", description: "Isometría de tronco" },
+  ],
+});
 
 /** Bloque isométrico corto delante de pliometría. */
 const ISOMETRICOS_PRE = block("complementario", "Isométricos", "8 min", [
   slot({ rol: "complementario", patron: "isometrico", description: "Iso 1", slotId: "iso_pre_1" }),
   slot({ rol: "complementario", patron: "isometrico", description: "Iso 2", slotId: "iso_pre_2" }),
-]);
+], {
+  patternCycle: [
+    { patron: "isometrico", grupo_muscular: "cuadriceps", description: "Iso rodilla" },
+    { patron: "isometrico", grupo_muscular: "isquios", description: "Iso cadera/isquios" },
+    { patron: "isometrico", grupo_muscular: "gemelos", description: "Iso tobillo" },
+  ],
+});
 
 export const SESSION_TEMPLATES = {
   "Fuerza Inferior": {
@@ -79,11 +92,44 @@ export const SESSION_TEMPLATES = {
       block("principal", "Básicos", "25 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Básico cadena anterior", slotId: "fi_b1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Básico cadena posterior", slotId: "fi_b2" }),
-      ], VOL_FUERZA_PRINCIPAL),
+      ], {
+        ...VOL_FUERZA_PRINCIPAL,
+        patternCycle: [
+          { patron: "cadena_anterior", description: "Dominante rodilla" },
+          { patron: "cadena_posterior", description: "Dominante cadera" },
+        ],
+      }),
       block("complementario", "Complementarios", "15 min", [
-        slot({ rol: "complementario", objetivo: "fuerza", patron: "pliometria", description: "Pliometría 1", slotId: "fi_c1" }),
-        slot({ rol: "complementario", objetivo: ["fuerza", "pliometria"], patron: "pliometria", description: "Pliometría 2", slotId: "fi_c2" }),
-      ], VOL_FUERZA_COMP),
+        slot({
+          rol: "complementario",
+          objetivo: ["fuerza", "hipertrofia"],
+          segmento: "tren_inferior",
+          patron: "analitico",
+          grupo_muscular: "cuadriceps",
+          excludePatrons: ["pliometria"],
+          forbidCompounds: true,
+          description: "Analítico cuádriceps",
+          slotId: "fi_c1",
+        }),
+        slot({
+          rol: "complementario",
+          objetivo: ["fuerza", "hipertrofia"],
+          segmento: "tren_inferior",
+          patron: "analitico",
+          grupo_muscular: "isquios",
+          excludePatrons: ["pliometria"],
+          forbidCompounds: true,
+          description: "Analítico isquios",
+          slotId: "fi_c2",
+        }),
+      ], {
+        ...VOL_FUERZA_COMP,
+        patternCycle: [
+          { grupo_muscular: "cuadriceps", description: "Analítico cuádriceps" },
+          { grupo_muscular: "isquios", description: "Analítico isquios" },
+          { grupo_muscular: "gemelos", description: "Analítico gemelos" },
+        ],
+      }),
       CORE,
     ],
   },
@@ -100,11 +146,23 @@ export const SESSION_TEMPLATES = {
       block("principal", "Básicos", "25 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "empuje", description: "Básico empuje", slotId: "fs_b1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion", description: "Básico tracción", slotId: "fs_b2" }),
-      ], VOL_FUERZA_PRINCIPAL),
+      ], {
+        ...VOL_FUERZA_PRINCIPAL,
+        patternCycle: [
+          { patron: "empuje", description: "Empuje" },
+          { patron: "traccion", description: "Tracción" },
+        ],
+      }),
       block("complementario", "Complementarios", "12 min", [
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "biceps", description: "Bíceps", slotId: "fs_c1" }),
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "triceps", description: "Tríceps", slotId: "fs_c2" }),
-      ], VOL_FUERZA_COMP),
+      ], {
+        ...VOL_FUERZA_COMP,
+        patternCycle: [
+          { grupo_muscular: "biceps", description: "Bíceps" },
+          { grupo_muscular: "triceps", description: "Tríceps" },
+        ],
+      }),
       CORE,
     ],
   },
@@ -123,11 +181,25 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion", description: "Tracción", slotId: "ff_b2" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Cadena anterior", slotId: "ff_b3" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Cadena posterior", slotId: "ff_b4" }),
-      ], VOL_FUERZA_PRINCIPAL),
+      ], {
+        ...VOL_FUERZA_PRINCIPAL,
+        patternCycle: [
+          { segmento: "tren_superior", patron: "empuje", description: "Empuje" },
+          { segmento: "tren_superior", patron: "traccion", description: "Tracción" },
+          { segmento: "tren_inferior", patron: "cadena_anterior", description: "Rodilla" },
+          { segmento: "tren_inferior", patron: "cadena_posterior", description: "Cadera" },
+        ],
+      }),
       block("complementario", "Complementarios", "12 min", [
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "biceps", description: "Bíceps", slotId: "ff_c1" }),
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "triceps", description: "Tríceps", slotId: "ff_c2" }),
-      ], VOL_FUERZA_COMP),
+      ], {
+        ...VOL_FUERZA_COMP,
+        patternCycle: [
+          { grupo_muscular: "biceps", description: "Bíceps" },
+          { grupo_muscular: "triceps", description: "Tríceps" },
+        ],
+      }),
       CORE,
     ],
   },
@@ -144,17 +216,35 @@ export const SESSION_TEMPLATES = {
       block("principal", "Fuerza máxima", "12 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Fuerza máx. anterior", slotId: "vel_fm1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Fuerza máx. posterior", slotId: "vel_fm2" }),
-      ], VOL_FUERZA_PRINCIPAL),
+      ], {
+        ...VOL_FUERZA_PRINCIPAL,
+        patternCycle: [
+          { patron: "cadena_anterior", description: "Rodilla" },
+          { patron: "cadena_posterior", description: "Cadera" },
+        ],
+      }),
       ISOMETRICOS_PRE,
       block("complementario", "Pliometría", "10 min", [
         slot({ rol: "complementario", patron: "pliometria", segmento: "tren_inferior", carpeta: "pliometria", description: "Pliometría 1", slotId: "vel_p1" }),
         slot({ rol: "complementario", patron: "pliometria", segmento: "tren_inferior", carpeta: "pliometria", description: "Pliometría 2", slotId: "vel_p2" }),
-      ]),
+      ], {
+        patternCycle: [
+          { direccion: "vertical", description: "Pliometría vertical" },
+          { direccion: "horizontal", description: "Pliometría horizontal" },
+          { direccion: "lateral", description: "Pliometría lateral" },
+        ],
+      }),
       block("principal", "Velocidad", "15 min", [
         slot({ rol: "basico", objetivo: "velocidad", patron: "aceleracion", segmento: "tren_inferior", carpeta: "velocidad", description: "Aceleración", slotId: "vel_v1" }),
         slot({ rol: "basico", objetivo: "velocidad", patron: "velocidad_pura", segmento: "tren_inferior", carpeta: "velocidad", description: "Velocidad pura", slotId: "vel_v2" }),
         slot({ rol: "complementario", objetivo: "velocidad", patronOr: ["reaccion", "COD"], segmento: "tren_inferior", carpeta: "velocidad", description: "Reacción / COD", slotId: "vel_v3" }),
-      ]),
+      ], {
+        patternCycle: [
+          { rol: "basico", patron: "aceleracion", description: "Aceleración" },
+          { rol: "basico", patron: "velocidad_pura", description: "Velocidad pura" },
+          { rol: "complementario", patronOr: ["reaccion", "COD"], description: "COD / reacción" },
+        ],
+      }),
     ],
   },
 
@@ -172,11 +262,25 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion", description: "Tracción", slotId: "hf_b2" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Cadena anterior", slotId: "hf_b3" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Cadena posterior", slotId: "hf_b4" }),
-      ], VOL_HIP_PRINCIPAL),
+      ], {
+        ...VOL_HIP_PRINCIPAL,
+        patternCycle: [
+          { segmento: "tren_superior", patron: "empuje", description: "Empuje" },
+          { segmento: "tren_superior", patron: "traccion", description: "Tracción" },
+          { segmento: "tren_inferior", patron: "cadena_anterior", description: "Rodilla" },
+          { segmento: "tren_inferior", patron: "cadena_posterior", description: "Cadera" },
+        ],
+      }),
       block("complementario", "Complementarios", "12 min", [
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "biceps", description: "Bíceps", slotId: "hf_c1" }),
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "triceps", description: "Tríceps", slotId: "hf_c2" }),
-      ], VOL_HIP_COMP),
+      ], {
+        ...VOL_HIP_COMP,
+        patternCycle: [
+          { grupo_muscular: "biceps", description: "Bíceps" },
+          { grupo_muscular: "triceps", description: "Tríceps" },
+        ],
+      }),
       CORE,
     ],
   },
@@ -193,12 +297,25 @@ export const SESSION_TEMPLATES = {
       block("principal", "Básicos", "25 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_anterior", description: "Cadena anterior", slotId: "hp_b1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Cadena posterior", slotId: "hp_b2" }),
-      ], VOL_HIP_PRINCIPAL),
+      ], {
+        ...VOL_HIP_PRINCIPAL,
+        patternCycle: [
+          { patron: "cadena_anterior", description: "Rodilla" },
+          { patron: "cadena_posterior", description: "Cadera" },
+        ],
+      }),
       block("complementario", "Analíticos", "18 min", [
-        slot({ rol: "complementario", patron: "analitico", grupo_muscular: "cuadriceps", description: "Cuádriceps", slotId: "hp_c1" }),
-        slot({ rol: "complementario", patron: "analitico", grupo_muscular: "isquios", description: "Isquios", slotId: "hp_c2" }),
-        slot({ rol: "complementario", patron: "analitico", grupo_muscular: "gemelo", description: "Gemelo", slotId: "hp_c3" }),
-      ], VOL_HIP_COMP),
+        slot({ rol: "complementario", patron: "analitico", grupo_muscular: "cuadriceps", excludePatrons: ["pliometria"], forbidCompounds: true, description: "Cuádriceps", slotId: "hp_c1" }),
+        slot({ rol: "complementario", patron: "analitico", grupo_muscular: "isquios", excludePatrons: ["pliometria"], forbidCompounds: true, description: "Isquios", slotId: "hp_c2" }),
+        slot({ rol: "complementario", patron: "analitico", grupo_muscular: "gemelos", excludePatrons: ["pliometria"], forbidCompounds: true, description: "Gemelo", slotId: "hp_c3" }),
+      ], {
+        ...VOL_HIP_COMP,
+        patternCycle: [
+          { grupo_muscular: "cuadriceps", description: "Cuádriceps" },
+          { grupo_muscular: "isquios", description: "Isquios" },
+          { grupo_muscular: "gemelos", description: "Gemelos" },
+        ],
+      }),
       CORE,
     ],
   },
@@ -215,11 +332,23 @@ export const SESSION_TEMPLATES = {
       block("principal", "Básicos", "25 min", [
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "empuje", description: "Empuje", slotId: "ht_b1" }),
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion", description: "Tracción", slotId: "ht_b2" }),
-      ], VOL_HIP_PRINCIPAL),
+      ], {
+        ...VOL_HIP_PRINCIPAL,
+        patternCycle: [
+          { patron: "empuje", description: "Empuje" },
+          { patron: "traccion", description: "Tracción" },
+        ],
+      }),
       block("complementario", "Analíticos", "12 min", [
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: "biceps", description: "Bíceps", slotId: "ht_c1" }),
         slot({ rol: "complementario", patron: "analitico", grupo_muscular: ["triceps"], description: "Tríceps analítico", slotId: "ht_c2" }),
-      ], VOL_HIP_COMP),
+      ], {
+        ...VOL_HIP_COMP,
+        patternCycle: [
+          { grupo_muscular: "biceps", description: "Bíceps" },
+          { grupo_muscular: "triceps", description: "Tríceps" },
+        ],
+      }),
       CORE,
     ],
   },
@@ -277,7 +406,7 @@ export const SESSION_TEMPLATES = {
       CALENTAMIENTO_CORTO,
       CORE,
       block("principal", "Trabajo aeróbico", "25 min", [
-        slot({ rol: "basico", objetivo: "resistencia", patron: "aerobico", description: "Aeróbico", slotId: "ra_p" }),
+        slot({ rol: "basico", objetivo: "resistencia", patron: "aerobico", excludePatrons: ["umbral", "anaerobico"], description: "Aeróbico", slotId: "ra_p" }),
       ]),
     ],
   },
@@ -298,7 +427,7 @@ export const SESSION_TEMPLATES = {
       CALENTAMIENTO_CORTO,
       CORE,
       block("principal", "Umbral", "28 min", [
-        slot({ rol: "basico", objetivo: "resistencia", patron: "umbral", description: "Umbral", slotId: "ru_p" }),
+        slot({ rol: "basico", objetivo: "resistencia", patron: "umbral", excludePatrons: ["aerobico", "anaerobico"], description: "Umbral", slotId: "ru_p" }),
       ]),
     ],
   },
@@ -319,7 +448,7 @@ export const SESSION_TEMPLATES = {
       CALENTAMIENTO_CORTO,
       CORE,
       block("principal", "Anaeróbico", "25 min", [
-        slot({ rol: "basico", objetivo: "resistencia", patron: "anaerobico", description: "Anaeróbico", slotId: "rn_p" }),
+        slot({ rol: "basico", objetivo: "resistencia", patron: "anaerobico", excludePatrons: ["aerobico", "umbral"], description: "Anaeróbico", slotId: "rn_p" }),
       ]),
     ],
   },
@@ -356,7 +485,13 @@ SESSION_TEMPLATES.Pliometría = {
       slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 1", slotId: "pl_1" }),
       slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 2", slotId: "pl_2" }),
       slot({ rol: "complementario", patron: "pliometria", description: "Pliometría 3", slotId: "pl_3" }),
-    ]),
+    ], {
+      patternCycle: [
+        { direccion: "vertical", description: "Pliometría vertical" },
+        { direccion: "horizontal", description: "Pliometría horizontal" },
+        { direccion: "lateral", description: "Pliometría lateral" },
+      ],
+    }),
   ],
 };
 SESSION_TEMPLATES.Isométricos = {
@@ -371,7 +506,13 @@ SESSION_TEMPLATES.Isométricos = {
       slot({ rol: "complementario", patron: "isometrico", description: "Iso 1", slotId: "iso_1" }),
       slot({ rol: "complementario", patron: "isometrico", description: "Iso 2", slotId: "iso_2" }),
       slot({ rol: "complementario", patron: "isometrico", description: "Iso 3", slotId: "iso_3" }),
-    ]),
+    ], {
+      patternCycle: [
+        { patron: "isometrico", grupo_muscular: "cuadriceps", description: "Iso rodilla" },
+        { patron: "isometrico", grupo_muscular: "isquios", description: "Iso cadera" },
+        { patron: "isometrico", grupo_muscular: "core", description: "Iso tronco" },
+      ],
+    }),
     CORE,
   ],
 };
