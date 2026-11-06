@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft, CheckCircle, Clock, Dumbbell, FileText, Flame, Gauge, Info,
   Layers, Pause, Repeat2, Target, Video, Wind, X, RefreshCw,
@@ -15,7 +15,7 @@ import {
 } from "../../lib/loadAnalytics";
 import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
 import { hasFeatureAccess } from "../../lib/subscription";
-import { listManualSwapOptions } from "../../lib/exerciseSelector";
+import ExerciseLibraryPicker from "../admin/ExerciseLibraryPicker";
 
 const BLOCK_CONFIG = {
   calentamiento:  { label: "Calentamiento",     Icon: Flame,    color: "#F59E0B" },
@@ -55,7 +55,7 @@ function isBodyweightExercise(exercise) {
   return !list.length || list.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno|campo/.test(m));
 }
 
-function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, onPickExercise, filterParams, canSwap, swapTooltip }) {
+function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, onPickExercise, canSwap, swapTooltip }) {
   const ytId = exerciseYouTubeId(exercise);
   const typedExercise = {
     ...exercise,
@@ -81,7 +81,7 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
   const [loadDraft, setLoadDraft] = useState({});
   const [loadSaved, setLoadSaved] = useState(false);
   const [loadNotice, setLoadNotice] = useState("");
-  const [pickedId, setPickedId] = useState("");
+  const [showLibraryPicker, setShowLibraryPicker] = useState(false);
 
   useEffect(() => {
     const prev = findLatestLoadLog(user?.id, {
@@ -107,19 +107,6 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
       intensity: prev.intensity || "",
     });
   }, [exercise.id, user?.id, sessionMeta?.sessionId, sessionMeta?.weekNumber, setCount]);
-
-  const swapOptions = useMemo(() => {
-    if (!filterParams || !exercise) return [];
-    return listManualSwapOptions(exercise, {
-      material: filterParams.material,
-      lesiones: filterParams.lesiones || [],
-      edad: filterParams.edad || 18,
-      experiencia: filterParams.experiencia || "intermedio",
-      userId: filterParams.userId || user?.id || "",
-    });
-  }, [exercise, filterParams, user?.id]);
-
-  const isPremium = /player-pro|premium|^pro$/.test(String(user?.plan || "").toLowerCase());
 
   const handleSaveLoad = () => {
     if (!canPersistInTrial(user, "save_loads")) {
@@ -362,32 +349,16 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
           </div>
         )}
 
-        {(onPickExercise || onSwap) && swapOptions.length > 0 && (
+        {showLibraryPicker && onPickExercise && (
           <div className="mb-4">
-            <label className="text-[10px] font-bold text-depro-gray uppercase tracking-wide">
-              {isPremium ? "Elegir ejercicio a mano (Premium)" : "Elegir ejercicio a mano"}
-            </label>
-            <select
-              className="admin-input w-full text-sm mt-1"
-              value={pickedId}
-              disabled={!canSwap}
-              onChange={(e) => {
-                const id = e.target.value;
-                setPickedId(id);
-                const chosen = swapOptions.find((ex) => String(ex.id) === String(id));
-                if (!chosen || !onPickExercise) return;
+            <ExerciseLibraryPicker
+              onClose={() => setShowLibraryPicker(false)}
+              onSelect={(chosen) => {
                 onPickExercise(exercise.id, chosen);
+                setShowLibraryPicker(false);
                 onClose();
               }}
-            >
-              <option value="">Sustituir por…</option>
-              {swapOptions.map((ex) => (
-                <option key={ex.id} value={ex.id}>{ex.nombre || ex.name}</option>
-              ))}
-            </select>
-            <p className="text-[11px] text-depro-gray mt-1">
-              El cambio se aplica a las 4 semanas del mes.
-            </p>
+            />
           </div>
         )}
 
@@ -403,6 +374,16 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-depro-border hover:border-depro-blue hover:text-depro-blue transition-all disabled:opacity-40"
             >
               <RefreshCw size={15} /> Cambiar ejercicio
+            </button>
+          )}
+          {onPickExercise && (
+            <button
+              type="button"
+              title="Elegir cualquier ejercicio de la biblioteca"
+              onClick={() => setShowLibraryPicker((open) => !open)}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-depro-blue text-depro-blue hover:bg-depro-blue-light transition-all"
+            >
+              Seleccionar ejercicio
             </button>
           )}
           <button

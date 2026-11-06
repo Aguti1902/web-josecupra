@@ -16,7 +16,7 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildFourWeekPlan, buildMesoPlayerPlan, hydratePlayerPlan, buildMinimalSession, persistStablePlayerPlan, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildFourWeekPlan, buildMesoPlayerPlan, hydratePlayerPlan, buildMinimalSession, persistStablePlayerPlan, checkPlanCompatibility, resolvePlayerPlanStartDate, replaceExerciseWithLibrary } from "../../lib/playerPlanEngine";
 import PlanCompatibilityModal from "../../components/private/PlanCompatibilityModal";
 import { markSessionComplete, toggleSessionCompletion, touchLastTrain, setClubSessionCompletion, loadClubSessionProgress } from "../../lib/sessionProgress";
 import { canPersistInTrial } from "../../lib/trialPersistence";
@@ -502,6 +502,12 @@ function PlayerWeeklyPlan({ accent }) {
     if (persist) touchLastTrain(user?.id);
   };
 
+  const handlePickExercise = (exerciseId, catalogExercise) => {
+    if (!user?.id || !plan || !catalogExercise) return;
+    const next = replaceExerciseWithLibrary(plan, null, exerciseId, catalogExercise);
+    persistStablePlayerPlan(user.id, next).then((stable) => setPlan(stable));
+  };
+
   const compatModalEl = (
     <PlanCompatibilityModal
       open={!!compatModal}
@@ -822,6 +828,7 @@ function PlayerWeeklyPlan({ accent }) {
         onClose={closeSession}
         onComplete={() => handleSessionComplete(microRef.id, microRef.dayName)}
         onUncomplete={() => handleSessionToggle(microRef.id, microRef.dayName)}
+        onPickExercise={handlePickExercise}
         onDownloadPdf={(isInTrial(user) || hasFeatureAccess(user, "pdf_export")) ? () => {
           if (isInTrial(user)) {
             const gate = consumeTrialPdfOrExplain(user?.id);

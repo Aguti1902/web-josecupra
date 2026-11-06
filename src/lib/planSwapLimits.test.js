@@ -16,8 +16,10 @@ import {
   currentCycleStartFromAlta,
   resolvePlanAltaDate,
 } from "./planSwapLimits.js";
-import { refreshExerciseAcrossPlan } from "./playerPlanEngine.js";
+import { refreshExerciseAcrossPlan, replaceExerciseWithLibrary } from "./playerPlanEngine.js";
 import { selectExerciseForSlot } from "./exerciseSelector.js";
+import { EXERCISES } from "./exerciseCatalog.js";
+import { listLibraryExercises, LIBRARY_SIZE } from "./exerciseLibrary.js";
 
 describe("planSwapLimits — ciclo mensual", () => {
   beforeEach(() => {
@@ -285,5 +287,110 @@ describe("refreshExerciseAcrossPlan", () => {
     });
     assert.equal(typeof next, "object");
     assert.ok(next.days || Array.isArray(next));
+  });
+});
+
+describe("selección manual de la biblioteca", () => {
+  it("lista toda la biblioteca y filtra por carpeta o texto, sin mirar el material", () => {
+    assert.ok(LIBRARY_SIZE >= 150);
+    assert.equal(listLibraryExercises().length, LIBRARY_SIZE);
+    const core = listLibraryExercises({ carpeta: "core" });
+    assert.ok(core.length > 0);
+    assert.ok(core.every((ex) => ex.carpeta === "core"));
+    const found = listLibraryExercises({ query: "sentadilla" });
+    assert.ok(found.length > 0);
+    assert.ok(found.every((ex) => /sentadilla/i.test(ex.nombre)));
+  });
+
+  it("cambia solo el ejercicio elegido y conserva series, reps y descanso", () => {
+    const chosen = EXERCISES.find((ex) => ex.carpeta === "core");
+    assert.ok(chosen);
+    const press = {
+      id: "v2_10_1",
+      catalogId: 10,
+      name: "Press banca",
+      sets: "4",
+      reps: "6",
+      rest: "2 min",
+      load: "80%",
+      duration: "40\"",
+      blockType: "principal",
+    };
+    const row = {
+      id: "v2_11_1",
+      catalogId: 11,
+      name: "Remo con barra",
+      sets: "3",
+      reps: "10",
+      rest: "90 s",
+      blockType: "principal",
+    };
+    const otherDay = { ...press, id: "v2_10_miercoles" };
+    const plan = [{
+      day: "Lunes",
+      sessions: [{
+        id: "s1",
+        exercises: [{ ...press }, { ...row }],
+        blocks: [{ type: "principal", exercises: [{ ...press }, { ...row }] }],
+      }],
+    }, {
+      day: "Miércoles",
+      sessions: [{
+        id: "s2",
+        exercises: [{ ...otherDay }],
+        blocks: [{ type: "principal", exercises: [{ ...otherDay }] }],
+      }],
+    }];
+    plan.refrescos_usados_mes = 2;
+
+    const next = replaceExerciseWithLibrary(plan, "s1", "v2_10_1", chosen);
+    const monday = next[0].sessions[0];
+    assert.equal(monday.exercises[0].catalogId, chosen.id);
+    assert.equal(monday.exercises[0].name, chosen.nombre);
+    assert.equal(monday.exercises[0].sets, "4");
+    assert.equal(monday.exercises[0].reps, "6");
+    assert.equal(monday.exercises[0].rest, "2 min");
+    assert.equal(monday.exercises[0].load, "80%");
+    assert.equal(monday.exercises[1].name, "Remo con barra");
+    assert.equal(monday.exercises[1].sets, "3");
+    assert.equal(monday.blocks[0].exercises[0].catalogId, chosen.id);
+    assert.equal(monday.blocks[0].exercises[0].sets, "4");
+    assert.equal(monday.blocks[0].exercises[1].name, "Remo con barra");
+    assert.equal(next[1].sessions[0].exercises[0].name, "Press banca");
+    assert.equal(next.refrescos_usados_mes, 2);
+  });
+
+  it("actualiza la misma ficha en las semanas del mesociclo", () => {
+    const chosen = EXERCISES.find((ex) => ex.carpeta === "movilidad");
+    const ex = {
+      id: "v2_10_1",
+      catalogId: 10,
+      name: "Press banca",
+      sets: "5",
+      reps: "5",
+      rest: "3 min",
+      blockType: "principal",
+    };
+    const weeks = [1, 2, 3, 4].map((week) => ({
+      week,
+      days: [{
+        day: "Lunes",
+        sessions: [{
+          id: `s_w${week}`,
+          exercises: [{ ...ex }],
+          blocks: [{ type: "principal", exercises: [{ ...ex }] }],
+        }],
+      }],
+    }));
+    const plan = { weeks, days: weeks[0].days, refrescos_usados_mes: 1 };
+    const next = replaceExerciseWithLibrary(plan, "s_w1", "v2_10_1", chosen);
+    for (const week of next.weeks) {
+      const got = week.days[0].sessions[0].exercises[0];
+      assert.equal(got.name, chosen.nombre);
+      assert.equal(got.sets, "5");
+      assert.equal(got.reps, "5");
+      assert.equal(got.rest, "3 min");
+    }
+    assert.equal(next.refrescos_usados_mes, 1);
   });
 });
