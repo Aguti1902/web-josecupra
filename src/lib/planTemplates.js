@@ -8,6 +8,7 @@ import {
   getResistanceVariantKey,
 } from "./sessionTemplatesV2.js";
 import { resolveMatrixSessionTypes } from "./objectiveSessionMatrix.js";
+import { resolveBlockCount } from "./templateSlotCycle.js";
 
 export { isV2Template, WEEKLY_SESSION_CONFIG, getResistanceVariantKey };
 
@@ -58,9 +59,7 @@ export function getWeeklySessionTypes(objetivo, frecuencia) {
 
 export function countBlockSlots(block) {
   if (block?.warmupSource === "sin_balon") return 1;
-  if (Array.isArray(block.slots)) {
-    return block.slots.reduce((n, s) => n + (typeof s === "object" ? (s.qty || 1) : 1), 0);
-  }
+  if (Array.isArray(block.slots)) return resolveBlockCount(block);
   return typeof block.slots === "number" ? block.slots : 0;
 }
 
@@ -95,6 +94,9 @@ export function getTemplate(sessionType) {
             qty: Math.max(1, slotQtys[si] != null ? slotQtys[si] : (s.qty || 1)),
           })),
         };
+      }
+      if (Number.isFinite(ov.count)) {
+        next = { ...next, count: Math.max(1, Math.min(12, ov.count)) };
       }
       if (ov.volume && typeof ov.volume === "object") {
         next = { ...next, volume: { ...next.volume, ...ov.volume } };
@@ -156,7 +158,8 @@ export function updateTemplateBlockSlots(sessionType, blockIndex, slots) {
     const lastIdx = Math.max(0, slotQtys.length - 1);
     slotQtys[lastIdx] = Math.max(1, slotQtys[lastIdx] + delta);
     if (!overrides[sessionType].v2Blocks) overrides[sessionType].v2Blocks = [];
-    overrides[sessionType].v2Blocks[blockIndex] = { slotQtys };
+    const prev = overrides[sessionType].v2Blocks[blockIndex] || {};
+    overrides[sessionType].v2Blocks[blockIndex] = { ...prev, slotQtys, count: target };
   } else {
     if (!overrides[sessionType].blocks) overrides[sessionType].blocks = [];
     overrides[sessionType].blocks[blockIndex] = { slots };

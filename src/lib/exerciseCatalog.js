@@ -10,6 +10,8 @@
  *
  * Generado por scripts/build-definitive-catalog.mjs
  */
+import { enrichCatalog } from "./exerciseTagEnrichment.js";
+
 export const EXERCISES = [
   {
     "id": 1,
@@ -7998,6 +8000,8 @@ export const EXERCISES = [
     "carpeta": "resistencia"
   }
 ];
+
+enrichCatalog(EXERCISES);
 
 export const CATALOG_CARPETAS = [
   "fuerza_tren_inferior",

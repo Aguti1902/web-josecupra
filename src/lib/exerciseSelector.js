@@ -3,6 +3,7 @@
  */
 import { EXERCISES } from "./exerciseCatalog.js";
 import { pickDeterministic, pickVaried } from "./deterministicPick.js";
+import { expandBlockSlots, resolveBlockCount } from "./templateSlotCycle.js";
 
 const EXP_LEVELS = { novato: 1, intermedio: 2, avanzado: 3 };
 
@@ -160,10 +161,40 @@ function tagsOf(ex) {
   return ex?.etiquetas || {};
 }
 
+const MUSCLE_ALIASES = {
+  gemelo: ["gemelo", "gemelos"],
+  gemelos: ["gemelo", "gemelos"],
+  gluteo: ["gluteo", "gluteos"],
+  gluteos: ["gluteo", "gluteos"],
+};
+
+function expandMuscle(value) {
+  return asArray(value).flatMap((v) => MUSCLE_ALIASES[v] || [v]);
+}
+
+const PATRON_ALIASES = {
+  cadena_anterior: ["cadena_anterior", "dominante_rodilla"],
+  dominante_rodilla: ["cadena_anterior", "dominante_rodilla"],
+  cadena_posterior: ["cadena_posterior", "dominante_cadera"],
+  dominante_cadera: ["cadena_posterior", "dominante_cadera"],
+  velocidad_pura: ["velocidad_pura", "velocidad_maxima"],
+  velocidad_maxima: ["velocidad_pura", "velocidad_maxima"],
+};
+
+function expandPatron(value) {
+  return asArray(value).flatMap((v) => PATRON_ALIASES[v] || [v]);
+}
+
 function matchesAny(needed, available) {
   if (!needed?.length) return true;
   const set = new Set(asArray(available));
-  return needed.some((n) => set.has(n));
+  return needed.some((n) => set.has(n) || expandMuscle(n).some((a) => set.has(a)));
+}
+
+function matchesPatron(needed, available) {
+  if (!needed?.length) return true;
+  const set = new Set(expandPatron(available));
+  return expandPatron(needed).some((n) => set.has(n));
 }
 
 function matchesAllScalars(slotValue, exerciseValue) {
@@ -186,20 +217,30 @@ export function matchSlotTags(ex, slot = {}) {
     const needed = asArray(slot.patron);
     const orMode = slot.patronMode === "or" || needed.length > 1 && slot.patronOr;
     if (orMode) {
-      if (!matchesAny(needed, et.patron)) return false;
-    } else if (!matchesAny(needed, et.patron)) {
+      if (!matchesPatron(needed, et.patron)) return false;
+    } else if (!matchesPatron(needed, et.patron)) {
       return false;
     }
   }
-  if (slot.patronOr && !matchesAny(asArray(slot.patronOr), et.patron)) return false;
+  if (slot.patronOr && !matchesPatron(asArray(slot.patronOr), et.patron)) return false;
+  if (slot.excludePatrons && matchesPatron(asArray(slot.excludePatrons), et.patron)) return false;
+  if (slot.carpeta && ex.carpeta && slot.carpeta !== ex.carpeta) return false;
+  if (slot.direccion && et.direccion && slot.direccion !== et.direccion) return false;
   if (slot.grupo_muscular) {
-    // grupo_principal manda (función dominante); fallback a grupo_muscular
-    const primary = et.grupo_principal ? [et.grupo_principal] : asArray(et.grupo_muscular);
+    // grupo_principal manda (función dominante); alias gemelo/gemelos
+    const primary = et.grupo_principal
+      ? uniqueMuscles([et.grupo_principal])
+      : uniqueMuscles(et.grupo_muscular);
     if (!matchesAny(asArray(slot.grupo_muscular), primary)) return false;
   }
   if (slot.rol && !matchesAllScalars(slot.rol, et.rol)) return false;
   if (slot.intensidad && !matchesAllScalars(slot.intensidad, et.intensidad)) return false;
+  if (slot.forbidCompounds && COMPOUND_NAME_RE.test(String(ex.nombre || ""))) return false;
   return true;
+}
+
+function uniqueMuscles(list) {
+  return [...new Set(expandMuscle(list))];
 }
 
 export function filterExercisesForUser(exercises, userProfile = {}) {
@@ -328,6 +369,7 @@ export function isMultiarticularExercise(ex) {
 }
 
 export function inferredSlotNature(slot = {}) {
+  if (slot.nature === "any") return "";
   if (slot.nature) return slot.nature;
   const obj = asArray(slot.objetivo).map((o) => String(o).toLowerCase());
   const patron = String(slot.patron || "");
@@ -422,14 +464,15 @@ export function rankByMaterialPreference(candidates, userProfile = {}, slot = {}
     // Solo puntuar candidatos ya permitidos
     if (!isExerciseAllowedForMaterials(et.material, mats)) return -1;
     if (fullGym && loadedSlot && lightOnly) return -1;
+    const overload = Number(et.sobrecarga) || 0;
     if (mats.length && materialMatches(et.material, mats)) {
-      if (fullGym && loadedSlot && em.some((m) => /barra/.test(m))) return 360;
-      if (fullGym && loadedSlot && em.some((m) => /maquina|máquina|prensa|polea/.test(m))) return 320;
-      if (preferFree && em.some((m) => /mancuern/.test(m))) return 300;
-      if (preferFree && em.some((m) => /barra/.test(m))) return 300;
-      if (preferFree && em.some((m) => /maquina|máquina|polea/.test(m))) return 180;
-      if (em.some((m) => mats.includes(m))) return 260;
-      return 250;
+      if (fullGym && loadedSlot && em.some((m) => /barra/.test(m))) return 360 + overload;
+      if (fullGym && loadedSlot && em.some((m) => /maquina|máquina|prensa|polea/.test(m))) return 320 + overload;
+      if (preferFree && em.some((m) => /mancuern/.test(m))) return 300 + overload;
+      if (preferFree && em.some((m) => /barra/.test(m))) return 300 + overload;
+      if (preferFree && em.some((m) => /maquina|máquina|polea/.test(m))) return 180 + overload;
+      if (em.some((m) => mats.includes(m))) return 260 + overload;
+      return 250 + overload;
     }
     if (fullGym && loadedSlot) return 0;
     if (body) return 100;
@@ -443,12 +486,28 @@ export function rankByMaterialPreference(candidates, userProfile = {}, slot = {}
  * Relaja filtros menos críticos. NUNCA suelta objetivo ni segmento:
  * eso mezclaba resistencia en fuerza y tren inferior en superior.
  */
+function isAnalyticSlot(slot) {
+  const patrons = asArray(slot?.patron);
+  return patrons.includes("analitico") || Boolean(slot?.forbidCompounds);
+}
+
 function relaxSlot(slot, step) {
   const next = { ...slot };
+  const analytic = isAnalyticSlot(slot);
 
   if (step === 1 && next.intensidad) {
     delete next.intensidad;
     return next;
+  }
+  if (analytic) {
+    // A/B analítico: nunca soltar el músculo ni las exclusiones duras (pliometría).
+    if (step === 2 && (next.patron || next.patronOr)) {
+      delete next.patron;
+      delete next.patronOr;
+      delete next.patronMode;
+      return next;
+    }
+    return null;
   }
   if (step === 2 && next.grupo_muscular) {
     delete next.grupo_muscular;
@@ -461,6 +520,39 @@ function relaxSlot(slot, step) {
     return next;
   }
   return null;
+}
+
+function analyticFallbackSlots(slot) {
+  if (!isAnalyticSlot(slot)) return [];
+  const exclude = [...new Set([...asArray(slot.excludePatrons), "pliometria"])];
+  const base = {
+    ...slot,
+    excludePatrons: exclude,
+    nature: "any",
+  };
+  return [
+    { ...base, patron: "isometrico", patronMode: "any", forbidCompounds: true },
+    { ...base, patron: undefined, patronOr: undefined, patronMode: undefined, forbidCompounds: false },
+  ];
+}
+
+function familyOf(ex) {
+  return tagsOf(ex).familia || null;
+}
+
+function preferUnusedFamily(rankedPool, usedExerciseIds) {
+  if (!rankedPool?.length) return rankedPool;
+  const used = new Set(usedExerciseIds || []);
+  if (!used.size) return rankedPool;
+  const usedFamilies = new Set(
+    EXERCISES.filter((ex) => used.has(ex.id)).map((ex) => familyOf(ex)).filter(Boolean),
+  );
+  if (!usedFamilies.size) return rankedPool;
+  const fresh = rankedPool.filter((ex) => {
+    const fam = familyOf(ex);
+    return !fam || !usedFamilies.has(fam);
+  });
+  return fresh.length ? fresh : rankedPool;
 }
 
 function pickFrom(candidates, userProfile, slot, _usedExerciseIds, seedExtra) {
@@ -541,6 +633,15 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
     }
   }
 
+  // C/D analítico: isométrico del mismo músculo, luego aislamiento del mismo
+  // músculo. Nunca pliometría ni multiarticulares si el slot lo prohíbe.
+  if (!candidates.length) {
+    for (const fallback of analyticFallbackSlots(slot)) {
+      candidates = filterPool(pool.filter((ex) => matchSlotTags(ex, fallback) && natureOk(ex)));
+      if (candidates.length) break;
+    }
+  }
+
   // Último recurso: mismo rol + objetivo/segmento si existen. Nunca solo el rol
   // (eso metía curls de bíceps en velocidad o tren inferior en superior).
   if (!candidates.length && slot.rol) {
@@ -589,6 +690,7 @@ export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], s
     rankedPool = preferMatched.length ? preferMatched : bodyFallback;
   }
   rankedPool = preferResistanceBand(rankedPool, userProfile, slot);
+  rankedPool = preferUnusedFamily(rankedPool, usedExerciseIds);
   if (!rankedPool.length) return null;
   if (opts.varied) return pickVaried(rankedPool, seedExtra);
   return pickFrom(rankedPool, userProfile, slot, usedExerciseIds, seedExtra);
@@ -686,10 +788,7 @@ export function getVolume(experiencia, blockType, objective = "fuerza", adaptedI
 
 export function expectedSlotCount(block) {
   if (block?.warmupSource === "sin_balon") return 1;
-  return (block.slots || []).reduce((n, s) => {
-    if (s?.optional) return n;
-    return n + (s.qty || 1);
-  }, 0);
+  return resolveBlockCount(block);
 }
 
 export function fillBlockSlots(block, userProfile, sessionUsedIds = [], sessionUsedPools = []) {
@@ -700,42 +799,41 @@ export function fillBlockSlots(block, userProfile, sessionUsedIds = [], sessionU
   const adapted = userProfile.adaptedIntensity || null;
   let missing = 0;
   const expected = expectedSlotCount(block);
+  const expanded = expandBlockSlots(block);
 
-  for (const slot of block.slots || []) {
-    const qty = slot.qty || 1;
-    for (let i = 0; i < qty; i++) {
-      const exercise = selectExerciseForSlot(
-        { ...slot, slotId: slot.slotId || `${block.type}_${slot.rol || ""}_${i}` },
-        userProfile,
-        blockUsedIds,
-        String(i),
-      );
+  for (const slot of expanded) {
+    const i = slot.cycleIndex ?? 0;
+    const exercise = selectExerciseForSlot(
+      { ...slot, slotId: slot.slotId || `${block.type}_${slot.rol || ""}_${i}` },
+      userProfile,
+      blockUsedIds,
+      String(i),
+    );
 
-      if (exercise) {
-        const templateVolume = slot.volume || block.volume || null;
-        const vol = getVolume(userProfile.experiencia, block.type, objective, adapted, templateVolume);
-        exercises.push({
-          ...exercise,
-          slotDescription: slot.description,
-          slotConstraints: {
-            rol: slot.rol,
-            patron: slot.patron || slot.patronOr,
-            segmento: slot.segmento,
-            grupo_muscular: slot.grupo_muscular,
-            objetivo: slot.objetivo,
-            nature: slot.nature,
-          },
-          sets: vol.sets,
-          reps: vol.reps,
-          rest: vol.rest,
-          load: vol.load,
-        });
-        blockUsedIds.push(exercise.id);
-        if (exercise.pool) blockUsedPools.push(exercise.pool);
-      } else if (!slot.optional) {
-        missing += 1;
-        console.warn(`[DEPRO] Sin ejercicio para slot: ${slot.description || slot.rol || slot.patron}`);
-      }
+    if (exercise) {
+      const templateVolume = slot.volume || block.volume || null;
+      const vol = getVolume(userProfile.experiencia, block.type, objective, adapted, templateVolume);
+      exercises.push({
+        ...exercise,
+        slotDescription: slot.description,
+        slotConstraints: {
+          rol: slot.rol,
+          patron: slot.patron || slot.patronOr,
+          segmento: slot.segmento,
+          grupo_muscular: slot.grupo_muscular,
+          objetivo: slot.objetivo,
+          nature: slot.nature,
+        },
+        sets: vol.sets,
+        reps: vol.reps,
+        rest: vol.rest,
+        load: vol.load,
+      });
+      blockUsedIds.push(exercise.id);
+      if (exercise.pool) blockUsedPools.push(exercise.pool);
+    } else if (!slot.optional) {
+      missing += 1;
+      console.warn(`[DEPRO] Sin ejercicio para slot: ${slot.description || slot.rol || slot.patron}`);
     }
   }
 
@@ -898,6 +996,13 @@ function lesionKeySet(lesiones = []) {
 export function isExerciseContraindicated(ex, lesiones = []) {
   const keys = lesionKeySet(lesiones);
   if (!keys.size) return false;
+  const auto = ex?.etiquetas?.lesion_auto || {};
+  for (const k of keys) {
+    const short = String(k).replace(/^lesion_/, "");
+    if (auto[short] === "no_seleccionar_automaticamente" || auto[k] === "no_seleccionar_automaticamente") {
+      return true;
+    }
+  }
   const contra = asArray(ex?.etiquetas?.contraindicado || ex?.lesionesContra);
   return contra.some((c) => {
     const raw = String(c || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
