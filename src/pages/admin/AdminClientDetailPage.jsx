@@ -150,7 +150,10 @@ function PlanTab({ clientId, client }) {
     if (next === stored && raw && raw !== stored) {
       next = replaceExerciseWithLibrary(raw, session.id, ex.id, catalogExercise);
     }
-    if (!next || next === stored || next === raw) return;
+    if (next === stored || next === raw) {
+      next = replaceExerciseWithLibrary(plan, session.id, ex.id, catalogExercise);
+    }
+    if (!next || next === stored || next === raw || next === plan) return;
     setClientPlan(clientId, next);
     persistPlayerPlanRemote(clientId, next).catch(() => {});
     setPickerKey(null);
