@@ -990,6 +990,114 @@ export function refreshExerciseAcrossPlan(plan, sessionId, exerciseId, filterPar
   return ensureFourWeekPlan(next);
 }
 
+function applyLibraryExercise(oldEx, catalogExercise, seed) {
+  const built = makeExerciseFromV2(catalogExercise, seed, oldEx.blockType);
+  const keep = (value, fallback) => (value != null && value !== "" ? value : fallback);
+  return {
+    ...built,
+    id: `v2_${catalogExercise.id}_m_${seed}`,
+    catalogId: catalogExercise.id,
+    name: catalogExercise.nombre || catalogExercise.name || built.name,
+    sets: keep(oldEx.sets, built.sets),
+    reps: keep(oldEx.reps, built.reps),
+    rest: keep(oldEx.rest, built.rest),
+    load: keep(oldEx.load, built.load),
+    duration: keep(oldEx.duration, built.duration),
+    weight: oldEx.weight,
+    peso: oldEx.peso,
+    blockType: oldEx.blockType || built.blockType,
+    slotConstraints: oldEx.slotConstraints || built.slotConstraints,
+    manualPick: true,
+  };
+}
+
+/**
+ * Sustituye un ejercicio concreto por cualquiera de la biblioteca.
+ * No usa etiquetas, material ni el motor. Conserva series, reps, descanso y carga.
+ * No consume el cupo de refrescos.
+ */
+export function replaceExerciseWithLibrary(plan, _sessionId, exerciseId, catalogExercise) {
+  if (!plan || exerciseId == null || catalogExercise?.id == null) return plan;
+
+  const isDaysArray = Array.isArray(plan) && (plan.length === 0 || plan[0]?.day != null || plan[0]?.sessions != null);
+  const days = isDaysArray ? plan : (Array.isArray(plan?.days) ? plan.days : null);
+  const weeksSource = Array.isArray(plan) ? plan.weeks : plan?.weeks;
+
+  const listsOf = (session) => [
+    ...(session?.exercises || []),
+    ...(session?.blocks || []).flatMap((b) => b.exercises || []),
+  ];
+  const sessionsOfDays = (list) => (list || []).flatMap((d) => d.sessions || []);
+
+  let target = null;
+  const take = (session) => listsOf(session).find((ex) => ex && ex.id === exerciseId) || null;
+  for (const session of sessionsOfDays(days)) {
+    target = take(session);
+    if (target) break;
+  }
+  if (!target && Array.isArray(weeksSource)) {
+    for (const week of weeksSource) {
+      for (const session of [...sessionsOfDays(week.days), ...(week.sessions || [])]) {
+        target = take(session);
+        if (target) break;
+      }
+      if (target) break;
+    }
+  }
+  if (!target) return plan;
+
+  const oldCatalogId = target.catalogId ?? null;
+  const sessionHasTarget = (session) => listsOf(session).some((ex) => ex?.id === exerciseId);
+  const matches = (ex) => {
+    if (!ex) return false;
+    if (ex.id === exerciseId) return true;
+    return oldCatalogId != null && ex.catalogId != null && ex.catalogId === oldCatalogId;
+  };
+
+  const mapList = (list) => (list || []).map((ex) => {
+    if (!matches(ex)) return ex;
+    const seed = String(ex.id || "x").replace(/[^\w]/g, "").slice(-24) || "x";
+    return applyLibraryExercise(ex, catalogExercise, seed);
+  });
+  const mapSession = (session) => {
+    if (!session || !sessionHasTarget(session)) return session;
+    const blocks = (session.blocks || []).map((block) => ({
+      ...block,
+      exercises: mapList(block.exercises),
+    }));
+    const exercises = (session.exercises || []).length
+      ? mapList(session.exercises)
+      : blocks.flatMap((b) => b.exercises || []);
+    return { ...session, blocks, exercises };
+  };
+  const mapDays = (list) => (list || []).map((day) => ({
+    ...day,
+    sessions: (day.sessions || []).map(mapSession),
+  }));
+
+  const mappedDays = Array.isArray(days) ? mapDays(days) : days;
+  const next = isDaysArray
+    ? mappedDays
+    : { ...plan, ...(mappedDays ? { days: mappedDays } : {}) };
+
+  if (Array.isArray(plan)) {
+    for (const key of Object.keys(plan)) {
+      if (Number.isNaN(Number(key)) && next[key] === undefined) next[key] = plan[key];
+    }
+  }
+  if (Array.isArray(weeksSource)) {
+    next.weeks = weeksSource.map((week) => {
+      const mapped = { ...week };
+      if (Array.isArray(week.days)) mapped.days = mapDays(week.days);
+      if (Array.isArray(week.sessions)) mapped.sessions = week.sessions.map(mapSession);
+      return mapped;
+    });
+  }
+  const stable = ensureFourWeekPlan(next);
+  stable.lastEditedAt = new Date().toISOString();
+  return stable;
+}
+
 export async function persistStablePlayerPlan(userId, plan) {
   if (!userId || !plan) return plan;
   const stable = ensureFourWeekPlan(plan);

@@ -29,7 +29,8 @@ import {
 import { loadPlanBlocks, savePlanBlock, deletePlanBlock, togglePlanBlock, loadMedia } from "../../lib/adminStorage";
 import { EXERCISES, TAGS } from "../../data/exercises";
 import { Search, List, BookOpen } from "lucide-react";
-import { buildPlayerPlan, buildFourWeekPlan, refreshExerciseAcrossPlan, normalizeLesions } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildFourWeekPlan, refreshExerciseAcrossPlan, replaceExerciseWithLibrary, normalizeLesions } from "../../lib/playerPlanEngine";
+import ExerciseLibraryPicker from "../../components/admin/ExerciseLibraryPicker";
 import { DAY_ORDER, COMPETITION_DAY_OPTIONS } from "../../lib/planLoadRules";
 import { SECONDARY_BLOCKED_FREQ1_MESSAGE } from "../../lib/objectiveSessionMatrix";
 import { getYouTubeId } from "../../lib/youtube";
@@ -101,6 +102,7 @@ function IASimulator() {
   const [expandedKey, setExpandedKey] = useState(null);
   const [viewWeek, setViewWeek] = useState(1);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [pickerId, setPickerId] = useState(null);
 
   const buildUser = () => ({
     ...profile,
@@ -156,6 +158,22 @@ function IASimulator() {
       weeks: next.weeks || simulated.weeks,
       lastEditedAt: next.lastEditedAt || new Date().toISOString(),
     });
+  };
+
+  const handlePickExercise = (exerciseId, catalogExercise) => {
+    if (!simulated || !catalogExercise) return;
+    const next = replaceExerciseWithLibrary(
+      { weeks: simulated.weeks, days: simulated.weeks?.[viewWeek - 1]?.days },
+      null,
+      exerciseId,
+      catalogExercise,
+    );
+    setSimulated({
+      ...simulated,
+      weeks: next.weeks || simulated.weeks,
+      lastEditedAt: next.lastEditedAt || new Date().toISOString(),
+    });
+    setPickerId(null);
   };
 
   const currentWeek = simulated?.weeks?.[viewWeek - 1];
@@ -447,17 +465,32 @@ function IASimulator() {
                           <div key={b.label}>
                             <p className="text-[10px] font-bold uppercase text-depro-gray mb-1">{b.label}</p>
                             {(b.exercises || []).map((ex) => (
-                              <div key={ex.id} className="flex items-center justify-between gap-2 py-1">
-                                <span className="text-xs text-depro-dark flex items-center gap-1.5 min-w-0">
-                                  <Dumbbell size={11} className="text-depro-blue shrink-0" />
-                                  <span className="truncate">{ex.name}</span>
-                                  <span className="text-depro-gray shrink-0">{ex.sets}×{ex.reps}</span>
-                                </span>
-                                <button type="button" title="Refrescar ejercicio"
-                                  onClick={() => handleRefreshExercise(viewWeek - 1, session.id, ex.id)}
-                                  className="p-1 rounded-lg border border-depro-border text-depro-gray hover:text-depro-blue hover:border-depro-blue shrink-0">
-                                  <RefreshCw size={12} />
-                                </button>
+                              <div key={ex.id} className="py-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-xs text-depro-dark flex items-center gap-1.5 min-w-0">
+                                    <Dumbbell size={11} className="text-depro-blue shrink-0" />
+                                    <span className="truncate">{ex.name}</span>
+                                    <span className="text-depro-gray shrink-0">{ex.sets}×{ex.reps}</span>
+                                  </span>
+                                  <span className="flex items-center gap-1 shrink-0">
+                                    <button type="button" title="Refrescar ejercicio"
+                                      onClick={() => handleRefreshExercise(viewWeek - 1, session.id, ex.id)}
+                                      className="p-1 rounded-lg border border-depro-border text-depro-gray hover:text-depro-blue hover:border-depro-blue">
+                                      <RefreshCw size={12} />
+                                    </button>
+                                    <button type="button" title="Seleccionar ejercicio de la biblioteca"
+                                      onClick={() => setPickerId(pickerId === ex.id ? null : ex.id)}
+                                      className="px-2 py-1 rounded-lg border border-depro-border text-[11px] font-bold text-depro-blue hover:border-depro-blue">
+                                      Seleccionar ejercicio
+                                    </button>
+                                  </span>
+                                </div>
+                                {pickerId === ex.id && (
+                                  <ExerciseLibraryPicker
+                                    onClose={() => setPickerId(null)}
+                                    onSelect={(catalogEx) => handlePickExercise(ex.id, catalogEx)}
+                                  />
+                                )}
                               </div>
                             ))}
                           </div>

@@ -7,7 +7,8 @@ import {
   Phone, ExternalLink, PencilRuler,
 } from "lucide-react";
 import { useAdmin, mapPlayerToClient } from "../../context/AdminContext";
-import { refreshExerciseAcrossPlan, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
+import { refreshExerciseAcrossPlan, replaceExerciseWithLibrary, buildMesoPlayerPlan } from "../../lib/playerPlanEngine";
+import ExerciseLibraryPicker from "../../components/admin/ExerciseLibraryPicker";
 import { isPlayerPro } from "../../lib/subscription";
 import { loadPlayerPlan, weekDaysFromPlan, persistPlayerPlanRemote } from "../../lib/playerPlanStorage";
 import { getChatMessages, sendChatMessage } from "../../lib/internalChat";
@@ -94,6 +95,7 @@ function PlanTab({ clientId, client }) {
   const [exerciseDraft, setExerciseDraft] = useState({});
   const [newSession, setNewSession] = useState({ title: "", duration: "60 min", intensity: "Media", type: "Fuerza", objective: "", status: "upcoming", exercises: [] });
   const [newExercise, setNewExercise] = useState({ name: "", duration: "15 min", sets: "3", reps: "5", description: "", tips: "", videoUrl: "" });
+  const [pickerKey, setPickerKey] = useState(null);
 
   const day = plan[selectedDay];
 
@@ -136,6 +138,22 @@ function PlanTab({ clientId, client }) {
       slotConstraints: refreshed.slotConstraints || ex.slotConstraints,
       tips: Array.isArray(refreshed.tips) ? refreshed.tips.join(" · ") : (refreshed.tips || ex.tips),
     });
+  };
+
+  /** Cualquier ejercicio de la biblioteca, sin filtros del motor. Premium y Standard. */
+  const handlePickExercise = (dIdx, sIdx, eIdx, catalogExercise) => {
+    const session = plan[dIdx]?.sessions?.[sIdx];
+    const ex = session?.exercises?.[eIdx];
+    if (!session || !ex || !catalogExercise) return;
+    const stored = loadPlayerPlan(clientId) || raw;
+    let next = replaceExerciseWithLibrary(stored, session.id, ex.id, catalogExercise);
+    if (next === stored && raw && raw !== stored) {
+      next = replaceExerciseWithLibrary(raw, session.id, ex.id, catalogExercise);
+    }
+    if (!next || next === stored || next === raw) return;
+    setClientPlan(clientId, next);
+    persistPlayerPlanRemote(clientId, next).catch(() => {});
+    setPickerKey(null);
   };
 
   return (
@@ -301,18 +319,32 @@ function PlanTab({ clientId, client }) {
                             {ex.tips && <div className="text-xs text-depro-blue mt-1 flex items-center gap-1"><Info size={11} /> {ex.tips}</div>}
                             {ex.videoUrl && ex.videoUrl !== "#" && <a href={ex.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-depro-blue hover:underline mt-1 flex items-center gap-1"><PlayCircle size={11} /> Ver vídeo</a>}
                           </div>
-                          <div className="flex gap-1 flex-shrink-0">
+                          <div className="flex gap-1 flex-shrink-0 flex-wrap justify-end max-w-[220px]">
                             <button
-                              title="Sustituir por ejercicio compatible"
+                              title="Refrescar ejercicio compatible"
                               onClick={() => handleRefreshExercise(selectedDay, sIdx, eIdx)}
                               className="p-1.5 text-depro-gray hover:text-depro-blue hover:bg-depro-blue-light rounded-lg transition-all"
                             >
                               <RefreshCw size={13} />
                             </button>
+                            <button
+                              type="button"
+                              title="Seleccionar ejercicio de la biblioteca"
+                              onClick={() => setPickerKey(pickerKey === `${sIdx}-${eIdx}` ? null : `${sIdx}-${eIdx}`)}
+                              className="px-2 py-1 text-[11px] font-bold text-depro-blue hover:bg-depro-blue-light rounded-lg transition-all"
+                            >
+                              Seleccionar ejercicio
+                            </button>
                             <button onClick={() => startEditExercise(selectedDay, sIdx, eIdx)} className="p-1.5 text-depro-gray hover:text-depro-dark hover:bg-depro-gray-light rounded-lg transition-all"><Edit3 size={13} /></button>
                             <button onClick={() => deleteExercise(clientId, selectedDay, sIdx, eIdx)} className="p-1.5 text-depro-gray hover:text-depro-red hover:bg-depro-red-light rounded-lg transition-all"><Trash2 size={13} /></button>
                           </div>
                         </div>
+                      )}
+                      {pickerKey === `${sIdx}-${eIdx}` && !isEditingEx && (
+                        <ExerciseLibraryPicker
+                          onClose={() => setPickerKey(null)}
+                          onSelect={(catalogEx) => handlePickExercise(selectedDay, sIdx, eIdx, catalogEx)}
+                        />
                       )}
                     </div>
                   );
