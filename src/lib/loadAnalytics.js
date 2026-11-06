@@ -497,3 +497,229 @@ export function buildPublicStats(userId) {
     loadCount: getLoadLogs(userId).length,
   };
 }
+
+/** 1RM estimado (Epley). No se usa como predictor clínico. */
+export function estimate1RM(weight, reps) {
+  const w = Number(weight);
+  const r = Number(reps);
+  if (!Number.isFinite(w) || w <= 0 || !Number.isFinite(r) || r < 1) return null;
+  if (r === 1) return Math.round(w * 10) / 10;
+  return Math.round(w * (1 + r / 30) * 10) / 10;
+}
+
+function mondayKeyFromIso(iso) {
+  const d = new Date(iso || Date.now());
+  if (Number.isNaN(d.getTime())) return null;
+  const day = d.getDay() || 7;
+  const mon = new Date(d);
+  mon.setHours(12, 0, 0, 0);
+  mon.setDate(d.getDate() - day + 1);
+  return mon.toISOString().slice(0, 10);
+}
+
+function parseDurationMinutes(value) {
+  const raw = String(value || "");
+  const nums = raw.match(/(\d+(?:[.,]\d+)?)/g);
+  if (!nums?.length) return null;
+  const vals = nums.map((n) => parseFloat(n.replace(",", "."))).filter(Number.isFinite);
+  if (!vals.length) return null;
+  return vals.length === 1 ? vals[0] : (vals[0] + vals[vals.length - 1]) / 2;
+}
+
+function sessionLoadUnits(log) {
+  if (!log) return 0;
+  if (log.tipoRegistro === "session_rpe") {
+    const rpe = parseWeight(log.rpe);
+    const min = parseDurationMinutes(log.duration || log.time) || 45;
+    if (rpe == null) return 0;
+    return rpe * min;
+  }
+  const snap = extractFuerzaSnapshot(log);
+  if (snap?.volume) return snap.volume;
+  const rpe = parseWeight(log.rpe);
+  if (rpe != null) return rpe * (parseDurationMinutes(log.time || log.duration) || 10);
+  return 0;
+}
+
+function classifyLoadDomain(log) {
+  const tipo = String(log?.tipoRegistro || "").toLowerCase();
+  if (tipo === "fuerza") return "fuerza";
+  if (tipo === "resistencia") return "resistencia";
+  if (tipo === "velocidad" || tipo === "pliometria") return "velocidad";
+  const obj = String(log?.objective || log?.sessionTitle || "").toLowerCase();
+  if (/fuerza|hipertrof/.test(obj)) return "fuerza";
+  if (/resist/.test(obj)) return "resistencia";
+  if (/veloc|sprint|pliom/.test(obj)) return "velocidad";
+  return "otros";
+}
+
+export function listLoggedExercises(userId) {
+  const names = new Map();
+  for (const log of getLoadLogs(userId)) {
+    if (log.tipoRegistro === "session_rpe") continue;
+    const name = String(log.exerciseName || log.nombre || "").trim();
+    if (!name) continue;
+    const prev = names.get(name);
+    const at = log.recordedAt || "";
+    if (!prev || at > prev.lastAt) names.set(name, { name, lastAt: at, tipo: classifyLoadDomain(log) });
+  }
+  return [...names.values()].sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+}
+
+export function getExerciseProgressDetail(userId, exerciseName) {
+  const name = String(exerciseName || "").trim().toLowerCase();
+  const logs = getLoadLogs(userId)
+    .filter((l) => String(l.exerciseName || l.nombre || "").trim().toLowerCase() === name)
+    .sort((a, b) => new Date(a.recordedAt) - new Date(b.recordedAt));
+  const snaps = logs.map((log) => {
+    const snap = extractFuerzaSnapshot(log) || {};
+    const epley = snap.maxWeight != null && snap.repsAtMax
+      ? estimate1RM(snap.maxWeight, snap.repsAtMax)
+      : null;
+    return {
+      log,
+      ...snap,
+      epley,
+      series: Array.isArray(log.series) ? log.series : [],
+      date: log.recordedAt,
+    };
+  }).filter((s) => s.maxWeight != null || s.volume != null || s.totalReps != null);
+  if (!snaps.length) {
+    return { exerciseName, sessions: [], last: null, prev: null, record: null, epley: null };
+  }
+  const last = snaps[snaps.length - 1];
+  const prev = snaps.length > 1 ? snaps[snaps.length - 2] : null;
+  const record = snaps.reduce((best, s) => {
+    if (s.maxWeight == null) return best;
+    if (!best || s.maxWeight > best.maxWeight) return s;
+    return best;
+  }, null);
+  return {
+    exerciseName,
+    sessions: snaps,
+    last,
+    prev,
+    record,
+    deltaWeight: last.maxWeight != null && prev?.maxWeight != null
+      ? Math.round((last.maxWeight - prev.maxWeight) * 10) / 10
+      : null,
+    epley: last.epley,
+    chartWeight: snaps.map((s, i) => ({
+      label: i === snaps.length - 1 ? "Actual" : `S−${snaps.length - 1 - i}`,
+      value: s.maxWeight,
+    })).slice(-8),
+    chartVolume: snaps.map((s, i) => ({
+      label: i === snaps.length - 1 ? "Actual" : `S−${snaps.length - 1 - i}`,
+      value: s.volume,
+    })).slice(-8),
+    chart1rm: snaps.map((s, i) => ({
+      label: i === snaps.length - 1 ? "Actual" : `S−${snaps.length - 1 - i}`,
+      value: s.epley,
+    })).slice(-8),
+  };
+}
+
+/**
+ * Control de carga semanal + ACWR descriptivo (no predictor de lesiones).
+ * ACWR = carga aguda (7 días) / crónica (media de 4 semanas). Requiere ≥3 semanas.
+ */
+export function getWeeklyLoadControl(userId, { weeks = 4 } = {}) {
+  const logs = getLoadLogs(userId);
+  const byWeek = {};
+  for (const log of logs) {
+    const wk = mondayKeyFromIso(log.recordedAt);
+    if (!wk) continue;
+    if (!byWeek[wk]) {
+      byWeek[wk] = {
+        week: wk,
+        units: 0,
+        minutes: 0,
+        rpeSum: 0,
+        rpeCount: 0,
+        sessionIds: new Set(),
+        domains: { fuerza: 0, resistencia: 0, velocidad: 0, otros: 0 },
+      };
+    }
+    const bucket = byWeek[wk];
+    const units = sessionLoadUnits(log);
+    bucket.units += units;
+    const mins = parseDurationMinutes(log.duration || log.time);
+    if (mins) bucket.minutes += mins;
+    const rpe = parseWeight(log.rpe);
+    if (rpe != null) {
+      bucket.rpeSum += rpe;
+      bucket.rpeCount += 1;
+    }
+    if (log.sessionId) bucket.sessionIds.add(log.sessionId);
+    else bucket.sessionIds.add(log.id);
+    bucket.domains[classifyLoadDomain(log)] += units;
+  }
+
+  const keys = Object.keys(byWeek).sort();
+  const lastKeys = [];
+  const todayMon = mondayKeyFromIso(new Date().toISOString());
+  for (let i = weeks - 1; i >= 0; i--) {
+    const d = new Date(`${todayMon}T12:00:00`);
+    d.setDate(d.getDate() - 7 * i);
+    lastKeys.push(d.toISOString().slice(0, 10));
+  }
+  const series = lastKeys.map((week, i) => {
+    const b = byWeek[week];
+    return {
+      week,
+      label: i === lastKeys.length - 1 ? "Actual" : `S−${lastKeys.length - 1 - i}`,
+      units: b ? Math.round(b.units) : 0,
+      minutes: b ? Math.round(b.minutes) : 0,
+      sessions: b ? b.sessionIds.size : 0,
+      avgRpe: b && b.rpeCount ? Math.round((b.rpeSum / b.rpeCount) * 10) / 10 : null,
+      domains: b ? b.domains : { fuerza: 0, resistencia: 0, velocidad: 0, otros: 0 },
+    };
+  });
+
+  const current = series[series.length - 1] || {
+    units: 0, minutes: 0, sessions: 0, avgRpe: null,
+    domains: { fuerza: 0, resistencia: 0, velocidad: 0, otros: 0 },
+  };
+  const prev = series.length > 1 ? series[series.length - 2] : null;
+  const chronicWeeks = series.filter((s) => s.units > 0);
+  const chronic = chronicWeeks.length >= 3
+    ? chronicWeeks.reduce((a, s) => a + s.units, 0) / chronicWeeks.length
+    : null;
+  const acute = current.units;
+  const acwr = chronic && chronic > 0 ? Math.round((acute / chronic) * 100) / 100 : null;
+  let acwrBand = null;
+  if (acwr != null) {
+    if (acwr < 0.8) acwrBand = { label: "Baja", tone: "neutral" };
+    else if (acwr <= 1.3) acwrBand = { label: "Óptima", tone: "positive" };
+    else acwrBand = { label: "Alta", tone: "mixed" };
+  }
+
+  const domainTotals = current.domains;
+  const domainSum = Object.values(domainTotals).reduce((a, b) => a + b, 0) || 1;
+  const distribution = ["fuerza", "resistencia", "velocidad", "otros"].map((k) => ({
+    key: k,
+    label: k === "otros" ? "Otros" : k[0].toUpperCase() + k.slice(1),
+    units: Math.round(domainTotals[k] || 0),
+    pct: Math.round(((domainTotals[k] || 0) / domainSum) * 100),
+  }));
+
+  return {
+    current: {
+      units: Math.round(current.units),
+      minutes: current.minutes,
+      sessions: current.sessions,
+      avgRpe: current.avgRpe,
+    },
+    prev: prev ? {
+      units: Math.round(prev.units),
+      minutes: prev.minutes,
+      sessions: prev.sessions,
+      avgRpe: prev.avgRpe,
+    } : null,
+    series,
+    distribution,
+    acwr,
+    acwrBand,
+    weeksWithData: keys.length,
+  };
+}

@@ -26,4 +26,11 @@ describe("tipo_registro", () => {
     assert.equal(fieldsForTipoRegistro("velocidad").includes("distance"), false);
     assert.ok(fieldsForTipoRegistro("resistencia").includes("heartRate"));
   });
+
+  it("bloque principal o complementario es registrable aunque falten etiquetas", () => {
+    assert.equal(getTipoRegistro({ name: "Press banca con barra", blockType: "principal" }), "fuerza");
+    assert.equal(getTipoRegistro({ name: "Curl de bíceps", blockType: "complementario" }), "fuerza");
+    assert.equal(isLoadRegistrable({ name: "Press banca con barra", blockType: "principal" }), true);
+    assert.equal(getTipoRegistro({ name: "Movilidad", blockType: "calentamiento" }), "no_registrable");
+  });
 });
