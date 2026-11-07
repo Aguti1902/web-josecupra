@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Search, Users, RefreshCw, CreditCard, Building2, User, Shield, Plus, Dumbbell, Trash2,
+  Search, Users, RefreshCw, CreditCard, Building2, User, Shield, Plus, Dumbbell, Trash2, Ban,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useAdmin } from "../../context/AdminContext";
@@ -103,6 +103,8 @@ export default function AdminUsersPage() {
   const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState("");
   const [billingEmail, setBillingEmail] = useState("");
+  const [pendingOrphanCleanup, setPendingOrphanCleanup] = useState(false);
+  const [cleaningOrphans, setCleaningOrphans] = useState(false);
 
   useEffect(() => {
     const alta = searchParams.get("alta");
@@ -211,6 +213,8 @@ export default function AdminUsersPage() {
       if (billing.canceledCount) parts.push(`${billing.canceledCount} suscripción(es) cancelada(s)`);
       if (billing.refundedCents) parts.push(`reembolso de ${billing.refundedEuros}€`);
       if (billing.voidedCount) parts.push(`${billing.voidedCount} factura(s) anulada(s)`);
+      if (billing.detachedCount) parts.push(`${billing.detachedCount} método(s) de pago desvinculado(s)`);
+      if (billing.deletedCustomerCount) parts.push(`${billing.deletedCustomerCount} cliente(s) Stripe eliminado(s)`);
       if (billing.errors?.length) {
         setError(`Cuenta procesada, pero Stripe avisó: ${billing.errors.join(" · ")}`);
       }
@@ -223,6 +227,35 @@ export default function AdminUsersPage() {
       setError(e.message);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const confirmOrphanCleanup = async () => {
+    setCleaningOrphans(true);
+    setError("");
+    setNotice("");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch("/api/stripe-orphan-cleanup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "No se pudo limpiar Stripe");
+      setPendingOrphanCleanup(false);
+      const extra = json.errors?.length ? `Avisos: ${json.errors.join(" · ")}` : "";
+      setNotice(
+        `Limpieza Stripe: ${json.canceledCount || 0} suscripción(es) huérfana(s) cancelada(s) de ${json.scanned || 0} revisada(s). ${extra}`.trim(),
+      );
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setCleaningOrphans(false);
     }
   };
 
@@ -282,6 +315,13 @@ export default function AdminUsersPage() {
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-semibold hover:bg-depro-blue-dark"
           >
             <Plus size={14} /> Crear jugador
+          </button>
+          <button
+            type="button"
+            onClick={() => setPendingOrphanCleanup(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-sm font-semibold text-red-700 hover:bg-red-50"
+          >
+            <Ban size={14} /> Limpiar suscripciones huérfanas
           </button>
           <button
             onClick={load}
@@ -472,7 +512,7 @@ export default function AdminUsersPage() {
             <p className="text-sm text-depro-gray text-center mb-6">
               {pendingDelete.billingOnly
                 ? "Se cancelan todas las suscripciones de ese email (plan y extras) y se reembolsa el cobro si es de los últimos 14 días."
-                : "Se elimina de la plataforma y se cancelan los cobros de Stripe (plan y extras). Si acaba de cobrarse, se reembolsa. Esta acción no se puede deshacer."}
+                : "Se elimina de la plataforma. Antes se cancelan todas las suscripciones de Stripe (plan y extras), se desvinculan los métodos de pago y se borra el cliente para que no haya cobros futuros. Si acaba de cobrarse, se reembolsa. Esta acción no se puede deshacer."}
             </p>
             <div className="flex gap-3">
               <button
@@ -494,6 +534,40 @@ export default function AdminUsersPage() {
                   : pendingDelete.billingOnly
                     ? "Anular cobros"
                     : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingOrphanCleanup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-depro w-full max-w-sm p-6">
+            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <Ban size={22} className="text-red-500" />
+            </div>
+            <h2 className="text-lg font-bold text-depro-dark text-center mb-2">
+              ¿Cancelar suscripciones huérfanas?
+            </h2>
+            <p className="text-sm text-depro-gray text-center mb-6">
+              Revisa Stripe y cancela las suscripciones activas o en prueba que no tengan un usuario válido en la plataforma. No toca las cuentas que siguen existiendo. Las suscripciones creadas en los últimos 30 minutos se saltan para no romper un alta en curso.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingOrphanCleanup(false)}
+                disabled={cleaningOrphans}
+                className="flex-1 py-2.5 rounded-xl border border-depro-border text-sm text-depro-gray hover:bg-depro-gray-light"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmOrphanCleanup}
+                disabled={cleaningOrphans}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50"
+              >
+                {cleaningOrphans ? "Limpiando…" : "Limpiar ahora"}
               </button>
             </div>
           </div>

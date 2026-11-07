@@ -1,4 +1,4 @@
-import { findUserByStripeCustomer } from "./_supabaseAdmin.js";
+import { findUserByEmail, findUserByStripeCustomer } from "./_supabaseAdmin.js";
 import { addonIdsFromSubscriptionItems } from "./_addonCatalog.js";
 import { removePlayerFromReferralRegistry } from "./_clubReferrals.js";
 
@@ -149,8 +149,7 @@ export async function syncCheckoutSession(supabaseAdmin, session) {
     ? meta.selectedAddons.split("|").map((s) => s.trim()).filter(Boolean)
     : [];
 
-  const { data: list } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-  const found = list?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+  const found = await findUserByEmail(supabaseAdmin, email);
 
   if (found) {
     const prev = found.user_metadata?.purchasedAddons || [];

@@ -66,6 +66,7 @@ const WEBHOOK_EVENTS = [
   "customer.subscription.deleted",
   "invoice.payment_failed",
   "invoice.paid",
+  "invoice.upcoming",
 ];
 
 async function main() {
