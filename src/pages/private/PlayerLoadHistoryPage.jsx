@@ -14,6 +14,7 @@ import {
 } from "../../lib/loadAnalytics";
 import { mondayOfDate, formatWeekLabel } from "../../lib/wellnessLogs";
 import { LineChart, BarChart, DonutChart } from "../../components/private/SparkCharts";
+import ConditioningExercisePanel from "../../components/private/ConditioningExercisePanel";
 
 function deltaClass(delta, invert = false) {
   if (delta == null || Math.abs(delta) < 0.05) return "text-depro-gray";
@@ -32,11 +33,12 @@ function Delta({ value, unit = "", invert = false }) {
   );
 }
 
-function MetricCard({ label, value, sub, icon: Icon, accent = "text-depro-red" }) {
+function MetricCard({ label, value, sub, icon, accent = "text-depro-red" }) {
+  const Glyph = icon;
   return (
     <div className="rounded-2xl border border-depro-border bg-white p-4 shadow-card">
       <p className="text-[11px] font-bold uppercase tracking-wide text-depro-gray inline-flex items-center gap-1.5 mb-2">
-        <Icon size={13} className={accent} /> {label}
+        <Glyph size={13} className={accent} /> {label}
       </p>
       <p className="text-2xl font-black text-depro-dark tabular-nums">{value}</p>
       {sub && <div className="mt-1 text-sm">{sub}</div>}
@@ -47,6 +49,7 @@ function MetricCard({ label, value, sub, icon: Icon, accent = "text-depro-red" }
 export default function PlayerLoadHistoryPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState("ejercicio");
+  const [domain, setDomain] = useState("fuerza");
   const [metric, setMetric] = useState("peso");
   const [tick, setTick] = useState(0);
   const [exerciseName, setExerciseName] = useState("");
@@ -57,13 +60,17 @@ export default function PlayerLoadHistoryPage() {
   }, [user?.id]);
 
   const exercises = useMemo(() => listLoggedExercises(user?.id), [user?.id, tick]);
-  useEffect(() => {
-    if (!exerciseName && exercises[0]?.name) setExerciseName(exercises[0].name);
-  }, [exercises, exerciseName]);
+  const strengthExercises = useMemo(
+    () => exercises.filter((exercise) => exercise.tipo !== "resistencia" && exercise.tipo !== "velocidad"),
+    [exercises],
+  );
+  const strengthName = strengthExercises.some((exercise) => exercise.name === exerciseName)
+    ? exerciseName
+    : (strengthExercises[0]?.name || "");
 
   const detail = useMemo(
-    () => (exerciseName ? getExerciseProgressDetail(user?.id, exerciseName) : null),
-    [user?.id, exerciseName, tick],
+    () => (strengthName ? getExerciseProgressDetail(user?.id, strengthName) : null),
+    [user?.id, strengthName, tick],
   );
   const control = useMemo(() => getWeeklyLoadControl(user?.id, { weeks: 4 }), [user?.id, tick]);
 
@@ -129,16 +136,37 @@ export default function PlayerLoadHistoryPage() {
 
         {tab === "ejercicio" && (
           <div className="space-y-4">
+            <div className="inline-flex rounded-full bg-neutral-100 p-1">
+              {[
+                { id: "fuerza", label: "Fuerza" },
+                { id: "resistencia", label: "Resistencia" },
+                { id: "velocidad", label: "Velocidad" },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setDomain(item.id)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-bold ${domain === item.id ? "bg-[#FB2C39] text-white" : "text-neutral-600"}`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            {domain !== "fuerza" && (
+              <ConditioningExercisePanel key={domain} userId={user?.id} domain={domain} tick={tick} />
+            )}
+            {domain === "fuerza" && (
+          <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
               <label className="relative flex-1">
                 <span className="sr-only">Ejercicio</span>
                 <select
-                  value={exerciseName}
+                  value={strengthName}
                   onChange={(e) => setExerciseName(e.target.value)}
                   className="w-full rounded-xl border border-depro-border bg-white px-4 py-2.5 text-sm font-semibold text-depro-dark outline-none focus:border-depro-red"
                 >
-                  {exercises.length === 0 && <option value="">Sin ejercicios registrados</option>}
-                  {exercises.map((ex) => (
+                  {strengthExercises.length === 0 && <option value="">Sin ejercicios registrados</option>}
+                  {strengthExercises.map((ex) => (
                     <option key={ex.name} value={ex.name}>{ex.name}</option>
                   ))}
                 </select>
@@ -161,7 +189,7 @@ export default function PlayerLoadHistoryPage() {
               </div>
             </div>
 
-            {exercises.length === 0 ? (
+            {strengthExercises.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-depro-border bg-white p-10 text-center text-sm text-depro-gray">
                 Guarda series desde una sesión para ver la progresión de cada ejercicio.
                 <div className="mt-3">
@@ -241,6 +269,8 @@ export default function PlayerLoadHistoryPage() {
                   </div>
                 </div>
               </>
+            )}
+          </div>
             )}
           </div>
         )}

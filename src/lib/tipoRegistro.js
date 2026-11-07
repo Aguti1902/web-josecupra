@@ -69,7 +69,7 @@ export function fieldsForTipoRegistro(tipo) {
     case "fuerza":
       return ["weight", "sets", "reps", "rest", "notes"];
     case "velocidad":
-      return ["time", "heartRate", "notes"];
+      return ["time", "reps", "rest", "heartRate", "notes"];
     case "resistencia":
       return ["time", "distance", "heartRate", "intensity", "rpe", "notes"];
     case "pliometria":

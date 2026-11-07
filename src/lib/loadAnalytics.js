@@ -566,6 +566,194 @@ export function listLoggedExercises(userId) {
   return [...names.values()].sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
 }
 
+/** Distancia libre del registro → km. «8 km» o un número corto son km; 8000 o «400 m» son metros. */
+export function parseDistanceToKm(value) {
+  if (value == null || value === "") return null;
+  const raw = String(value).trim().toLowerCase();
+  const n = parseFloat(raw.replace(",", ".").replace(/[^\d.]/g, ""));
+  if (!Number.isFinite(n) || n < 0) return null;
+  if (/km/.test(raw)) return n;
+  if (/\d\s*m\b|metros/.test(raw)) return n / 1000;
+  return n >= 100 ? n / 1000 : n;
+}
+
+export function formatPace(secPerKm) {
+  if (secPerKm == null || !Number.isFinite(secPerKm) || secPerKm <= 0) return null;
+  const minutes = Math.floor(secPerKm / 60);
+  const seconds = Math.round(secPerKm % 60);
+  return `${minutes}'${String(seconds).padStart(2, "0")}"/km`;
+}
+
+export function formatDuration(sec) {
+  if (sec == null || !Number.isFinite(sec)) return null;
+  const total = Math.round(sec);
+  if (total >= 3600) {
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.round((total % 3600) / 60);
+    return `${hours}h ${minutes}min`;
+  }
+  if (total >= 60) {
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    return seconds ? `${minutes}:${String(seconds).padStart(2, "0")}` : `${minutes} min`;
+  }
+  return `${new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(sec)} s`;
+}
+
+function conditioningSnap(log) {
+  const timeSec = parseTimeToSeconds(log.time);
+  const distanceKm = parseDistanceToKm(log.distance);
+  const heartRate = parseWeight(log.heartRate);
+  const rpe = parseWeight(log.rpe);
+  const reps = parseReps(log.reps);
+  const paceSec = distanceKm > 0 && timeSec > 0 ? timeSec / distanceKm : null;
+  const load = rpe != null && timeSec != null ? Math.round(rpe * (timeSec / 60)) : null;
+  return {
+    date: log.recordedAt,
+    timeSec,
+    distanceKm,
+    heartRate,
+    rpe,
+    reps,
+    repsLabel: log.reps || null,
+    rest: log.rest || null,
+    paceSec,
+    load,
+  };
+}
+
+function sumField(rows, key) {
+  const vals = rows.map((row) => row[key]).filter((value) => value != null && Number.isFinite(value));
+  if (!vals.length) return null;
+  return vals.reduce((acc, value) => acc + value, 0);
+}
+
+function avgField(rows, key) {
+  const vals = rows.map((row) => row[key]).filter((value) => value != null && Number.isFinite(value));
+  if (!vals.length) return null;
+  return vals.reduce((acc, value) => acc + value, 0) / vals.length;
+}
+
+function periodTotals(rows) {
+  const distanceKm = sumField(rows, "distanceKm");
+  const timeSec = sumField(rows, "timeSec");
+  const load = sumField(rows, "load");
+  return {
+    distanceKm,
+    timeSec,
+    paceSec: distanceKm > 0 && timeSec > 0 ? timeSec / distanceKm : null,
+    heartRate: avgField(rows, "heartRate"),
+    load,
+    reps: sumField(rows, "reps"),
+  };
+}
+
+function bestOf(rows, key, higher) {
+  const vals = rows.filter((row) => row[key] != null && Number.isFinite(row[key]));
+  if (!vals.length) return null;
+  return vals.reduce((best, row) => {
+    if (!best) return row;
+    return higher ? (row[key] > best[key] ? row : best) : (row[key] < best[key] ? row : best);
+  }, null);
+}
+
+function chartPoints(rows, key) {
+  return rows.map((row, index) => ({
+    label: index === rows.length - 1 ? "Actual" : `S−${rows.length - 1 - index}`,
+    value: row[key],
+  })).slice(-8);
+}
+
+/**
+ * Historial de un solo ejercicio de resistencia o velocidad.
+ * No mezcla otras sesiones ni otros ejercicios.
+ */
+export function getConditioningExerciseDetail(userId, exerciseName, domain, { weeks = 4, now = new Date() } = {}) {
+  const wanted = String(exerciseName || "").trim().toLowerCase();
+  const all = getLoadLogs(userId)
+    .filter((log) => classifyLoadDomain(log) === domain)
+    .filter((log) => String(log.exerciseName || log.nombre || "").trim().toLowerCase() === wanted)
+    .map(conditioningSnap)
+    .filter((row) => row.date)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const end = new Date(now);
+  const windowStart = weeks > 0 ? new Date(end.getTime() - weeks * 7 * 86400000) : null;
+  const prevStart = weeks > 0 ? new Date(windowStart.getTime() - weeks * 7 * 86400000) : null;
+  const inRange = (row, from, to, inclusiveEnd) => {
+    const time = new Date(row.date).getTime();
+    return time >= from.getTime() && (inclusiveEnd ? time <= to.getTime() : time < to.getTime());
+  };
+  const currentRows = windowStart ? all.filter((row) => inRange(row, windowStart, end, true)) : all;
+  const previousRows = windowStart ? all.filter((row) => inRange(row, prevStart, windowStart, false)) : [];
+  const totals = periodTotals(currentRows);
+  const previous = weeks > 0 ? periodTotals(previousRows) : null;
+  const last = currentRows[currentRows.length - 1] || null;
+  const prevSession = currentRows.length > 1 ? currentRows[currentRows.length - 2] : null;
+  const deltaSource = weeks > 0 ? previous : (prevSession ? {
+    distanceKm: prevSession.distanceKm,
+    timeSec: prevSession.timeSec,
+    paceSec: prevSession.paceSec,
+    heartRate: prevSession.heartRate,
+    load: prevSession.load,
+  } : null);
+  const deltaPct = (from, to) => {
+    if (from == null || to == null || !Number.isFinite(from) || !Number.isFinite(to) || from === 0) return null;
+    return Math.round(((to - from) / Math.abs(from)) * 100);
+  };
+
+  const weekCount = weeks > 0 ? weeks : 4;
+  const thisMonday = mondayKeyFromIso(end.toISOString());
+  const weekKeys = [];
+  for (let i = weekCount - 1; i >= 0; i -= 1) {
+    const day = new Date(`${thisMonday}T12:00:00`);
+    day.setDate(day.getDate() - 7 * i);
+    weekKeys.push(day.toISOString().slice(0, 10));
+  }
+  const weekly = weekKeys.map((week, index) => {
+    const rows = currentRows.filter((row) => mondayKeyFromIso(row.date) === week);
+    const distance = sumField(rows, "distanceKm");
+    const bestTime = bestOf(rows, "timeSec", false);
+    return {
+      week,
+      label: index === weekKeys.length - 1 ? "Actual" : `S−${weekKeys.length - 1 - index}`,
+      distanceKm: distance || 0,
+      bestTimeSec: bestTime?.timeSec ?? null,
+    };
+  });
+
+  return {
+    exerciseName,
+    domain,
+    empty: currentRows.length === 0,
+    sessions: [...currentRows].reverse(),
+    chrono: currentRows,
+    totals,
+    deltas: {
+      distance: deltaPct(deltaSource?.distanceKm, totals.distanceKm),
+      time: deltaPct(deltaSource?.timeSec, totals.timeSec),
+      pace: deltaPct(deltaSource?.paceSec, totals.paceSec),
+      heartRate: deltaPct(deltaSource?.heartRate, totals.heartRate),
+      load: deltaPct(deltaSource?.load, totals.load),
+    },
+    best: {
+      timeSec: bestOf(all, "timeSec", false)?.timeSec ?? null,
+      distanceKm: bestOf(all, "distanceKm", true)?.distanceKm ?? null,
+      paceSec: bestOf(all, "paceSec", false)?.paceSec ?? null,
+    },
+    last,
+    charts: {
+      load: chartPoints(currentRows, "load"),
+      distance: chartPoints(currentRows, "distanceKm"),
+      time: chartPoints(currentRows, "timeSec"),
+      pace: chartPoints(currentRows, "paceSec"),
+      heartRate: chartPoints(currentRows, "heartRate"),
+      rpe: chartPoints(currentRows, "rpe"),
+    },
+    weekly,
+  };
+}
+
 export function getExerciseProgressDetail(userId, exerciseName) {
   const name = String(exerciseName || "").trim().toLowerCase();
   const logs = getLoadLogs(userId)

@@ -6,7 +6,7 @@ function finitePoints(series) {
     .filter((p) => Number.isFinite(p.v));
 }
 
-export function LineChart({ series = [], color = "#7C3AED", height = 160, fill = true, unit = "" }) {
+export function LineChart({ series = [], color = "#7C3AED", height = 160, fill = true, unit = "", formatTick = null }) {
   const w = 320;
   const h = height;
   const pad = { l: 28, r: 8, t: 12, b: 28 };
@@ -37,7 +37,7 @@ export function LineChart({ series = [], color = "#7C3AED", height = 160, fill =
         <g key={i}>
           <line x1={pad.l} x2={w - pad.r} y1={yOf(t)} y2={yOf(t)} stroke="#EEF2FF" strokeWidth="1" />
           <text x={pad.l - 4} y={yOf(t) + 3} textAnchor="end" fontSize="8" fill="#9CA3AF">
-            {Math.round(t * 10) / 10}{unit}
+            {formatTick ? formatTick(t) : `${Math.round(t * 10) / 10}${unit}`}
           </text>
         </g>
       ))}
@@ -208,7 +208,7 @@ export function RecoverChart({ fatigue = [], sleep = [], pain = [], height = 180
   );
 }
 
-export function BarChart({ series = [], color = "#FB2C39", height = 160 }) {
+export function BarChart({ series = [], color = "#FB2C39", height = 160, formatValue = null }) {
   const w = 320;
   const h = height;
   const pad = { l: 28, r: 8, t: 16, b: 28 };
@@ -230,7 +230,7 @@ export function BarChart({ series = [], color = "#FB2C39", height = 160 }) {
           <g key={p.label || i}>
             <rect x={x} y={y} width={barW} height={bh} rx="6" fill={color} opacity={i === series.length - 1 ? 1 : 0.75} />
             <text x={x + barW / 2} y={y - 4} textAnchor="middle" fontSize="8" fontWeight="700" fill="#111827">
-              {v ? Math.round(v).toLocaleString("es-ES") : ""}
+              {v ? (formatValue ? formatValue(v) : Math.round(v).toLocaleString("es-ES")) : ""}
             </text>
             <text x={x + barW / 2} y={h - 8} textAnchor="middle" fontSize="8" fill="#9CA3AF">{p.label}</text>
           </g>

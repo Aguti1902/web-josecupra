@@ -14,6 +14,9 @@ import {
   listLoggedExercises,
   getExerciseProgressDetail,
   getWeeklyLoadControl,
+  getConditioningExerciseDetail,
+  parseDistanceToKm,
+  formatPace,
 } from "./loadAnalytics.js";
 import { loadLogsKey } from "./loadLogs.js";
 
@@ -211,5 +214,68 @@ describe("loadAnalytics — mejoras prácticas", () => {
     assert.ok(control.acwr != null);
     assert.equal(control.acwrBand.label, "Óptima");
     assert.ok(control.distribution.some((d) => d.key === "fuerza" && d.units > 0));
+  });
+});
+
+describe("condicionamiento por ejercicio", () => {
+  beforeEach(() => {
+    globalThis.localStorage = {
+      _data: {},
+      getItem(k) { return this._data[k] ?? null; },
+      setItem(k, v) { this._data[k] = String(v); },
+      removeItem(k) { delete this._data[k]; },
+    };
+  });
+  afterEach(() => {
+    delete globalThis.localStorage;
+  });
+
+  it("parsea distancia y ritmo", () => {
+    assert.equal(parseDistanceToKm("8 km"), 8);
+    assert.equal(parseDistanceToKm("8000"), 8);
+    assert.equal(parseDistanceToKm("400 m"), 0.4);
+    assert.equal(formatPace(332), "5'32\"/km");
+  });
+
+  it("la resistencia de un ejercicio no mezcla otras sesiones", () => {
+    seedLogs([
+      { id: "a", exerciseName: "Carrera continua", tipoRegistro: "resistencia", recordedAt: "2026-10-20T10:00:00Z", distance: "6.4", time: "32:10", heartRate: "162", rpe: "8" },
+      { id: "b", exerciseName: "Carrera continua", tipoRegistro: "resistencia", recordedAt: "2026-11-05T10:00:00Z", distance: "8", time: "44:16", heartRate: "157", rpe: "7" },
+      { id: "c", exerciseName: "Intervalos 400 m", tipoRegistro: "resistencia", recordedAt: "2026-11-05T11:00:00Z", distance: "4", time: "16:00", heartRate: "175", rpe: "9" },
+    ]);
+    const detail = getConditioningExerciseDetail(USER, "Carrera continua", "resistencia", {
+      weeks: 4,
+      now: new Date("2026-11-07T12:00:00Z"),
+    });
+    assert.equal(detail.sessions.length, 2);
+    assert.equal(detail.sessions.some((s) => s.distanceKm === 4), false);
+    assert.equal(Math.round(detail.totals.distanceKm * 10) / 10, 14.4);
+    assert.equal(formatPace(detail.sessions[0].paceSec), "5'32\"/km");
+    assert.equal(detail.charts.distance.at(-1).value, 8);
+  });
+
+  it("en velocidad el tiempo baja cuando hay mejora y cada sprint va aparte", () => {
+    seedLogs([
+      { id: "s1", exerciseName: "Sprint 10 m", tipoRegistro: "velocidad", recordedAt: "2026-11-01T10:00:00Z", time: "2.30", reps: "4", rest: "90 s", heartRate: "160" },
+      { id: "s2", exerciseName: "Sprint 10 m", tipoRegistro: "velocidad", recordedAt: "2026-11-06T10:00:00Z", time: "2.08", reps: "5", rest: "90 s", heartRate: "155" },
+      { id: "s3", exerciseName: "Sprint 20 m", tipoRegistro: "velocidad", recordedAt: "2026-11-06T10:05:00Z", time: "3.40", reps: "3", rest: "2 min" },
+    ]);
+    const detail = getConditioningExerciseDetail(USER, "Sprint 10 m", "velocidad", {
+      weeks: 4,
+      now: new Date("2026-11-07T12:00:00Z"),
+    });
+    assert.equal(detail.sessions.length, 2);
+    assert.equal(detail.best.timeSec, 2.08);
+    assert.equal(detail.charts.time[0].value, 2.3);
+    assert.equal(detail.charts.time.at(-1).value, 2.08);
+    assert.ok(detail.charts.time.at(-1).value < detail.charts.time[0].value);
+    assert.equal(detail.last.reps, 5);
+    assert.equal(detail.last.rest, "90 s");
+    const other = getConditioningExerciseDetail(USER, "Sprint 20 m", "velocidad", {
+      weeks: 4,
+      now: new Date("2026-11-07T12:00:00Z"),
+    });
+    assert.equal(other.sessions.length, 1);
+    assert.equal(other.best.timeSec, 3.4);
   });
 });

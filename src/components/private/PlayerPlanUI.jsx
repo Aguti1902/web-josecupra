@@ -387,6 +387,14 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
                         <input className="admin-input w-full text-xs mt-1" placeholder="1.85 s" value={loadDraft.time || ""} onChange={(e) => setLoadDraft({ ...loadDraft, time: e.target.value })} />
                       </div>
                       <div>
+                        <label className="text-[10px] font-bold text-depro-gray uppercase">Repeticiones</label>
+                        <input className="admin-input w-full text-xs mt-1" inputMode="numeric" placeholder="6" value={loadDraft.reps || ""} onChange={(e) => setLoadDraft({ ...loadDraft, reps: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-depro-gray uppercase">Descanso</label>
+                        <input className="admin-input w-full text-xs mt-1" placeholder="90 s" value={loadDraft.rest || ""} onChange={(e) => setLoadDraft({ ...loadDraft, rest: e.target.value })} />
+                      </div>
+                      <div>
                         <label className="text-[10px] font-bold text-depro-gray uppercase">FC media</label>
                         <input className="admin-input w-full text-xs mt-1" inputMode="numeric" placeholder="165" value={loadDraft.heartRate || ""} onChange={(e) => setLoadDraft({ ...loadDraft, heartRate: e.target.value })} />
                       </div>
