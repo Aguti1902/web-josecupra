@@ -83,13 +83,13 @@ export default function FriendsPanel({ user, onFriendsChange }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-bold text-depro-dark flex items-center gap-2">
-            <Users size={16} className="text-depro-blue" /> Amigos
+            <Users size={16} className="text-[#FB2C39]" /> Amigos
           </h2>
           <p className="text-xs text-depro-gray mt-1">
             Comparte tu enlace con otros jugadores DEPRO para unirse y comparar progreso.
           </p>
         </div>
-        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-depro-blue/10 text-depro-blue flex-shrink-0">
+        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-neutral-100 text-[#111] flex-shrink-0">
           {friends.length} amigo{friends.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -107,7 +107,7 @@ export default function FriendsPanel({ user, onFriendsChange }) {
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full border border-depro-border text-xs font-bold text-depro-dark hover:border-depro-blue transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full border border-neutral-200 text-xs font-bold text-[#111] hover:border-[#111] transition-colors"
             >
               {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
               {copied ? "Copiado" : "Copiar"}
@@ -115,7 +115,7 @@ export default function FriendsPanel({ user, onFriendsChange }) {
             <button
               type="button"
               onClick={handleShare}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold text-white bg-depro-blue hover:opacity-90 transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold text-white bg-[#111] hover:opacity-90 transition-colors"
             >
               <Share2 size={14} /> Compartir
             </button>
@@ -125,7 +125,7 @@ export default function FriendsPanel({ user, onFriendsChange }) {
           type="button"
           onClick={handleRegister}
           disabled={loading}
-          className="text-[11px] font-semibold text-depro-blue hover:underline inline-flex items-center gap-1"
+          className="text-[11px] font-semibold text-[#FB2C39] hover:underline inline-flex items-center gap-1"
         >
           <Link2 size={12} /> Activar mi perfil público para amigos
         </button>
@@ -144,7 +144,7 @@ export default function FriendsPanel({ user, onFriendsChange }) {
             type="button"
             onClick={handleJoin}
             disabled={loading}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-bold text-white bg-depro-blue hover:opacity-90 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-bold text-white bg-[#FB2C39] hover:opacity-90 disabled:opacity-50"
           >
             <UserPlus size={15} /> Unirme
           </button>
@@ -165,7 +165,7 @@ export default function FriendsPanel({ user, onFriendsChange }) {
           <p className="text-xs font-bold text-depro-dark uppercase tracking-wide">Tus amigos</p>
           {friends.map((friend) => (
             <div key={friend.id} className="flex items-center gap-3 p-3 rounded-xl border border-depro-border">
-              <div className="w-9 h-9 rounded-xl bg-depro-blue/10 text-depro-blue flex items-center justify-center text-xs font-black flex-shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#111] text-white flex items-center justify-center text-xs font-black flex-shrink-0">
                 {(friend.name || "?").slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -186,15 +186,4 @@ export default function FriendsPanel({ user, onFriendsChange }) {
       )}
     </div>
   );
-}
-
-export async function processInviteFromUrl(user, inviteCode, onFriendsChange) {
-  if (!user?.id || !inviteCode) return null;
-  const existing = getFriends(user.id);
-  const result = await acceptInvite(user, inviteCode);
-  if (result.ok && existing.length !== getFriends(user.id).length) {
-    onFriendsChange?.(getFriends(user.id));
-    return result.friend?.name;
-  }
-  return null;
 }

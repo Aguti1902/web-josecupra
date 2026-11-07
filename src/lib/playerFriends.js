@@ -131,6 +131,17 @@ export async function fetchFriendProfiles(friendIds) {
   }
 }
 
+export async function processInviteFromUrl(user, inviteCode, onFriendsChange) {
+  if (!user?.id || !inviteCode) return null;
+  const existing = getFriends(user.id);
+  const result = await acceptInvite(user, inviteCode);
+  if (result.ok && existing.length !== getFriends(user.id).length) {
+    onFriendsChange?.(getFriends(user.id));
+    return result.friend?.name;
+  }
+  return null;
+}
+
 export async function acceptInvite(currentUser, inviteCode) {
   if (!currentUser?.id || !inviteCode) return { ok: false, error: "Código no válido" };
   const profile = await lookupInviteCode(inviteCode);

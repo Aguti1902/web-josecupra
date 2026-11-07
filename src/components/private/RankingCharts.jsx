@@ -1,11 +1,12 @@
 import { TrendingUp, Dumbbell, Activity } from "lucide-react";
 
-function MiniBarChart({ title, icon: Icon, color, data, unit = "", valueKey = "value", labelKey = "label" }) {
+function MiniBarChart({ title, icon, color, data, unit = "", valueKey = "value", labelKey = "label" }) {
+  const Glyph = icon;
   if (!data?.length) {
     return (
       <div className="bg-white border border-depro-border rounded-xl p-4">
         <div className="flex items-center gap-2 mb-2">
-          <Icon size={14} style={{ color }} />
+          <Glyph size={14} style={{ color }} />
           <h3 className="text-sm font-bold text-depro-dark">{title}</h3>
         </div>
         <p className="text-xs text-depro-gray">Sin datos todavía. Registra pesos en tus ejercicios.</p>
@@ -18,7 +19,7 @@ function MiniBarChart({ title, icon: Icon, color, data, unit = "", valueKey = "v
   return (
     <div className="bg-white border border-depro-border rounded-xl p-4">
       <div className="flex items-center gap-2 mb-4">
-        <Icon size={14} style={{ color }} />
+        <Glyph size={14} style={{ color }} />
         <h3 className="text-sm font-bold text-depro-dark">{title}</h3>
       </div>
       <div className="flex items-end gap-2 h-28">
@@ -67,7 +68,7 @@ export default function RankingCharts({ weightWeeks, topExercises, friendsProfil
       <MiniBarChart
         title="Tus mejores marcas por ejercicio"
         icon={Dumbbell}
-        color="#3BC21D"
+        color="#111111"
         data={exerciseData}
         unit=" kg"
         valueKey="value"
@@ -78,7 +79,7 @@ export default function RankingCharts({ weightWeeks, topExercises, friendsProfil
           <MiniBarChart
             title="Comparativa de peso máximo con amigos"
             icon={Activity}
-            color="#8B5CF6"
+            color="#FB2C39"
             data={friendWeightData}
             unit=" kg"
             valueKey="value"
