@@ -16,7 +16,7 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildFourWeekPlan, buildMesoPlayerPlan, hydratePlayerPlan, buildMinimalSession, persistStablePlayerPlan, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildFourWeekPlan, buildMesoPlayerPlan, hydratePlayerPlan, buildMinimalSession, persistStablePlayerPlan, checkPlanCompatibility, resolvePlayerPlanStartDate, refreshExerciseAcrossPlan } from "../../lib/playerPlanEngine";
 import { normalizePlayerPlan } from "../../lib/playerPlanStorage";
 import PlanCompatibilityModal from "../../components/private/PlanCompatibilityModal";
 import { markSessionComplete, toggleSessionCompletion, touchLastTrain, setClubSessionCompletion, loadClubSessionProgress } from "../../lib/sessionProgress";
@@ -509,6 +509,20 @@ function PlayerWeeklyPlan({ accent }) {
     if (persist) touchLastTrain(user?.id);
   };
 
+  const canRefreshExercise = hasFeatureAccess(user, "unlimited_exercises");
+  const handleSwapExercise = (exerciseId) => {
+    if (!canRefreshExercise || !user?.id || !plan || !exerciseId) return;
+    const next = refreshExerciseAcrossPlan(plan, null, exerciseId, {
+      material: user.material || ["Gimnasio completo"],
+      lesiones: user.lesion || [],
+      lesionSubtipo: user.lesionSubtipo || [],
+      edad: user.edad || 22,
+      experiencia: user.experiencia || "intermedio",
+      userId: user.id,
+    });
+    persistStablePlayerPlan(user.id, next).then(applyPlanUpdate);
+  };
+
   const compatModalEl = (
     <PlanCompatibilityModal
       open={!!compatModal}
@@ -830,6 +844,11 @@ function PlayerWeeklyPlan({ accent }) {
         onClose={closeSession}
         onComplete={() => handleSessionComplete(microRef.id, microRef.dayName)}
         onUncomplete={() => handleSessionToggle(microRef.id, microRef.dayName)}
+        onSwapExercise={canRefreshExercise ? handleSwapExercise : undefined}
+        canSwap={canRefreshExercise}
+        swapTooltip={canRefreshExercise
+          ? "Refresca solo si no puedes hacer este ejercicio. El cambio se aplica a las 4 semanas."
+          : "El refresco de ejercicios está incluido en Premium o en el extra correspondiente."}
         onDownloadPdf={(isInTrial(user) || hasFeatureAccess(user, "pdf_export")) ? () => {
           if (isInTrial(user)) {
             const gate = consumeTrialPdfOrExplain(user?.id);

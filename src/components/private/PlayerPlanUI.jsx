@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, CheckCircle, Clock, Dumbbell, FileText, Flame, Gauge, Info,
-  Layers, Pause, Repeat2, Target, Video, Wind, Play, Trophy, TrendingUp,
+  Layers, Pause, Repeat2, Target, Video, Wind, Play, Trophy, TrendingUp, RefreshCw,
 } from "lucide-react";
 import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS, blockDisplayLabel, blockNavId } from "../../lib/sessionBlocks";
 import { prefetchCatalogMedia, exerciseYouTubeId } from "../../lib/catalogMedia";
@@ -20,7 +20,6 @@ import {
 } from "../../lib/loadAnalytics";
 import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
 import { hasFeatureAccess } from "../../lib/subscription";
-import { listManualSwapOptions } from "../../lib/exerciseSelector";
 
 const BLOCK_CONFIG = {
   calentamiento:  { label: "Calentamiento",     Icon: Flame,    color: "#F59E0B" },
@@ -52,7 +51,7 @@ function isBodyweightExercise(exercise) {
   return !list.length || list.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno|campo/.test(m));
 }
 
-function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, onPickExercise, filterParams, canSwap, swapTooltip: _swapTooltip, onLogged }) {
+function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap, swapTooltip, onLogged }) {
   const ytId = exerciseYouTubeId(exercise);
   const typedExercise = {
     ...exercise,
@@ -86,7 +85,6 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
   const [loadDraft, setLoadDraft] = useState({});
   const [loadSaved, setLoadSaved] = useState(false);
   const [loadNotice, setLoadNotice] = useState("");
-  const [pickedId, setPickedId] = useState("");
   const [panelTab, setPanelTab] = useState("registro");
   const [playing, setPlaying] = useState(false);
   const progression = useMemo(
@@ -118,17 +116,6 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
       intensity: prev.intensity || "",
     });
   }, [exercise.id, user?.id, sessionMeta?.sessionId, sessionMeta?.weekNumber, setCount]);
-
-  const swapOptions = useMemo(() => {
-    if (!filterParams || !exercise) return [];
-    return listManualSwapOptions(exercise, {
-      material: filterParams.material,
-      lesiones: filterParams.lesiones || [],
-      edad: filterParams.edad || 18,
-      experiencia: filterParams.experiencia || "intermedio",
-      userId: filterParams.userId || user?.id || "",
-    });
-  }, [exercise, filterParams, user?.id]);
 
   const handleSaveLoad = () => {
     if (!canPersistInTrial(user, "save_loads")) {
@@ -441,25 +428,18 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
             <CheckCircle size={16} /> Guardar series
           </button>
         )}
-        {(onPickExercise || onSwap) && swapOptions.length > 0 && (
-          <select
-            className="admin-input w-full text-sm"
-            value={pickedId}
+        {onSwap && (
+          <button
+            type="button"
             disabled={!canSwap}
-            onChange={(e) => {
-              const id = e.target.value;
-              setPickedId(id);
-              const chosen = swapOptions.find((ex) => String(ex.id) === String(id));
-              if (!chosen || !onPickExercise) return;
-              onPickExercise(exercise.id, chosen);
-              onClose();
-            }}
+            title={swapTooltip || (canSwap
+              ? "Refresca solo si no puedes hacer este ejercicio. El cambio se aplica a las 4 semanas."
+              : "El refresco de ejercicios está incluido en Premium o en el extra correspondiente.")}
+            onClick={() => { onSwap(exercise.id); onClose(); }}
+            className="w-full py-2.5 rounded-xl text-sm font-bold border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue disabled:opacity-40 inline-flex items-center justify-center gap-2"
           >
-            <option value="">Sustituir ejercicio…</option>
-            {swapOptions.map((ex) => (
-              <option key={ex.id} value={ex.id}>{ex.nombre || ex.name}</option>
-            ))}
-          </select>
+            <RefreshCw size={14} /> Refrescar ejercicio
+          </button>
         )}
       </footer>
     </div>
@@ -608,8 +588,6 @@ export function PlayerSessionFullscreen({
   user,
   objective,
   onSwapExercise,
-  onPickExercise,
-  filterParams,
   canSwap = true,
   swapMessage,
   swapTooltip,
@@ -805,8 +783,6 @@ export function PlayerSessionFullscreen({
             planStartDate: session.planStartDate || null,
           }}
           onSwap={onSwapExercise}
-          onPickExercise={onPickExercise}
-          filterParams={filterParams}
           canSwap={canSwap}
           swapTooltip={swapTooltip}
         />

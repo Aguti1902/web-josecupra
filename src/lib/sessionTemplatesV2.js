@@ -195,9 +195,9 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_inferior", patron: "cadena_posterior", description: "Cadena posterior", slotId: "hp_b2" }),
       ], VOL_HIP_PRINCIPAL),
       block("complementario", "Analíticos", "18 min", [
-        slot({ rol: "complementario", patron: "analitico", grupo_muscular: "cuadriceps", description: "Cuádriceps", slotId: "hp_c1" }),
-        slot({ rol: "complementario", patron: "analitico", grupo_muscular: "isquios", description: "Isquios", slotId: "hp_c2" }),
-        slot({ rol: "complementario", patron: "analitico", grupo_muscular: "gemelo", description: "Gemelo", slotId: "hp_c3" }),
+        slot({ rol: "complementario", objetivo: "fuerza", segmento: "tren_inferior", carpeta: "fuerza_tren_inferior", patron: "analitico", grupo_muscular: "cuadriceps", description: "Cuádriceps", slotId: "hp_c1" }),
+        slot({ rol: "complementario", objetivo: "fuerza", segmento: "tren_inferior", carpeta: "fuerza_tren_inferior", patron: "analitico", grupo_muscular: "isquios", description: "Isquios", slotId: "hp_c2" }),
+        slot({ rol: "complementario", objetivo: "fuerza", segmento: "tren_inferior", carpeta: "fuerza_tren_inferior", patron: "analitico", grupo_muscular: "gemelos", description: "Gemelo", slotId: "hp_c3" }),
       ], VOL_HIP_COMP),
       CORE,
     ],
@@ -217,8 +217,8 @@ export const SESSION_TEMPLATES = {
         slot({ rol: "basico", objetivo: "fuerza", segmento: "tren_superior", patron: "traccion", description: "Tracción", slotId: "ht_b2" }),
       ], VOL_HIP_PRINCIPAL),
       block("complementario", "Analíticos", "12 min", [
-        slot({ rol: "complementario", patron: "analitico", grupo_muscular: "biceps", description: "Bíceps", slotId: "ht_c1" }),
-        slot({ rol: "complementario", patron: "analitico", grupo_muscular: ["triceps"], description: "Tríceps analítico", slotId: "ht_c2" }),
+        slot({ rol: "complementario", objetivo: "fuerza", segmento: "tren_superior", carpeta: "fuerza_tren_superior", patron: "analitico", grupo_muscular: "biceps", description: "Bíceps", slotId: "ht_c1" }),
+        slot({ rol: "complementario", objetivo: "fuerza", segmento: "tren_superior", carpeta: "fuerza_tren_superior", patron: "analitico", grupo_muscular: "triceps", description: "Tríceps analítico", slotId: "ht_c2" }),
       ], VOL_HIP_COMP),
       CORE,
     ],

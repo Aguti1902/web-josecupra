@@ -160,10 +160,48 @@ function tagsOf(ex) {
   return ex?.etiquetas || {};
 }
 
+const MUSCLE_ALIASES = {
+  gemelo: "gemelos",
+  gemelos: "gemelos",
+  gluteo: "gluteos",
+  gluteos: "gluteos",
+  aductor: "aductores",
+  aductores: "aductores",
+  abductor: "abductores",
+  abductores: "abductores",
+};
+const LOWER_MUSCLES = new Set(["cuadriceps", "isquios", "gemelos", "gluteos", "aductores", "abductores", "femoral"]);
+const UPPER_MUSCLES = new Set(["biceps", "triceps", "pectoral", "espalda", "hombro", "deltoides", "trapecio"]);
+
+function normMuscle(value) {
+  const k = String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return MUSCLE_ALIASES[k] || k;
+}
+
+function musclesOf(value) {
+  return asArray(value).map(normMuscle).filter(Boolean);
+}
+
+export function inferSegmentFromMuscles(grupoMuscular) {
+  const muscles = musclesOf(grupoMuscular);
+  if (muscles.some((m) => LOWER_MUSCLES.has(m))) return "tren_inferior";
+  if (muscles.some((m) => UPPER_MUSCLES.has(m))) return "tren_superior";
+  return "";
+}
+
 function matchesAny(needed, available) {
   if (!needed?.length) return true;
   const set = new Set(asArray(available));
   return needed.some((n) => set.has(n));
+}
+
+function matchesAnyMuscle(needed, available) {
+  if (!needed?.length) return true;
+  const have = new Set(musclesOf(available));
+  return musclesOf(needed).some((n) => have.has(n));
 }
 
 function matchesAllScalars(slotValue, exerciseValue) {
@@ -184,20 +222,21 @@ export function matchSlotTags(ex, slot = {}) {
   if (slot.segmento && !matchesAllScalars(slot.segmento, et.segmento)) return false;
   if (slot.patron) {
     const needed = asArray(slot.patron);
+    const wantsAnalytic = needed.some((p) => String(p).toLowerCase() === "analitico");
     const orMode = slot.patronMode === "or" || needed.length > 1 && slot.patronOr;
-    if (orMode) {
-      if (!matchesAny(needed, et.patron)) return false;
-    } else if (!matchesAny(needed, et.patron)) {
-      return false;
-    }
+    const patronOk = orMode ? matchesAny(needed, et.patron) : matchesAny(needed, et.patron);
+    if (!patronOk && !(wantsAnalytic && isAnalyticExercise(ex))) return false;
   }
   if (slot.patronOr && !matchesAny(asArray(slot.patronOr), et.patron)) return false;
   if (slot.grupo_muscular) {
     // grupo_principal manda (función dominante); fallback a grupo_muscular
     const primary = et.grupo_principal ? [et.grupo_principal] : asArray(et.grupo_muscular);
-    if (!matchesAny(asArray(slot.grupo_muscular), primary)) return false;
+    if (!matchesAnyMuscle(slot.grupo_muscular, [...primary, ...asArray(et.grupo_muscular)])) return false;
   }
-  if (slot.rol && !matchesAllScalars(slot.rol, et.rol)) return false;
+  if (slot.rol && !matchesAllScalars(slot.rol, et.rol)) {
+    const analyticSlot = inferredSlotNature(slot) === "analitico" || asArray(slot.patron).includes("analitico");
+    if (!(slot.rol === "complementario" && analyticSlot && isAnalyticExercise(ex))) return false;
+  }
   if (slot.intensidad && !matchesAllScalars(slot.intensidad, et.intensidad)) return false;
   return true;
 }
@@ -245,6 +284,9 @@ export function filterExercisesForUser(exercises, userProfile = {}) {
 function inferredSlotFolder(slot = {}, original = null) {
   if (slot.carpeta) return slot.carpeta;
   if (original?.carpeta) return original.carpeta;
+  const fromMuscle = inferSegmentFromMuscles(slot.grupo_muscular || original?.slotConstraints?.grupo_muscular);
+  if (fromMuscle === "tren_inferior") return "fuerza_tren_inferior";
+  if (fromMuscle === "tren_superior") return "fuerza_tren_superior";
   const obj = asArray(slot.objetivo || original?.slotConstraints?.objetivo).map((o) => String(o).toLowerCase());
   const patrons = [
     ...asArray(slot.patron),
@@ -266,7 +308,10 @@ export function sameTrainingNature(ex, slot = {}, original = null) {
   const et = tagsOf(ex);
   const origEt = tagsOf(original);
   const objetivo = slot.objetivo || original?.slotConstraints?.objetivo || origEt.objetivo?.[0];
-  const segmento = slot.segmento || original?.slotConstraints?.segmento || origEt.segmento;
+  const segmento = slot.segmento
+    || original?.slotConstraints?.segmento
+    || origEt.segmento
+    || inferSegmentFromMuscles(slot.grupo_muscular || original?.slotConstraints?.grupo_muscular);
   const carpeta = inferredSlotFolder(slot, original);
 
   const exObj = asArray(et.objetivo).map((o) => String(o).toLowerCase());
@@ -498,7 +543,14 @@ function isUsedInRoutine(ex, usedIds, usedNames) {
   return !!(n && usedNames.has(n));
 }
 
-export function selectExerciseForSlot(slot, userProfile, usedExerciseIds = [], seedExtra = "", opts = {}) {
+export function selectExerciseForSlot(rawSlot, userProfile, usedExerciseIds = [], seedExtra = "", opts = {}) {
+  const inferredSeg = rawSlot?.segmento || inferSegmentFromMuscles(rawSlot?.grupo_muscular);
+  const slot = {
+    ...rawSlot,
+    ...(inferredSeg && !rawSlot?.segmento ? { segmento: inferredSeg } : {}),
+    ...(inferredSeg === "tren_inferior" && !rawSlot?.carpeta ? { carpeta: "fuerza_tren_inferior" } : {}),
+    ...(inferredSeg === "tren_superior" && !rawSlot?.carpeta ? { carpeta: "fuerza_tren_superior" } : {}),
+  };
   const usedNames = usedNameSet(usedExerciseIds);
   const softReuse = slot.rol === "calentamiento" || slot.rol === "core";
   const filterPool = (pool, allowReuse = false) => {
@@ -688,7 +740,8 @@ export function expectedSlotCount(block) {
   if (block?.warmupSource === "sin_balon") return 1;
   return (block.slots || []).reduce((n, s) => {
     if (s?.optional) return n;
-    return n + (s.qty || 1);
+    const qty = s.qty == null ? 1 : Math.max(0, Number(s.qty) || 0);
+    return n + qty;
   }, 0);
 }
 
@@ -702,7 +755,7 @@ export function fillBlockSlots(block, userProfile, sessionUsedIds = [], sessionU
   const expected = expectedSlotCount(block);
 
   for (const slot of block.slots || []) {
-    const qty = slot.qty || 1;
+    const qty = slot.qty == null ? 1 : Math.max(0, Number(slot.qty) || 0);
     for (let i = 0; i < qty; i++) {
       const exercise = selectExerciseForSlot(
         { ...slot, slotId: slot.slotId || `${block.type}_${slot.rol || ""}_${i}` },

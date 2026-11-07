@@ -13,6 +13,7 @@ describe("adminGlobalBlobs", () => {
     assert.equal(isMetaClubId("CATALOG_OVERRIDES"), true);
     assert.equal(isMetaClubId("GLOBAL_CLUB_WARMUPS"), true);
     assert.equal(isMetaClubId("GLOBAL_CLUB_TASKS"), true);
+    assert.equal(isMetaClubId("GLOBAL_TEMPLATES"), true);
     assert.equal(isMetaClubId("club_1"), false);
   });
 

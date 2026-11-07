@@ -526,6 +526,10 @@ export function AuthProvider({ children }) {
           }
         }).catch(() => {});
 
+        import("../lib/templateOverridesSync.js").then((mod) => {
+          mod.hydrateTemplateOverrides().catch(() => {});
+        }).catch(() => {});
+
         if (builtUser.id) {
           import("../lib/userDataSync.js").then(({ hydrateUserPersonalData }) => {
             hydrateUserPersonalData(builtUser.id).catch(() => {});

@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Save, Minus, Plus, Layers, ChevronDown, ChevronUp } from "lucide-react";
 import { getAllTemplates, updateTemplateBlockSlots, updateTemplateBlockVolume, PLAYER_TEMPLATES, countBlockSlots, isV2Template } from "../../lib/planTemplates";
+import { hydrateTemplateOverrides } from "../../lib/templateOverridesSync";
 import { SESSION_INTENSITY } from "../../lib/planLoadRules";
 
 const INTENSITY_COLOR = {
@@ -189,7 +190,7 @@ function TemplateCard({ template, onUpdate }) {
             {saved ? "Guardado" : "Guardar cambios"}
           </button>
           <p className="text-xs text-depro-gray text-center pt-1">
-            Ajusta ejercicios, series (número exacto), repeticiones y descansos. El motor respeta estos valores al generar.
+            Ajusta ejercicios, series, repeticiones y descansos. Se guarda en la nube: el motor y las rutinas nuevas lo usan. Regenera o asigna el plan para aplicarlo a un jugador.
           </p>
         </div>
       )}
@@ -200,6 +201,10 @@ function TemplateCard({ template, onUpdate }) {
 export default function AdminTemplatesPage() {
   const [templates, setTemplates] = useState(getAllTemplates);
   const refresh = () => setTemplates(getAllTemplates());
+
+  useEffect(() => {
+    hydrateTemplateOverrides().then(() => setTemplates(getAllTemplates())).catch(() => {});
+  }, []);
 
   const { canonical, aliases } = useMemo(() => {
     const can = [];
