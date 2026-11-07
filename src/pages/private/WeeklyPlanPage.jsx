@@ -16,7 +16,8 @@ import { tacticalGuides } from "../../data/mockData";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useActiveTeam, useIsReadOnly } from "../../context/ViewContext";
-import { buildPlayerPlan, buildFourWeekPlan, buildMesoPlayerPlan, hydratePlayerPlan, buildMinimalSession, persistStablePlayerPlan, checkPlanCompatibility, resolvePlayerPlanStartDate, replaceExerciseWithLibrary } from "../../lib/playerPlanEngine";
+import { buildPlayerPlan, buildFourWeekPlan, buildMesoPlayerPlan, hydratePlayerPlan, buildMinimalSession, persistStablePlayerPlan, checkPlanCompatibility, resolvePlayerPlanStartDate } from "../../lib/playerPlanEngine";
+import { normalizePlayerPlan } from "../../lib/playerPlanStorage";
 import PlanCompatibilityModal from "../../components/private/PlanCompatibilityModal";
 import { markSessionComplete, toggleSessionCompletion, touchLastTrain, setClubSessionCompletion, loadClubSessionProgress } from "../../lib/sessionProgress";
 import { canPersistInTrial } from "../../lib/trialPersistence";
@@ -488,24 +489,24 @@ function PlayerWeeklyPlan({ accent }) {
     return microSessions.find((s) => s.dayName === session.dayName) || session;
   };
 
+  const applyPlanUpdate = (updated) => {
+    if (!updated) return;
+    const view = normalizePlayerPlan(updated) || updated;
+    setPlan(view);
+  };
+
   const handleSessionComplete = (sessionId, dayLabel) => {
     const persist = canPersistInTrial(user, "save_progress");
     const updated = markSessionComplete({ userId: user?.id, planKey, sessionId, dayLabel, persist });
-    if (updated) setPlan(updated);
+    applyPlanUpdate(updated);
     if (persist) touchLastTrain(user?.id);
   };
 
   const handleSessionToggle = (sessionId, dayLabel) => {
     const persist = canPersistInTrial(user, "save_progress");
     const updated = toggleSessionCompletion({ userId: user?.id, planKey, sessionId, dayLabel, persist });
-    if (updated) setPlan(updated);
+    applyPlanUpdate(updated);
     if (persist) touchLastTrain(user?.id);
-  };
-
-  const handlePickExercise = (exerciseId, catalogExercise) => {
-    if (!user?.id || !plan || !catalogExercise) return;
-    const next = replaceExerciseWithLibrary(plan, null, exerciseId, catalogExercise);
-    persistStablePlayerPlan(user.id, next).then((stable) => setPlan(stable));
   };
 
   const compatModalEl = (
@@ -619,8 +620,9 @@ function PlayerWeeklyPlan({ accent }) {
   }
 
   // ── Sesiones del microciclo (semana actual) ────────────────
-  const microSessions = plan
-    .filter((d) => d.sessions.length > 0)
+  const weekDays = Array.isArray(plan) ? plan : (Array.isArray(plan?.days) ? plan.days : []);
+  const microSessions = weekDays
+    .filter((d) => d.sessions?.length > 0)
     .map((d, i) => ({ ...d.sessions[0], sessionNumber: i + 1, dayName: d.day }));
 
   const completedMicro  = microSessions.filter((s) => s.status === "completed").length;
@@ -728,7 +730,7 @@ function PlayerWeeklyPlan({ accent }) {
 
           {/* Calendario semanal */}
           <WeekCalendar
-            plan={plan}
+            plan={weekDays}
             accentColor={accent}
             activeSessionId={activeSessionId}
             onSelectSession={openSession}
@@ -828,7 +830,6 @@ function PlayerWeeklyPlan({ accent }) {
         onClose={closeSession}
         onComplete={() => handleSessionComplete(microRef.id, microRef.dayName)}
         onUncomplete={() => handleSessionToggle(microRef.id, microRef.dayName)}
-        onPickExercise={handlePickExercise}
         onDownloadPdf={(isInTrial(user) || hasFeatureAccess(user, "pdf_export")) ? () => {
           if (isInTrial(user)) {
             const gate = consumeTrialPdfOrExplain(user?.id);

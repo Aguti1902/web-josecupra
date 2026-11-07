@@ -4,11 +4,11 @@ import {
   Calendar, TrendingUp, Zap, CheckCircle, Clock,
   ArrowRight, Activity, Target, Flame, Trophy, Phone,
   Users, Shield, ClipboardList, BookOpen, ChevronRight,
-  Crown, UserCheck, Dumbbell,
+  Crown, UserCheck, Dumbbell, HeartPulse,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { getAdherenceReminder, countCompletedSessions, weekKey, toggleSessionCompletion, isSessionCompleted } from "../../lib/sessionProgress";
+import { getAdherenceReminder, countCompletedSessions, toggleSessionCompletion, isSessionCompleted } from "../../lib/sessionProgress";
 import { hasFeatureAccess, getPlanLabel, isInTrial } from "../../lib/subscription";
 import { useView } from "../../context/ViewContext";
 import { supabase } from "../../lib/supabase";
@@ -906,7 +906,6 @@ function EntrenadorDashboard({ club, team, teamRole, accent, secondColor, onBack
 // ════════════════════════════════════════════════════════════
 // JUGADOR DASHBOARD (original)
 // ════════════════════════════════════════════════════════════
-// Helper: semana actual (lunes → domingo) como clave — ver sessionProgress.weekKey
 
 function JugadorDashboard({ user, club }) {
   const accent    = club?.primaryColor || "#0A36F7";
@@ -939,8 +938,6 @@ function JugadorDashboard({ user, club }) {
   const progressTotal = planProgress.total || freqNum;
   const progressPct = progressTotal ? Math.min(100, Math.round((planProgress.completed / progressTotal) * 100)) : 0;
 
-  const wk = weekKey();
-
   const trainingSessionsByDay = {};
   weekDays.forEach((d) => {
     if (d.sessions?.[0]) trainingSessionsByDay[d.day] = d.sessions[0];
@@ -969,8 +966,15 @@ function JugadorDashboard({ user, club }) {
   const todayIdx = (new Date().getDay() + 6) % 7;
   const adherenceReminder = getAdherenceReminder(user?.id, progressTotal);
 
+  const quickAccess = [
+    { to: "/dashboard/plan", icon: Calendar, label: "Plan semanal", sub: todaySession ? "Sesión de hoy" : "Ver calendario" },
+    { to: "/dashboard/wellness", icon: HeartPulse, label: "Wellness", sub: "Estado y recuperación" },
+    { to: "/dashboard/mis-cargas", icon: TrendingUp, label: "Mis cargas", sub: "Progresión y control" },
+    { to: "/dashboard/feedback", icon: Target, label: "Feedback", sub: lastFeedback ? "Última revisión" : "Sin mensajes" },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {(playerPlan?.premiumPending || playerPlan?.planPendingManual) && (
         <div className="rounded-2xl border-2 border-depro-yellow bg-[#FEFAE7] p-5 text-sm text-depro-dark">
           <p className="font-black mb-2">Plan Premium en preparación</p>
@@ -1003,257 +1007,136 @@ function JugadorDashboard({ user, club }) {
           )}
         </div>
       )}
-      {/* Banner del club si el jugador está asociado */}
-      {club && (
-        <div
-          className="rounded-2xl p-4 border flex items-center gap-4"
-          style={{
-            background: `linear-gradient(135deg, ${safeAccent}12 0%, white 100%)`,
-            borderColor: safeAccent + "35",
-          }}
-        >
-          {club.logo ? (
-            <img src={club.logo} alt={club.name} className="w-12 h-12 rounded-xl object-contain bg-white p-1 border border-depro-border flex-shrink-0 shadow-sm" />
-          ) : (
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black flex-shrink-0"
-              style={{ backgroundColor: safeAccent + "15", color: safeAccent }}
-            >
-              {club.abbreviation || club.name?.[0]}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: safeAccent }}>Tu club</div>
-            <div className="font-bold text-depro-dark truncate">{club.name}</div>
-            {club.slogan && <div className="text-xs italic text-depro-gray mt-0.5">"{club.slogan}"</div>}
-          </div>
-          <Shield size={18} style={{ color: safeAccent }} className="flex-shrink-0" />
-        </div>
-      )}
 
-      {/* Welcome */}
-      <div className="rounded-2xl p-6 border" style={{ background: `linear-gradient(135deg, ${safeAccent}08 0%, white 100%)`, borderColor: safeAccent + "25" }}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-black flex-shrink-0 shadow-sm" style={{ backgroundColor: safeAccent + "15", color: safeAccent }}>
+      <div className="rounded-3xl p-5 sm:p-6 border bg-white shadow-card" style={{ borderColor: safeAccent + "28" }}>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black shrink-0" style={{ backgroundColor: safeAccent + "15", color: safeAccent }}>
             {user?.avatar || user?.name?.[0]?.toUpperCase() || "👤"}
           </div>
-          <div className="flex-1">
-            <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: safeAccent }}>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: safeAccent }}>
               {new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
             </p>
-            <h2 className="text-2xl font-black text-depro-dark">Hola, {user?.name?.split(" ")[0]}.</h2>
-            <p className="text-depro-gray text-sm mt-0.5">
-              {user?.frecuencia || user?.training_days || "—"} · {user?.objetivo || user?.level || "—"}
-            </p>
+            <h2 className="text-xl sm:text-2xl font-black text-depro-dark truncate">Hola, {user?.name?.split(" ")[0]}.</h2>
+            <p className="text-xs text-depro-gray truncate">{user?.objetivo || user?.level || "Plan individual"} · {freqNum} días/sem</p>
           </div>
-          {isPremium && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-depro-yellow text-depro-dark text-xs font-black">
-              <Trophy size={13} /> Plan Premium
-            </div>
-          )}
           {todaySession && (
-            <Link to="/dashboard/plan" className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm hover:opacity-90" style={{ backgroundColor: safeAccent, color: contrastText(safeAccent) }}>
-              <Flame size={15} /> Sesión de hoy <ArrowRight size={14} />
+            <Link to="/dashboard/plan" className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-white shrink-0" style={{ backgroundColor: safeAccent }}>
+              <Flame size={15} /> Sesión de hoy
             </Link>
           )}
         </div>
+        <div className="mt-4 h-2 rounded-full bg-slate-100 overflow-hidden">
+          <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${progressPct}%` }} />
+        </div>
+        <p className="text-[11px] text-depro-gray mt-1.5">{completedDays} de {displayTotal} sesiones esta semana · {progressPct}%</p>
       </div>
 
       {isPremium && (
-        <div className="rounded-2xl bg-depro-blue p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0"><Phone size={20} className="text-white" /></div>
-          <div className="flex-1">
-            <div className="text-white font-bold text-sm">Tu preparador te contactará</div>
-            <div className="text-blue-200 text-xs mt-0.5">
-              Premium · intervención humana · videollamada + rutina &lt; 48h
-              {user?.phone || user?.telefono ? ` · Tel. ${user.phone || user.telefono}` : " · Añade tu teléfono en el perfil"}
-            </div>
-          </div>
-          {(user?.phone || user?.telefono) && (
-            <a href={`tel:${user.phone || user.telefono}`} className="flex-shrink-0 bg-white text-depro-blue text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-blue-50 transition-colors w-full sm:w-auto text-center">WhatsApp / Llamar</a>
-          )}
-        </div>
-      )}
-
-      {/* CTA si lleva días sin entrenar */}
-      {completedDays === 0 && (
-        <div className="rounded-2xl border-2 border-dashed p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4" style={{ borderColor: safeAccent + "40", backgroundColor: safeAccent + "04" }}>
-          <div className="text-3xl">💪</div>
-          <div className="flex-1">
-            <div className="font-bold text-depro-dark text-sm">¡Empieza la semana con fuerza!</div>
-            <div className="text-xs text-depro-gray mt-0.5">Aún no has completado ninguna sesión esta semana. Tu plan te está esperando.</div>
-          </div>
-          <Link to="/dashboard/plan" className="flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold w-full sm:w-auto text-center" style={{ backgroundColor: safeAccent, color: contrastText(safeAccent) }}>
-            Ir al plan
-          </Link>
-        </div>
-      )}
-      {completedDays > 0 && completedDays < displayTotal && (
-        <div className="rounded-2xl border p-4 flex items-center gap-3" style={{ borderColor: "#3BC21D30", backgroundColor: "#3BC21D06" }}>
-          <div className="text-2xl">🔥</div>
+        <div className="rounded-2xl bg-depro-blue p-4 flex items-center gap-3">
+          <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center shrink-0"><Phone size={16} className="text-white" /></div>
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-depro-dark text-sm">{completedDays} de {displayTotal} sesiones completadas esta semana</div>
-            <div className="mt-1.5 h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-green-400 transition-all" style={{ width: `${progressPct}%` }} />
-            </div>
-          </div>
-          <span className="text-lg font-black text-green-500 flex-shrink-0">{progressPct}%</span>
-        </div>
-      )}
-      {completedDays >= displayTotal && displayTotal > 0 && (
-        <div className="rounded-2xl border p-4 flex items-center gap-3 bg-green-50 border-green-200">
-          <div className="text-2xl">🏆</div>
-          <div className="flex-1">
-            <div className="font-bold text-green-700 text-sm">¡Semana completada! {freqNum}/{freqNum} sesiones.</div>
-            <div className="text-xs text-green-600 mt-0.5">Eres constante. Eso es lo que marca la diferencia.</div>
+            <div className="text-white font-bold text-sm">Tu preparador te contactará</div>
+            <div className="text-blue-200 text-xs truncate">Premium · videollamada + rutina &lt; 48h</div>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard label="Sesiones esta semana" value={`${completedDays}/${displayTotal}`} sub={`${progressPct}% completado`} icon={CheckCircle} accent="#3BC21D" />
-        <StatCard label="Frecuencia semanal" value={freqNum} sub="días de entreno" icon={Calendar} accent={safeAccent} />
-        <StatCard
-          label="Valoración coach"
-          value={lastFeedback?.rating != null ? `${lastFeedback.rating}/10` : "—"}
-          sub={lastFeedback ? "última revisión" : "sin feedback aún"}
-          icon={Trophy}
-          accent="#F6CC12"
-        />
-        <StatCard label="Plan actual" value={getPlanLabel(user?.plan) || "—"} sub={isInTrial(user) ? "periodo de prueba" : "activo"} icon={Zap} accent="#0A36F7" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="Sesiones" value={`${completedDays}/${displayTotal}`} sub={`${progressPct}% semana`} icon={CheckCircle} accent="#3BC21D" />
+        <StatCard label="Frecuencia" value={`${freqNum} d`} sub="por semana" icon={Calendar} accent={safeAccent} />
+        <StatCard label="Coach" value={lastFeedback?.rating != null ? `${lastFeedback.rating}/10` : "—"} sub={lastFeedback ? "última revisión" : "sin feedback"} icon={Trophy} accent="#F6CC12" />
+        <StatCard label="Plan" value={getPlanLabel(user?.plan) || "—"} sub={isInTrial(user) ? "prueba" : "activo"} icon={Zap} accent="#0A36F7" />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-depro-dark">Sesión de hoy</h3>
-            <Link to="/dashboard/plan" className="text-sm text-depro-blue hover:underline flex items-center gap-1">Ver plan completo <ArrowRight size={13} /></Link>
-          </div>
-          {todaySession ? (
-            <div className="bg-white border border-depro-border rounded-xl p-5">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <span className="tag-blue mb-1 inline-block">{todaySession.type}</span>
-                  <h4 className="text-lg font-bold text-depro-dark">{todaySession.title}</h4>
-                  <p className="text-sm text-depro-gray mt-0.5">{todaySession.objective}</p>
-                </div>
-                <div className="flex items-center gap-1.5 text-depro-gray text-sm"><Clock size={14} />{todaySession.duration}</div>
-              </div>
-              <div className="space-y-2">
-                {(todaySession.exercises || todaySession.blocks?.flatMap((b) => b.exercises) || []).slice(0, 3).map((ex, i) => (
-                  <div key={i} className="flex items-center gap-3 py-2.5 px-3 bg-depro-gray-light rounded-xl">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: safeAccent + "15", color: safeAccent }}>{i + 1}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-depro-dark">{ex.name}</div>
-                      <div className="text-xs text-depro-gray">{ex.duration} · {ex.sets} sets · {ex.reps}</div>
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="bg-white border border-depro-border rounded-2xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-black text-depro-dark">Planificación semanal</h3>
+              <Link to="/dashboard/plan" className="text-xs font-bold" style={{ color: safeAccent }}>Ver plan</Link>
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {days7.map((d, i) => {
+                const dayFull = dayFullNames[i];
+                const session = trainingSessionsByDay[dayFull];
+                const hasTraining = !!session;
+                const done = hasTraining && isSessionCompleted(session);
+                const isToday = i === todayIdx;
+                const bg = !hasTraining ? "#F9FAFB" : done ? "#3BC21D" : isToday ? safeAccent : "#F3F4F6";
+                const fg = !hasTraining ? "#D1D5DB" : done || isToday ? "#fff" : "#6B7280";
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    disabled={!hasTraining}
+                    onClick={() => toggleTrainingDay(dayFull)}
+                    className="flex flex-col items-center gap-1"
+                  >
+                    <div className={`text-[10px] font-bold ${isToday ? "text-depro-dark" : "text-depro-gray"}`}>{d}</div>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black" style={{ backgroundColor: bg, color: fg }}>
+                      {!hasTraining ? "—" : done ? "✓" : isToday ? "●" : d}
                     </div>
-                  </div>
-                ))}
-                {(todaySession.exercises || todaySession.blocks?.flatMap((b) => b.exercises) || []).length > 3 && (
-                  <p className="text-xs text-depro-gray text-center pt-1">
-                    + {(todaySession.exercises || todaySession.blocks?.flatMap((b) => b.exercises) || []).length - 3} ejercicios más
-                  </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {todaySession ? (
+            <div className="bg-white border border-depro-border rounded-2xl p-4 shadow-card">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-depro-gray">Hoy · {todayName}</p>
+                  <h4 className="text-lg font-black text-depro-dark truncate">{todaySession.title}</h4>
+                  <p className="text-xs text-depro-gray">{todaySession.type || todaySession.objective}</p>
+                </div>
+                {todaySession.duration && (
+                  <span className="text-xs font-bold text-depro-gray inline-flex items-center gap-1 shrink-0"><Clock size={12} />{todaySession.duration}</span>
                 )}
               </div>
-              <Link to="/dashboard/plan" className="mt-5 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm hover:opacity-90" style={{ backgroundColor: safeAccent, color: contrastText(safeAccent) }}>
-                Iniciar sesión <ArrowRight size={14} />
+              <div className="space-y-1.5 mb-4">
+                {(todaySession.exercises || todaySession.blocks?.flatMap((b) => b.exercises) || []).slice(0, 3).map((ex, i) => (
+                  <div key={i} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-slate-50">
+                    <span className="w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center" style={{ backgroundColor: safeAccent + "18", color: safeAccent }}>{i + 1}</span>
+                    <span className="text-sm font-medium text-depro-dark truncate">{ex.name || ex.nombre}</span>
+                    {ex.sets && <span className="ml-auto text-[11px] text-depro-gray shrink-0">{ex.sets}×{ex.reps || ""}</span>}
+                  </div>
+                ))}
+              </div>
+              <Link to="/dashboard/plan" className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-white" style={{ backgroundColor: safeAccent }}>
+                <Flame size={14} /> Iniciar sesión
               </Link>
             </div>
           ) : (
-            <div className="bg-white border border-depro-border rounded-xl text-center py-12">
-              <Trophy size={32} className="text-depro-border mx-auto mb-3" />
-              <p className="text-depro-gray font-medium">Día de descanso.</p>
+            <div className="bg-white border border-depro-border rounded-2xl p-6 text-center text-sm text-depro-gray">
+              Hoy no hay entrenamiento. Día de recuperación.
             </div>
           )}
         </div>
+
         <div className="space-y-4">
-          <div>
-            <h3 className="font-bold text-depro-dark mb-3">Progreso semanal</h3>
-            <div className="bg-white border border-depro-border rounded-xl p-4">
-              <div className="grid grid-cols-7 gap-1 mb-4">
-                {days7.map((d, i) => {
-                  const dayFull = dayFullNames[i];
-                  const session = trainingSessionsByDay[dayFull];
-                  const hasTraining = !!session;
-                  const done = hasTraining && isSessionCompleted(session);
-                  const isToday = i === todayIdx;
-                  const bg = !hasTraining ? "#F9FAFB" : done ? "#3BC21D" : isToday ? "#0A36F7" : "#F3F4F6";
-                  const fg = !hasTraining ? "#D1D5DB" : done ? "#fff" : isToday ? "#fff" : "#9CA3AF";
-                  const label = !hasTraining ? "—" : done ? "✓" : isToday ? "●" : d;
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      disabled={!hasTraining}
-                      onClick={() => toggleTrainingDay(dayFull)}
-                      title={
-                        !hasTraining ? "Día de descanso"
-                          : done ? "Completado · Toca para desmarcar"
-                          : isToday ? "Entreno de hoy · Toca para marcar"
-                          : "Marcar como hecho"
-                      }
-                      className={`flex flex-col items-center gap-1 group ${hasTraining ? "cursor-pointer" : "cursor-default"}`}
-                    >
-                      <div className={`text-xs font-bold ${isToday ? "text-depro-dark" : "text-depro-gray"}`}>{d}</div>
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${hasTraining ? "group-hover:scale-110" : ""} ${isToday && !done && hasTraining ? "ring-2 ring-offset-1 ring-depro-blue" : ""}`}
-                        style={{ backgroundColor: bg, color: fg }}
-                      >
-                        {label}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-depro-gray-light rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, backgroundColor: "#3BC21D" }} />
-                </div>
-                <span className="text-xs text-depro-gray font-medium">{planProgress.completed}/{progressTotal}</span>
-              </div>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="flex items-center gap-1 text-[10px] text-depro-gray"><span className="w-2.5 h-2.5 rounded-sm bg-green-400 inline-block" /> Completado</span>
-                <span className="flex items-center gap-1 text-[10px] text-depro-gray"><span className="w-2.5 h-2.5 rounded-sm bg-depro-blue inline-block" /> Hoy</span>
-                <span className="flex items-center gap-1 text-[10px] text-depro-gray"><span className="w-2.5 h-2.5 rounded-sm bg-gray-200 inline-block" /> Pendiente</span>
-              </div>
+          <div className="bg-white border border-depro-border rounded-2xl p-4 shadow-card">
+            <h3 className="font-black text-depro-dark mb-3">Accesos rápidos</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {quickAccess.map((item) => (
+                <Link key={item.to} to={item.to} className="rounded-xl border border-depro-border p-3 hover:border-depro-blue/40 transition-colors">
+                  <item.icon size={16} style={{ color: safeAccent }} />
+                  <p className="text-xs font-bold text-depro-dark mt-2">{item.label}</p>
+                  <p className="text-[10px] text-depro-gray">{item.sub}</p>
+                </Link>
+              ))}
             </div>
           </div>
-          <div>
-            <h3 className="font-bold text-depro-dark mb-1">Último feedback</h3>
-            <p className="text-xs text-depro-gray mb-3">
-              Revisiones reales de tu preparador físico sobre cargas y progresión.
-            </p>
-            {lastFeedback ? (
-              <div className="bg-white border border-depro-border rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-xl bg-depro-blue/10 flex items-center justify-center"><Target size={14} className="text-depro-blue" /></div>
-                  <div>
-                    <div className="text-sm font-bold text-depro-dark">{lastFeedback.coach || "Preparador"}</div>
-                    <div className="text-xs text-depro-gray">{lastFeedback.week} · {lastFeedback.date}</div>
-                  </div>
-                </div>
-                <p className="text-sm text-depro-gray leading-relaxed line-clamp-3">{lastFeedback.message}</p>
-                {lastFeedback.nextFocus && (
-                  <div className="mt-3 pt-3 border-t border-depro-border">
-                    <div className="text-xs text-depro-gray mb-1">Foco físico:</div>
-                    <div className="text-xs font-bold text-depro-dark">{lastFeedback.nextFocus}</div>
-                  </div>
-                )}
-                <Link to="/dashboard/feedback" className="inline-flex items-center gap-1 text-xs font-bold text-depro-blue mt-3 hover:underline">
-                  Ver todo el feedback <ArrowRight size={12} />
-                </Link>
-              </div>
-            ) : (
-              <div className="bg-white border border-depro-border rounded-xl p-4 text-center">
-                <p className="text-sm text-depro-gray mb-3">
-                  Aún no hay mensajes de tu preparador. Aquí solo aparecen revisiones realmente enviadas.
-                </p>
-                <Link to="/dashboard/feedback" className="inline-flex items-center gap-1 text-xs font-bold text-depro-blue hover:underline">
-                  Ir a Feedback <ArrowRight size={12} />
-                </Link>
-              </div>
-            )}
-          </div>
+          {lastFeedback ? (
+            <div className="bg-white border border-depro-border rounded-2xl p-4">
+              <p className="text-[10px] font-bold uppercase text-depro-gray mb-1">Último feedback</p>
+              <p className="text-sm text-depro-dark font-semibold line-clamp-3">{lastFeedback.message}</p>
+              <Link to="/dashboard/feedback" className="inline-flex items-center gap-1 text-xs font-bold mt-2" style={{ color: safeAccent }}>
+                Ver todo <ArrowRight size={12} />
+              </Link>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

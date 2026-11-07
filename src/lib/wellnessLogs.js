@@ -1,5 +1,5 @@
 /**
- * Registros semanales de wellness (peso, cintura, fatiga, sueño).
+ * Registros semanales de wellness (peso, cintura, fatiga, sueño, dolor muscular).
  * Clave: lunes de la semana (YYYY-MM-DD).
  */
 
@@ -50,6 +50,7 @@ export function emptyWellnessEntry(weekKey) {
     waistCm: "",
     fatigue: "",
     sleep: "",
+    musclePain: "",
     updatedAt: null,
   };
 }
@@ -101,6 +102,7 @@ export function saveWellnessEntry(userId, entry) {
     waistCm: entry.waistCm === "" || entry.waistCm == null ? "" : String(entry.waistCm),
     fatigue: entry.fatigue === "" || entry.fatigue == null ? "" : String(entry.fatigue),
     sleep: entry.sleep === "" || entry.sleep == null ? "" : String(entry.sleep),
+    musclePain: entry.musclePain === "" || entry.musclePain == null ? "" : String(entry.musclePain),
     updatedAt: new Date().toISOString(),
   };
   map[entry.weekKey] = next;
