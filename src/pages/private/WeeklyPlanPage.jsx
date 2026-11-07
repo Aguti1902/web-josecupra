@@ -33,7 +33,7 @@ import { downloadSessionPdf, buildClubSessionPdfPayload } from "../../lib/sessio
 import { filterExercisesEnriched } from "../../data/exercises";
 import { getTemplate } from "../../lib/planTemplates";
 import { getSessionBlocks, getNonEmptyBlocks, BLOCK_LABELS, BLOCK_COLORS, ADMIN_BLOCK_TYPES, sessionMatchesTarget, blockDisplayLabel, blockNavId } from "../../lib/sessionBlocks";
-import { WeekCalendar, PlayerSessionFullscreen, MesoMonthCalendar } from "../../components/private/PlayerPlanUI";
+import { WeekCalendar, PlayerSessionFullscreen, MesoMonthCalendar, planWeekRange } from "../../components/private/PlayerPlanUI";
 import { resolveBlockGuideItems } from "../../lib/blockGuideItems";
 import { getYouTubeId, youtubeEmbedUrl, youtubeThumbUrl } from "../../lib/youtube";
 import { prefetchCatalogMedia, exerciseYouTubeId } from "../../lib/catalogMedia";
@@ -362,6 +362,23 @@ function SessionCard({ session, accentColor, sessionNumber, dayLabel, onComplete
   );
 }
 
+function WeekProgressRing({ pct }) {
+  const value = Math.min(100, Math.max(0, Number(pct) || 0));
+  const radius = 26;
+  const circ = 2 * Math.PI * radius;
+  const offset = circ * (1 - value / 100);
+  return (
+    <svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true" className="shrink-0">
+      <circle cx="38" cy="38" r={radius} fill="none" stroke="#F3F4F6" strokeWidth="7" />
+      <circle
+        cx="38" cy="38" r={radius} fill="none" stroke="#FB2C39" strokeWidth="7" strokeLinecap="round"
+        strokeDasharray={circ} strokeDashoffset={offset} transform="rotate(-90 38 38)"
+      />
+      <text x="38" y="43" textAnchor="middle" fontSize="15" fontWeight="900" fill="#111827">{value}%</text>
+    </svg>
+  );
+}
+
 /* ─────────────────────────────────────────────
    VISTA JUGADOR
 ───────────────────────────────────────────── */
@@ -645,6 +662,8 @@ function PlayerWeeklyPlan({ accent }) {
   const currentWeekIdx  = getCurrentWeekIndex(planStartDate);
   const currentWeekNum  = currentWeekIdx < 0 ? 1 : Math.min(4, currentWeekIdx + 1);
   const currentWeekLabel = formatWeekRangeLabel(planStartDate, Math.max(0, currentWeekIdx));
+  const shownWeekRange = planWeekRange(planStartDate, currentWeekNum - 1);
+  const shownWeekRangeLabel = shownWeekRange.label || currentWeekLabel;
   const mesoWeeks       = view === "meso" ? buildMesoPlayerPlan(user, 4, plan) : [];
   const mesoWeekRangeLabels = Object.fromEntries(
     (mesoWeeks.length ? mesoWeeks : [{ week: 1 }, { week: 2 }, { week: 3 }, { week: 4 }]).map((w) => [
@@ -707,37 +726,58 @@ function PlayerWeeklyPlan({ accent }) {
       </div>
 
       {/* Toggle Microciclo / Mesociclo */}
-      <div className="flex w-full sm:w-auto bg-depro-gray-light rounded-xl p-1 mb-6 border border-depro-border">
+      <div className="inline-flex w-full sm:w-auto rounded-full bg-neutral-100 p-1 mb-5">
         {[
-          { id:"micro", label:"Microciclo · Semana", short:"Semana" },
-          { id:"meso",  label:"Mesociclo · Mes", short:"Mes" },
-        ].map((v) => (
-          <button key={v.id} onClick={() => setView(v.id)}
-            className={`flex-1 sm:flex-none px-3 sm:px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
-              view === v.id ? "bg-white text-depro-blue shadow-sm" : "text-depro-gray hover:text-depro-dark"
-            }`}>
-            <span className="sm:hidden">{v.short}</span>
-            <span className="hidden sm:inline">{v.label}</span>
-          </button>
-        ))}
+          { id: "micro", label: "Semana (Microciclo)", short: "Semana", Icon: Calendar },
+          { id: "meso", label: "Mes (Mesociclo)", short: "Mes", Icon: Layers },
+        ].map((v) => {
+          const Glyph = v.Icon;
+          return (
+            <button key={v.id} type="button" onClick={() => setView(v.id)}
+              className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-colors ${
+                view === v.id ? "bg-[#FB2C39] text-white shadow-sm" : "text-neutral-600 hover:text-neutral-900"
+              }`}>
+              <Glyph size={15} />
+              <span className="sm:hidden">{v.short}</span>
+              <span className="hidden sm:inline">{v.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── MICROCICLO ── */}
       {view === "micro" && (
         <div className="space-y-6">
           {/* Resumen semanal */}
-          <div className="rounded-2xl p-5 flex items-center gap-5"
-            style={{ background:`linear-gradient(135deg,${accent}14 0%,${accent}04 100%)`, border:`1px solid ${accent}25` }}>
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black flex-shrink-0" style={{ backgroundColor: accent + "20", color: accent }}>
-              {pctMicro}%
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-bold text-depro-gray uppercase tracking-wide mb-0.5">
-                Semana actual · {currentWeekLabel}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-card">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-5">
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <WeekProgressRing pct={pctMicro} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Semana actual</p>
+                  <p className="text-lg sm:text-xl font-black text-neutral-900 break-words">
+                    {completedMicro} de {microSessions.length} sesiones completadas
+                  </p>
+                  <div className="mt-2 h-1.5 rounded-full bg-neutral-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-[#FB2C39] transition-all" style={{ width: `${pctMicro}%` }} />
+                  </div>
+                </div>
               </div>
-              <div className="font-black text-depro-dark">{completedMicro} de {microSessions.length} sesiones completadas</div>
-              <div className="h-1.5 w-full bg-depro-gray-light rounded-full overflow-hidden mt-2">
-                <div className="h-full rounded-full transition-all" style={{ width:`${pctMicro}%`, backgroundColor: accent }} />
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 lg:w-[340px]">
+                <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2.5 min-w-0">
+                  <p className="text-sm font-black text-neutral-900 inline-flex items-center gap-1.5">
+                    <Calendar size={14} className="text-[#FB2C39] shrink-0" />
+                    <span className="break-words">{shownWeekRangeLabel || currentWeekLabel}</span>
+                  </p>
+                  <p className="text-[11px] text-neutral-500 mt-0.5">Semana {currentWeekNum} de 4</p>
+                </div>
+                <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2.5 min-w-0">
+                  <p className="text-sm font-black text-neutral-900 inline-flex items-center gap-1.5">
+                    <Dumbbell size={14} className="text-[#FB2C39] shrink-0" />
+                    {microSessions.length} sesiones
+                  </p>
+                  <p className="text-[11px] text-neutral-500 mt-0.5">Planificadas</p>
+                </div>
               </div>
             </div>
           </div>
@@ -745,10 +785,9 @@ function PlayerWeeklyPlan({ accent }) {
           {/* Calendario semanal */}
           <WeekCalendar
             plan={weekDays}
-            accentColor={accent}
             activeSessionId={activeSessionId}
             onSelectSession={openSession}
-            weekLabel={currentWeekLabel}
+            weekStart={shownWeekRange.start}
           />
 
           {/* Acceso rápido: sesión de hoy */}
@@ -757,12 +796,12 @@ function PlayerWeeklyPlan({ accent }) {
               key={session.id}
               type="button"
               onClick={() => openSession(session)}
-              className="w-full text-left rounded-2xl p-5 border-2 border-depro-blue bg-depro-blue-light/30 hover:bg-depro-blue-light transition-colors"
+              className="w-full text-left rounded-2xl p-5 border-2 border-[#FB2C39] bg-[#FFF5F5] hover:bg-[#FFE4E6] transition-colors"
             >
-              <div className="text-[10px] font-bold uppercase tracking-wide text-depro-blue mb-1">Entreno de hoy</div>
-              <div className="font-black text-depro-dark text-lg">{session.title}</div>
-              <div className="text-sm text-depro-gray mt-1">{session.dayName} · {session.duration} · {session.type}</div>
-              <div className="text-xs font-bold text-depro-blue mt-3">Abrir sesión →</div>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-[#FB2C39] mb-1">Entreno de hoy</div>
+              <div className="font-black text-neutral-900 text-lg break-words">{session.title}</div>
+              <div className="text-sm text-neutral-500 mt-1 break-words">{session.dayName} · {session.duration} · {session.type}</div>
+              <div className="text-xs font-bold text-[#FB2C39] mt-3">Abrir sesión →</div>
             </button>
           ))}
 
@@ -775,7 +814,7 @@ function PlayerWeeklyPlan({ accent }) {
               <p className="text-depro-gray text-sm max-w-xs mx-auto mb-4">
                 Ajusta tus días de entrenamiento en el perfil.
               </p>
-              <Link to="/dashboard/profile" className="text-sm font-bold text-depro-blue hover:underline">
+              <Link to="/dashboard/profile" className="text-sm font-bold text-[#FB2C39] hover:underline">
                 Ir al perfil
               </Link>
             </div>
@@ -786,10 +825,6 @@ function PlayerWeeklyPlan({ accent }) {
       {/* ── MESOCICLO ── */}
       {view === "meso" && (
         <div className="space-y-6">
-          <p className="text-depro-gray text-sm">
-            4 semanas · {microSessions.length} sesiones por semana · Semana actual:{" "}
-            <strong className="text-depro-dark">{currentWeekLabel}</strong>
-          </p>
           {mesoWeeks.every((w) => !w.sessions?.length) ? (
             <div className="bg-white border border-depro-border rounded-2xl text-center py-16 shadow-card">
               <div className="w-14 h-14 rounded-2xl bg-depro-gray-light flex items-center justify-center mx-auto mb-4">
@@ -803,7 +838,7 @@ function PlayerWeeklyPlan({ accent }) {
                 type="button"
                 onClick={handleGenerate}
                 disabled={generating}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-depro-blue text-white text-sm font-bold hover:bg-depro-blue-dark disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FB2C39] text-white text-sm font-bold hover:bg-red-600 disabled:opacity-60"
               >
                 {generating ? <RefreshCw size={16} className="animate-spin" /> : <Zap size={16} />}
                 Regenerar plan
@@ -812,13 +847,14 @@ function PlayerWeeklyPlan({ accent }) {
           ) : (
             <MesoMonthCalendar
               mesoWeeks={mesoWeeks}
-              accentColor={accent}
+              planStartDate={planStartDate}
               activeSessionId={activeSessionId}
               onSelectSession={openSession}
               completedByDay={completedMesoDays}
               completedWeek={currentWeekNum}
               currentWeek={currentWeekNum}
               weekRangeLabels={mesoWeekRangeLabels}
+              sessionsPerWeek={microSessions.length}
             />
           )}
         </div>

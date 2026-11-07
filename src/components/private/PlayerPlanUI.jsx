@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, CheckCircle, Clock, Dumbbell, FileText, Flame, Gauge, Info,
-  Layers, Pause, Repeat2, Target, Video, Wind, Play, Trophy, TrendingUp, RefreshCw,
+  Activity, ArrowLeft, Bed, Calendar, CheckCircle, ChevronDown, Clock, Dumbbell, FileText, Flame, Gauge, Info,
+  Layers, Pause, Repeat2, Shield, Target, Video, Wind, Play, Trophy, TrendingUp, RefreshCw, Zap,
 } from "lucide-react";
 import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS, blockDisplayLabel, blockNavId } from "../../lib/sessionBlocks";
 import { prefetchCatalogMedia, exerciseYouTubeId } from "../../lib/catalogMedia";
@@ -500,85 +500,103 @@ function BlockExerciseList({ exercises, accentColor, onSelect, doneIds }) {
   );
 }
 
-/** Calendario semanal L–D con sesiones clicables */
-export function WeekCalendar({ plan, accentColor, activeSessionId, onSelectSession, weekLabel }) {
+function monthShort(date) {
+  return date.toLocaleDateString("es-ES", { month: "short" }).replace(".", "");
+}
+
+function parseIsoDate(value) {
+  if (!value) return null;
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Siete días seguidos desde weekStart, en orden de fecha. Si el plan empieza en lunes, sale lun–dom. */
+function weekDaySequence(weekStart) {
+  const start = parseIsoDate(weekStart);
+  if (!start) return WEEK_DAYS.map((day) => ({ day, dateLabel: "" }));
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return {
+      day: WEEK_DAYS[(date.getDay() + 6) % 7],
+      dateLabel: `${date.getDate()} ${monthShort(date)}`,
+    };
+  });
+}
+
+export function formatPlanDateRange(start, end) {
+  const from = parseIsoDate(start);
+  const to = parseIsoDate(end);
+  if (!from || !to) return "";
+  if (from.getMonth() === to.getMonth() && from.getFullYear() === to.getFullYear()) {
+    return `${from.getDate()} – ${to.getDate()} ${monthShort(to)}`;
+  }
+  return `${from.getDate()} ${monthShort(from)} – ${to.getDate()} ${monthShort(to)}`;
+}
+
+function sessionGlyph(session) {
+  const text = `${session?.title || ""} ${session?.type || ""}`.toLowerCase();
+  if (/prevenc|movil/.test(text)) return Shield;
+  if (/veloc/.test(text)) return Zap;
+  if (/resist/.test(text)) return Activity;
+  return Dumbbell;
+}
+
+function sessionLabel(session) {
+  return session?.title || session?.type || "Sesión";
+}
+
+/** Calendario semanal: tarjetas que se adaptan al ancho, sin meter los 7 días en una fila estrecha. */
+export function WeekCalendar({ plan, activeSessionId, onSelectSession, weekStart }) {
   const todayName = getTodayName();
+  const days = weekDaySequence(weekStart);
   const sessionByDay = {};
   (plan || []).forEach((d) => {
     if (d.sessions?.length) sessionByDay[d.day] = { ...d.sessions[0], dayName: d.day };
   });
 
   return (
-    <div className="bg-white border border-depro-border rounded-2xl p-3 sm:p-4 shadow-card">
-      <div className="flex items-center justify-between mb-4 gap-3">
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wide text-depro-gray">Calendario semanal</div>
-          <div className="text-sm font-black text-depro-dark">
-            {weekLabel ? `Semana actual · ${weekLabel}` : "Toca un día para abrir la sesión"}
-          </div>
-          {weekLabel && (
-            <div className="text-[11px] text-depro-gray mt-0.5">Toca un día para abrir la sesión</div>
-          )}
-        </div>
-      </div>
-      <div className="overflow-x-auto -mx-1 px-1 pb-1">
-        <div className="grid grid-cols-7 gap-1 sm:gap-2 min-w-[320px]">
-        {WEEK_DAYS.map((day) => {
-          const session = sessionByDay[day];
-          const isToday = day === todayName;
-          const isActive = session && activeSessionId === session.id;
-          const isDone = session?.status === "completed";
-          const short = day.slice(0, 3);
+    <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 sm:gap-3">
+      {days.map(({ day, dateLabel }) => {
+        const session = sessionByDay[day];
+        const isToday = day === todayName;
+        const isActive = session && activeSessionId === session.id;
+        const isDone = session?.status === "completed";
+        const highlighted = isToday || isActive;
+        const Glyph = session ? sessionGlyph(session) : Bed;
+        const short = day.slice(0, 3);
 
-          return (
-            <div key={day} className="relative pt-2">
-              {isToday && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 z-10 text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-[#0A36F7] text-white shadow-sm ring-2 ring-white">
-                  HOY
-                </span>
-              )}
-            <button
-              type="button"
-              disabled={!session}
-              onClick={() => session && onSelectSession(session)}
-              className={`relative w-full flex flex-col items-center rounded-xl p-1.5 sm:p-3 min-h-[84px] sm:min-h-[104px] border transition-all text-center ${
-                !session
-                  ? isToday
-                    ? "bg-depro-gray-light/70 border-depro-blue/40 cursor-default"
-                    : "bg-depro-gray-light/60 border-depro-border opacity-60 cursor-default"
-                  : isActive
-                    ? "bg-depro-blue text-white border-depro-blue shadow-md scale-[1.02]"
-                    : isDone
-                      ? "bg-green-50 border-green-300 hover:border-green-500"
-                      : isToday
-                        ? "bg-blue-50 border-[#0A36F7] hover:border-depro-blue-dark"
-                        : "bg-white border-depro-border hover:border-depro-blue hover:shadow-sm"
-              }`}
-            >
-              <span className={`text-[10px] font-bold uppercase tracking-wide mb-1 ${
-                isActive ? "text-white/80" : isToday ? "text-[#0A36F7]" : "text-depro-gray"
-              }`}>{short}</span>
-              {session ? (
-                <>
-                  <span className={`text-[11px] sm:text-xs font-black leading-tight line-clamp-2 ${
-                    isActive ? "text-white" : "text-depro-dark"
-                  }`}>{session.title}</span>
-                  <span className={`text-[9px] mt-1 ${isActive ? "text-white/70" : "text-depro-gray"}`}>
-                    {session.duration}
-                  </span>
-                  {isDone && !isActive && (
-                    <CheckCircle size={12} className="text-green-600 mt-1" />
-                  )}
-                </>
-              ) : (
-                <span className={`text-[10px] mt-2 ${isToday ? "text-[#0A36F7] font-semibold" : "text-depro-gray"}`}>Descanso</span>
-              )}
-            </button>
+        return (
+          <button
+            key={day}
+            type="button"
+            disabled={!session}
+            onClick={() => session && onSelectSession(session)}
+            className={`w-full min-w-0 text-left rounded-2xl border bg-white p-3 min-h-[124px] flex flex-col transition-colors ${
+              highlighted
+                ? "border-[#FB2C39] border-2 bg-[#FFF5F5] shadow-sm"
+                : "border-neutral-200 hover:border-neutral-800"
+            } ${session ? "" : "cursor-default"}`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className={`text-[11px] font-black uppercase tracking-wide ${highlighted ? "text-[#FB2C39]" : "text-neutral-500"}`}>
+                  {short}{isToday ? " · Hoy" : ""}
+                </p>
+                {dateLabel && <p className="text-[11px] text-neutral-400">{dateLabel}</p>}
+              </div>
+              {isDone && <CheckCircle size={16} className="text-[#FB2C39] shrink-0" />}
             </div>
-          );
-        })}
-        </div>
-      </div>
+            <Glyph size={18} className={`mt-3 ${session ? "text-[#FB2C39]" : "text-neutral-300"}`} />
+            <p className={`mt-2 text-sm font-black leading-snug break-words ${session ? "text-neutral-900" : "text-neutral-400"}`}>
+              {session ? sessionLabel(session) : "Descanso"}
+            </p>
+            {session?.duration && (
+              <p className="mt-1 text-xs text-neutral-500 break-words">{session.duration}</p>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -801,119 +819,256 @@ export function PlayerSessionFullscreen({
 
 export { getNonEmptyBlocks, getSessionBlocks };
 
-/** Calendario mensual del mesociclo: 4 semanas × 7 días */
+function toIsoDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** Semana de lunes a domingo. La semana 0 es la del lunes que contiene anchor. */
+export function planWeekRange(anchor, weekIndex = 0) {
+  const start = parseIsoDate(anchor);
+  if (!start) return { start: "", end: "", label: "", days: weekDaySequence(null) };
+  const mondayOffset = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - mondayOffset + weekIndex * 7);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const startIso = toIsoDate(start);
+  const endIso = toIsoDate(end);
+  return {
+    start: startIso,
+    end: endIso,
+    label: formatPlanDateRange(startIso, endIso),
+    days: weekDaySequence(startIso),
+  };
+}
+
+function weekRangeFromStart(planStartDate, weekNumber, fallback) {
+  const range = planWeekRange(planStartDate, weekNumber - 1);
+  if (!range.label && fallback) return { ...range, label: fallback };
+  return range;
+}
+
+function MesoDayButton({ session, day, dateLabel, isDone, isActive, onSelectSession, compact = false }) {
+  const short = day.slice(0, 3);
+  const title = session ? sessionLabel(session) : "Descanso";
+  return (
+    <button
+      type="button"
+      disabled={!session}
+      onClick={() => session && onSelectSession(session)}
+      className={`w-full min-w-0 text-left rounded-xl border transition-colors ${
+        compact ? "px-1.5 py-2" : "px-3 py-2.5"
+      } ${
+        isActive
+          ? "border-[#FB2C39] bg-[#FFF5F5]"
+          : session
+            ? "border-transparent bg-[#FFF1F2] hover:border-[#FB2C39]"
+            : "border-transparent bg-transparent cursor-default"
+      }`}
+    >
+      {!compact && (
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <p className="text-[11px] font-black uppercase text-neutral-500">{short}{dateLabel ? ` · ${dateLabel}` : ""}</p>
+          {isDone && <CheckCircle size={14} className="text-[#FB2C39] shrink-0" />}
+        </div>
+      )}
+      <p className={`font-black leading-snug break-words ${compact ? "text-[11px]" : "text-sm"} ${session ? "text-neutral-900" : "text-neutral-400"}`}>
+        {session ? title : (compact ? "—" : "Descanso")}
+      </p>
+      {session?.duration && (
+        <p className={`text-neutral-500 break-words ${compact ? "text-[10px] mt-0.5" : "text-xs mt-0.5"}`}>{session.duration}</p>
+      )}
+      {compact && isDone && <CheckCircle size={12} className="text-[#FB2C39] mt-1" />}
+    </button>
+  );
+}
+
+/** Mesociclo: tabla en pantalla ancha y resumen desplegable por semana en el resto. */
 export function MesoMonthCalendar({
   mesoWeeks,
-  accentColor,
+  planStartDate,
   activeSessionId,
   onSelectSession,
   completedByDay,
   completedWeek = 1,
   currentWeek = 1,
   weekRangeLabels = {},
+  sessionsPerWeek,
 }) {
+  const [openWeeks, setOpenWeeks] = useState(() => new Set([currentWeek]));
+  const [focused, setFocused] = useState(currentWeek);
+  const weeks = mesoWeeks || [];
+  const weekCount = weeks.length || 4;
   const sessionByWeekDay = {};
-  (mesoWeeks || []).forEach((week) => {
-    week.sessions.forEach((s) => {
+  weeks.forEach((week) => {
+    (week.sessions || []).forEach((s) => {
       sessionByWeekDay[`${week.week}_${s.dayName}`] = { ...s, weekNumber: week.week };
     });
   });
-
-  const totalSessions = (mesoWeeks || []).reduce((a, w) => a + w.sessions.length, 0);
+  const totalSessions = weeks.reduce((sum, week) => sum + (week.sessions?.length || 0), 0);
+  const perWeek = sessionsPerWeek || (weeks[0]?.sessions?.length || 0);
   const doneDays = completedByDay instanceof Set
     ? completedByDay
     : new Set(Array.isArray(completedByDay) ? completedByDay : []);
+  const firstWeek = planWeekRange(planStartDate, 0);
+  const lastWeek = planWeekRange(planStartDate, Math.max(0, weekCount - 1));
+  const cycleLabel = formatPlanDateRange(firstWeek.start, lastWeek.end) || weekRangeLabels[1] || "";
+
+  const selectWeek = (weekNumber) => {
+    setFocused(weekNumber);
+    setOpenWeeks((prev) => {
+      const next = new Set(prev);
+      next.add(weekNumber);
+      return next;
+    });
+  };
+
+  const toggleWeek = (weekNumber) => {
+    setFocused(weekNumber);
+    setOpenWeeks((prev) => {
+      const next = new Set(prev);
+      if (next.has(weekNumber)) next.delete(weekNumber);
+      else next.add(weekNumber);
+      return next;
+    });
+  };
 
   return (
-    <div className="bg-white border border-depro-border rounded-2xl p-3 sm:p-4 shadow-card">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wide text-depro-gray">Calendario mensual</div>
-          <div className="text-sm font-black text-depro-dark">4 semanas · mismas sesiones cada semana</div>
-        </div>
-        <div className="text-xs font-bold text-depro-gray bg-depro-gray-light px-3 py-1.5 rounded-lg self-start">
-          {totalSessions} sesiones
-        </div>
-      </div>
-
-      <div className="overflow-x-auto -mx-1 px-1">
-        <div className="min-w-[560px]">
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {WEEK_DAYS.map((day) => (
-          <div key={day} className="text-center text-[10px] font-bold uppercase text-depro-gray py-1">
-            {day.slice(0, 3)}
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-card">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 rounded-xl bg-[#FFF1F2] text-[#FB2C39] inline-flex items-center justify-center shrink-0"><Layers size={18} /></span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Mesociclo</p>
+              <p className="text-lg font-black text-neutral-900">{weekCount} semanas</p>
+            </div>
           </div>
-        ))}
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 rounded-xl bg-[#FFF1F2] text-[#FB2C39] inline-flex items-center justify-center shrink-0"><Calendar size={18} /></span>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-neutral-900 break-words">{cycleLabel || "4 semanas"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 rounded-xl bg-[#FFF1F2] text-[#FB2C39] inline-flex items-center justify-center shrink-0"><Dumbbell size={18} /></span>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-neutral-900">{totalSessions} sesiones</p>
+              {perWeek > 0 && <p className="text-[11px] text-neutral-500">{perWeek} por semana</p>}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-3">
-        {(mesoWeeks || []).map((week) => {
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="inline-flex rounded-full bg-neutral-100 p-1 self-start">
+          {weeks.map((week) => (
+            <button
+              key={week.week}
+              type="button"
+              onClick={() => selectWeek(week.week)}
+              className={`w-9 h-9 rounded-full text-sm font-black ${
+                focused === week.week ? "bg-[#FB2C39] text-white" : "text-neutral-600"
+              }`}
+            >
+              {week.week}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs font-bold text-neutral-500">Semana {focused} de {weekCount}</p>
+      </div>
+
+      <div className="xl:hidden space-y-3">
+        {weeks.map((week) => {
+          const open = openWeeks.has(week.week);
+          const range = weekRangeFromStart(planStartDate, week.week, weekRangeLabels[week.week] || week.rangeLabel);
           const isCurrent = week.week === currentWeek;
-          const rangeLabel = weekRangeLabels[week.week] || week.rangeLabel;
           return (
-          <div
-            key={week.week}
-            className={isCurrent ? "rounded-xl ring-2 ring-depro-blue/40 ring-offset-2 p-1 -m-1" : undefined}
-          >
-            <div className={`text-[10px] font-bold uppercase tracking-wide mb-1.5 px-0.5 flex items-center gap-2 flex-wrap ${
-              isCurrent ? "text-depro-blue" : "text-depro-gray"
-            }`}>
-              <span>{week.label}{rangeLabel ? ` · ${rangeLabel}` : ""}</span>
-              {isCurrent && (
-                <span className="normal-case tracking-normal text-[9px] font-black px-2 py-0.5 rounded-full bg-depro-blue text-white">
-                  Semana actual
+            <div key={week.week} id={`meso-week-${week.week}`} className="rounded-2xl border border-neutral-200 bg-white overflow-hidden shadow-card">
+              <button
+                type="button"
+                onClick={() => toggleWeek(week.week)}
+                aria-expanded={open}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left"
+              >
+                <span className={`w-1.5 self-stretch rounded-full ${isCurrent || focused === week.week ? "bg-[#FB2C39]" : "bg-neutral-200"}`} />
+                <span className="flex-1 min-w-0">
+                  <span className="block font-black text-neutral-900">{week.label || `Semana ${week.week}`}</span>
+                  <span className="block text-xs text-neutral-500 break-words">
+                    {range.label} · {week.sessions?.length || 0} sesiones
+                    {isCurrent ? " · semana actual" : ""}
+                  </span>
                 </span>
+                <ChevronDown size={18} className={`text-neutral-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+              </button>
+              {open && (
+                <div className="px-3 pb-3 space-y-2">
+                  {(range.days || []).map(({ day, dateLabel }) => {
+                    const session = sessionByWeekDay[`${week.week}_${day}`];
+                    return (
+                      <MesoDayButton
+                        key={`${week.week}_${day}`}
+                        session={session}
+                        day={day}
+                        dateLabel={dateLabel}
+                        isDone={Boolean(session) && week.week === completedWeek && doneDays.has(day)}
+                        isActive={Boolean(session) && activeSessionId === session.id}
+                        onSelectSession={onSelectSession}
+                      />
+                    );
+                  })}
+                </div>
               )}
             </div>
-            <div className="grid grid-cols-7 gap-1.5">
-              {WEEK_DAYS.map((day) => {
-                const session = sessionByWeekDay[`${week.week}_${day}`];
-                const isActive = session && activeSessionId === session.id;
-                const isDone = session && week.week === completedWeek && doneDays.has(day);
-                const shortTitle = session?.title?.split(" - ")?.[0]?.slice(0, 12) || session?.type?.slice(0, 10);
-
-                return (
-                  <button
-                    key={`${week.week}_${day}`}
-                    type="button"
-                    disabled={!session}
-                    onClick={() => session && onSelectSession(session)}
-                    className={`min-h-[68px] sm:min-h-[80px] rounded-xl border p-1.5 sm:p-2 text-left transition-all ${
-                      !session
-                        ? "bg-depro-gray-light/50 border-depro-border/60 cursor-default opacity-50"
-                        : isActive
-                          ? "bg-depro-blue border-depro-blue text-white shadow-md"
-                          : isDone
-                            ? "bg-green-50 border-green-300 hover:border-green-500"
-                            : "bg-white border-depro-border hover:border-depro-blue hover:shadow-sm"
-                    }`}
-                  >
-                    {session ? (
-                      <>
-                        <div className={`text-[9px] font-bold leading-tight line-clamp-2 ${
-                          isActive ? "text-white" : isDone ? "text-green-800" : "text-depro-dark"
-                        }`}>
-                          {shortTitle}
-                        </div>
-                        <div className={`text-[8px] mt-1 flex items-center gap-0.5 ${
-                          isActive ? "text-white/70" : isDone ? "text-green-600" : "text-depro-gray"
-                        }`}>
-                          {isDone && !isActive && <CheckCircle size={9} className="shrink-0" />}
-                          {session.duration}
-                        </div>
-                      </>
-                    ) : (
-                      <span className="text-[9px] text-depro-gray">—</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
           );
         })}
       </div>
-        </div>
+
+      <div className="hidden xl:block rounded-2xl border border-neutral-200 bg-white shadow-card overflow-hidden">
+        <table className="w-full table-fixed">
+          <thead>
+            <tr className="text-[11px] uppercase tracking-wide text-neutral-400">
+              <th className="w-[16%] px-3 py-3 text-left font-bold">Semana</th>
+              {(firstWeek.days || []).map(({ day }) => (
+                <th key={day} className="px-1.5 py-3 text-center font-bold">{day.slice(0, 3)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {weeks.map((week) => {
+              const range = weekRangeFromStart(planStartDate, week.week, weekRangeLabels[week.week] || week.rangeLabel);
+              const marked = week.week === focused || week.week === currentWeek;
+              return (
+                <tr key={week.week} className="border-t border-neutral-100 align-top">
+                  <td className="p-2">
+                    <div className={`rounded-xl px-3 py-3 h-full ${marked ? "bg-[#FB2C39] text-white" : "bg-neutral-50 text-neutral-900"}`}>
+                      <p className="text-sm font-black leading-tight break-words">{week.label || `Semana ${week.week}`}</p>
+                      <p className={`text-[11px] mt-1 break-words ${marked ? "text-white/80" : "text-neutral-500"}`}>{range.label}</p>
+                    </div>
+                  </td>
+                  {(range.days || []).map(({ day, dateLabel }) => {
+                    const session = sessionByWeekDay[`${week.week}_${day}`];
+                    return (
+                      <td key={`${week.week}_${day}`} className="p-1.5">
+                        <MesoDayButton
+                          session={session}
+                          day={day}
+                          dateLabel={dateLabel}
+                          isDone={Boolean(session) && week.week === completedWeek && doneDays.has(day)}
+                          isActive={Boolean(session) && activeSessionId === session.id}
+                          onSelectSession={onSelectSession}
+                          compact
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
