@@ -5,6 +5,7 @@ export const META_CLUB_IDS = [
   "CATALOG_OVERRIDES",
   "GLOBAL_CLUB_WARMUPS",
   "GLOBAL_CLUB_TASKS",
+  "GLOBAL_TEMPLATES",
 ];
 
 export function isMetaClubId(id) {
@@ -28,6 +29,10 @@ export function buildMetaClubPayload(club = {}, detail = null) {
     payload.warmups = Array.isArray(merged.warmups) ? merged.warmups : [];
   } else if (id === "GLOBAL_CLUB_TASKS") {
     payload.tasks = Array.isArray(merged.tasks) ? merged.tasks : [];
+  } else if (id === "GLOBAL_TEMPLATES") {
+    payload.overrides = merged.overrides && typeof merged.overrides === "object"
+      ? merged.overrides
+      : {};
   }
   return payload;
 }

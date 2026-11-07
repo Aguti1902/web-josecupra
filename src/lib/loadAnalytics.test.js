@@ -10,6 +10,10 @@ import {
   classifyTimeHrImprovement,
   getFuerzaExerciseProgress,
   getTimeHrExerciseProgress,
+  estimate1RM,
+  listLoggedExercises,
+  getExerciseProgressDetail,
+  getWeeklyLoadControl,
 } from "./loadAnalytics.js";
 import { loadLogsKey } from "./loadLogs.js";
 
@@ -127,5 +131,85 @@ describe("loadAnalytics — mejoras prácticas", () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0].verdict, "misma_eficiencia");
     assert.equal(rows[0].tone, "positive");
+  });
+
+  it("estimate1RM usa Epley", () => {
+    assert.equal(estimate1RM(80, 1), 80);
+    assert.equal(estimate1RM(80, 6), 96);
+    assert.equal(estimate1RM(0, 6), null);
+  });
+
+  it("getExerciseProgressDetail calcula última carga, récord y 1RM", () => {
+    seedLogs([
+      {
+        id: "a",
+        exerciseName: "Press banca con barra",
+        tipoRegistro: "fuerza",
+        recordedAt: "2026-10-12T10:00:00Z",
+        series: [{ weight: "65", reps: "6" }, { weight: "65", reps: "6" }, { weight: "65", reps: "6" }, { weight: "65", reps: "6" }],
+      },
+      {
+        id: "b",
+        exerciseName: "Press banca con barra",
+        tipoRegistro: "fuerza",
+        recordedAt: "2026-10-19T10:00:00Z",
+        series: [{ weight: "70", reps: "6" }, { weight: "70", reps: "6" }, { weight: "70", reps: "6" }, { weight: "70", reps: "6" }],
+      },
+      {
+        id: "c",
+        exerciseName: "Press banca con barra",
+        tipoRegistro: "fuerza",
+        recordedAt: "2026-10-26T10:00:00Z",
+        series: [{ weight: "75", reps: "6" }, { weight: "75", reps: "6" }, { weight: "75", reps: "6" }, { weight: "75", reps: "6" }],
+      },
+      {
+        id: "d",
+        exerciseName: "Press banca con barra",
+        tipoRegistro: "fuerza",
+        recordedAt: "2026-11-02T10:00:00Z",
+        series: [{ weight: "80", reps: "6" }, { weight: "80", reps: "6" }, { weight: "80", reps: "6" }, { weight: "80", reps: "6" }],
+      },
+    ]);
+    const names = listLoggedExercises(USER);
+    assert.equal(names[0].name, "Press banca con barra");
+    const detail = getExerciseProgressDetail(USER, "Press banca con barra");
+    assert.equal(detail.last.maxWeight, 80);
+    assert.equal(detail.prev.maxWeight, 75);
+    assert.equal(detail.deltaWeight, 5);
+    assert.equal(detail.record.maxWeight, 80);
+    assert.equal(detail.epley, 96);
+    assert.equal(detail.sessions.length, 4);
+  });
+
+  it("getWeeklyLoadControl calcula ACWR descriptivo con ≥3 semanas", () => {
+    const mondayOf = (iso) => {
+      const d = new Date(`${iso}T12:00:00`);
+      const day = d.getDay() || 7;
+      d.setDate(d.getDate() - day + 1);
+      return d.toISOString().slice(0, 10);
+    };
+    const addDays = (iso, days) => {
+      const d = new Date(`${iso}T12:00:00`);
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0, 10);
+    };
+    const thisMon = mondayOf(new Date().toISOString().slice(0, 10));
+    const weeks = [3, 2, 1, 0].map((i) => addDays(thisMon, -7 * i));
+    const loads = [2000, 2500, 3000, 2400];
+    seedLogs(weeks.map((week, i) => ({
+      id: `w${i}`,
+      exerciseName: "Sentadilla",
+      tipoRegistro: "fuerza",
+      sessionId: `s${i}`,
+      recordedAt: `${week}T10:00:00.000Z`,
+      series: [{ weight: String(loads[i]), reps: "1" }],
+      rpe: "7",
+      duration: "60",
+    })));
+    const control = getWeeklyLoadControl(USER, { weeks: 4 });
+    assert.equal(control.current.units, 2400);
+    assert.ok(control.acwr != null);
+    assert.equal(control.acwrBand.label, "Óptima");
+    assert.ok(control.distribution.some((d) => d.key === "fuerza" && d.units > 0));
   });
 });

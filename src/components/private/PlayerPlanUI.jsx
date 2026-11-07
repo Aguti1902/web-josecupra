@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft, CheckCircle, Clock, Dumbbell, FileText, Flame, Gauge, Info,
-  Layers, Pause, Repeat2, Target, Video, Wind, X, RefreshCw,
+  Layers, Pause, Repeat2, Target, Video, Wind, Play, Trophy, TrendingUp, RefreshCw,
 } from "lucide-react";
 import { getSessionBlocks, getNonEmptyBlocks, getTodayName, WEEK_DAYS, blockDisplayLabel, blockNavId } from "../../lib/sessionBlocks";
 import { prefetchCatalogMedia, exerciseYouTubeId } from "../../lib/catalogMedia";
+import { youtubeThumbUrl } from "../../lib/youtube";
 import { saveLoadLog, findLatestLoadLog } from "../../lib/loadLogs";
 import {
   loadFieldsForExercise,
@@ -12,10 +14,12 @@ import {
   loadLoggingMode,
   getTipoRegistro,
   isLoadRegistrable,
+  exerciseNeedsWeight,
+  getExerciseProgressDetail,
+  estimate1RM,
 } from "../../lib/loadAnalytics";
 import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
 import { hasFeatureAccess } from "../../lib/subscription";
-import ExerciseLibraryPicker from "../admin/ExerciseLibraryPicker";
 
 const BLOCK_CONFIG = {
   calentamiento:  { label: "Calentamiento",     Icon: Flame,    color: "#F59E0B" },
@@ -24,14 +28,6 @@ const BLOCK_CONFIG = {
   core:           { label: "Core",              Icon: Gauge,    color: "#EC4899" },
   vuelta_calma:   { label: "Vuelta a la calma", Icon: Wind,     color: "#10B981" },
 };
-
-function lum(hex) {
-  try {
-    const h = (hex || "#000").replace("#", "");
-    return (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) / 255;
-  } catch { return 0; }
-}
-function contrastText(hex) { return lum(hex) > 0.55 ? "#111827" : "#ffffff"; }
 
 function ConditionPill({ Icon, label, color = "#6B7280" }) {
   if (!label) return null;
@@ -55,7 +51,7 @@ function isBodyweightExercise(exercise) {
   return !list.length || list.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno|campo/.test(m));
 }
 
-function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, onPickExercise, canSwap, swapTooltip }) {
+function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap, swapTooltip, onLogged }) {
   const ytId = exerciseYouTubeId(exercise);
   const typedExercise = {
     ...exercise,
@@ -67,10 +63,18 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
     },
   };
   const tipoRegistro = getTipoRegistro(typedExercise);
-  // El registro depende del ejercicio/bloque, no solo del objetivo del cuestionario
+  const blockKind = String(blockType || "").toLowerCase();
+  const isSupportBlock = /calent|core|vuelta/.test(blockKind);
+  // El registro depende del ejercicio/bloque. Si hay series/reps o es un básico, se puede anotar.
   const showLogging = blockAllowsLoadLogging(blockType)
-    && isLoadRegistrable(typedExercise)
-    && (blockType === "principal" || blockType === "complementario");
+    && !isSupportBlock
+    && (
+      isLoadRegistrable(typedExercise)
+      || exerciseNeedsWeight(typedExercise)
+      || blockKind === "principal"
+      || blockKind === "complementario"
+      || Boolean(exercise.sets || exercise.reps || exercise.load || exercise.weight || exercise.peso)
+    );
   const mode = loadLoggingMode(objective, typedExercise);
   const fields = loadFieldsForExercise(typedExercise, objective).filter((f) => f !== "completed");
   const bodyweight = isBodyweightExercise(exercise);
@@ -81,7 +85,12 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
   const [loadDraft, setLoadDraft] = useState({});
   const [loadSaved, setLoadSaved] = useState(false);
   const [loadNotice, setLoadNotice] = useState("");
-  const [showLibraryPicker, setShowLibraryPicker] = useState(false);
+  const [panelTab, setPanelTab] = useState("registro");
+  const [playing, setPlaying] = useState(false);
+  const progression = useMemo(
+    () => getExerciseProgressDetail(user?.id, exercise.name || exercise.nombre),
+    [user?.id, exercise.name, exercise.nombre],
+  );
 
   useEffect(() => {
     const prev = findLatestLoadLog(user?.id, {
@@ -150,6 +159,7 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
     saveLoadLog(user?.id, payload);
     setLoadSaved(true);
     setLoadNotice("");
+    onLogged?.(exercise.id);
   };
 
   const fieldLabels = {
@@ -166,302 +176,319 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
     notes: "Observaciones",
   };
   const loadPrescription = exercise.load || exercise.weight || exercise.peso || null;
+  const filledSeries = series.filter((s) => s.weight || s.reps);
+  const liveMax = filledSeries.reduce((best, s) => {
+    const w = parseFloat(String(s.weight).replace(",", "."));
+    return Number.isFinite(w) && (best == null || w > best) ? w : best;
+  }, null);
+  const live1rm = (() => {
+    const best = filledSeries
+      .map((s) => estimate1RM(parseFloat(String(s.weight).replace(",", ".")), parseFloat(String(s.reps).replace(",", "."))))
+      .filter((n) => n != null);
+    return best.length ? Math.max(...best) : progression?.epley;
+  })();
+  const sameSession = Boolean(
+    progression?.last?.log?.sessionId
+    && sessionMeta?.sessionId
+    && String(progression.last.log.sessionId) === String(sessionMeta.sessionId),
+  );
+  const previousSession = sameSession ? progression?.prev : progression?.last;
+  const liveDelta = liveMax != null && previousSession?.maxWeight != null
+    ? Math.round((liveMax - previousSession.maxWeight) * 10) / 10
+    : (sameSession ? progression?.deltaWeight : null);
+  const muscle = exercise.etiquetas?.grupo_principal || exercise.grupo || "";
+  const segmento = exercise.etiquetas?.segmento || "";
+
+  const handleClose = () => {
+    if (!showLogging) onLogged?.(exercise.id);
+    onClose();
+  };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white border border-depro-border rounded-3xl p-6 max-w-lg w-full shadow-card-hover animate-slide-up max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 text-depro-gray hover:text-depro-dark transition-colors p-1">
-          <X size={20} />
+    <div className="fixed inset-0 z-[60] bg-white flex flex-col">
+      <header className="flex-shrink-0 border-b border-depro-border px-3 py-2.5 flex items-center gap-2">
+        <button type="button" onClick={handleClose} className="w-9 h-9 rounded-xl border border-depro-border flex items-center justify-center text-depro-gray">
+          <ArrowLeft size={16} />
         </button>
-        <h3 className="text-xl font-black text-depro-dark mb-1">{exercise.name}</h3>
-        <div className="flex flex-wrap items-center gap-2 mb-5">
-          <ConditionPill Icon={Clock} label={exercise.duration} color={accent} />
-          {exercise.sets && <ConditionPill Icon={Gauge} label={`${exercise.sets} series`} />}
-          {exercise.reps && <ConditionPill Icon={Repeat2} label={exercise.reps} />}
-          {loadPrescription && <ConditionPill Icon={Dumbbell} label={`Carga: ${loadPrescription}`} color={accent} />}
-          {exercise.rest && <ConditionPill Icon={Pause} label={`Descanso: ${exercise.rest}`} />}
+        <div className="min-w-0 flex-1">
+          <h3 className="font-black text-depro-dark truncate text-base">{exercise.name || exercise.nombre}</h3>
+          <p className="text-[11px] text-depro-gray truncate">
+            {[muscle, segmento?.replace("_", " ")].filter(Boolean).join(" · ") || "Ejercicio"}
+          </p>
         </div>
-        {ytId ? (
-          <div className="rounded-2xl overflow-hidden mb-5 border border-depro-border">
+        {exercise.slotConstraints?.rol === "basico" || /b[aá]sico/i.test(exercise.rol || "") ? (
+          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-depro-red-light text-depro-red">Básico</span>
+        ) : null}
+      </header>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="relative bg-black">
+          {playing && ytId ? (
             <iframe
-              src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`}
+              src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1&autoplay=1`}
               title={exercise.name}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               className="w-full aspect-video"
             />
-          </div>
-        ) : (
-          <div className="aspect-video bg-depro-gray-light rounded-2xl mb-5 flex items-center justify-center border border-dashed border-depro-border">
-            <div className="text-center">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: accent + "15" }}>
-                <Video size={24} style={{ color: accent }} className="opacity-50" />
-              </div>
-              <p className="text-xs text-depro-gray">Sin vídeo disponible</p>
-            </div>
-          </div>
-        )}
-        {exercise.description && (
-          <p className="text-depro-gray leading-relaxed mb-5 text-sm">{String(exercise.description).replace(/sin_material/g, "sin material")}</p>
-        )}
-        {exercise.tips && (
-          <div className="rounded-xl p-4 border mb-4" style={{ backgroundColor: accent + "08", borderColor: accent + "20" }}>
-            <div className="font-bold text-depro-dark mb-3 flex items-center gap-1.5 text-sm">
-              <Target size={14} style={{ color: accent }} /> Consejos técnicos
-            </div>
-            {Array.isArray(exercise.tips) ? (
-              <ul className="space-y-1.5">
-                {exercise.tips.map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-depro-gray">
-                    <span className="w-4 h-4 rounded flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5"
-                      style={{ backgroundColor: accent + "20", color: accent }}>{i + 1}</span>
-                    <span className="leading-relaxed">{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-xs text-depro-gray leading-relaxed">{exercise.tips}</p>
-            )}
-          </div>
-        )}
+          ) : (
+            <button type="button" onClick={() => ytId && setPlaying(true)} className="w-full aspect-video relative block">
+              {ytId ? (
+                <img src={youtubeThumbUrl(ytId, "hqdefault")} alt="" className="w-full h-full object-cover opacity-90" />
+              ) : (
+                <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                  <Video size={28} className="text-white/50" />
+                </div>
+              )}
+              {ytId && (
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center">
+                    <Play size={22} className="text-depro-red ml-0.5" fill="currentColor" />
+                  </span>
+                </span>
+              )}
+            </button>
+          )}
+        </div>
 
-        {showLogging && (
-          <div className="rounded-xl border border-depro-border p-4 mb-4 space-y-3">
-            <div className="text-sm font-bold text-depro-dark">
-              {mode === "fuerza_series"
-                ? "Registro de fuerza"
-                : mode === "velocidad"
-                  ? "Registro de velocidad"
-                  : "Registro de resistencia"}
-            </div>
-            <p className="text-[11px] text-depro-gray -mt-1">
-              {mode === "fuerza_series"
-                ? bodyweight
-                  ? "Peso corporal: anota repeticiones (y peso si usas lastre). Máximo 4 series."
-                  : "Anota peso (kg) y repeticiones de cada serie. Máximo 4 series."
-                : mode === "velocidad"
-                  ? "Anota el tiempo y la frecuencia cardiaca media del estímulo."
-                  : "Anota distancia, tiempo y datos del estímulo."}
-            </p>
+        <div className="grid grid-cols-3 border-b border-depro-border">
+          {[
+            { id: "registro", label: "Registro", Icon: FileText },
+            { id: "tecnica", label: "Técnica", Icon: Target },
+            { id: "info", label: "Información", Icon: Info },
+          ].map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setPanelTab(t.id)}
+              className={`py-3 text-xs font-bold inline-flex items-center justify-center gap-1 border-b-2 ${
+                panelTab === t.id ? "border-depro-red text-depro-red" : "border-transparent text-depro-gray"
+              }`}
+            >
+              <t.Icon size={13} /> {t.label}
+            </button>
+          ))}
+        </div>
 
-            {mode === "fuerza_series" ? (
-              <div className="space-y-2">
-                {series.map((row, idx) => (
-                  <div key={idx} className="grid grid-cols-3 gap-2 items-end">
-                    <p className="text-[10px] font-bold text-depro-gray uppercase col-span-3">Serie {idx + 1}</p>
-                    <div>
-                      <label className="text-[10px] font-bold text-depro-gray uppercase">{fieldLabels.weight}</label>
-                      <input
-                        className="admin-input w-full text-xs mt-1"
-                        inputMode="decimal"
-                        placeholder={bodyweight ? "PC / kg" : "kg"}
-                        value={row.weight}
-                        onChange={(e) => setSeries((prev) => prev.map((s, i) => (i === idx ? { ...s, weight: e.target.value } : s)))}
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="text-[10px] font-bold text-depro-gray uppercase">Repeticiones</label>
-                      <input
-                        className="admin-input w-full text-xs mt-1"
-                        inputMode="numeric"
-                        placeholder="8"
-                        value={row.reps}
-                        onChange={(e) => setSeries((prev) => prev.map((s, i) => (i === idx ? { ...s, reps: e.target.value } : s)))}
-                      />
-                    </div>
+        <div className="p-4">
+          {panelTab === "tecnica" && (
+            <div className="space-y-3">
+              {exercise.description && <p className="text-sm text-depro-gray leading-relaxed">{String(exercise.description).replace(/sin_material/g, "sin material")}</p>}
+              {exercise.tips && (
+                <div className="rounded-xl p-4 border" style={{ backgroundColor: accent + "08", borderColor: accent + "20" }}>
+                  <div className="font-bold text-depro-dark mb-3 flex items-center gap-1.5 text-sm">
+                    <Target size={14} style={{ color: accent }} /> Consejos técnicos
                   </div>
-                ))}
-                <div>
-                  <label className="text-[10px] font-bold text-depro-gray uppercase">Observaciones</label>
-                  <textarea
-                    className="admin-input w-full text-xs mt-1"
-                    rows={2}
-                    value={loadDraft.notes || ""}
-                    onChange={(e) => setLoadDraft({ ...loadDraft, notes: e.target.value })}
-                  />
+                  {Array.isArray(exercise.tips) ? (
+                    <ul className="space-y-1.5">
+                      {exercise.tips.map((tip, i) => (
+                        <li key={i} className="flex items-start gap-2 text-xs text-depro-gray">
+                          <span className="w-4 h-4 rounded flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5"
+                            style={{ backgroundColor: accent + "20", color: accent }}>{i + 1}</span>
+                          <span className="leading-relaxed">{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-depro-gray leading-relaxed">{exercise.tips}</p>
+                  )}
                 </div>
+              )}
+              {!exercise.description && !exercise.tips && <p className="text-sm text-depro-gray">Sin consejos técnicos para este ejercicio.</p>}
+            </div>
+          )}
+
+          {panelTab === "info" && (
+            <div className="space-y-2 text-sm">
+              <div className="flex flex-wrap gap-2">
+                {exercise.sets && <ConditionPill Icon={Gauge} label={`${exercise.sets} series`} />}
+                {exercise.reps && <ConditionPill Icon={Repeat2} label={exercise.reps} />}
+                {loadPrescription && <ConditionPill Icon={Dumbbell} label={`Carga: ${loadPrescription}`} color={accent} />}
+                {exercise.rest && <ConditionPill Icon={Pause} label={`Descanso: ${exercise.rest}`} />}
+                {exercise.duration && <ConditionPill Icon={Clock} label={exercise.duration} color={accent} />}
               </div>
-            ) : mode === "velocidad" ? (
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] font-bold text-depro-gray uppercase">Tiempo</label>
-                  <input
-                    className="admin-input w-full text-xs mt-1"
-                    placeholder="1.85 s / 12.4 s"
-                    value={loadDraft.time || ""}
-                    onChange={(e) => setLoadDraft({ ...loadDraft, time: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-depro-gray uppercase">FC media (ppm)</label>
-                  <input
-                    className="admin-input w-full text-xs mt-1"
-                    inputMode="numeric"
-                    placeholder="165"
-                    value={loadDraft.heartRate || ""}
-                    onChange={(e) => setLoadDraft({ ...loadDraft, heartRate: e.target.value })}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-[10px] font-bold text-depro-gray uppercase">Observaciones</label>
-                  <textarea
-                    className="admin-input w-full text-xs mt-1"
-                    rows={2}
-                    value={loadDraft.notes || ""}
-                    onChange={(e) => setLoadDraft({ ...loadDraft, notes: e.target.value })}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {fields.map((field) => (
-                  <div key={field} className={field === "notes" ? "col-span-2" : ""}>
-                    <label className="text-[10px] font-bold text-depro-gray uppercase">{fieldLabels[field]}</label>
-                    {field === "notes" ? (
-                      <textarea
-                        className="admin-input w-full text-xs mt-1"
-                        rows={2}
-                        value={loadDraft[field] || ""}
-                        onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })}
-                      />
-                    ) : (
-                      <input
-                        className="admin-input w-full text-xs mt-1"
-                        value={loadDraft[field] || ""}
-                        onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })}
-                      />
+              {exercise.description && <p className="text-depro-gray leading-relaxed">{String(exercise.description).replace(/sin_material/g, "sin material")}</p>}
+            </div>
+          )}
+
+          {panelTab === "registro" && showLogging && (
+            <div className="space-y-4">
+              {mode === "fuerza_series" ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-black text-depro-dark">Registro de series</h4>
+                    {progression?.sessions?.length > 0 && (
+                      <Link to="/dashboard/mis-cargas" className="text-[11px] font-bold text-depro-red inline-flex items-center gap-1">
+                        <TrendingUp size={12} /> Ver progresión
+                      </Link>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
-
-            {loadNotice && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">{loadNotice}</p>}
-            {loadSaved && <p className="text-xs text-green-700">Registro guardado para este entrenamiento.</p>}
-            <button
-              type="button"
-              onClick={handleSaveLoad}
-              className="w-full py-2.5 rounded-xl text-sm font-bold border border-depro-border hover:border-depro-blue hover:text-depro-blue transition-colors"
-            >
-              Guardar registro
-            </button>
-          </div>
-        )}
-
-        {showLibraryPicker && onPickExercise && (
-          <div className="mb-4">
-            <ExerciseLibraryPicker
-              onClose={() => setShowLibraryPicker(false)}
-              onSelect={(chosen) => {
-                onPickExercise(exercise.id, chosen);
-                setShowLibraryPicker(false);
-                onClose();
-              }}
-            />
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row gap-2">
-          {onSwap && (
-            <button
-              type="button"
-              disabled={!canSwap}
-              title={swapTooltip || (canSwap
-                ? "Recomendamos seguir el ejercicio indicado. Refresca solo si no puedes hacerlo. El cambio se aplica a las 4 semanas."
-                : "Sin refrescos disponibles este mesociclo")}
-              onClick={() => { onSwap(exercise.id); onClose(); }}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-depro-border hover:border-depro-blue hover:text-depro-blue transition-all disabled:opacity-40"
-            >
-              <RefreshCw size={15} /> Cambiar ejercicio
-            </button>
+                  <div className="rounded-xl border border-depro-border overflow-hidden">
+                    <div className="grid grid-cols-[48px_1fr_1fr_36px] bg-slate-50 text-[10px] font-bold uppercase tracking-wide text-depro-gray px-3 py-2">
+                      <span>Serie</span>
+                      <span>Peso (kg)</span>
+                      <span>Repeticiones</span>
+                      <span />
+                    </div>
+                    {series.map((row, idx) => {
+                      const done = Boolean(row.weight || row.reps);
+                      return (
+                        <div key={idx} className="grid grid-cols-[48px_1fr_1fr_36px] items-center gap-2 px-3 py-2 border-t border-depro-border">
+                          <span className="text-sm font-black text-depro-dark">{idx + 1}</span>
+                          <input
+                            className="h-10 rounded-lg border border-depro-border text-center text-sm font-semibold"
+                            inputMode="decimal"
+                            placeholder={bodyweight ? "PC" : "80"}
+                            value={row.weight}
+                            onChange={(e) => setSeries((prev) => prev.map((s, i) => (i === idx ? { ...s, weight: e.target.value } : s)))}
+                          />
+                          <input
+                            className="h-10 rounded-lg border border-depro-border text-center text-sm font-semibold"
+                            inputMode="numeric"
+                            placeholder="6"
+                            value={row.reps}
+                            onChange={(e) => setSeries((prev) => prev.map((s, i) => (i === idx ? { ...s, reps: e.target.value } : s)))}
+                          />
+                          <span className={`w-6 h-6 rounded-full border flex items-center justify-center ${done ? "bg-emerald-500 border-emerald-500 text-white" : "border-slate-300 text-transparent"}`}>
+                            <CheckCircle size={14} />
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-xl bg-slate-50 p-2">
+                      <p className="text-[10px] text-depro-gray inline-flex items-center justify-center gap-1"><TrendingUp size={10} /> Última sesión</p>
+                      <p className="text-sm font-black text-depro-dark">
+                        {previousSession?.maxWeight != null ? `${previousSession.maxWeight} kg × ${previousSession.repsAtMax || ""}` : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-2">
+                      <p className="text-[10px] text-depro-gray">Progresión</p>
+                      <p className={`text-sm font-black ${liveDelta > 0 ? "text-emerald-600" : "text-depro-dark"}`}>
+                        {liveDelta != null ? `${liveDelta > 0 ? "+" : ""}${liveDelta} kg` : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-2">
+                      <p className="text-[10px] text-depro-gray inline-flex items-center justify-center gap-1"><Trophy size={10} /> RM estimado</p>
+                      <p className="text-sm font-black text-depro-dark">{live1rm != null ? `≈ ${live1rm} kg` : "—"}</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <h4 className="font-black text-depro-dark">
+                    {mode === "velocidad" ? "Registro de velocidad" : "Registro de resistencia"}
+                  </h4>
+                  {mode === "velocidad" ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-bold text-depro-gray uppercase">Tiempo</label>
+                        <input className="admin-input w-full text-xs mt-1" placeholder="1.85 s" value={loadDraft.time || ""} onChange={(e) => setLoadDraft({ ...loadDraft, time: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-depro-gray uppercase">FC media</label>
+                        <input className="admin-input w-full text-xs mt-1" inputMode="numeric" placeholder="165" value={loadDraft.heartRate || ""} onChange={(e) => setLoadDraft({ ...loadDraft, heartRate: e.target.value })} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {fields.map((field) => (
+                        <div key={field} className={field === "notes" ? "col-span-2" : ""}>
+                          <label className="text-[10px] font-bold text-depro-gray uppercase">{fieldLabels[field]}</label>
+                          {field === "notes" ? (
+                            <textarea className="admin-input w-full text-xs mt-1" rows={2} value={loadDraft[field] || ""} onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })} />
+                          ) : (
+                            <input className="admin-input w-full text-xs mt-1" value={loadDraft[field] || ""} onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {loadNotice && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">{loadNotice}</p>}
+              {loadSaved && <p className="text-xs text-green-700">Registro guardado para este entrenamiento.</p>}
+            </div>
           )}
-          {onPickExercise && (
-            <button
-              type="button"
-              title="Elegir cualquier ejercicio de la biblioteca"
-              onClick={() => setShowLibraryPicker((open) => !open)}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-depro-blue text-depro-blue hover:bg-depro-blue-light transition-all"
-            >
-              Seleccionar ejercicio
-            </button>
+
+          {panelTab === "registro" && !showLogging && (
+            <p className="text-sm text-depro-gray">Este bloque no registra carga. Revisa la técnica y continúa.</p>
           )}
-          <button
-            onClick={onClose}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-            style={{ backgroundColor: accent, color: contrastText(accent) }}
-          >
-            <CheckCircle size={15} /> Entendido
-          </button>
         </div>
       </div>
+
+      <footer className="flex-shrink-0 border-t border-depro-border bg-white p-3 space-y-2 safe-bottom">
+        {showLogging && (
+          <button
+            type="button"
+            onClick={handleSaveLoad}
+            className="w-full py-3 rounded-xl text-sm font-black text-white bg-depro-red inline-flex items-center justify-center gap-2"
+          >
+            <CheckCircle size={16} /> Guardar series
+          </button>
+        )}
+        {onSwap && (
+          <button
+            type="button"
+            disabled={!canSwap}
+            title={swapTooltip || (canSwap
+              ? "Refresca solo si no puedes hacer este ejercicio. El cambio se aplica a las 4 semanas."
+              : "El refresco de ejercicios está incluido en Premium o en el extra correspondiente.")}
+            onClick={() => { onSwap(exercise.id); onClose(); }}
+            className="w-full py-2.5 rounded-xl text-sm font-bold border border-depro-border text-depro-gray hover:border-depro-blue hover:text-depro-blue disabled:opacity-40 inline-flex items-center justify-center gap-2"
+          >
+            <RefreshCw size={14} /> Refrescar ejercicio
+          </button>
+        )}
+      </footer>
     </div>
   );
 }
 
-function BlockExerciseList({ exercises, accentColor, onSelect }) {
+function BlockExerciseList({ exercises, accentColor, onSelect, doneIds }) {
   if (!exercises?.length) return null;
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {exercises.map((ex, i) => {
         const ytId = exerciseYouTubeId(ex);
+        const done = doneIds?.has(ex.id);
+        const load = ex.load || ex.weight || ex.peso;
         return (
           <button key={ex.id || i} type="button" onClick={() => onSelect(ex)}
-            className="w-full flex items-center gap-3 p-3 rounded-xl bg-white hover:bg-depro-blue-light border border-depro-border hover:border-blue-100 transition-all text-left group">
-            {ytId ? (
-              <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt=""
-                className="w-14 h-10 rounded-lg object-cover border border-depro-border shrink-0" />
-            ) : (
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-black flex-shrink-0"
-                style={{ backgroundColor: accentColor + "15", color: accentColor }}>{i + 1}</div>
-            )}
+            className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-xl bg-white border text-left ${done ? "border-emerald-200 bg-emerald-50/40" : "border-depro-border"}`}>
+            <div className="relative shrink-0">
+              {ytId ? (
+                <img src={youtubeThumbUrl(ytId)} alt="" className="w-14 h-10 rounded-lg object-cover" />
+              ) : (
+                <div className="w-14 h-10 rounded-lg flex items-center justify-center text-xs font-black"
+                  style={{ backgroundColor: accentColor + "18", color: accentColor }}>{i + 1}</div>
+              )}
+              {ytId && (
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="w-5 h-5 rounded-full bg-black/55 text-white flex items-center justify-center">
+                    <Play size={9} fill="currentColor" />
+                  </span>
+                </span>
+              )}
+            </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-depro-dark">{ex.name}</div>
-              <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                {ex.duration && <ConditionPill Icon={Clock} label={ex.duration} color={accentColor} />}
-                {ex.sets && <ConditionPill Icon={Gauge} label={`${ex.sets} series`} />}
-                {ex.reps && <ConditionPill Icon={Repeat2} label={ex.reps} />}
-                {(ex.load || ex.weight || ex.peso) && (
-                  <ConditionPill Icon={Dumbbell} label={`Carga: ${ex.load || ex.weight || ex.peso}`} color={accentColor} />
-                )}
-                {ex.rest && <ConditionPill Icon={Pause} label={`Descanso: ${ex.rest}`} />}
+              <div className="text-sm font-bold text-depro-dark truncate">{ex.name || ex.nombre}</div>
+              <div className="text-[11px] text-depro-gray truncate">
+                {[
+                  ex.sets && ex.reps ? `${ex.sets} × ${ex.reps}` : ex.sets && `${ex.sets} series`,
+                  load,
+                  ex.rest && `Descanso: ${ex.rest}`,
+                ].filter(Boolean).join(" · ")}
               </div>
             </div>
-            <span className="text-[10px] font-bold text-depro-blue shrink-0 flex items-center gap-1">
-              <Info size={11} /> Ver
-            </span>
+            {done
+              ? <CheckCircle size={16} className="text-emerald-500 shrink-0" />
+              : <span className="text-depro-gray shrink-0">›</span>}
           </button>
         );
       })}
     </div>
-  );
-}
-
-function CompletionButton({ completion, onComplete, onUncomplete, accentColor }) {
-  const [animating, setAnimating] = useState(false);
-  const handleClick = () => {
-    if (completion === 100) return;
-    setAnimating(true);
-    setTimeout(() => { onComplete(); setAnimating(false); }, 700);
-  };
-  if (completion === 100) {
-    return (
-      <button
-        type="button"
-        onClick={onUncomplete}
-        className="w-full rounded-xl p-4 border border-green-200 bg-green-50 flex items-center justify-center gap-3 hover:bg-green-100 transition-colors"
-      >
-        <CheckCircle size={18} className="text-green-600" />
-        <span className="text-sm font-bold text-green-700">Sesión completada · Toca para desmarcar</span>
-      </button>
-    );
-  }
-  return (
-    <button type="button" onClick={handleClick} disabled={animating}
-      className="w-full rounded-xl py-3.5 font-bold text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-      style={{ backgroundColor: animating ? "#16A34A" : accentColor }}>
-      <CheckCircle size={15} /> {animating ? "Completando…" : "Marcar como completada"}
-    </button>
   );
 }
 
@@ -561,8 +588,6 @@ export function PlayerSessionFullscreen({
   user,
   objective,
   onSwapExercise,
-  onPickExercise,
-  filterParams,
   canSwap = true,
   swapMessage,
   swapTooltip,
@@ -572,6 +597,7 @@ export function PlayerSessionFullscreen({
   const [selectedEx, setSelectedEx] = useState(null);
   const isDone = session.status === "completed" || session.completion === 100;
   const [completion, setCompletion] = useState(isDone ? 100 : 0);
+  const [doneIds, setDoneIds] = useState(() => new Set());
   const [sessionRpe, setSessionRpe] = useState("");
   const [sessionRpeSaved, setSessionRpeSaved] = useState(false);
   const [sessionRpeNotice, setSessionRpeNotice] = useState("");
@@ -583,10 +609,18 @@ export function PlayerSessionFullscreen({
 
   useEffect(() => {
     setCompletion(isDone ? 100 : 0);
+    setDoneIds(new Set());
     setSessionRpe("");
     setSessionRpeSaved(false);
     setSessionRpeNotice("");
   }, [session.id, isDone]);
+
+  const bumpRpe = (delta) => {
+    const n = Number(sessionRpe) || 0;
+    const next = Math.min(10, Math.max(1, n + delta));
+    setSessionRpe(String(next));
+    setSessionRpeSaved(false);
+  };
 
   const handleSaveSessionRpe = () => {
     if (!sessionRpe) {
@@ -607,6 +641,8 @@ export function PlayerSessionFullscreen({
       objective: objective || session.type,
       tipoRegistro: "session_rpe",
       rpe: sessionRpe,
+      duration: session.duration || "",
+      time: session.duration || "",
       blockType: "session",
     });
     setSessionRpeSaved(true);
@@ -622,59 +658,41 @@ export function PlayerSessionFullscreen({
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       <header className="flex-shrink-0 border-b border-depro-border bg-white/95 backdrop-blur-sm safe-top">
-        <div className="flex items-center gap-3 px-4 py-3 max-w-3xl mx-auto w-full">
+        <div className="flex items-center gap-3 px-3 py-2.5 max-w-3xl mx-auto w-full">
           <button type="button" onClick={onClose}
-            className="w-10 h-10 rounded-xl border border-depro-border flex items-center justify-center text-depro-gray hover:text-depro-dark hover:border-depro-blue transition-colors">
-            <ArrowLeft size={18} />
+            className="w-9 h-9 rounded-xl border border-depro-border flex items-center justify-center text-depro-gray">
+            <ArrowLeft size={16} />
           </button>
           <div className="flex-1 min-w-0">
-            {dayLabel && (
-              <div className="text-[10px] font-bold uppercase tracking-wider text-depro-gray">{dayLabel}</div>
-            )}
-            <h1 className="font-black text-depro-dark text-lg truncate">{session.title}</h1>
-            <div className="flex flex-wrap gap-2 text-[11px] text-depro-gray mt-0.5">
-              <span>⏱ {session.duration}</span>
-              {session.type && <span>· {session.type}</span>}
-              <span>· {totalEx} ejercicios</span>
-            </div>
+            <h1 className="font-black text-depro-dark text-base truncate">{session.title}</h1>
+            <p className="text-[11px] text-depro-gray truncate">
+              {[dayLabel, "Sesión personalizada"].filter(Boolean).join(" · ")}
+            </p>
           </div>
-          {sessionNumber != null && (
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0"
-              style={{ backgroundColor: accentColor + "15", color: accentColor }}>
-              {sessionNumber}
-            </div>
-          )}
+        </div>
+        <div className="px-4 pb-2 max-w-3xl mx-auto w-full">
+          <div className="flex flex-wrap gap-3 text-[11px] font-semibold text-depro-gray mb-2">
+            <span className="inline-flex items-center gap-1"><Clock size={12} className="text-depro-red" /> {session.duration || "—"}</span>
+            {session.intensity && <span className="inline-flex items-center gap-1"><Flame size={12} className="text-depro-red" /> {session.intensity}</span>}
+            <span className="inline-flex items-center gap-1"><Dumbbell size={12} className="text-depro-red" /> {totalEx} ejercicios</span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-depro-gray mb-1">
+            <span>Progreso de la sesión</span>
+            <span>{doneIds.size} de {totalEx}</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-full bg-depro-red rounded-full transition-all" style={{ width: `${totalEx ? (doneIds.size / totalEx) * 100 : 0}%` }} />
+          </div>
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto w-full px-4 py-5 space-y-6">
-          {session.objective && (
-            <p className="text-sm text-depro-gray leading-relaxed bg-depro-gray-light rounded-xl p-4 border border-depro-border">
-              {session.objective}
-            </p>
-          )}
-
+        <div className="max-w-3xl mx-auto w-full px-3 py-3 space-y-3">
           {swapMessage && (
             <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-xl p-3 leading-relaxed">
               {swapMessage}
             </p>
           )}
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              { label: "Duración", value: session.duration || "—", Icon: Clock },
-              { label: "Tipo", value: session.type || "—", Icon: Layers },
-              { label: "Intensidad", value: session.intensity || "—", Icon: Flame },
-              { label: "Ejercicios", value: `${totalEx}`, Icon: Dumbbell },
-            ].map(({ label, value, Icon: MIcon }) => (
-              <div key={label} className="bg-depro-gray-light rounded-xl p-3 border border-depro-border">
-                <MIcon size={14} className="mb-1" style={{ color: accentColor }} />
-                <div className="text-[9px] font-bold text-depro-gray uppercase">{label}</div>
-                <div className="text-xs font-black text-depro-dark">{value}</div>
-              </div>
-            ))}
-          </div>
 
           {blocks.map((block, bi) => {
             const cfg = BLOCK_CONFIG[block.type] || { label: block.label, Icon: Layers, color: accentColor };
@@ -682,23 +700,20 @@ export function PlayerSessionFullscreen({
             const title = blockDisplayLabel(block) || cfg.label;
             const navId = blockNavId(block, bi);
             return (
-              <section key={navId} id={`block-${navId}`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center border"
-                    style={{ backgroundColor: cfg.color + "18", borderColor: cfg.color + "25" }}>
-                    <BIcon size={18} style={{ color: cfg.color }} />
-                  </div>
-                  <div>
-                    <h2 className="font-black text-depro-dark">{title}</h2>
-                    <p className="text-xs text-depro-gray">{block.exercises.length} ejercicios</p>
-                  </div>
+              <section key={navId} id={`block-${navId}`} className="rounded-2xl border border-rose-100 bg-white overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-rose-100 bg-rose-50">
+                  <BIcon size={14} className="text-depro-red" />
+                  <h2 className="font-black text-depro-dark text-sm flex-1">{title}</h2>
+                  <span className="text-[11px] text-depro-gray">{block.exercises.length} ejercicio{block.exercises.length === 1 ? "" : "s"}</span>
                 </div>
-                <BlockExerciseList
-                  exercises={block.exercises}
-                  accentColor={cfg.color}
-                  onSelect={(ex) => setSelectedEx({ ...ex, _blockType: block.type })}
-                />
-                {bi < blocks.length - 1 && <div className="h-px bg-depro-border mt-6" />}
+                <div className="p-2">
+                  <BlockExerciseList
+                    exercises={block.exercises}
+                    accentColor={cfg.color}
+                    doneIds={doneIds}
+                    onSelect={(ex) => setSelectedEx({ ...ex, _blockType: block.type })}
+                  />
+                </div>
               </section>
             );
           })}
@@ -711,12 +726,13 @@ export function PlayerSessionFullscreen({
         </div>
       </main>
 
-      <footer className="flex-shrink-0 border-t border-depro-border bg-white px-4 py-3 safe-bottom">
-        <div className="max-w-3xl mx-auto w-full space-y-2.5">
-          <div className="flex items-center gap-2 rounded-lg bg-depro-gray-light/80 px-2.5 py-1.5">
-            <span className="text-[11px] font-semibold text-depro-gray shrink-0">RPE sesión</span>
+      <footer className="flex-shrink-0 border-t border-depro-border bg-white px-3 py-2.5 safe-bottom">
+        <div className="max-w-3xl mx-auto w-full space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-depro-dark shrink-0">RPE sesión</span>
+            <button type="button" onClick={() => bumpRpe(-1)} className="w-8 h-8 rounded-lg border border-depro-border font-black text-depro-gray">−</button>
             <input
-              className="w-12 h-7 rounded-md border border-depro-border bg-white text-center text-xs font-bold text-depro-dark"
+              className="w-12 h-8 rounded-lg border border-depro-border bg-white text-center text-sm font-black text-depro-dark"
               inputMode="numeric"
               min={1}
               max={10}
@@ -725,22 +741,21 @@ export function PlayerSessionFullscreen({
               onChange={(e) => { setSessionRpe(e.target.value); setSessionRpeSaved(false); }}
               aria-label="RPE general de la sesión (1-10)"
             />
-            <span className="text-[10px] text-depro-gray hidden sm:inline">1–10</span>
+            <button type="button" onClick={() => bumpRpe(1)} className="w-8 h-8 rounded-lg border border-depro-border font-black text-depro-gray">+</button>
             <button
               type="button"
-              onClick={handleSaveSessionRpe}
-              className="ml-auto text-[11px] font-bold text-depro-blue hover:underline shrink-0"
+              onClick={handleComplete}
+              className="ml-auto flex-1 max-w-xs py-2.5 rounded-xl text-sm font-black text-white bg-depro-red inline-flex items-center justify-center gap-1.5"
             >
-              {sessionRpeSaved ? "Guardado" : "Guardar"}
+              <CheckCircle size={15} /> {completion === 100 ? "Completada" : "Finalizar entrenamiento"}
             </button>
           </div>
           {sessionRpeNotice && <p className="text-[11px] text-amber-700 px-0.5">{sessionRpeNotice}</p>}
-          <CompletionButton
-            completion={completion}
-            onComplete={handleComplete}
-            onUncomplete={() => { setCompletion(0); onUncomplete?.(); }}
-            accentColor={accentColor}
-          />
+          {completion === 100 && (
+            <button type="button" onClick={() => { setCompletion(0); onUncomplete?.(); }} className="w-full text-[11px] font-bold text-depro-gray">
+              Desmarcar sesión
+            </button>
+          )}
           {onDownloadPdf && (
             <button type="button" onClick={onDownloadPdf}
               className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-depro-border text-xs font-bold text-depro-gray hover:text-depro-blue hover:border-depro-blue transition-colors">
@@ -755,6 +770,7 @@ export function PlayerSessionFullscreen({
           exercise={selectedEx}
           blockType={selectedEx._blockType || "principal"}
           onClose={() => setSelectedEx(null)}
+          onLogged={(id) => setDoneIds((prev) => new Set([...prev, id]))}
           accent={accentColor}
           user={user}
           objective={objective}
@@ -767,8 +783,6 @@ export function PlayerSessionFullscreen({
             planStartDate: session.planStartDate || null,
           }}
           onSwap={onSwapExercise}
-          onPickExercise={onPickExercise}
-          filterParams={filterParams}
           canSwap={canSwap}
           swapTooltip={swapTooltip}
         />

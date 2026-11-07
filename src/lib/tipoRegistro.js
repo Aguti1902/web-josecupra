@@ -59,6 +59,7 @@ export function getTipoRegistro(exercise) {
 
   // Por defecto: si es principal/basico/complementario de fuerza → fuerza; si no, no registrable
   if (rol === "basico" || rol === "complementario" || rol === "principal") return "fuerza";
+  if (blockType === "principal" || blockType === "complementario") return "fuerza";
   return "no_registrable";
 }
 

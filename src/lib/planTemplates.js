@@ -74,7 +74,19 @@ function loadOverrides() {
 }
 
 export function saveTemplateOverrides(overrides) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides || {}));
+  import("./templateOverridesSync.js").then((mod) => {
+    mod.persistTemplateOverrides(overrides || {}).catch(() => {});
+  }).catch(() => {});
+}
+
+/** Reparte el total de ejercicios entre los slots de un bloque (4 básicos → 2+2, no 1+3). */
+export function distributeSlotQtys(slotCount, target) {
+  const n = Math.max(1, slotCount);
+  const total = Math.max(1, Math.min(12, Number(target) || 1));
+  const qtys = Array.from({ length: n }, () => 0);
+  for (let i = 0; i < total; i++) qtys[i % n] += 1;
+  return qtys;
 }
 
 export function getTemplate(sessionType) {
@@ -92,8 +104,8 @@ export function getTemplate(sessionType) {
           ...next,
           slots: b.slots.map((s, si) => ({
             ...s,
-            qty: Math.max(1, slotQtys[si] != null ? slotQtys[si] : (s.qty || 1)),
-          })),
+            qty: slotQtys[si] != null ? Math.max(0, Number(slotQtys[si]) || 0) : (s.qty || 1),
+          })).filter((s) => (s.qty || 0) > 0),
         };
       }
       if (ov.volume && typeof ov.volume === "object") {
@@ -147,16 +159,10 @@ export function updateTemplateBlockSlots(sessionType, blockIndex, slots) {
   if (isV2Template(base)) {
     const block = base.blocks[blockIndex];
     if (!Array.isArray(block?.slots)) return;
-    const existing = overrides[sessionType].v2Blocks?.[blockIndex]?.slotQtys
-      || block.slots.map((s) => s.qty || 1);
-    const current = existing.reduce((n, q) => n + q, 0);
-    const target = Math.max(1, Math.min(12, slots));
-    const delta = target - current;
-    const slotQtys = [...existing];
-    const lastIdx = Math.max(0, slotQtys.length - 1);
-    slotQtys[lastIdx] = Math.max(1, slotQtys[lastIdx] + delta);
+    const slotQtys = distributeSlotQtys(block.slots.length, slots);
     if (!overrides[sessionType].v2Blocks) overrides[sessionType].v2Blocks = [];
-    overrides[sessionType].v2Blocks[blockIndex] = { slotQtys };
+    const prev = overrides[sessionType].v2Blocks[blockIndex] || {};
+    overrides[sessionType].v2Blocks[blockIndex] = { ...prev, slotQtys };
   } else {
     if (!overrides[sessionType].blocks) overrides[sessionType].blocks = [];
     overrides[sessionType].blocks[blockIndex] = { slots };

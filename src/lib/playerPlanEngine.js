@@ -1183,6 +1183,10 @@ export function ensurePlayerPlan(user) {
 export async function hydratePlayerPlan(user) {
   if (!user?.id) return null;
   try {
+    const { hydrateTemplateOverrides } = await import("./templateOverridesSync.js");
+    await hydrateTemplateOverrides();
+  } catch { /* plantillas locales */ }
+  try {
     const { fetchPlayerPlan } = await import("./playerPlanStorage.js");
     const remote = await fetchPlayerPlan(user.id);
     if (remote && !remote.premiumPending && !remote.planError) {

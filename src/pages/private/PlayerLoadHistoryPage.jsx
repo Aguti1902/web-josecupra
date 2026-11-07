@@ -1,454 +1,335 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Gauge, Calendar, Dumbbell, TrendingUp, Activity, Target,
-  Timer, Heart, BarChart2, CheckCircle2, ArrowRight, Zap,
-  ArrowUpRight, ArrowDownRight, Minus,
+  Gauge, Calendar, Dumbbell, TrendingUp, Activity, Trophy,
+  Timer, BarChart2, ArrowUpRight, ArrowDownRight, Minus, Info,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import FeatureGate from "../../components/private/FeatureGate";
-import { getLoadLogs } from "../../lib/loadLogs";
-import {
-  getPracticalImprovements,
-  getImprovementSummary,
-  getLogsByDomain,
-} from "../../lib/loadAnalytics";
-import { loadProgressIds, weekKey } from "../../lib/sessionProgress";
 import { hydrateUserPersonalData } from "../../lib/userDataSync";
-import { buildLoadGrid, uniquePlayersFromLogs } from "../../lib/loadGrid";
-import { loadPlayerPlan } from "../../lib/playerPlanStorage";
-import PlayerLoadGrid from "../../components/private/PlayerLoadGrid";
+import {
+  listLoggedExercises,
+  getExerciseProgressDetail,
+  getWeeklyLoadControl,
+} from "../../lib/loadAnalytics";
+import { mondayOfDate, formatWeekLabel } from "../../lib/wellnessLogs";
+import { LineChart, BarChart, DonutChart } from "../../components/private/SparkCharts";
 
-const TEST_IDS = [
-  { id: "resistencia", name: "Resistencia aeróbica", unit: "rectas" },
-  { id: "sprint", name: "Sprint lineal", unit: "seg" },
-  { id: "cod", name: "Cambio de dirección", unit: "seg" },
-  { id: "cmj", name: "Salto vertical CMJ", unit: "cm" },
-];
-
-const PROGRESSION_TABS = [
-  { id: "fuerza", label: "Fuerza", Icon: Dumbbell },
-  { id: "velocidad", label: "Velocidad", Icon: Zap },
-  { id: "resistencia", label: "Resistencia", Icon: Heart },
-];
-
-function accentOf(user) {
-  const raw = user?.club?.primaryColor || user?.primaryColor || "#0A36F7";
-  return /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw : "#0A36F7";
+function deltaClass(delta, invert = false) {
+  if (delta == null || Math.abs(delta) < 0.05) return "text-depro-gray";
+  const good = invert ? delta < 0 : delta > 0;
+  return good ? "text-emerald-600" : "text-rose-600";
 }
 
-function parseNum(v) {
-  const n = parseFloat(String(v ?? "").replace(",", ".").split("/")[0]);
-  return Number.isFinite(n) ? n : null;
-}
-
-function loadTestHistory(userId) {
-  if (!userId) return [];
-  return TEST_IDS.map((t) => {
-    let history = [];
-    try {
-      history = JSON.parse(localStorage.getItem(`depro_test_${userId}_${t.id}`) || "[]");
-    } catch { /* ignore */ }
-    return { ...t, history: Array.isArray(history) ? history : [] };
-  }).filter((t) => t.history.length > 0);
-}
-
-function formatSec(sec) {
-  if (sec == null) return "—";
-  if (sec >= 60) {
-    const m = Math.floor(sec / 60);
-    const s = (sec % 60).toFixed(1);
-    return `${m}:${s.padStart(4, "0")}`;
-  }
-  return `${Number(sec).toFixed(2)} s`;
-}
-
-function toneColor(tone) {
-  if (tone === "positive") return "#16A34A";
-  if (tone === "negative") return "#DC2626";
-  if (tone === "mixed") return "#D97706";
-  return "#6B7280";
-}
-
-function ToneIcon({ tone }) {
-  if (tone === "positive") return <ArrowUpRight size={14} />;
-  if (tone === "negative") return <ArrowDownRight size={14} />;
-  return <Minus size={14} />;
-}
-
-function PctBadge({ pct, suffix = "", invert = false }) {
-  if (pct == null) return null;
-  const good = invert ? pct < -0.5 : pct > 0.5;
-  const bad = invert ? pct > 0.5 : pct < -0.5;
-  const color = good ? "#16A34A" : bad ? "#DC2626" : "#6B7280";
-  const sign = pct > 0 ? "+" : "";
+function Delta({ value, unit = "", invert = false }) {
+  if (value == null) return <span className="text-depro-gray text-sm">—</span>;
+  const Icon = value > 0 ? ArrowUpRight : value < 0 ? ArrowDownRight : Minus;
+  const sign = value > 0 ? "+" : "";
   return (
-    <span
-      className="inline-flex items-center gap-0.5 rounded-lg px-2 py-1 text-xs font-black tabular-nums"
-      style={{ backgroundColor: `${color}18`, color }}
-    >
-      {sign}{pct}%{suffix}
+    <span className={`inline-flex items-center gap-0.5 font-bold tabular-nums ${deltaClass(value, invert)}`}>
+      <Icon size={16} /> {sign}{value}{unit}
     </span>
   );
 }
 
-function SectionCard({ title, subtitle, icon: Icon, accent, children, action }) {
+function MetricCard({ label, value, sub, icon: Icon, accent = "text-depro-red" }) {
   return (
-    <section className="bg-white border border-depro-border rounded-2xl shadow-card overflow-hidden">
-      <div className="px-5 py-4 border-b border-depro-border flex items-start justify-between gap-3"
-        style={{ background: `linear-gradient(135deg, ${accent}0d 0%, #fff 70%)` }}>
-        <div className="flex items-start gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{ backgroundColor: `${accent}18`, color: accent }}>
-            <Icon size={18} />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-base font-black text-depro-dark">{title}</h2>
-            {subtitle && <p className="text-xs text-depro-gray mt-0.5">{subtitle}</p>}
-          </div>
-        </div>
-        {action}
-      </div>
-      <div className="p-5">{children}</div>
-    </section>
-  );
-}
-
-function EmptyHint({ children }) {
-  return <p className="text-sm text-depro-gray text-center py-6">{children}</p>;
-}
-
-function FuerzaImproveCard({ row }) {
-  const color = toneColor(row.tone);
-  return (
-    <div className="rounded-2xl border border-depro-border p-4 hover:border-depro-blue/40 transition-colors">
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="min-w-0">
-          <p className="font-bold text-depro-dark truncate">{row.exerciseName}</p>
-          <p className="text-[11px] text-depro-gray mt-0.5">{row.sessions} sesiones registradas</p>
-        </div>
-        <PctBadge pct={row.primary?.pct} />
-      </div>
-      <p className="text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color }}>
-        <ToneIcon tone={row.tone} /> {row.message}
+    <div className="rounded-2xl border border-depro-border bg-white p-4 shadow-card">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-depro-gray inline-flex items-center gap-1.5 mb-2">
+        <Icon size={13} className={accent} /> {label}
       </p>
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        {row.prev?.maxWeight != null && row.curr?.maxWeight != null && (
-          <div className="rounded-xl bg-depro-gray-light/80 px-3 py-2">
-            <p className="text-[10px] font-bold uppercase text-depro-gray">Peso</p>
-            <p className="font-black text-depro-dark tabular-nums mt-0.5">
-              {row.prev.maxWeight} → {row.curr.maxWeight} <span className="text-depro-gray font-semibold">kg</span>
-            </p>
-            {row.weightPct != null && (
-              <p className="text-[10px] font-bold mt-1" style={{ color: toneColor(row.weightPct > 0.5 ? "positive" : row.weightPct < -0.5 ? "negative" : "neutral") }}>
-                {row.weightPct > 0 ? "+" : ""}{row.weightPct}%
-              </p>
-            )}
-          </div>
-        )}
-        {(row.prev?.repsAtMax != null || row.prev?.totalReps != null) && (
-          <div className="rounded-xl bg-depro-gray-light/80 px-3 py-2">
-            <p className="text-[10px] font-bold uppercase text-depro-gray">Reps</p>
-            <p className="font-black text-depro-dark tabular-nums mt-0.5">
-              {row.prev.repsAtMax ?? row.prev.totalReps} → {row.curr.repsAtMax ?? row.curr.totalReps}
-            </p>
-            {row.repsPct != null && (
-              <p className="text-[10px] font-bold mt-1" style={{ color: toneColor(row.repsPct > 0.5 ? "positive" : row.repsPct < -0.5 ? "negative" : "neutral") }}>
-                {row.repsPct > 0 ? "+" : ""}{row.repsPct}%
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-      {row.vsFirstWeight != null && Math.abs(row.vsFirstWeight - (row.weightPct || 0)) > 1 && (
-        <p className="text-[11px] text-depro-gray mt-3">
-          Desde el primer registro:{" "}
-          <strong className="text-depro-dark">
-            {row.vsFirstWeight > 0 ? "+" : ""}{row.vsFirstWeight}% peso
-          </strong>
-          {row.vsFirstReps != null && (
-            <> · {row.vsFirstReps > 0 ? "+" : ""}{row.vsFirstReps}% reps</>
-          )}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function TimeHrImproveCard({ row }) {
-  const color = toneColor(row.tone);
-  return (
-    <div className="rounded-2xl border border-depro-border p-4 hover:border-depro-blue/40 transition-colors">
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="min-w-0">
-          <p className="font-bold text-depro-dark truncate">{row.exerciseName}</p>
-          <p className="text-[11px] text-depro-gray mt-0.5">{row.sessions} sesiones · vs anterior</p>
-        </div>
-        <div className="flex flex-wrap gap-1 justify-end">
-          {row.timePctBetter != null && <PctBadge pct={row.timePctBetter} suffix=" tiempo" />}
-          {row.hrPctBetter != null && <PctBadge pct={row.hrPctBetter} suffix=" FC" />}
-        </div>
-      </div>
-      <p className="text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color }}>
-        <ToneIcon tone={row.tone} /> {row.message}
-      </p>
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        {row.fromTime != null && row.toTime != null && (
-          <div className="rounded-xl bg-depro-gray-light/80 px-3 py-2">
-            <p className="text-[10px] font-bold uppercase text-depro-gray inline-flex items-center gap-1">
-              <Timer size={10} /> Tiempo
-            </p>
-            <p className="font-black text-depro-dark tabular-nums mt-0.5">
-              {formatSec(row.fromTime)} → {formatSec(row.toTime)}
-            </p>
-          </div>
-        )}
-        {row.fromHr != null && row.toHr != null && (
-          <div className="rounded-xl bg-depro-gray-light/80 px-3 py-2">
-            <p className="text-[10px] font-bold uppercase text-depro-gray inline-flex items-center gap-1">
-              <Heart size={10} className="text-red-500" /> FC media
-            </p>
-            <p className="font-black text-depro-dark tabular-nums mt-0.5">
-              {row.fromHr} → {row.toHr} <span className="text-depro-gray font-semibold">ppm</span>
-            </p>
-          </div>
-        )}
-      </div>
+      <p className="text-2xl font-black text-depro-dark tabular-nums">{value}</p>
+      {sub && <div className="mt-1 text-sm">{sub}</div>}
     </div>
   );
 }
 
 export default function PlayerLoadHistoryPage() {
   const { user } = useAuth();
-  const accent = accentOf(user);
-  const [tab, setTab] = useState("fuerza");
-  const [weekFilter, setWeekFilter] = useState("all");
-  const [playerFilter, setPlayerFilter] = useState("all");
+  const [tab, setTab] = useState("ejercicio");
+  const [metric, setMetric] = useState("peso");
   const [tick, setTick] = useState(0);
-  const now = useMemo(() => new Date(), []);
-  const monthLabel = now.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  const [exerciseName, setExerciseName] = useState("");
 
   useEffect(() => {
     if (!user?.id) return;
     hydrateUserPersonalData(user.id).then(() => setTick((n) => n + 1)).catch(() => {});
   }, [user?.id]);
 
-  const logs = useMemo(() => getLoadLogs(user?.id), [user?.id, tick]);
-  const domainBuckets = useMemo(() => getLogsByDomain(user?.id), [user?.id, tick]);
-  const improvements = useMemo(() => getPracticalImprovements(user?.id), [user?.id, tick]);
-  const highlight = useMemo(() => getImprovementSummary(user?.id), [user?.id, tick]);
-  const testData = useMemo(() => loadTestHistory(user?.id), [user?.id, tick]);
-  const currentWeekKey = weekKey(now);
-  const plan = useMemo(() => loadPlayerPlan(user?.id), [user?.id, tick]);
-  const players = useMemo(() => uniquePlayersFromLogs(user?.id), [user?.id, tick]);
-  const grid = useMemo(() => buildLoadGrid(user?.id, tab, {
-    startDate: plan?.startDate || null,
-    weekFilter,
-  }), [user?.id, tab, weekFilter, plan?.startDate, tick]);
+  const exercises = useMemo(() => listLoggedExercises(user?.id), [user?.id, tick]);
+  useEffect(() => {
+    if (!exerciseName && exercises[0]?.name) setExerciseName(exercises[0].name);
+  }, [exercises, exerciseName]);
 
-  const positiveCount = useMemo(() => {
-    const all = [...improvements.fuerza, ...improvements.velocidad, ...improvements.resistencia];
-    return all.filter((r) => r.tone === "positive").length;
-  }, [improvements]);
+  const detail = useMemo(
+    () => (exerciseName ? getExerciseProgressDetail(user?.id, exerciseName) : null),
+    [user?.id, exerciseName, tick],
+  );
+  const control = useMemo(() => getWeeklyLoadControl(user?.id, { weeks: 4 }), [user?.id, tick]);
 
-  const weekCompleted = user?.id ? loadProgressIds(user.id, currentWeekKey).length : 0;
+  const chartSeries = metric === "volumen"
+    ? detail?.chartVolume
+    : metric === "1rm"
+      ? detail?.chart1rm
+      : detail?.chartWeight;
+
+  const last = detail?.last;
+  const sessionsChrono = [...(detail?.sessions || [])].reverse();
+
+  const unitsDelta = control.prev?.units != null && control.current.units
+    ? Math.round(((control.current.units - control.prev.units) / Math.max(control.prev.units, 1)) * 100)
+    : null;
+  const timeDelta = control.prev?.minutes != null && control.current.minutes
+    ? Math.round(((control.current.minutes - control.prev.minutes) / Math.max(control.prev.minutes, 1)) * 100)
+    : null;
+  const sessionGoal = 5;
+  const sessionPct = sessionGoal ? Math.round((control.current.sessions / sessionGoal) * 100) : 0;
+
+  const formatMin = (m) => {
+    if (!m) return "—";
+    const h = Math.floor(m / 60);
+    const min = Math.round(m % 60);
+    return h ? `${h} h ${min} min` : `${min} min`;
+  };
 
   return (
     <FeatureGate user={user} feature="cargas">
-      <div className="dash-page space-y-6">
-        <header
-          className="relative overflow-hidden rounded-3xl border border-depro-border px-6 py-8 sm:px-8 sm:py-10 text-white"
-          style={{
-            background: `linear-gradient(135deg, ${accent} 0%, ${accent}cc 45%, #0a1a4a 100%)`,
-          }}
-        >
-          <div className="absolute inset-0 opacity-20 pointer-events-none"
-            style={{
-              backgroundImage: "radial-gradient(circle at 85% 20%, #fff 0%, transparent 40%), radial-gradient(circle at 10% 90%, #fff 0%, transparent 35%)",
-            }}
-          />
-          <div className="relative">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/80 mb-2">
-              Mis cargas · Progresión real
-            </p>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-2">
-              ¿Estás mejorando?
-            </h1>
-            <p className="text-sm sm:text-base text-white/85 max-w-xl">
-              Compara peso, reps, tiempos y FC media entre sesiones — no solo el volumen acumulado.
-              Mesociclo de <span className="font-semibold capitalize text-white">{monthLabel}</span>.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3 text-xs font-semibold">
-              <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 backdrop-blur-sm">
-                <TrendingUp size={13} /> {positiveCount} mejoras detectadas
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 backdrop-blur-sm">
-                <Calendar size={13} /> {logs.length} registros
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 backdrop-blur-sm">
-                <CheckCircle2 size={13} /> {weekCompleted} sesiones esta semana
-              </span>
+      <div className="dash-page space-y-5">
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-depro-red-light text-depro-red flex items-center justify-center shrink-0">
+              <BarChart2 size={20} />
             </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-depro-dark tracking-tight">Mis cargas</h1>
+              <p className="text-sm text-depro-gray">Seguimiento de tu progresión en ejercicios y control de la carga de entrenamiento.</p>
+            </div>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-xl border border-depro-border bg-white px-3 py-2 text-sm font-semibold text-depro-dark">
+            <Calendar size={14} /> Semana {formatWeekLabel(mondayOfDate())}
           </div>
         </header>
 
-        {highlight && (
-          <div
-            className="rounded-2xl border px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
-            style={{ borderColor: `${accent}35`, background: `linear-gradient(120deg, ${accent}12, #fff)` }}
+        <div className="inline-flex rounded-xl border border-depro-border bg-white p-1">
+          <button
+            type="button"
+            onClick={() => setTab("ejercicio")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold inline-flex items-center gap-1.5 ${tab === "ejercicio" ? "bg-depro-red text-white" : "text-depro-gray hover:text-depro-dark"}`}
           >
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-              style={{ backgroundColor: `${accent}20`, color: accent }}>
-              <TrendingUp size={20} />
+            <Dumbbell size={14} /> Progresión por ejercicio
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("carga")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold inline-flex items-center gap-1.5 ${tab === "carga" ? "bg-depro-red text-white" : "text-depro-gray hover:text-depro-dark"}`}
+          >
+            <Activity size={14} /> Control de carga
+          </button>
+        </div>
+
+        {tab === "ejercicio" && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+              <label className="relative flex-1">
+                <span className="sr-only">Ejercicio</span>
+                <select
+                  value={exerciseName}
+                  onChange={(e) => setExerciseName(e.target.value)}
+                  className="w-full rounded-xl border border-depro-border bg-white px-4 py-2.5 text-sm font-semibold text-depro-dark outline-none focus:border-depro-red"
+                >
+                  {exercises.length === 0 && <option value="">Sin ejercicios registrados</option>}
+                  {exercises.map((ex) => (
+                    <option key={ex.name} value={ex.name}>{ex.name}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="inline-flex rounded-xl border border-depro-border bg-white p-1 self-start">
+                {[
+                  { id: "peso", label: "Carga (kg)" },
+                  { id: "volumen", label: "Volumen (kg)" },
+                  { id: "1rm", label: "1RM est." },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setMetric(m.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold ${metric === m.id ? "bg-depro-red text-white" : "text-depro-gray"}`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: accent }}>
-                Mejora destacada
-              </p>
-              <p className="text-sm sm:text-base text-depro-dark font-bold truncate">
-                {highlight.exerciseName}
-              </p>
-              <p className="text-xs text-depro-gray mt-0.5">
-                {highlight.message
-                  || `${highlight.from} → ${highlight.to} ${highlight.unit || "kg"}`}
-                {highlight.pct != null && (
-                  <span className="font-black ml-1" style={{ color: accent }}>
-                    ({highlight.pct > 0 ? "+" : ""}{highlight.pct}%)
-                  </span>
-                )}
-              </p>
-            </div>
-            {highlight.pct != null && <PctBadge pct={highlight.pct} />}
+
+            {exercises.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-depro-border bg-white p-10 text-center text-sm text-depro-gray">
+                Guarda series desde una sesión para ver la progresión de cada ejercicio.
+                <div className="mt-3">
+                  <Link to="/dashboard/plan" className="text-depro-red font-bold hover:underline">Ir al plan semanal</Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <MetricCard
+                    label="Última carga"
+                    icon={Dumbbell}
+                    value={last?.maxWeight != null ? `${last.maxWeight} kg` : "—"}
+                  />
+                  <MetricCard
+                    label="Progresión"
+                    icon={TrendingUp}
+                    value={<Delta value={detail?.deltaWeight} unit=" kg" />}
+                    sub={<span className="text-[11px] text-depro-gray">vs. sesión anterior</span>}
+                  />
+                  <MetricCard
+                    label="Récord personal"
+                    icon={Trophy}
+                    value={detail?.record?.maxWeight != null ? `${detail.record.maxWeight} kg` : "—"}
+                  />
+                  <MetricCard
+                    label="1RM estimado"
+                    icon={Gauge}
+                    value={detail?.epley != null ? `≈ ${detail.epley} kg` : "—"}
+                    sub={<span className="text-[11px] text-depro-gray">Fórmula de Epley</span>}
+                  />
+                </div>
+
+                <div className="grid lg:grid-cols-5 gap-4">
+                  <div className="lg:col-span-3 rounded-2xl border border-depro-border bg-white p-5 shadow-card">
+                    <h2 className="font-black text-depro-dark mb-1">
+                      {metric === "volumen" ? "Volumen de entrenamiento" : metric === "1rm" ? "1RM estimado" : "Evolución de la carga"}
+                    </h2>
+                    <LineChart series={chartSeries || []} color="#FB2C39" />
+                  </div>
+                  <div className="lg:col-span-2 rounded-2xl border border-depro-border bg-white p-5 shadow-card">
+                    <h2 className="font-black text-depro-dark mb-3 inline-flex items-center gap-2">
+                      <Calendar size={16} className="text-depro-red" /> Últimas sesiones
+                    </h2>
+                    {sessionsChrono.length === 0 ? (
+                      <p className="text-sm text-depro-gray">Sin sesiones.</p>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-[10px] uppercase text-depro-gray">
+                            <th className="text-left pb-2 font-bold">Sesión</th>
+                            <th className="text-right pb-2 font-bold">Carga</th>
+                            <th className="text-right pb-2 font-bold">Series × rep</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sessionsChrono.slice(0, 6).map((s, i) => {
+                            const sets = s.series?.length || Number(s.log?.sets) || 1;
+                            const reps = s.series?.find((row) => row.reps)?.reps || s.repsAtMax || "—";
+                            return (
+                              <tr key={s.date || i} className="border-t border-depro-border/70">
+                                <td className="py-2.5 font-semibold text-depro-dark">
+                                  {i === 0 ? "Actual" : `S−${i}`}
+                                </td>
+                                <td className="py-2.5 text-right tabular-nums font-black text-depro-dark">
+                                  {s.maxWeight != null ? `${s.maxWeight} kg` : "—"}
+                                </td>
+                                <td className="py-2.5 text-right tabular-nums text-depro-gray">
+                                  {sets} × {reps}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        <section className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {PROGRESSION_TABS.map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setTab(id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
-                  tab === id
-                    ? "bg-depro-blue border-depro-blue text-white"
-                    : "border-depro-border text-depro-gray hover:border-depro-blue"
-                }`}
-              >
-                <Icon size={12} /> {label}
-                <span className="opacity-70">({(domainBuckets[id] || []).length})</span>
-              </button>
-            ))}
+        {tab === "carga" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <MetricCard
+                label="Carga total"
+                icon={Activity}
+                value={`${(control.current.units || 0).toLocaleString("es-ES")} UA`}
+                sub={<Delta value={unitsDelta} unit="%" invert={false} />}
+              />
+              <MetricCard
+                label="Tiempo total"
+                icon={Timer}
+                value={formatMin(control.current.minutes)}
+                sub={<Delta value={timeDelta} unit="%" invert />}
+              />
+              <MetricCard
+                label="Sesiones"
+                icon={Calendar}
+                value={`${control.current.sessions} / ${sessionGoal}`}
+                sub={<span className="text-[11px] text-depro-gray">{sessionPct}% del objetivo</span>}
+              />
+              <MetricCard
+                label="RPE medio"
+                icon={Gauge}
+                value={control.current.avgRpe != null ? `${control.current.avgRpe} / 10` : "—"}
+              />
+            </div>
+
+            <div className="grid lg:grid-cols-5 gap-4">
+              <div className="lg:col-span-3 rounded-2xl border border-depro-border bg-white p-5 shadow-card">
+                <h2 className="font-black text-depro-dark mb-1">Evolución de la carga (UA)</h2>
+                <BarChart series={control.series.map((s) => ({ label: s.label, value: s.units }))} />
+              </div>
+              <div className="lg:col-span-2 rounded-2xl border border-depro-border bg-white p-5 shadow-card">
+                <h2 className="font-black text-depro-dark mb-1 inline-flex items-center gap-2">
+                  ACWR <span className="text-[11px] font-semibold text-depro-gray">(carga aguda/crónica)</span>
+                  <span title="Indicador descriptivo de la relación entre la carga de esta semana y la habitual. No predice lesiones.">
+                    <Info size={13} className="text-depro-gray" />
+                  </span>
+                </h2>
+                {control.acwr == null ? (
+                  <p className="text-sm text-depro-gray mt-6">
+                    Hacen falta al menos 3 semanas con registros para calcular el ACWR. Es un indicador descriptivo, no un predictor de lesiones.
+                  </p>
+                ) : (
+                  <div className="mt-4">
+                    <div className="flex items-end justify-between">
+                      <p className="text-4xl font-black text-depro-dark tabular-nums">{control.acwr.toFixed(2).replace(".", ",")}</p>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                        control.acwrBand?.tone === "positive" ? "bg-emerald-50 text-emerald-700"
+                          : control.acwrBand?.tone === "mixed" ? "bg-amber-50 text-amber-800"
+                            : "bg-slate-100 text-slate-600"
+                      }`}>
+                        {control.acwrBand?.label}
+                      </span>
+                    </div>
+                    <div className="mt-4 h-2 rounded-full bg-gradient-to-r from-sky-300 via-emerald-400 to-rose-400 relative">
+                      <span
+                        className="absolute -top-1 w-3.5 h-3.5 rounded-full bg-depro-dark border-2 border-white shadow"
+                        style={{ left: `${Math.min(100, Math.max(0, (control.acwr / 2) * 100))}%`, transform: "translateX(-50%)" }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-depro-gray mt-1.5">
+                      <span>&lt; 0,8 Baja</span>
+                      <span>0,8 – 1,3 Óptima</span>
+                      <span>&gt; 1,3 Alta</span>
+                    </div>
+                    <p className="text-[11px] text-depro-gray mt-3 leading-relaxed">
+                      Describe si esta semana está por debajo, en línea o por encima de tu carga habitual. No se usa para predecir lesiones.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-depro-border bg-white p-5 shadow-card">
+              <h2 className="font-black text-depro-dark mb-3">Distribución de la carga</h2>
+              <DonutChart
+                slices={control.distribution.map((d) => ({ key: d.key, label: d.label, value: d.units, pct: d.pct }))}
+                totalValue={(control.current.units || 0).toLocaleString("es-ES")}
+                totalLabel="UA"
+              />
+            </div>
           </div>
-          <PlayerLoadGrid
-            grid={grid}
-            domain={tab}
-            weekFilter={weekFilter}
-            onWeekFilter={setWeekFilter}
-            playerFilter={playerFilter}
-            onPlayerFilter={setPlayerFilter}
-            players={players}
-          />
-        </section>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          <SectionCard
-            title="Test físicos"
-            subtitle="Evolución de tus tests junto a las cargas"
-            icon={Activity}
-            accent={accent}
-            action={
-              <Link
-                to="/dashboard/physical"
-                className="text-xs font-bold inline-flex items-center gap-1 shrink-0 hover:underline"
-                style={{ color: accent }}
-              >
-                Ir a Tests <ArrowRight size={12} />
-              </Link>
-            }
-          >
-            {testData.length === 0 ? (
-              <div className="text-center py-6">
-                <Target size={28} className="mx-auto mb-3 text-depro-gray" />
-                <p className="text-sm font-semibold text-depro-dark mb-1">Sin tests registrados</p>
-                <p className="text-xs text-depro-gray mb-4 max-w-sm mx-auto">
-                  Los tests aportan otra lectura de progresión (sprint, COD, CMJ, resistencia).
-                </p>
-                <Link
-                  to="/dashboard/physical"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
-                  style={{ backgroundColor: accent }}
-                >
-                  Abrir Tests <ArrowRight size={14} />
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {testData.map((t) => {
-                  const last = t.history[t.history.length - 1];
-                  const prev = t.history.length > 1 ? t.history[t.history.length - 2] : null;
-                  const lastV = parseNum(last?.value);
-                  const prevV = parseNum(prev?.value);
-                  const delta = lastV != null && prevV != null && prevV !== 0
-                    ? +(((lastV - prevV) / Math.abs(prevV)) * 100).toFixed(1)
-                    : null;
-                  return (
-                    <div key={t.id} className="rounded-xl border border-depro-border p-3 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-depro-dark">{t.name}</p>
-                        <p className="text-[10px] text-depro-gray">{t.history.length} mediciones</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-black tabular-nums" style={{ color: accent }}>
-                          {last?.value ?? "—"}{" "}
-                          <span className="text-xs font-semibold text-depro-gray">{t.unit}</span>
-                        </p>
-                        {delta != null && <PctBadge pct={delta} />}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </SectionCard>
-
-          <SectionCard
-            title="Actividad reciente"
-            subtitle="Últimos registros para contexto — la mejora está arriba"
-            icon={BarChart2}
-            accent={accent}
-          >
-            {logs.length === 0 ? (
-              <EmptyHint>Guarda cargas desde tus sesiones para empezar a medir progreso.</EmptyHint>
-            ) : (
-              <ul className="divide-y divide-depro-border border border-depro-border rounded-xl overflow-hidden">
-                {logs.slice(0, 8).map((log) => (
-                  <li key={log.id} className="px-3 py-2.5 text-xs bg-white flex items-start gap-2">
-                    <Calendar size={12} className="text-depro-gray mt-0.5 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-depro-dark truncate">{log.exerciseName}</span>
-                        <span className="text-depro-gray shrink-0">
-                          {new Date(log.recordedAt).toLocaleDateString("es-ES")}
-                        </span>
-                      </div>
-                      <p className="text-depro-gray mt-0.5 truncate">
-                        {[
-                          log.tipoRegistro && String(log.tipoRegistro),
-                          log.weight && `${log.weight} kg`,
-                          log.reps && `${log.reps} reps`,
-                          log.time && `Tiempo ${log.time}`,
-                          log.heartRate && `FC ${log.heartRate}`,
-                          log.rpe && `RPE ${log.rpe}`,
-                        ].filter(Boolean).join(" · ") || "—"}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </SectionCard>
-        </div>
+        )}
       </div>
     </FeatureGate>
   );

@@ -680,7 +680,7 @@ function ProgressionTab({ clientId }) {
       </div>
 
       <div className="rounded-2xl border border-depro-border bg-white p-5">
-        <h4 className="font-bold text-depro-dark mb-3">Wellness (peso, cintura, fatiga, sueño)</h4>
+        <h4 className="font-bold text-depro-dark mb-3">Wellness (peso, cintura, fatiga, sueño, dolor)</h4>
         <div className="space-y-2">
           {weeks.map((k) => {
             const e = wellness[k];
@@ -692,6 +692,7 @@ function ProgressionTab({ clientId }) {
                   {e?.waistCm ? ` · ${e.waistCm} cm` : ""}
                   {e?.fatigue ? ` · fatiga ${e.fatigue}` : ""}
                   {e?.sleep ? ` · sueño ${e.sleep}` : ""}
+                  {e?.musclePain ? ` · dolor ${e.musclePain}` : ""}
                 </span>
               </div>
             );

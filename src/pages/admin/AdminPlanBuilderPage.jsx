@@ -111,10 +111,14 @@ function IASimulator() {
     lesion: profile.lesion?.includes("Ninguna") ? [] : profile.lesion,
   });
 
-  const simulate = () => {
+  const simulate = async () => {
     setLoading(true);
     setSimulated(null);
     setExpandedKey(null);
+    try {
+      const { hydrateTemplateOverrides } = await import("../../lib/templateOverridesSync");
+      await hydrateTemplateOverrides();
+    } catch { /* usa plantillas locales */ }
     setTimeout(() => {
       const user = buildUser();
       const probe = buildPlayerPlan(user);

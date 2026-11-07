@@ -423,6 +423,18 @@ export async function persistGlobalPlans(plans) {
   return result;
 }
 
+export async function persistGlobalTemplates(overrides) {
+  const data = overrides && typeof overrides === "object" ? overrides : {};
+  lsSet("depro_template_overrides", data);
+  const result = await apiClubs("POST", {
+    club: { id: "GLOBAL_TEMPLATES", name: "Global Templates", overrides: data },
+  });
+  if (!result.ok && !result.data?.error) {
+    result.data = { ...(result.data || {}), error: describeCloudSaveError(result) };
+  }
+  return result;
+}
+
 export async function persistGlobalTests(tests) {
   const list = Array.isArray(tests) ? tests : [];
   lsSet("depro_global_tests", list);
