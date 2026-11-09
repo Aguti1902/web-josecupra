@@ -26,16 +26,44 @@ function queueSync(userId, logs) {
   }).catch(() => {});
 }
 
+function sameTraining(existing, entry) {
+  if (!existing?.sessionId || !entry?.sessionId || existing.sessionId !== entry.sessionId) return false;
+  const sameExercise = (entry.exerciseId && existing.exerciseId === entry.exerciseId)
+    || (
+      entry.catalogId != null
+      && existing.catalogId === entry.catalogId
+      && String(existing.exerciseName || "").trim().toLowerCase() === String(entry.exerciseName || "").trim().toLowerCase()
+    );
+  if (!sameExercise) return false;
+  return Number(existing.weekNumber || 0) === Number(entry.weekNumber || 0);
+}
+
+/** Un entreno = un registro. Otro día o otra semana crea uno nuevo; reabrir el mismo actualiza el suyo. */
 export function saveLoadLog(userId, entry) {
   if (!userId) return null;
+  const logs = getLoadLogs(userId);
+  const idx = logs.findIndex((row) => sameTraining(row, entry));
+  if (idx >= 0) {
+    const updated = {
+      ...logs[idx],
+      ...entry,
+      id: logs[idx].id,
+      recordedAt: logs[idx].recordedAt || new Date().toISOString(),
+      catalogId: entry?.catalogId ?? logs[idx].catalogId ?? null,
+      updatedAt: new Date().toISOString(),
+    };
+    const next = logs.map((row, i) => (i === idx ? updated : row));
+    writeLoadLogs(userId, next);
+    queueSync(userId, next);
+    return updated;
+  }
   const record = {
     id: `load_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     recordedAt: new Date().toISOString(),
     catalogId: entry?.catalogId ?? null,
     ...entry,
   };
-  const logs = [record, ...getLoadLogs(userId)];
-  const clipped = logs.slice(0, 500);
+  const clipped = [record, ...logs].slice(0, 500);
   writeLoadLogs(userId, clipped);
   queueSync(userId, clipped);
   return record;
@@ -51,18 +79,21 @@ function logMatchesExercise(log, { exerciseId, catalogId, exerciseName } = {}) {
   return false;
 }
 
-/** Último registro de un ejercicio (sobrevive si el plan se regeneró con otro instance id). */
+/**
+ * Registro de ESTE entreno. No rellena la semana 2 con los kilos, tiempos o
+ * distancias de la semana 1: si este día no tiene registro, el formulario va vacío.
+ */
 export function findLatestLoadLog(userId, match = {}) {
-  const logs = getLoadLogs(userId);
-  const sameSession = logs.filter((l) => logMatchesExercise(l, match)
-    && (!match.sessionId || l.sessionId === match.sessionId));
-  const pool = sameSession.length ? sameSession : logs.filter((l) => logMatchesExercise(l, match));
-  if (match.weekNumber != null) {
-    const weekHits = pool.filter((l) => Number(l.weekNumber) === Number(match.weekNumber)
-      || String(l.weekLabel || "").includes(String(match.weekNumber)));
-    if (weekHits.length) return weekHits[0];
+  const logs = getLoadLogs(userId).filter((l) => logMatchesExercise(l, match));
+  const week = match.weekNumber;
+  const sameWeek = (l) => week == null || Number(l.weekNumber) === Number(week);
+  if (match.sessionId) {
+    return logs.find((l) => l.sessionId === match.sessionId && sameWeek(l)) || null;
   }
-  return pool[0] || null;
+  if (week != null) {
+    return logs.find((l) => sameWeek(l)) || null;
+  }
+  return logs[0] || null;
 }
 
 export function updateLoadLog(userId, logId, patch) {

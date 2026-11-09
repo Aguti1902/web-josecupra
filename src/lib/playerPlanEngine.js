@@ -653,13 +653,31 @@ export function buildPlayerPlan(user, options = {}) {
 
 function cloneWeekDays(weekPlan, weekIndex) {
   const days = JSON.parse(JSON.stringify([...weekPlan]));
+  const tag = `w${weekIndex}_`;
   for (const day of days) {
-    day.sessions = (day.sessions || []).map((s) => ({
-      ...s,
-      id: String(s.id || `gen_${day.day}_w0_0`).replace(/_w\d+_/, `_w${weekIndex}_`),
-      week: weekIndex + 1,
-      weekNumber: weekIndex + 1,
-    }));
+    day.sessions = (day.sessions || []).map((s, si) => {
+      const baseId = String(s.id || `gen_${day.day}_${si}`).replace(/^w\d+_/, "");
+      const session = {
+        ...s,
+        id: `${tag}${baseId}`,
+        week: weekIndex + 1,
+        weekNumber: weekIndex + 1,
+      };
+      const tagEx = (ex, ei) => {
+        const raw = String(ex.id || ex.catalogId || "ex").replace(/^w\d+_/, "");
+        return { ...ex, id: `${tag}${raw}_${ei}` };
+      };
+      if (Array.isArray(session.blocks)) {
+        session.blocks = session.blocks.map((block, bi) => ({
+          ...block,
+          exercises: (block.exercises || []).map((ex, ei) => tagEx(ex, `${bi}_${ei}`)),
+        }));
+      }
+      if (Array.isArray(session.exercises)) {
+        session.exercises = session.exercises.map((ex, ei) => tagEx(ex, ei));
+      }
+      return session;
+    });
   }
   for (const key of Object.keys(weekPlan)) {
     if (Number.isNaN(Number(key)) && days[key] === undefined) {

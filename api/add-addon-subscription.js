@@ -8,6 +8,7 @@ import {
 } from "./_addonCatalog.js";
 import { resolveClubEconomy } from "./_clubReferrals.js";
 import { centsAfterClubPct, clubCommissionPct } from "../src/lib/clubEconomy.js";
+import { subscriptionBlocksNewCharge } from "../src/lib/stripeBillingCleanup.js";
 
 function mergePurchasedAddons(existing = [], addonId) {
   const id = resolveAddonId(addonId);
@@ -76,6 +77,10 @@ export default async function handler(req, res) {
     const lineItem = buildAddonLineItem(resolvedId, addonAmount);
     if (!lineItem) return res.status(400).json({ error: "Extra no configurado en Stripe" });
 
+    if (subscriptionBlocksNewCharge(meta.subscriptionStatus) || subscription.cancel_at_period_end) {
+      return res.status(409).json({ error: "La suscripción está cancelada y no se volverá a cobrar." });
+    }
+
     const extraItem = lineItem.price
       ? { price: lineItem.price, quantity: 1 }
       : lineItem;
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
         ...subscription.items.data.map((item) => ({ id: item.id })),
         extraItem,
       ],
-      proration_behavior: "create_prorations",
+      proration_behavior: subscription.status === "trialing" ? "none" : "create_prorations",
       expand: ["items.data.price.product"],
     });
 

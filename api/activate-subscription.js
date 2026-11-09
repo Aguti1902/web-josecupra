@@ -1,5 +1,6 @@
 import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
+import { subscriptionBlocksNewCharge } from "../src/lib/stripeBillingCleanup.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -18,7 +19,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "No hay suscripción Stripe asociada" });
     }
 
+    if (subscriptionBlocksNewCharge(meta.subscriptionStatus)) {
+      return res.status(409).json({ error: "La suscripción está cancelada y no se volverá a cobrar." });
+    }
+
     const stripe = await getStripe();
+    const current = await stripe.subscriptions.retrieve(subscriptionId);
+    if (current.cancel_at_period_end || subscriptionBlocksNewCharge(current.status)) {
+      return res.status(409).json({ error: "La suscripción está cancelada y no se volverá a cobrar." });
+    }
     const updated = await stripe.subscriptions.update(subscriptionId, {
       trial_end: "now",
       proration_behavior: "create_prorations",

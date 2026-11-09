@@ -3,6 +3,7 @@ import { getSupabaseAdmin, findUserByStripeCustomer } from "./_supabaseAdmin.js"
 import { syncCheckoutSession, syncSubscriptionToUser } from "./_stripeSync.js";
 import { recordReferralPayment } from "./_clubReferrals.js";
 import { stripePaidCents } from "../src/lib/clubEconomy.js";
+import { shouldStopInvoiceCharge } from "../src/lib/stripeBillingCleanup.js";
 import { getStripeWebhookSecretFallback } from "./_stripeWebhookSecret.js";
 
 export const config = {
@@ -147,6 +148,30 @@ export default async function handler(req, res) {
             : invoice.subscription.id;
           const sub = await stripe.subscriptions.retrieve(subId);
           await syncSubscriptionToUser(supabaseAdmin, sub, invoice.customer_email);
+        }
+        break;
+      }
+      case "invoice.created": {
+        const invoice = event.data.object;
+        const subId = typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : invoice.subscription?.id;
+        if (!subId) break;
+        const sub = await stripe.subscriptions.retrieve(subId);
+        const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+        const user = await findUserByStripeCustomer(supabaseAdmin, customerId, invoice.customer_email);
+        const stop = shouldStopInvoiceCharge({
+          billingReason: invoice.billing_reason,
+          userStatus: user?.user_metadata?.subscriptionStatus,
+          cancelAtPeriodEnd: sub.cancel_at_period_end,
+          subscriptionStatus: sub.status,
+          userFound: Boolean(user),
+        });
+        if (!stop) break;
+        if (invoice.status === "draft") {
+          try { await stripe.invoices.del(invoice.id); } catch { /* ya finalizada */ }
+        } else if (invoice.status === "open") {
+          try { await stripe.invoices.voidInvoice(invoice.id); } catch { /* ya cobrada o anulada */ }
         }
         break;
       }

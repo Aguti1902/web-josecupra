@@ -84,68 +84,16 @@ export function DualLineChart({
   );
 }
 
-export function BodyChart({ weight = [], waist = [], height = 180 }) {
-  const w = 320;
-  const h = height;
-  const pad = { l: 28, r: 28, t: 12, b: 28 };
-  const n = Math.max(weight.length, waist.length);
-  if (!n) return <div className="h-40 flex items-center justify-center text-xs text-depro-gray">Sin datos aún</div>;
-  const wVals = weight.map((p) => Number(p.value)).filter(Number.isFinite);
-  const aVals = waist.map((p) => Number(p.value)).filter(Number.isFinite);
-  const scale = (vals, v) => {
-    if (!vals.length || v == null || !Number.isFinite(Number(v))) return null;
-    const min = Math.min(...vals);
-    const max = Math.max(...vals);
-    const span = max - min || Math.max(max * 0.08, 1);
-    const yMin = min - span * 0.15;
-    const yMax = max + span * 0.15;
-    const innerH = h - pad.t - pad.b;
-    return pad.t + innerH - ((Number(v) - yMin) / (yMax - yMin)) * innerH;
-  };
-  const innerW = w - pad.l - pad.r;
-  const xOf = (i) => pad.l + (n <= 1 ? innerW / 2 : (i / (n - 1)) * innerW);
-  const pathOf = (arr, vals) => {
-    const pts = arr.map((p, i) => {
-      const y = scale(vals, p.value);
-      return y == null ? null : ` ${i === 0 || !arr.slice(0, i).some((q) => Number.isFinite(Number(q.value))) ? "M" : "L"} ${xOf(i).toFixed(1)} ${y.toFixed(1)}`;
-    }).filter(Boolean);
-    return pts.join("");
-  };
-  const lastW = wVals[wVals.length - 1];
-  const lastA = aVals[aVals.length - 1];
-
+export function BodyChart({ weight = [], waist = [] }) {
   return (
-    <div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto" role="img">
-        <path d={pathOf(weight, wVals)} fill="none" stroke="#7C3AED" strokeWidth="2.4" />
-        <path d={pathOf(waist, aVals)} fill="none" stroke="#2563EB" strokeWidth="2.4" />
-        {weight.map((p, i) => {
-          const y = scale(wVals, p.value);
-          return y == null ? null : <circle key={`w${i}`} cx={xOf(i)} cy={y} r="3.2" fill="#fff" stroke="#7C3AED" strokeWidth="2" />;
-        })}
-        {waist.map((p, i) => {
-          const y = scale(aVals, p.value);
-          return y == null ? null : <circle key={`a${i}`} cx={xOf(i)} cy={y} r="3.2" fill="#fff" stroke="#2563EB" strokeWidth="2" />;
-        })}
-        {Array.from({ length: n }).map((_, i) => (
-          <text key={i} x={xOf(i)} y={h - 8} textAnchor="middle" fontSize="8" fill="#9CA3AF">
-            {(weight[i] || waist[i])?.label}
-          </text>
-        ))}
-        {lastW != null && (
-          <text x={w - 4} y={scale(wVals, lastW) || 12} textAnchor="end" fontSize="8" fill="#7C3AED">{lastW}</text>
-        )}
-        {lastA != null && (
-          <text x={w - 4} y={(scale(aVals, lastA) || 24) + 10} textAnchor="end" fontSize="8" fill="#2563EB">{lastA}</text>
-        )}
-      </svg>
-      <div className="flex items-center justify-center gap-4 pb-1">
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-depro-gray">
-          <span className="w-2 h-2 rounded-full bg-violet-600" /> Peso (kg)
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-depro-gray">
-          <span className="w-2 h-2 rounded-full bg-blue-600" /> Cintura (cm)
-        </span>
+    <div className="space-y-4">
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-wide text-depro-gray mb-1">Peso (kg)</p>
+        <LineChart series={weight} color="#7C3AED" unit=" kg" height={150} />
+      </div>
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-wide text-depro-gray mb-1">Perímetro abdominal (cm)</p>
+        <LineChart series={waist} color="#2563EB" unit=" cm" height={150} />
       </div>
     </div>
   );

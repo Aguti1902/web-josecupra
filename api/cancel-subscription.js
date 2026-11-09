@@ -1,6 +1,7 @@
 import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
 import { shouldCancelSubscriptionImmediately } from "../src/lib/subscriptionCancel.js";
+import { voidPendingCharges } from "./_stripeBillingCleanup.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -31,11 +32,17 @@ export default async function handler(req, res) {
 
     let updated;
     if (immediate) {
-      updated = await stripe.subscriptions.cancel(subscriptionId);
+      updated = await stripe.subscriptions.cancel(subscriptionId, { invoice_now: false, prorate: false });
     } else {
       updated = await stripe.subscriptions.update(subscriptionId, {
         cancel_at_period_end: true,
+        proration_behavior: "none",
       });
+    }
+
+    const customerId = typeof current.customer === "string" ? current.customer : current.customer?.id;
+    if (customerId) {
+      await voidPendingCharges(stripe, customerId);
     }
 
     const cancelAt = immediate

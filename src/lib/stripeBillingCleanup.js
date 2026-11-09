@@ -14,6 +14,31 @@ export const CANCELABLE_SUB_STATUSES = [
 
 const REFUND_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
+export function subscriptionBlocksNewCharge(status) {
+  const s = String(status || "").toLowerCase();
+  return s === "canceled" || s === "cancelled" || s === "cancel_at_period_end";
+}
+
+/**
+ * Un cobro de actualización o de renovación no debe salir si la cuenta
+ * ya está cancelada, si el periodo no se renueva, o si el usuario ya no existe.
+ */
+export function shouldStopInvoiceCharge({
+  billingReason,
+  userStatus,
+  cancelAtPeriodEnd = false,
+  subscriptionStatus,
+  userFound = true,
+} = {}) {
+  const reason = String(billingReason || "");
+  if (reason !== "subscription_update" && reason !== "subscription_cycle") return false;
+  if (!userFound) return true;
+  if (subscriptionBlocksNewCharge(userStatus)) return true;
+  if (cancelAtPeriodEnd) return true;
+  const sub = String(subscriptionStatus || "").toLowerCase();
+  return sub === "canceled" || sub === "cancelled";
+}
+
 export function isCancelableSubscription(sub) {
   if (!sub || typeof sub !== "object") return false;
   const status = String(sub.status || "").toLowerCase();

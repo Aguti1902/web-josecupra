@@ -1,5 +1,6 @@
 import { getStripe } from "./_stripeClient.js";
 import { getSupabaseAdmin } from "./_supabaseAdmin.js";
+import { subscriptionBlocksNewCharge } from "../src/lib/stripeBillingCleanup.js";
 import { PRICES, buildSubscriptionItemUpdate } from "./_planCatalog.js";
 import {
   PREMIUM_PLAYER_CAP,
@@ -58,6 +59,10 @@ export default async function handler(req, res) {
       }
     }
 
+    if (subscriptionBlocksNewCharge(meta.subscriptionStatus)) {
+      return res.status(409).json({ error: "La suscripción está cancelada y no se volverá a cobrar." });
+    }
+
     const subscriptionId = meta.stripeSubscriptionId;
     let status = meta.subscriptionStatus || "active";
     let mode = "local";
@@ -65,11 +70,14 @@ export default async function handler(req, res) {
     if (subscriptionId) {
       try {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        if (subscription.cancel_at_period_end || subscriptionBlocksNewCharge(subscription.status)) {
+          return res.status(409).json({ error: "La suscripción está cancelada y no se volverá a cobrar." });
+        }
         const itemId = subscription.items?.data?.[0]?.id;
         if (itemId) {
           const updated = await stripe.subscriptions.update(subscriptionId, {
             items: [buildSubscriptionItemUpdate(newPlanId, itemId)],
-            proration_behavior: "create_prorations",
+            proration_behavior: subscription.status === "trialing" ? "none" : "create_prorations",
             metadata: { plan: newPlanId },
           });
           status = updated.status;

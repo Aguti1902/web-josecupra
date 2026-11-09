@@ -66,8 +66,51 @@ async function cancelCustomerSubscriptions(stripe, customerId, errors) {
   return canceled;
 }
 
+/** Borra prorrateos pendientes y anula facturas abiertas para que cancelar no cobre. */
+export async function voidPendingCharges(stripe, customerId, errors = []) {
+  const voided = [];
+  if (!customerId) return voided;
+  const pending = await safe(
+    `invoice items ${customerId}`,
+    () => stripe.invoiceItems.list({ customer: customerId, pending: true, limit: 100 }),
+    errors,
+  );
+  for (const item of pending?.data || []) {
+    const done = await safe(`delete item ${item.id}`, () => stripe.invoiceItems.del(item.id), errors);
+    if (done) voided.push(item.id);
+  }
+  for (const status of ["open", "draft"]) {
+    const page = await safe(
+      `${status} invoices ${customerId}`,
+      () => stripe.invoices.list({ customer: customerId, status, limit: 50 }),
+      errors,
+    );
+    for (const inv of page?.data || []) {
+      const reason = String(inv.billing_reason || "");
+      if (reason && reason !== "subscription_update" && reason !== "subscription_cycle" && reason !== "manual") continue;
+      if (status === "draft") {
+        const done = await safe(`delete draft ${inv.id}`, () => stripe.invoices.del(inv.id), errors);
+        if (done) voided.push(inv.id);
+      } else {
+        const done = await safe(`void ${inv.id}`, () => stripe.invoices.voidInvoice(inv.id), errors);
+        if (done?.id) voided.push(done.id);
+      }
+    }
+  }
+  return voided;
+}
+
 async function voidOpenInvoices(stripe, customerId, errors) {
   const voided = [];
+  const pending = await safe(
+    `invoice items ${customerId}`,
+    () => stripe.invoiceItems.list({ customer: customerId, pending: true, limit: 100 }),
+    errors,
+  );
+  for (const item of pending?.data || []) {
+    const done = await safe(`delete item ${item.id}`, () => stripe.invoiceItems.del(item.id), errors);
+    if (done) voided.push(item.id);
+  }
   const page = await safe(
     `open invoices ${customerId}`,
     () => stripe.invoices.list({ customer: customerId, status: "open", limit: 50 }),

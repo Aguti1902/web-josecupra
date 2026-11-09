@@ -4,6 +4,8 @@ import {
   isCancelableSubscription,
   isRefundableInvoice,
   refundableAmountCents,
+  shouldStopInvoiceCharge,
+  subscriptionBlocksNewCharge,
   summarizeBillingCleanup,
 } from "./stripeBillingCleanup.js";
 
@@ -43,6 +45,33 @@ describe("stripeBillingCleanup", () => {
     };
     assert.equal(isRefundableInvoice(old, now), false);
     assert.equal(isRefundableInvoice(done, now), false);
+  });
+
+  it("no cobra una actualización si la cuenta está cancelada o ya no existe", () => {
+    assert.equal(subscriptionBlocksNewCharge("cancel_at_period_end"), true);
+    assert.equal(subscriptionBlocksNewCharge("active"), false);
+    assert.equal(shouldStopInvoiceCharge({
+      billingReason: "subscription_update",
+      userStatus: "canceled",
+    }), true);
+    assert.equal(shouldStopInvoiceCharge({
+      billingReason: "subscription_update",
+      userStatus: "active",
+      cancelAtPeriodEnd: true,
+    }), true);
+    assert.equal(shouldStopInvoiceCharge({
+      billingReason: "subscription_cycle",
+      userFound: false,
+    }), true);
+    assert.equal(shouldStopInvoiceCharge({
+      billingReason: "subscription_create",
+      userStatus: "canceled",
+    }), false);
+    assert.equal(shouldStopInvoiceCharge({
+      billingReason: "subscription_update",
+      userStatus: "active",
+      subscriptionStatus: "active",
+    }), false);
   });
 
   it("resume reembolsos en euros para el admin", () => {

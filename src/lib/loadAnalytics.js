@@ -610,6 +610,7 @@ function conditioningSnap(log) {
   const load = rpe != null && timeSec != null ? Math.round(rpe * (timeSec / 60)) : null;
   return {
     date: log.recordedAt,
+    weekNumber: log.weekNumber,
     timeSec,
     distanceKm,
     heartRate,
@@ -675,7 +676,7 @@ export function getConditioningExerciseDetail(userId, exerciseName, domain, { we
     .filter((log) => String(log.exerciseName || log.nombre || "").trim().toLowerCase() === wanted)
     .map(conditioningSnap)
     .filter((row) => row.date)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    .sort((a, b) => (new Date(a.date) - new Date(b.date)) || (Number(a.weekNumber || 0) - Number(b.weekNumber || 0)));
 
   const end = new Date(now);
   const windowStart = weeks > 0 ? new Date(end.getTime() - weeks * 7 * 86400000) : null;
@@ -758,7 +759,7 @@ export function getExerciseProgressDetail(userId, exerciseName) {
   const name = String(exerciseName || "").trim().toLowerCase();
   const logs = getLoadLogs(userId)
     .filter((l) => String(l.exerciseName || l.nombre || "").trim().toLowerCase() === name)
-    .sort((a, b) => new Date(a.recordedAt) - new Date(b.recordedAt));
+    .sort((a, b) => (new Date(a.recordedAt) - new Date(b.recordedAt)) || (Number(a.weekNumber || 0) - Number(b.weekNumber || 0)));
   const snaps = logs.map((log) => {
     const snap = extractFuerzaSnapshot(log) || {};
     const epley = snap.maxWeight != null && snap.repsAtMax
