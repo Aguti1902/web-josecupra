@@ -17,6 +17,20 @@ import {
   exerciseNeedsWeight,
   getExerciseProgressDetail,
   estimate1RM,
+  resistanceMinutesToStored,
+  speedSecondsToStored,
+  resistanceDistanceToStored,
+  inputMinutesFromLog,
+  inputSecondsFromLog,
+  inputMetersFromStored,
+  metersFromLabel,
+  parseDistanceToKm,
+  logTimeToSeconds,
+  parseTimeToSeconds,
+  averageSpeedKmh,
+  averageSpeedMps,
+  formatSpeedKmh,
+  formatSpeedMps,
 } from "../../lib/loadAnalytics";
 import { canPersistInTrial, trialPersistBlockedMessage } from "../../lib/trialPersistence";
 import { hasFeatureAccess } from "../../lib/subscription";
@@ -51,7 +65,7 @@ function isBodyweightExercise(exercise) {
   return !list.length || list.every((m) => /sin.?material|peso.?corporal|bodyweight|ninguno|campo/.test(m));
 }
 
-function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap, swapTooltip, onLogged }) {
+export function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective, blockType, onSwap, canSwap, swapTooltip, onLogged }) {
   const ytId = exerciseYouTubeId(exercise);
   const typedExercise = {
     ...exercise,
@@ -93,14 +107,30 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
   );
 
   useEffect(() => {
+    const name = exercise.name || exercise.nombre;
     const prev = findLatestLoadLog(user?.id, {
       exerciseId: exercise.id,
       catalogId: exercise.catalogId,
-      exerciseName: exercise.name || exercise.nombre,
+      exerciseName: name,
       sessionId: sessionMeta?.sessionId,
       weekNumber: sessionMeta?.weekNumber,
     });
-    if (!prev) return;
+    const namedMeters = metersFromLabel(name);
+    const empty = {
+      time: "",
+      heartRate: "",
+      distance: mode === "velocidad" && namedMeters != null ? String(namedMeters) : "",
+      rpe: "",
+      notes: "",
+      intensity: "",
+      reps: "",
+      rest: "",
+    };
+    if (!prev) {
+      setSeries(Array.from({ length: setCount }, () => ({ weight: "", reps: "" })));
+      setLoadDraft(empty);
+      return;
+    }
     if (Array.isArray(prev.series) && prev.series.length) {
       setSeries(Array.from({ length: setCount }, (_, i) => ({
         weight: prev.series[i]?.weight || "",
@@ -108,14 +138,21 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
       })));
     }
     setLoadDraft({
-      time: prev.time || "",
+      ...empty,
+      time: mode === "resistencia"
+        ? inputMinutesFromLog(prev)
+        : mode === "velocidad"
+          ? inputSecondsFromLog(prev)
+          : (prev.time || ""),
       heartRate: prev.heartRate || "",
-      distance: prev.distance || "",
+      distance: prev.distance ? inputMetersFromStored(prev.distance) : empty.distance,
       rpe: prev.rpe || "",
       notes: prev.notes || "",
       intensity: prev.intensity || "",
+      reps: prev.reps || "",
+      rest: prev.rest || "",
     });
-  }, [exercise.id, user?.id, sessionMeta?.sessionId, sessionMeta?.weekNumber, setCount]);
+  }, [exercise.id, exercise.name, exercise.nombre, user?.id, sessionMeta?.sessionId, sessionMeta?.weekNumber, setCount, mode]);
 
   const handleSaveLoad = () => {
     if (!canPersistInTrial(user, "save_loads")) {
@@ -153,8 +190,13 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
       }
     }
     if (mode === "velocidad") {
-      payload.time = loadDraft.time || "";
+      payload.time = speedSecondsToStored(loadDraft.time);
+      payload.distance = resistanceDistanceToStored(loadDraft.distance);
       payload.heartRate = loadDraft.heartRate || "";
+    }
+    if (mode === "resistencia") {
+      payload.time = resistanceMinutesToStored(loadDraft.time);
+      payload.distance = resistanceDistanceToStored(loadDraft.distance);
     }
     saveLoadLog(user?.id, payload);
     setLoadSaved(true);
@@ -167,11 +209,11 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
     sets: "Series",
     reps: "Repeticiones",
     rest: "Descanso",
-    rpe: "RPE / RP",
-    time: "Tiempo",
-    distance: "Metros / distancia",
+    rpe: "RPE (1–10)",
+    time: "Tiempo (min)",
+    distance: "Distancia (m)",
     heartRate: "FC media (ppm)",
-    intensity: "Zona / intensidad",
+    intensity: "Zona (1–5)",
     feelings: "Sensaciones",
     notes: "Observaciones",
   };
@@ -196,6 +238,22 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
   const liveDelta = liveMax != null && previousSession?.maxWeight != null
     ? Math.round((liveMax - previousSession.maxWeight) * 10) / 10
     : (sameSession ? progression?.deltaWeight : null);
+  const liveAverageSpeed = (() => {
+    if (mode === "velocidad") {
+      const sec = parseTimeToSeconds(speedSecondsToStored(loadDraft.time));
+      const km = parseDistanceToKm(resistanceDistanceToStored(loadDraft.distance));
+      return formatSpeedMps(averageSpeedMps(km == null ? null : km * 1000, sec));
+    }
+    if (mode === "resistencia") {
+      const sec = logTimeToSeconds({
+        tipoRegistro: "resistencia",
+        time: resistanceMinutesToStored(loadDraft.time),
+      });
+      const km = parseDistanceToKm(resistanceDistanceToStored(loadDraft.distance));
+      return formatSpeedKmh(averageSpeedKmh(km == null ? null : km * 1000, sec));
+    }
+    return null;
+  })();
   const muscle = exercise.etiquetas?.grupo_principal || exercise.grupo || "";
   const segmento = exercise.etiquetas?.segmento || "";
 
@@ -383,19 +441,23 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
                   {mode === "velocidad" ? (
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[10px] font-bold text-depro-gray uppercase">Tiempo</label>
-                        <input className="admin-input w-full text-xs mt-1" placeholder="1.85 s" value={loadDraft.time || ""} onChange={(e) => setLoadDraft({ ...loadDraft, time: e.target.value })} />
+                        <label className="text-[10px] font-bold text-depro-gray uppercase">Tiempo (s)</label>
+                        <input className="admin-input w-full text-xs mt-1" inputMode="decimal" placeholder="2,08" value={loadDraft.time || ""} onChange={(e) => setLoadDraft({ ...loadDraft, time: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-depro-gray uppercase">Distancia (m)</label>
+                        <input className="admin-input w-full text-xs mt-1" inputMode="decimal" placeholder="10" value={loadDraft.distance || ""} onChange={(e) => setLoadDraft({ ...loadDraft, distance: e.target.value })} />
                       </div>
                       <div>
                         <label className="text-[10px] font-bold text-depro-gray uppercase">Repeticiones</label>
                         <input className="admin-input w-full text-xs mt-1" inputMode="numeric" placeholder="6" value={loadDraft.reps || ""} onChange={(e) => setLoadDraft({ ...loadDraft, reps: e.target.value })} />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-depro-gray uppercase">Descanso</label>
-                        <input className="admin-input w-full text-xs mt-1" placeholder="90 s" value={loadDraft.rest || ""} onChange={(e) => setLoadDraft({ ...loadDraft, rest: e.target.value })} />
+                        <label className="text-[10px] font-bold text-depro-gray uppercase">Descanso (s)</label>
+                        <input className="admin-input w-full text-xs mt-1" inputMode="numeric" placeholder="90" value={loadDraft.rest || ""} onChange={(e) => setLoadDraft({ ...loadDraft, rest: e.target.value })} />
                       </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-depro-gray uppercase">FC media</label>
+                      <div className="col-span-2">
+                        <label className="text-[10px] font-bold text-depro-gray uppercase">FC media (ppm)</label>
                         <input className="admin-input w-full text-xs mt-1" inputMode="numeric" placeholder="165" value={loadDraft.heartRate || ""} onChange={(e) => setLoadDraft({ ...loadDraft, heartRate: e.target.value })} />
                       </div>
                     </div>
@@ -407,10 +469,22 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
                           {field === "notes" ? (
                             <textarea className="admin-input w-full text-xs mt-1" rows={2} value={loadDraft[field] || ""} onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })} />
                           ) : (
-                            <input className="admin-input w-full text-xs mt-1" value={loadDraft[field] || ""} onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })} />
+                            <input
+                              className="admin-input w-full text-xs mt-1"
+                              inputMode={field === "time" || field === "distance" || field === "heartRate" || field === "rpe" || field === "intensity" ? "decimal" : "text"}
+                              placeholder={field === "time" ? "25" : field === "distance" ? "6000" : field === "heartRate" ? "170" : field === "rpe" ? "7" : field === "intensity" ? "4" : ""}
+                              value={loadDraft[field] || ""}
+                              onChange={(e) => setLoadDraft({ ...loadDraft, [field]: e.target.value })}
+                            />
                           )}
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {(mode === "velocidad" || mode === "resistencia") && (
+                    <div className="rounded-xl bg-slate-50 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase text-depro-gray">Velocidad media</p>
+                      <p className="text-sm font-black text-depro-dark">{liveAverageSpeed || "—"}</p>
                     </div>
                   )}
                 </div>
@@ -433,7 +507,7 @@ function ExerciseModal({ exercise, onClose, accent, user, sessionMeta, objective
             onClick={handleSaveLoad}
             className="w-full py-3 rounded-xl text-sm font-black text-white bg-depro-red inline-flex items-center justify-center gap-2"
           >
-            <CheckCircle size={16} /> Guardar series
+            <CheckCircle size={16} /> {mode === "fuerza_series" ? "Guardar series" : "Guardar registro"}
           </button>
         )}
         {onSwap && (

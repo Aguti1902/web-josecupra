@@ -3,7 +3,7 @@
  * Enlaza los registros de la rutina sin reescribirlos.
  */
 import { getLoadLogs } from "./loadLogs.js";
-import { getLogsByDomain, parseTimeToSeconds } from "./loadAnalytics.js";
+import { getLogsByDomain, logTimeToSeconds, parseTimeToSeconds } from "./loadAnalytics.js";
 
 function parseNum(value) {
   const raw = String(value || "").trim();
@@ -140,7 +140,7 @@ function cellFromLog(domain, log) {
       rpe: parseNum(log.rpe || log.intensity),
       distance: parseNum(log.distance),
       time: log.time || "",
-      timeSec: parseTimeToSeconds(log.time),
+      timeSec: logTimeToSeconds({ ...log, tipoRegistro: "resistencia" }),
     };
   }
   return {

@@ -109,11 +109,14 @@ function parseReps(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Convierte "1.85 s", "1:25", "85", "3'20"" a segundos. */
+/** Convierte "1.85 s", "1:25", "85", "3'20"", "25 min" a segundos. Un número suelto son segundos. */
 export function parseTimeToSeconds(value) {
   if (value == null || value === "") return null;
   const raw = String(value).trim().toLowerCase();
   if (!raw) return null;
+
+  const asMinutes = raw.match(/^(\d+(?:[.,]\d+)?)\s*(?:min|mins|minuto|minutos)\b/);
+  if (asMinutes) return parseFloat(asMinutes[1].replace(",", ".")) * 60;
 
   const minSec = raw.match(/^(\d+)\s*[:'′]\s*(\d+(?:[.,]\d+)?)\s*(?:s|seg|")?$/);
   if (minSec) {
@@ -123,6 +126,118 @@ export function parseTimeToSeconds(value) {
   const onlyNum = raw.replace(",", ".").replace(/[^\d.]/g, "");
   const n = parseFloat(onlyNum);
   return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * En resistencia un número suelto son minutos (el formulario pide minutos).
+ * "32:10" y "25 min" se respetan. En velocidad el número suelto sigue siendo segundos.
+ */
+export function logTimeToSeconds(log) {
+  const tipo = String(log?.tipoRegistro || "").toLowerCase();
+  const raw = String(log?.time ?? "").trim().toLowerCase();
+  if (
+    tipo === "resistencia"
+    && raw
+    && !/[:'′]/.test(raw)
+    && !/\b(s|seg|segundos)\b/.test(raw)
+    && !/\b(min|mins|minuto|minutos)\b/.test(raw)
+  ) {
+    const n = parseFloat(raw.replace(",", "."));
+    if (Number.isFinite(n)) return n * 60;
+  }
+  return parseTimeToSeconds(log?.time);
+}
+
+export function resistanceMinutesToStored(input) {
+  const raw = String(input || "").trim();
+  if (!raw) return "";
+  if (/\b(min|mins|minuto|minutos)\b/i.test(raw) || /[:'′]/.test(raw)) return raw;
+  const n = parseFloat(raw.replace(",", "."));
+  if (!Number.isFinite(n)) return raw;
+  return `${String(n).replace(".", ",")} min`;
+}
+
+export function speedSecondsToStored(input) {
+  const raw = String(input || "").trim();
+  if (!raw) return "";
+  if (/\b(s|seg|segundos)\b/i.test(raw)) return raw;
+  const n = parseFloat(raw.replace(",", "."));
+  if (!Number.isFinite(n)) return raw;
+  return `${String(n).replace(".", ",")} s`;
+}
+
+export function resistanceDistanceToStored(input) {
+  const raw = String(input || "").trim();
+  if (!raw) return "";
+  if (/km|metro|\dm\b/i.test(raw)) return raw;
+  const n = parseFloat(raw.replace(",", ".").replace(/[^\d.]/g, ""));
+  if (!Number.isFinite(n)) return raw;
+  return `${String(n).replace(".", ",")} m`;
+}
+
+export function inputMinutesFromLog(log) {
+  const sec = logTimeToSeconds({ ...log, tipoRegistro: log?.tipoRegistro || "resistencia" });
+  if (sec == null) return "";
+  const rounded = Math.round((sec / 60) * 10) / 10;
+  return String(rounded).replace(".", ",");
+}
+
+export function inputSecondsFromLog(log) {
+  const sec = parseTimeToSeconds(log?.time);
+  if (sec == null) return "";
+  const rounded = Math.round(sec * 100) / 100;
+  return String(rounded).replace(".", ",");
+}
+
+export function inputMetersFromStored(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/km/i.test(raw)) {
+    const km = parseDistanceToKm(raw);
+    return km == null ? "" : String(Math.round(km * 1000));
+  }
+  const n = raw.match(/[\d]+(?:[.,]\d+)?/);
+  return n ? n[0] : "";
+}
+
+export function formatMinutes(sec) {
+  if (sec == null || !Number.isFinite(sec)) return null;
+  const minutes = Math.round((sec / 60) * 10) / 10;
+  const text = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 }).format(minutes);
+  return `${text} min`;
+}
+
+export function formatSeconds(sec) {
+  if (sec == null || !Number.isFinite(sec)) return null;
+  const text = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(sec);
+  return `${text} s`;
+}
+
+export function metersFromLabel(name) {
+  const matches = [...String(name || "").matchAll(/(\d+(?:[.,]\d+)?)\s*m\b/gi)];
+  if (!matches.length) return null;
+  const n = parseFloat(matches[0][1].replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+export function averageSpeedMps(distanceM, timeSec) {
+  if (distanceM == null || timeSec == null || !(distanceM > 0) || !(timeSec > 0)) return null;
+  return distanceM / timeSec;
+}
+
+export function averageSpeedKmh(distanceM, timeSec) {
+  const mps = averageSpeedMps(distanceM, timeSec);
+  return mps == null ? null : mps * 3.6;
+}
+
+export function formatSpeedMps(mps) {
+  if (mps == null || !Number.isFinite(mps) || mps <= 0) return null;
+  return `${new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(mps)} m/s`;
+}
+
+export function formatSpeedKmh(kmh) {
+  if (kmh == null || !Number.isFinite(kmh) || kmh <= 0) return null;
+  return `${new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(kmh)} km/h`;
 }
 
 export function pctChange(from, to) {
@@ -601,24 +716,31 @@ export function formatDuration(sec) {
 }
 
 function conditioningSnap(log) {
-  const timeSec = parseTimeToSeconds(log.time);
+  const timeSec = logTimeToSeconds(log);
   const distanceKm = parseDistanceToKm(log.distance);
+  const namedMeters = metersFromLabel(log.exerciseName || log.nombre);
+  const distanceM = distanceKm != null ? distanceKm * 1000 : namedMeters;
   const heartRate = parseWeight(log.heartRate);
   const rpe = parseWeight(log.rpe);
   const reps = parseReps(log.reps);
   const paceSec = distanceKm > 0 && timeSec > 0 ? timeSec / distanceKm : null;
+  const speedMps = averageSpeedMps(distanceM, timeSec);
+  const speedKmh = speedMps == null ? null : speedMps * 3.6;
   const load = rpe != null && timeSec != null ? Math.round(rpe * (timeSec / 60)) : null;
   return {
     date: log.recordedAt,
     weekNumber: log.weekNumber,
     timeSec,
     distanceKm,
+    distanceM,
     heartRate,
     rpe,
     reps,
     repsLabel: log.reps || null,
     rest: log.rest || null,
     paceSec,
+    speedMps,
+    speedKmh,
     load,
   };
 }
@@ -639,10 +761,15 @@ function periodTotals(rows) {
   const distanceKm = sumField(rows, "distanceKm");
   const timeSec = sumField(rows, "timeSec");
   const load = sumField(rows, "load");
+  const distanceM = sumField(rows, "distanceM");
+  const speedMps = distanceM > 0 && timeSec > 0 ? distanceM / timeSec : avgField(rows, "speedMps");
   return {
     distanceKm,
+    distanceM,
     timeSec,
     paceSec: distanceKm > 0 && timeSec > 0 ? timeSec / distanceKm : null,
+    speedMps,
+    speedKmh: speedMps == null ? null : speedMps * 3.6,
     heartRate: avgField(rows, "heartRate"),
     load,
     reps: sumField(rows, "reps"),
@@ -697,6 +824,8 @@ export function getConditioningExerciseDetail(userId, exerciseName, domain, { we
     paceSec: prevSession.paceSec,
     heartRate: prevSession.heartRate,
     load: prevSession.load,
+    speedMps: prevSession.speedMps,
+    speedKmh: prevSession.speedKmh,
   } : null);
   const deltaPct = (from, to) => {
     if (from == null || to == null || !Number.isFinite(from) || !Number.isFinite(to) || from === 0) return null;
@@ -736,11 +865,13 @@ export function getConditioningExerciseDetail(userId, exerciseName, domain, { we
       pace: deltaPct(deltaSource?.paceSec, totals.paceSec),
       heartRate: deltaPct(deltaSource?.heartRate, totals.heartRate),
       load: deltaPct(deltaSource?.load, totals.load),
+      speed: deltaPct(deltaSource?.speedMps, totals.speedMps),
     },
     best: {
       timeSec: bestOf(all, "timeSec", false)?.timeSec ?? null,
       distanceKm: bestOf(all, "distanceKm", true)?.distanceKm ?? null,
       paceSec: bestOf(all, "paceSec", false)?.paceSec ?? null,
+      speedMps: bestOf(all, "timeSec", false)?.speedMps ?? null,
     },
     last,
     charts: {
@@ -750,6 +881,7 @@ export function getConditioningExerciseDetail(userId, exerciseName, domain, { we
       pace: chartPoints(currentRows, "paceSec"),
       heartRate: chartPoints(currentRows, "heartRate"),
       rpe: chartPoints(currentRows, "rpe"),
+      speed: chartPoints(currentRows, "speedMps"),
     },
     weekly,
   };

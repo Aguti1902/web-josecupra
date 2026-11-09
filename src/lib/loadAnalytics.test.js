@@ -5,6 +5,13 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import {
   parseTimeToSeconds,
+  logTimeToSeconds,
+  formatMinutes,
+  formatSeconds,
+  formatSpeedKmh,
+  formatSpeedMps,
+  averageSpeedKmh,
+  averageSpeedMps,
   pctChange,
   extractFuerzaSnapshot,
   classifyTimeHrImprovement,
@@ -44,6 +51,15 @@ describe("loadAnalytics — mejoras prácticas", () => {
     assert.equal(parseTimeToSeconds("1:25"), 85);
     assert.equal(parseTimeToSeconds("3'20\""), 200);
     assert.equal(parseTimeToSeconds("90"), 90);
+    assert.equal(parseTimeToSeconds("25 min"), 1500);
+    assert.equal(parseTimeToSeconds("2,08 s"), 2.08);
+    assert.equal(logTimeToSeconds({ tipoRegistro: "resistencia", time: "25" }), 1500);
+    assert.equal(logTimeToSeconds({ tipoRegistro: "velocidad", time: "2,08" }), 2.08);
+    assert.equal(formatMinutes(1500), "25 min");
+    assert.equal(formatMinutes(1930), "32,2 min");
+    assert.equal(formatSeconds(2.08), "2,08 s");
+    assert.equal(formatSpeedKmh(averageSpeedKmh(6000, 25 * 60)), "14,4 km/h");
+    assert.equal(formatSpeedMps(averageSpeedMps(10, 2.08)), "4,81 m/s");
   });
 
   it("pctChange calcula porcentaje", () => {
@@ -277,5 +293,20 @@ describe("condicionamiento por ejercicio", () => {
     });
     assert.equal(other.sessions.length, 1);
     assert.equal(other.best.timeSec, 3.4);
+    assert.equal(formatSpeedMps(detail.best.speedMps), "4,81 m/s");
+    assert.equal(formatSpeedMps(detail.totals.speedMps) != null, true);
+  });
+
+  it("el tiempo de resistencia en minutos da la velocidad media en km/h", () => {
+    seedLogs([
+      { id: "r1", exerciseName: "Carrera continua", tipoRegistro: "resistencia", recordedAt: "2026-11-09T10:00:00Z", distance: "6000 m", time: "25 min", heartRate: "178", rpe: "7" },
+    ]);
+    const detail = getConditioningExerciseDetail(USER, "Carrera continua", "resistencia", {
+      weeks: 0,
+      now: new Date("2026-11-09T12:00:00Z"),
+    });
+    assert.equal(formatMinutes(detail.totals.timeSec), "25 min");
+    assert.equal(formatSpeedKmh(detail.totals.speedKmh), "14,4 km/h");
+    assert.equal(detail.sessions[0].distanceKm, 6);
   });
 });

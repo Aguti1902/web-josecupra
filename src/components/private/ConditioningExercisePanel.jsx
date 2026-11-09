@@ -6,7 +6,10 @@ import {
   listLoggedExercises,
   getConditioningExerciseDetail,
   formatPace,
-  formatDuration,
+  formatMinutes,
+  formatSeconds,
+  formatSpeedKmh,
+  formatSpeedMps,
 } from "../../lib/loadAnalytics";
 
 function formatKm(km) {
@@ -52,11 +55,17 @@ function MetricCard({ icon, label, value, delta, invert, caption }) {
 
 const RES_METRICS = [
   { id: "load", label: "Carga" },
-  { id: "distance", label: "Distancia" },
-  { id: "time", label: "Tiempo" },
+  { id: "distance", label: "Distancia (km)" },
+  { id: "time", label: "Tiempo (min)" },
+  { id: "speed", label: "Velocidad (km/h)" },
   { id: "pace", label: "Ritmo" },
-  { id: "heartRate", label: "FC" },
+  { id: "heartRate", label: "FC (ppm)" },
   { id: "rpe", label: "RPE" },
+];
+
+const SPEED_METRICS = [
+  { id: "time", label: "Tiempo (s)" },
+  { id: "speed", label: "Velocidad (m/s)" },
 ];
 
 export default function ConditioningExercisePanel({ userId, domain, tick }) {
@@ -77,20 +86,23 @@ export default function ConditioningExercisePanel({ userId, domain, tick }) {
   }, [userId, exerciseName, domain, weeks, tick]);
 
   const caption = weeks > 0 ? "vs. periodo anterior" : "vs. sesión anterior";
-  const chart = detail?.charts?.[metric] || [];
+  const chartMetric = speed && metric !== "time" && metric !== "speed" ? "time" : metric;
+  const chart = detail?.charts?.[chartMetric] || [];
   const series = chart.map((point) => {
     if (point.value == null) return point;
-    if (metric === "time" && !speed) return { ...point, value: point.value / 60 };
-    if (metric === "distance") return { ...point, value: Math.round(point.value * 10) / 10 };
+    if (chartMetric === "time" && !speed) return { ...point, value: point.value / 60 };
+    if (chartMetric === "distance") return { ...point, value: Math.round(point.value * 10) / 10 };
     return point;
   });
-  const formatTick = metric === "pace"
+  const formatTick = chartMetric === "pace"
     ? (value) => formatPace(value)?.replace("/km", "") || ""
-    : metric === "time" && !speed
-      ? (value) => formatDuration(value * 60) || ""
-      : metric === "time"
-        ? (value) => `${new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 }).format(value)}s`
-        : null;
+    : chartMetric === "time" && !speed
+      ? (value) => `${new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 }).format(value)} min`
+      : chartMetric === "time"
+        ? (value) => `${new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 }).format(value)} s`
+        : chartMetric === "speed"
+          ? (value) => `${new Intl.NumberFormat("es-ES", { maximumFractionDigits: speed ? 2 : 1 }).format(speed ? value : value * 3.6)}`
+          : null;
 
   return (
     <div className="space-y-4">
@@ -129,18 +141,19 @@ export default function ConditioningExercisePanel({ userId, domain, tick }) {
         </div>
       ) : (
         <>
-          <div className={`grid grid-cols-2 ${speed ? "lg:grid-cols-4" : "lg:grid-cols-5"} gap-3`}>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             {speed ? (
               <>
-                <MetricCard icon={Trophy} label="Mejor tiempo" value={formatDuration(detail.best.timeSec) || "—"} caption="marca personal" />
-                <MetricCard icon={Timer} label="Último tiempo" value={formatDuration(detail.last?.timeSec) || "—"} delta={detail.deltas.time} invert caption={caption} />
-                <MetricCard icon={Zap} label="Repeticiones" value={formatNum(detail.totals.reps, 0)} caption="en el periodo" />
+                <MetricCard icon={Trophy} label="Mejor tiempo" value={formatSeconds(detail.best.timeSec) || "—"} caption="marca personal" />
+                <MetricCard icon={Timer} label="Último tiempo" value={formatSeconds(detail.last?.timeSec) || "—"} delta={detail.deltas.time} invert caption={caption} />
+                <MetricCard icon={Zap} label="Velocidad media" value={formatSpeedMps(detail.totals.speedMps) || "—"} delta={detail.deltas.speed} caption={caption} />
                 <MetricCard icon={Heart} label="FC media" value={formatNum(detail.totals.heartRate, 0, " ppm")} delta={detail.deltas.heartRate} invert caption={caption} />
               </>
             ) : (
               <>
                 <MetricCard icon={Route} label="Distancia total" value={formatKm(detail.totals.distanceKm)} delta={detail.deltas.distance} caption={caption} />
-                <MetricCard icon={Timer} label="Tiempo total" value={formatDuration(detail.totals.timeSec) || "—"} delta={detail.deltas.time} caption={caption} />
+                <MetricCard icon={Timer} label="Tiempo total" value={formatMinutes(detail.totals.timeSec) || "—"} delta={detail.deltas.time} caption={caption} />
+                <MetricCard icon={Zap} label="Velocidad media" value={formatSpeedKmh(detail.totals.speedKmh) || "—"} delta={detail.deltas.speed} caption={caption} />
                 <MetricCard icon={Activity} label="Ritmo medio" value={formatPace(detail.totals.paceSec) || "—"} delta={detail.deltas.pace} invert caption={caption} />
                 <MetricCard icon={Heart} label="FC media" value={formatNum(detail.totals.heartRate, 0, " ppm")} delta={detail.deltas.heartRate} invert caption={caption} />
                 <MetricCard icon={Zap} label="Carga interna" value={detail.totals.load != null ? `${formatNum(detail.totals.load)} u.a.` : "—"} delta={detail.deltas.load} caption={caption} />
@@ -148,9 +161,8 @@ export default function ConditioningExercisePanel({ userId, domain, tick }) {
             )}
           </div>
 
-          {!speed && (
-            <div className="inline-flex rounded-full bg-neutral-100 p-1 flex-wrap">
-              {RES_METRICS.map((item) => (
+          <div className="inline-flex rounded-full bg-neutral-100 p-1 flex-wrap">
+            {(speed ? SPEED_METRICS : RES_METRICS).map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -160,16 +172,27 @@ export default function ConditioningExercisePanel({ userId, domain, tick }) {
                   {item.label}
                 </button>
               ))}
-            </div>
-          )}
+          </div>
 
           <div className="grid lg:grid-cols-5 gap-4">
             <div className="lg:col-span-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-card">
               <h2 className="font-black text-[#111]">
-                {speed ? "Evolución del tiempo" : metric === "distance" ? "Evolución de la distancia" : metric === "time" ? "Evolución del tiempo" : metric === "pace" ? "Evolución del ritmo" : metric === "heartRate" ? "Evolución de la FC" : metric === "rpe" ? "Evolución del RPE" : "Evolución de la carga"}
+                {chartMetric === "speed"
+                  ? "Evolución de la velocidad"
+                  : speed || chartMetric === "time"
+                    ? `Evolución del tiempo (${speed ? "s" : "min"})`
+                    : chartMetric === "distance"
+                      ? "Evolución de la distancia"
+                      : chartMetric === "pace"
+                        ? "Evolución del ritmo"
+                        : chartMetric === "heartRate"
+                          ? "Evolución de la FC"
+                          : chartMetric === "rpe"
+                            ? "Evolución del RPE"
+                            : "Evolución de la carga"}
               </h2>
               <p className="text-xs text-neutral-500 mb-2">
-                {exerciseName}. {speed || metric === "pace" ? "Una línea que baja es una mejora." : "Solo las sesiones de este ejercicio."}
+                {exerciseName}. {chartMetric === "time" || chartMetric === "pace" ? "Una línea que baja es una mejora." : "Solo las sesiones de este ejercicio."}
               </p>
               <LineChart series={series} color="#FB2C39" formatTick={formatTick} />
             </div>
@@ -177,8 +200,9 @@ export default function ConditioningExercisePanel({ userId, domain, tick }) {
               {speed ? (
                 <>
                   <h2 className="font-black text-[#111] mb-3">Mejores marcas</h2>
-                  <p className="text-3xl font-black text-[#111]">{formatDuration(detail.best.timeSec) || "—"}</p>
-                  <p className="text-xs text-neutral-500 mb-4">Mejor tiempo de {exerciseName}</p>
+                  <p className="text-3xl font-black text-[#111]">{formatSeconds(detail.best.timeSec) || "—"}</p>
+                  <p className="text-xs text-neutral-500 mb-1">Mejor tiempo de {exerciseName}</p>
+                  <p className="text-sm text-neutral-600 mb-4">Velocidad de esa marca: <span className="font-black text-[#111]">{formatSpeedMps(detail.best.speedMps) || "—"}</span></p>
                   <p className="text-sm text-neutral-600">Último descanso: <span className="font-black text-[#111]">{detail.last?.rest || "—"}</span></p>
                   <p className="text-sm text-neutral-600 mt-1">Últimas repeticiones: <span className="font-black text-[#111]">{detail.last?.repsLabel || detail.last?.reps || "—"}</span></p>
                 </>
@@ -205,17 +229,19 @@ export default function ConditioningExercisePanel({ userId, domain, tick }) {
                     <th className="text-left font-bold px-4 py-2">Fecha</th>
                     {speed ? (
                       <>
-                        <th className="text-right font-bold px-2 py-2">Tiempo</th>
+                        <th className="text-right font-bold px-2 py-2">Tiempo (s)</th>
+                        <th className="text-right font-bold px-2 py-2">Velocidad</th>
                         <th className="text-right font-bold px-2 py-2">Reps</th>
-                        <th className="text-right font-bold px-2 py-2">Descanso</th>
-                        <th className="text-right font-bold px-4 py-2">FC</th>
+                        <th className="text-right font-bold px-2 py-2">Descanso (s)</th>
+                        <th className="text-right font-bold px-4 py-2">FC (ppm)</th>
                       </>
                     ) : (
                       <>
                         <th className="text-right font-bold px-2 py-2">Distancia</th>
-                        <th className="text-right font-bold px-2 py-2">Tiempo</th>
+                        <th className="text-right font-bold px-2 py-2">Tiempo (min)</th>
+                        <th className="text-right font-bold px-2 py-2">Velocidad</th>
                         <th className="text-right font-bold px-2 py-2">Ritmo</th>
-                        <th className="text-right font-bold px-2 py-2">FC</th>
+                        <th className="text-right font-bold px-2 py-2">FC (ppm)</th>
                         <th className="text-right font-bold px-2 py-2">RPE</th>
                         <th className="text-right font-bold px-4 py-2">Carga</th>
                       </>
@@ -228,7 +254,8 @@ export default function ConditioningExercisePanel({ userId, domain, tick }) {
                       <td className="px-4 py-2.5 font-semibold text-[#111] whitespace-nowrap">{shortDate(session.date)}</td>
                       {speed ? (
                         <>
-                          <td className="px-2 py-2.5 text-right font-black tabular-nums">{formatDuration(session.timeSec) || "—"}</td>
+                          <td className="px-2 py-2.5 text-right font-black tabular-nums">{formatSeconds(session.timeSec) || "—"}</td>
+                          <td className="px-2 py-2.5 text-right tabular-nums">{formatSpeedMps(session.speedMps) || "—"}</td>
                           <td className="px-2 py-2.5 text-right tabular-nums">{session.repsLabel || session.reps || "—"}</td>
                           <td className="px-2 py-2.5 text-right tabular-nums">{session.rest || "—"}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">{session.heartRate != null ? `${Math.round(session.heartRate)} ppm` : "—"}</td>
@@ -236,7 +263,8 @@ export default function ConditioningExercisePanel({ userId, domain, tick }) {
                       ) : (
                         <>
                           <td className="px-2 py-2.5 text-right tabular-nums">{formatKm(session.distanceKm)}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums">{formatDuration(session.timeSec) || "—"}</td>
+                          <td className="px-2 py-2.5 text-right tabular-nums">{formatMinutes(session.timeSec) || "—"}</td>
+                          <td className="px-2 py-2.5 text-right tabular-nums">{formatSpeedKmh(session.speedKmh) || "—"}</td>
                           <td className="px-2 py-2.5 text-right tabular-nums">{formatPace(session.paceSec) || "—"}</td>
                           <td className="px-2 py-2.5 text-right tabular-nums">{session.heartRate != null ? `${Math.round(session.heartRate)}` : "—"}</td>
                           <td className="px-2 py-2.5 text-right tabular-nums">{session.rpe ?? "—"}</td>
